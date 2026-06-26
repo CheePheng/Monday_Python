@@ -232,7 +232,7 @@ def get_board_items(board_id):
     """All items on the board (across every group) with their column values.
     We dedup against the WHOLE board so a deal that changed stage updates in place."""
     q = ("query ($b:[ID!]) { boards(ids:$b) { items_page(limit:500) { items { "
-         "id name group { id } column_values { id text } } } } }")
+         "id name updated_at group { id } column_values { id text } } } } }")
     boards = monday_query(q, {"b": [str(board_id)]})["boards"]
     return boards[0]["items_page"]["items"] if boards else []
 

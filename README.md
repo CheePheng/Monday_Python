@@ -164,6 +164,27 @@ python watch.py --live --interval 30   # change the poll interval (default 10s)
 `.env` (stays a dry preview). Stop the watcher with Ctrl+C. It only runs while the terminal/PC is on;
 for always-on, real-time sync see the deferred Cloudflare webhook plan.
 
+### Two-way sync (monday ↔ HubSpot)
+
+`sync.py` reconciles **both directions** with **last-edit-wins**, and is **update-only** (it never
+creates a HubSpot deal). For each deal on both sides (matched by HubSpot Deal ID) it compares the
+editable fields; if they differ, the side whose record changed more recently wins. Because it only
+acts when values differ, it can't ping-pong.
+
+```bash
+python sync.py                          # preview BOTH directions, write nothing (safe)
+python sync.py --live                   # allow monday writes (HubSpot side still preview)
+python sync.py --live --write-hubspot   # allow both directions to write
+```
+
+- **Reversible fields:** deal name, stage (via group), Deal Type, Priority, Vendor. Owner, Pipeline,
+  Created date, HubSpot Deal ID and HubSpot Link stay one-way / read-only.
+- **Use `sync.py` instead of `watch.py` for two-way.** `watch.py` is one-way (HubSpot→monday) and
+  will keep reverting monday edits; `sync.py` is the reconciler that respects both sides.
+- **Reverse writes need a HubSpot scope.** Add **`crm.objects.deals.write`** to your private app
+  (Scopes tab) — the read-only token returns `403` on write. Until then, `--write-hubspot` previews
+  the PATCH but HubSpot rejects it.
+
 ### Run the automated tests
 
 The router's logic (owner matching, duplicate detection, payload building, routing decisions) is
