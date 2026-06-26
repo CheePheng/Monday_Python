@@ -1,22 +1,21 @@
 {
-  "hubspot_pipeline_id": "PUT_SALES_PIPELINE_ID_HERE",
+  "hubspot_pipeline_id": "default",
   "owners": {
-    "Matthew Ng": {
-      "hubspot_owner_id": "OPTIONAL_PUT_OWNER_ID_HERE",
-      "monday_board_id": "PUT_MATTHEW_BOARD_ID_HERE",
-      "monday_group_title": "Sales Pipeline"
-    },
-    "John Aldrin Bautista": {
-      "hubspot_owner_id": "OPTIONAL_PUT_OWNER_ID_HERE",
-      "monday_board_id": "PUT_ALDRIN_BOARD_ID_HERE",
-      "monday_group_title": "Sales Pipeline"
+    "Myla Mestiola": {
+      "hubspot_owner_id": "PUT_HUBSPOT_OWNER_ID_HERE",
+      "monday_board_id": "PUT_THIS_OWNERS_BOARD_ID_HERE",
+      "stage_to_group": {
+        "appointmentscheduled": "PUT_GROUP_ID_FOR_STAGE_01_HERE",
+        "qualifiedtobuy": "PUT_GROUP_ID_FOR_STAGE_02_HERE",
+        "presentationscheduled": "PUT_GROUP_ID_FOR_STAGE_03_HERE",
+        "decisionmakerboughtin": "PUT_GROUP_ID_FOR_STAGE_04_HERE",
+        "contractsent": "PUT_GROUP_ID_FOR_STAGE_05_HERE",
+        "closedwon": "PUT_GROUP_ID_FOR_STAGE_06_HERE",
+        "closedlost": "PUT_GROUP_ID_FOR_STAGE_07_HERE"
+      }
     }
   },
   "monday_columns": {
-    "hubspot_deal_id": "PUT_COLUMN_ID_HERE",
-    "deal_name": "PUT_COLUMN_ID_HERE",
-    "deal_owner": "PUT_COLUMN_ID_HERE",
-    "deal_stage": "PUT_COLUMN_ID_HERE",
-    "amount": "PUT_COLUMN_ID_HERE"
+    "hubspot_deal_id": "PUT_HUBSPOT_DEAL_ID_COLUMN_ID_HERE"
   }
 }

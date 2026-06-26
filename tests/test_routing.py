@@ -1,8 +1,10 @@
 import owner_router_test as r
 
 CONFIG = {"owners": {
-    "Matthew Ng": {"hubspot_owner_id": "555", "monday_board_id": "B1", "monday_group_title": "Sales Pipeline"},
-    "John Aldrin Bautista": {"monday_board_id": "B2", "monday_group_title": "Sales Pipeline"}}}
+    "Matthew Ng": {"hubspot_owner_id": "555", "monday_board_id": "B1",
+                   "stage_to_group": {"appointmentscheduled": "g_appt"}},
+    "John Aldrin Bautista": {"monday_board_id": "B2",
+                             "stage_to_group": {"appointmentscheduled": "g_appt"}}}}
 
 COLS = {"hubspot_deal_id": "c_id", "deal_name": "c_name", "deal_owner": "c_owner",
         "deal_stage": "c_stage", "amount": "c_amt"}
@@ -69,30 +71,32 @@ def test_build_column_values_skips_placeholder_columns():
 # --- integration: route_deals (network monkeypatched) ---
 
 def _setup(monkeypatch, items):
-    monkeypatch.setattr(r, "get_group_id", lambda b, t: "g1")
-    monkeypatch.setattr(r, "get_group_items", lambda b, g: items)
+    monkeypatch.setattr(r, "get_board_items", lambda b: items)
     created, updated = [], []
-    monkeypatch.setattr(r, "create_item", lambda b, g, n, c: created.append((n, c)))
+    monkeypatch.setattr(r, "create_item", lambda b, g, n, c: created.append((g, n, c)))
     monkeypatch.setattr(r, "update_item", lambda b, i, c: updated.append((i, c)))
     return created, updated
 
 
+# stage 'appointmentscheduled' is mapped to group 'g_appt' in CONFIG
 DEAL = {"id": "9001", "properties": {"dealname": "Acme", "amount": "5000",
-        "dealstage": "qualified", "closedate": "2026-07-01",
+        "dealstage": "appointmentscheduled", "closedate": "2026-07-01",
         "hubspot_owner_id": "555", "pipeline": "p1"}}
 OWNERS = {"555": {"name": "Matthew Ng", "email": "m@x.com"}}
 FULLCONFIG = {"hubspot_pipeline_id": "p1", "owners": CONFIG["owners"], "monday_columns": COLS}
 
 
-def test_new_deal_is_created(monkeypatch):
+def test_new_deal_is_created_in_its_stage_group(monkeypatch):
     created, updated = _setup(monkeypatch, items=[])
     stats = r.route_deals(FULLCONFIG, OWNERS, [DEAL])
     assert stats == {"processed": 1, "created": 1, "updated": 0, "skipped": 0}
     assert created and not updated
+    assert created[0][0] == "g_appt"  # placed in the group matching its stage
 
 
 def test_existing_deal_is_updated_not_duplicated(monkeypatch):
-    items = [{"id": "i1", "name": "Acme",
+    # item already on the board (in ANY group) — must update, never create a 2nd card
+    items = [{"id": "i1", "name": "Acme", "group": {"id": "g_other"},
               "column_values": [{"id": "c_id", "text": "9001"}]}]
     created, updated = _setup(monkeypatch, items=items)
     stats = r.route_deals(FULLCONFIG, OWNERS, [DEAL])
@@ -103,5 +107,13 @@ def test_existing_deal_is_updated_not_duplicated(monkeypatch):
 def test_unmapped_owner_is_skipped(monkeypatch):
     created, updated = _setup(monkeypatch, items=[])
     stats = r.route_deals(FULLCONFIG, {"999": {"name": "Ghost"}},
-                          [{"id": "1", "properties": {"hubspot_owner_id": "999"}}])
+                          [{"id": "1", "properties": {"hubspot_owner_id": "999",
+                                                      "dealstage": "appointmentscheduled"}}])
+    assert stats["skipped"] == 1 and not created and not updated
+
+
+def test_unmapped_stage_is_skipped(monkeypatch):
+    created, updated = _setup(monkeypatch, items=[])
+    deal = {"id": "7", "properties": {"hubspot_owner_id": "555", "dealstage": "contractsent"}}
+    stats = r.route_deals(FULLCONFIG, OWNERS, [deal])
     assert stats["skipped"] == 1 and not created and not updated

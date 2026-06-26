@@ -107,19 +107,14 @@ def fetch_owners():
         "email": o.get("email")} for o in results}
 
 
-def get_group_id(board_id, group_title):
-    q = "query ($b:[ID!]) { boards(ids:$b) { groups { id title } } }"
-    for g in monday_query(q, {"b": [str(board_id)]})["boards"][0]["groups"]:
-        if g["title"] == group_title:
-            return g["id"]
-    return None
-
-
-def get_group_items(board_id, group_id):
-    q = ("query ($b:[ID!], $g:[String]) { boards(ids:$b) { groups(ids:$g) { "
-         "items_page(limit:500) { items { id name column_values { id text } } } } } }")
-    groups = monday_query(q, {"b": [str(board_id)], "g": [group_id]})["boards"][0]["groups"]
-    return groups[0]["items_page"]["items"] if groups else []
+def get_board_items(board_id):
+    """All items on the board (across every group) with their group + column values.
+    We dedup against the WHOLE board so a deal that changed stage updates in place
+    instead of creating a second card. (limit 500 is plenty for the POC.)"""
+    q = ("query ($b:[ID!]) { boards(ids:$b) { items_page(limit:500) { items { "
+         "id name group { id } column_values { id text } } } } }")
+    boards = monday_query(q, {"b": [str(board_id)]})["boards"]
+    return boards[0]["items_page"]["items"] if boards else []
 
 
 def create_item(board_id, group_id, name, column_values):
@@ -161,16 +156,19 @@ def route_deals(config, owners_by_id, raw_deals):
             stats["skipped"] += 1
             continue
         owner_key, entry = match
-        board_id, group_title = entry["monday_board_id"], entry["monday_group_title"]
-        group_id = get_group_id(board_id, group_title)
+        board_id = entry["monday_board_id"]
+        stage = str(deal["stage"])
+        group_id = entry.get("stage_to_group", {}).get(stage)
         if not group_id:
-            print(f"deal {deal['id']}: group '{group_title}' not on board {board_id} — skipping")
+            print(f"deal {deal['id']} ({deal['name']}): stage '{stage}' not mapped to a "
+                  f"group on {owner_key}'s board — skipping")
             stats["skipped"] += 1
             continue
-        items = get_group_items(board_id, group_id)
+        items = get_board_items(board_id)
         existing = find_existing_item(items, deal_id_col, deal["id"])
         cv = build_column_values(deal, owner_key, cols)
-        print(f"deal {deal['id']} ({deal['name']}) -> {owner_key} / board {board_id}")
+        print(f"deal {deal['id']} ({deal['name']}) -> {owner_key} / board {board_id} / "
+              f"group {group_id}")
         if existing:
             update_item(board_id, existing["id"], cv)
             stats["updated"] += 1

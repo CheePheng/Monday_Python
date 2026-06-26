@@ -84,21 +84,36 @@ The smoke tests are also your **id-discovery tools** — run them and copy the p
   `https://<account>.monday.com/boards/1234567890`. The number is the board id. Put it in `.env`
   as `TEST_BOARD_ID` (for the smoke test) and in `config.json` under each owner's
   `monday_board_id`.
-- **monday group id + column ids** — run `python monday_smoke_test.py`. **Step 2** prints every
+- **monday group ids + column id** — run `python monday_smoke_test.py`. **Step 2** prints every
   group as `group <title> -> id <id>` and every column as `column <title> (<type>) -> id <id>`.
-  Copy the column ids into `config.json` → `monday_columns`. You need a column to store the
-  **HubSpot Deal ID** (this is the dedup key); a plain **Text** column works.
-- **HubSpot pipeline id + owner ids** — run `python hubspot_smoke_test.py`. It prints each deal's
-  `pipeline` (in the raw JSON) and each owner as `owner <id> | <name> | <email>`. Put the sales
-  pipeline id in `config.json` → `hubspot_pipeline_id`, and (optionally) each salesperson's owner
-  id under their entry as `hubspot_owner_id`.
+  You need: the **group id for each deal stage** (the "Sales Pipeline 01…08" groups) and the id of
+  the **HubSpot Deal ID** column (the dedup key; Text or Numbers both work).
+- **HubSpot pipeline id + stage ids + owner ids** — the pipeline + stage ids come from the HubSpot
+  pipelines API (`GET /crm/v3/pipelines/deals`); owner ids come from `python hubspot_smoke_test.py`
+  (`owner <id> | <name> | <email>`). The default sales pipeline has id `default` and stage ids like
+  `appointmentscheduled`, `qualifiedtobuy`, `closedwon`, etc.
 
-### Column-type note
+### Routing model (board = owner, group = stage)
 
-The router writes column values as **text** for every field except `amount`. Configure the mapped
-monday columns as **Text** columns (and `amount` as a **Numbers** column — monday accepts the
-numeric value as a string). Owner matching works by `hubspot_owner_id` **or** by the owner's full
-name (the key in `config.json` → `owners`); id is matched first, then name.
+Each salesperson has **one board**; the board's **groups are the deal stages**. So the router puts a
+deal on its owner's board, in the **group matching the deal's HubSpot stage**. Config encodes this:
+
+```json
+"Myla Mestiola": {
+  "hubspot_owner_id": "1739141284",
+  "monday_board_id": "5029496327",
+  "stage_to_group": {
+    "appointmentscheduled": "group_mm4nf6fw",
+    "qualifiedtobuy": "group_title"
+  }
+}
+```
+
+Because the board already encodes the owner and the group encodes the stage, the **only column the
+router writes is the HubSpot Deal ID** (the dedup key); the item name carries the deal name. Owner
+matching is by `hubspot_owner_id` first, then by the owner's full name. Dedup scans the **whole
+board** (every group), so a deal that changes stage **updates in place** instead of duplicating.
+A deal whose owner or stage isn't mapped in config is **skipped and logged**.
 
 ---
 
@@ -124,8 +139,9 @@ covered by tests that run **offline** (no tokens needed):
 python -m pytest tests/ -v
 ```
 
-Expected: **11 passed**. The key guarantees are proven by
-`test_existing_deal_is_updated_not_duplicated` (re-running never duplicates) and
+Expected: **12 passed**. The key guarantees are proven by
+`test_existing_deal_is_updated_not_duplicated` (re-running never duplicates, even across stage
+changes), `test_new_deal_is_created_in_its_stage_group` (stage→group routing), and
 `test_unmapped_owner_is_skipped` (boards stay owner-pure).
 
 ---
@@ -136,10 +152,10 @@ Expected: **11 passed**. The key guarantees are proven by
 |---|------|--------------------|
 | 1 | monday token works | `monday_smoke_test.py` Step 1 prints your account `id / name / email` |
 | 2 | Read board groups & columns | Step 2 lists every group and column with its id |
-| 3 | Create a monday item | With `DRY_RUN=False`, an `API TEST - monday item` appears in the "Sales Pipeline" group |
+| 3 | Create a monday item | With `DRY_RUN=False`, an `API TEST - monday item` appears in a board group |
 | 4 | HubSpot token works | `hubspot_smoke_test.py` Step 1 returns recent deals |
 | 5 | Read deals & owners | Step 1 prints deal id/name/owner/stage/amount/close; Step 2 prints owners |
-| 6 | Route deals by owner | `owner_router_test.py` sends each deal to its owner's board and logs `skipping` for unmapped owners |
+| 6 | Route deals by owner + stage | `owner_router_test.py` sends each deal to its owner's board, into the group matching its stage, and logs `skipping` for unmapped owners/stages |
 | 7 | No duplicates, no HubSpot deals created | Re-running the router **updates** existing items instead of creating new ones, and it makes zero HubSpot write calls |
 
 ---
