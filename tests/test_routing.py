@@ -3,7 +3,7 @@ import owner_router_test as r
 CONFIG = {"owners": {
     "Matthew Ng": {"hubspot_owner_id": "555", "monday_board_id": "B1",
                    "stage_to_group": {"appointmentscheduled": "g_appt"}},
-    "John Aldrin Bautista": {"monday_board_id": "B2",
+    "John Aldrin Bautista": {"email": "aldrin@dkmeco.com", "monday_board_id": "B2",
                              "stage_to_group": {"appointmentscheduled": "g_appt"}}}}
 
 COLS = {"hubspot_deal_id": "c_id", "deal_name": "c_name", "deal_owner": "c_owner",
@@ -30,17 +30,36 @@ def test_parse_deal_extracts_properties():
 # --- match_owner_config ---
 
 def test_match_by_owner_id():
-    key, entry = r.match_owner_config("555", "Matthew Ng", CONFIG)
+    key, entry = r.match_owner_config("555", "Matthew Ng", "m@x.com", CONFIG)
     assert key == "Matthew Ng" and entry["monday_board_id"] == "B1"
 
 
-def test_match_by_name_when_no_id():
-    key, entry = r.match_owner_config("999", "John Aldrin Bautista", CONFIG)
+def test_match_by_email():
+    key, entry = r.match_owner_config("999", "Different Name", "aldrin@dkmeco.com", CONFIG)
+    assert key == "John Aldrin Bautista" and entry["monday_board_id"] == "B2"
+
+
+def test_match_by_name_when_no_id_or_email():
+    key, entry = r.match_owner_config("999", "John Aldrin Bautista", None, CONFIG)
     assert key == "John Aldrin Bautista" and entry["monday_board_id"] == "B2"
 
 
 def test_unmapped_owner_returns_none():
-    assert r.match_owner_config("123", "Someone Else", CONFIG) is None
+    assert r.match_owner_config("123", "Someone Else", "nope@x.com", CONFIG) is None
+
+
+# --- build_stage_to_group ---
+
+def test_build_stage_to_group_matches_label_in_title():
+    groups = [{"id": "g1", "title": "Sales Pipeline 01 - Appointment Scheduled"},
+              {"id": "g2", "title": "Sales Pipeline 02 - Qualified To Buy"},
+              {"id": "g6", "title": "Sales Pipeline 06 - Closed Won"}]
+    stages = {"appointmentscheduled": "Appointment Scheduled",
+              "qualifiedtobuy": "Qualified To Buy",
+              "closedwon": "Closed Won",
+              "weird": "No Such Group"}
+    assert r.build_stage_to_group(groups, stages) == {
+        "appointmentscheduled": "g1", "qualifiedtobuy": "g2", "closedwon": "g6"}
 
 
 # --- find_existing_item ---
@@ -66,6 +85,15 @@ def test_build_column_values_skips_placeholder_columns():
     cv = r.build_column_values({"id": "1", "name": "x", "stage": "s", "amount": None},
                                "O", {"hubspot_deal_id": "PUT_COLUMN_ID_HERE"})
     assert cv == {}
+
+
+# --- configured_owner_ids ---
+
+def test_configured_owner_ids_uses_id_then_email():
+    owners_by_id = {"555": {"name": "Matthew Ng", "email": "m@x.com"},
+                    "999": {"name": "Someone", "email": "aldrin@dkmeco.com"}}
+    # Matthew has an explicit hubspot_owner_id (555); Aldrin is resolved by email (-> 999)
+    assert set(r.configured_owner_ids(CONFIG, owners_by_id)) == {"555", "999"}
 
 
 # --- integration: route_deals (network monkeypatched) ---

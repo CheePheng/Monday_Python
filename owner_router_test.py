@@ -28,14 +28,35 @@ def parse_deal(raw):
     }
 
 
-def match_owner_config(owner_id, owner_name, config):
-    for key, entry in config.get("owners", {}).items():
+def match_owner_config(owner_id, owner_name, owner_email, config):
+    """Find the config entry for a deal's owner. Match priority: explicit
+    hubspot_owner_id, then email, then the entry key as a display name."""
+    owners = config.get("owners", {})
+    for key, entry in owners.items():
         if owner_id and entry.get("hubspot_owner_id") == owner_id:
             return key, entry
-    for key, entry in config.get("owners", {}).items():
+    for key, entry in owners.items():
+        if owner_email and entry.get("email", "").lower() == owner_email.lower():
+            return key, entry
+    for key, entry in owners.items():
         if owner_name and key == owner_name:
             return key, entry
     return None
+
+
+def build_stage_to_group(groups, stages):
+    """Auto-map HubSpot stage id -> monday group id by matching the stage's label
+    to the group whose title contains it (e.g. 'Qualified To Buy' sits inside
+    'Sales Pipeline 02 - Qualified To Buy'). Stages with no matching group are omitted."""
+    mapping = {}
+    for stage_id, label in stages.items():
+        if not label:
+            continue
+        for g in groups:
+            if label in (g.get("title") or ""):
+                mapping[str(stage_id)] = g["id"]
+                break
+    return mapping
 
 
 def find_existing_item(items, deal_id_col, hubspot_deal_id):
@@ -89,15 +110,46 @@ def hubspot(method, path, **kw):
     return resp.json()
 
 
-def fetch_recent_deals(pipeline_id):
-    body = {
-        "filterGroups": [{"filters": [
-            {"propertyName": "pipeline", "operator": "EQ", "value": pipeline_id}]}],
-        "sorts": [{"propertyName": "hs_lastmodifieddate", "direction": "DESCENDING"}],
-        "properties": ["dealname", "amount", "closedate", "dealstage", "hubspot_owner_id", "pipeline"],
-        "limit": LIMIT,
-    }
-    return hubspot("POST", "/crm/v3/objects/deals/search", json=body)["results"]
+def fetch_deals(pipeline_id, owner_ids=None):
+    """Every deal in the pipeline, optionally restricted to specific owner ids.
+    Pages through all results (100 per page) so we don't miss older deals."""
+    filters = [{"propertyName": "pipeline", "operator": "EQ", "value": pipeline_id}]
+    if owner_ids:
+        filters.append({"propertyName": "hubspot_owner_id",
+                        "operator": "IN", "values": list(owner_ids)})
+    results, after = [], None
+    while True:
+        body = {
+            "filterGroups": [{"filters": filters}],
+            "sorts": [{"propertyName": "hs_lastmodifieddate", "direction": "DESCENDING"}],
+            "properties": ["dealname", "amount", "closedate", "dealstage",
+                           "hubspot_owner_id", "pipeline"],
+            "limit": 100,
+        }
+        if after:
+            body["after"] = after
+        page = hubspot("POST", "/crm/v3/objects/deals/search", json=body)
+        results.extend(page.get("results", []))
+        after = page.get("paging", {}).get("next", {}).get("after")
+        if not after:
+            return results
+
+
+def configured_owner_ids(config, owners_by_id):
+    """Resolve the HubSpot owner ids for every owner mapped in config.
+    Priority per entry: explicit hubspot_owner_id, then email, then the key as a name."""
+    name_to_id = {v["name"]: oid for oid, v in owners_by_id.items() if v.get("name")}
+    email_to_id = {v["email"].lower(): oid for oid, v in owners_by_id.items() if v.get("email")}
+    ids = set()
+    for key, entry in config.get("owners", {}).items():
+        oid = entry.get("hubspot_owner_id")
+        if not oid and entry.get("email"):
+            oid = email_to_id.get(entry["email"].lower())
+        if not oid:
+            oid = name_to_id.get(key)
+        if oid:
+            ids.add(str(oid))
+    return sorted(ids)
 
 
 def fetch_owners():
@@ -105,6 +157,21 @@ def fetch_owners():
     return {str(o["id"]): {
         "name": f"{o.get('firstName', '')} {o.get('lastName', '')}".strip(),
         "email": o.get("email")} for o in results}
+
+
+def fetch_pipeline_stages(pipeline_id):
+    """{stage_id: label} for the given deal pipeline (used to auto-map stages to groups)."""
+    data = hubspot("GET", "/crm/v3/pipelines/deals")
+    for p in data.get("results", []):
+        if p["id"] == pipeline_id:
+            return {s["id"]: s["label"] for s in p.get("stages", [])}
+    return {}
+
+
+def get_board_groups(board_id):
+    q = "query ($b:[ID!]) { boards(ids:$b) { groups { id title } } }"
+    boards = monday_query(q, {"b": [str(board_id)]})["boards"]
+    return boards[0]["groups"] if boards else []
 
 
 def get_board_items(board_id):
@@ -148,8 +215,9 @@ def route_deals(config, owners_by_id, raw_deals):
     for raw in raw_deals:
         stats["processed"] += 1
         deal = parse_deal(raw)
-        owner_name = (owners_by_id.get(str(deal["owner_id"]), {}) or {}).get("name")
-        match = match_owner_config(deal["owner_id"], owner_name, config)
+        owner_info = owners_by_id.get(str(deal["owner_id"]), {}) or {}
+        owner_name, owner_email = owner_info.get("name"), owner_info.get("email")
+        match = match_owner_config(deal["owner_id"], owner_name, owner_email, config)
         if not match:
             print(f"deal {deal['id']} ({deal['name']}): no board mapped for owner "
                   f"{owner_name or deal['owner_id']} — skipping")
@@ -184,8 +252,20 @@ def main():
     print(f"DRY_RUN={DRY_RUN}")
     config = load_config()
     owners_by_id = fetch_owners()
-    raw_deals = fetch_recent_deals(config["hubspot_pipeline_id"])
-    print(f"fetched {len(raw_deals)} deals from pipeline {config['hubspot_pipeline_id']}")
+    pipeline_id = config["hubspot_pipeline_id"]
+
+    # Auto-build each owner's stage->group map from their board, unless one is set explicitly.
+    stages = fetch_pipeline_stages(pipeline_id)
+    for key, entry in config["owners"].items():
+        if not entry.get("stage_to_group"):
+            groups = get_board_groups(entry["monday_board_id"])
+            entry["stage_to_group"] = build_stage_to_group(groups, stages)
+            print(f"auto-mapped {len(entry['stage_to_group'])} stages -> groups for {key}")
+
+    owner_ids = configured_owner_ids(config, owners_by_id)
+    raw_deals = fetch_deals(pipeline_id, owner_ids)
+    print(f"fetched {len(raw_deals)} deals from pipeline {pipeline_id} "
+          f"for mapped owners {owner_ids}")
     stats = route_deals(config, owners_by_id, raw_deals)
     print(f"SUMMARY: {stats}")
 

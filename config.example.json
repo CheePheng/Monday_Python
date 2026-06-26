@@ -2,17 +2,12 @@
   "hubspot_pipeline_id": "default",
   "owners": {
     "Myla Mestiola": {
-      "hubspot_owner_id": "PUT_HUBSPOT_OWNER_ID_HERE",
-      "monday_board_id": "PUT_THIS_OWNERS_BOARD_ID_HERE",
-      "stage_to_group": {
-        "appointmentscheduled": "PUT_GROUP_ID_FOR_STAGE_01_HERE",
-        "qualifiedtobuy": "PUT_GROUP_ID_FOR_STAGE_02_HERE",
-        "presentationscheduled": "PUT_GROUP_ID_FOR_STAGE_03_HERE",
-        "decisionmakerboughtin": "PUT_GROUP_ID_FOR_STAGE_04_HERE",
-        "contractsent": "PUT_GROUP_ID_FOR_STAGE_05_HERE",
-        "closedwon": "PUT_GROUP_ID_FOR_STAGE_06_HERE",
-        "closedlost": "PUT_GROUP_ID_FOR_STAGE_07_HERE"
-      }
+      "email": "mylamestiola@dkmeco.com",
+      "monday_board_id": "PUT_THIS_OWNERS_BOARD_ID_HERE"
+    },
+    "Matthew Ng": {
+      "email": "matthewng@dkmeco.com",
+      "monday_board_id": "PUT_THIS_OWNERS_BOARD_ID_HERE"
     }
   },
   "monday_columns": {

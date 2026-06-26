@@ -95,25 +95,28 @@ The smoke tests are also your **id-discovery tools** — run them and copy the p
 
 ### Routing model (board = owner, group = stage)
 
-Each salesperson has **one board**; the board's **groups are the deal stages**. So the router puts a
-deal on its owner's board, in the **group matching the deal's HubSpot stage**. Config encodes this:
+Each salesperson has **one board**; the board's **groups are the deal stages**. The router puts a
+deal on its owner's board, in the **group matching the deal's HubSpot stage**.
+
+**Onboarding a salesperson is just their board id + email:**
 
 ```json
 "Myla Mestiola": {
-  "hubspot_owner_id": "1739141284",
-  "monday_board_id": "5029496327",
-  "stage_to_group": {
-    "appointmentscheduled": "group_mm4nf6fw",
-    "qualifiedtobuy": "group_title"
-  }
+  "email": "mylamestiola@dkmeco.com",
+  "monday_board_id": "5029496327"
 }
 ```
 
-Because the board already encodes the owner and the group encodes the stage, the **only column the
-router writes is the HubSpot Deal ID** (the dedup key); the item name carries the deal name. Owner
-matching is by `hubspot_owner_id` first, then by the owner's full name. Dedup scans the **whole
-board** (every group), so a deal that changes stage **updates in place** instead of duplicating.
-A deal whose owner or stage isn't mapped in config is **skipped and logged**.
+- **Owner** is resolved by **email** (the script looks the email up in HubSpot's owner list to get
+  the owner id). You can also pin an explicit `"hubspot_owner_id"`; matching order is id → email → name.
+- **Stage → group** is **auto-detected**: the router reads the board's group titles and the
+  pipeline's stage labels and maps `Qualified To Buy` → `Sales Pipeline 02 - Qualified To Buy`, etc.
+  (You can override with an explicit `"stage_to_group"` map if a board doesn't follow that naming.)
+
+Because the board encodes the owner and the group encodes the stage, the **only column written is
+the HubSpot Deal ID** (the dedup key); the item name carries the deal name. Dedup scans the **whole
+board**, so a deal that changes stage **updates in place** instead of duplicating. A deal whose
+owner or stage isn't mapped is **skipped and logged**.
 
 ---
 
