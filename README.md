@@ -113,10 +113,25 @@ deal on its owner's board, in the **group matching the deal's HubSpot stage**.
   pipeline's stage labels and maps `Qualified To Buy` → `Sales Pipeline 02 - Qualified To Buy`, etc.
   (You can override with an explicit `"stage_to_group"` map if a board doesn't follow that naming.)
 
-Because the board encodes the owner and the group encodes the stage, the **only column written is
-the HubSpot Deal ID** (the dedup key); the item name carries the deal name. Dedup scans the **whole
-board**, so a deal that changes stage **updates in place** instead of duplicating. A deal whose
-owner or stage isn't mapped is **skipped and logged**.
+### Field mapping (every monday column gets filled)
+
+A `field_map` in config maps **HubSpot deal property → monday column id**, and the router formats
+each value for that column's type automatically (fetched from the board):
+
+| monday column type | written as | example |
+|---|---|---|
+| status (Deal Stage) | `{"label": "..."}` | HubSpot stage → `Appointment Scheduled` |
+| dropdown (Pipeline/Deal Type/Priority/Vendors) | `{"labels": ["..."]}` | `existingbusiness` → `Existing Business` |
+| people (Deal Owner) | `{"personsAndTeams": [...]}` | owner email → matching monday user |
+| date (Date Created) | `{"date": "YYYY-MM-DD"}` | from `createdate` |
+| numbers (HubSpot Deal ID) | `"123..."` | the dedup key |
+| link (HubSpot Link) | `{"url": ..., "text": ...}` | deep link to the deal |
+
+The **item name** is set to the deal name (and updated on every sync). `create_labels_if_missing`
+is on, so new dropdown/status values won't error. Dedup scans the **whole board**, so a deal that
+changes stage **updates in place** instead of duplicating. A deal whose owner or stage isn't mapped
+is **skipped and logged**. Properties with no matching monday column (e.g. Amount, Close Date if the
+board lacks those columns) are simply ignored — add the columns and map them to sync them.
 
 ---
 
@@ -132,6 +147,22 @@ The smoke test will then create a clearly-labeled `API TEST - monday item`; the 
 or update real items.
 
 **HubSpot is always read-only** — no flag can make this code create or modify a HubSpot deal.
+
+### Auto-sync with the watcher (no manual runs)
+
+Instead of running the sync by hand, leave the watcher running in a terminal. Each tick it asks
+HubSpot only for deals **modified since the last check** (cheap) and syncs just those; the heavy
+setup is loaded once at startup.
+
+```bash
+python watch.py                 # DRY preview loop (no writes) — safe to watch first
+python watch.py --live          # actually write to monday
+python watch.py --live --interval 30   # change the poll interval (default 10s)
+```
+
+`--live` forces writes for the watcher only; a plain `python owner_router_test.py` still respects
+`.env` (stays a dry preview). Stop the watcher with Ctrl+C. It only runs while the terminal/PC is on;
+for always-on, real-time sync see the deferred Cloudflare webhook plan.
 
 ### Run the automated tests
 
