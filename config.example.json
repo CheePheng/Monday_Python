@@ -1,0 +1,22 @@
+{
+  "hubspot_pipeline_id": "PUT_SALES_PIPELINE_ID_HERE",
+  "owners": {
+    "Matthew Ng": {
+      "hubspot_owner_id": "OPTIONAL_PUT_OWNER_ID_HERE",
+      "monday_board_id": "PUT_MATTHEW_BOARD_ID_HERE",
+      "monday_group_title": "Sales Pipeline"
+    },
+    "John Aldrin Bautista": {
+      "hubspot_owner_id": "OPTIONAL_PUT_OWNER_ID_HERE",
+      "monday_board_id": "PUT_ALDRIN_BOARD_ID_HERE",
+      "monday_group_title": "Sales Pipeline"
+    }
+  },
+  "monday_columns": {
+    "hubspot_deal_id": "PUT_COLUMN_ID_HERE",
+    "deal_name": "PUT_COLUMN_ID_HERE",
+    "deal_owner": "PUT_COLUMN_ID_HERE",
+    "deal_stage": "PUT_COLUMN_ID_HERE",
+    "amount": "PUT_COLUMN_ID_HERE"
+  }
+}
