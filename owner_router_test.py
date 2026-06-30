@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import json
 from dotenv import load_dotenv
 import requests
@@ -142,11 +143,18 @@ def load_config(path=None):
         return json.load(f)
 
 
-def monday_query(query, variables=None):
+def monday_query(query, variables=None, retries=3):
     headers = {"Authorization": MONDAY_TOKEN, "Content-Type": "application/json",
                "API-Version": "2024-10"}
-    data = requests.post(MONDAY_URL, json={"query": query, "variables": variables or {}},
-                         headers=headers, timeout=30).json()
+    payload = {"query": query, "variables": variables or {}}
+    for attempt in range(retries):
+        try:
+            data = requests.post(MONDAY_URL, json=payload, headers=headers, timeout=60).json()
+            break
+        except requests.exceptions.RequestException:
+            if attempt == retries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))  # back off on timeout / transient error
     if "errors" in data:
         raise RuntimeError(data["errors"])
     return data["data"]
@@ -269,6 +277,13 @@ def update_item(board_id, item_id, name, column_values):
 def route_deals(config, raw_deals, ctx):
     field_map, deal_id_col = ctx["field_map"], ctx["deal_id_col"]
     owners_by_id = ctx["owners_by_id"]
+    items_cache = {}  # read each board's items ONCE, not per-deal
+
+    def board_items(board_id):
+        if board_id not in items_cache:
+            items_cache[board_id] = get_board_items(board_id)
+        return items_cache[board_id]
+
     stats = {"processed": 0, "created": 0, "updated": 0, "skipped": 0}
     for raw in raw_deals:
         stats["processed"] += 1
@@ -292,7 +307,7 @@ def route_deals(config, raw_deals, ctx):
         columns_meta = ctx["board_columns"].get(board_id, {})
         cv = build_column_values(props, deal["id"], columns_meta, field_map, deal_id_col, ctx)
         name = deal["name"] or f"Deal {deal['id']}"
-        existing = find_existing_item(get_board_items(board_id), deal_id_col, deal["id"])
+        existing = find_existing_item(board_items(board_id), deal_id_col, deal["id"])
         print(f"deal {deal['id']} ({name}) -> {owner_key} / board {board_id} / group {group_id}")
         if existing:
             update_item(board_id, existing["id"], name, cv)
