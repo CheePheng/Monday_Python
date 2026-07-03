@@ -11,19 +11,23 @@ export default {
     ectx.waitUntil(runAll(env, optsFromEnv(env)).then(s => console.log("tick", JSON.stringify(s))));
   },
 
-  // Manual trigger: /run?secret=...&object=deals|companies|contacts&mode=dry|live&maxWrites=300
+  // Manual trigger: header `X-Trigger-Secret: <secret>`
+  //   POST/GET /run?object=deals|companies|contacts&mode=dry|live&maxWrites=300
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname !== "/run") return new Response("not found", { status: 404 });
-    if (url.searchParams.get("secret") !== env.TRIGGER_SECRET)
+    // Secret in a header, not the query string, so it is never captured by request logging/history.
+    const provided = req.headers.get("x-trigger-secret") ?? "";
+    if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
       return new Response("forbidden", { status: 403 });
     const mode = url.searchParams.get("mode") ?? "dry";
+    const n = Number(url.searchParams.get("maxWrites") ?? "300");
     const opts: RunOpts = {
       dryRun: mode !== "live",
       writeHubspot: mode === "live",
-      maxWrites: Number(url.searchParams.get("maxWrites") ?? "300"),
+      maxWrites: Number.isFinite(n) && n >= 0 ? n : 300,
     };
     const stats = await runAll(env, opts, url.searchParams.get("object") ?? undefined);
-    return Response.json({ mode, stats });
+    return Response.json({ mode, maxWrites: opts.maxWrites, stats });
   },
 };

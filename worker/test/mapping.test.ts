@@ -37,8 +37,8 @@ describe("formatValue", () => {
 
 const spec: ObjectSpec = {
   object: "deals", objectTypeId: "0-3", searchFilters: [], modifiedProp: "hs_lastmodifieddate",
-  nameProps: ["dealname"], boardId: "B", idCol: "c_id", linkCol: "c_link",
-  groupBy: { singleGroup: "g" },
+  nameProps: ["dealname"], boardId: "B", idCol: "c_id", syncStateCol: "c_sync", linkCol: "c_link",
+  groupBy: { singleGroup: "g" }, createFromMonday: false,
   fields: [{ hs: "dealtype", col: "c_type", type: "dropdown", labels: "dealtype" }],
 };
 
@@ -62,5 +62,9 @@ describe("expectedText (canonical comparison value)", () => {
       .toBe("Appointment Scheduled");
     expect(expectedText(f({ type: "date" }), "2026-06-26T02:22:45Z", ctx)).toBe("2026-06-26");
     expect(expectedText(f({ type: "people" }), "555", ctx)).toBeNull(); // not diffable
+  });
+  it("trims text and number-normalizes so it round-trips against monday", () => {
+    expect(expectedText(f({ type: "text" }), "Austin ", ctx)).toBe("Austin");
+    expect(expectedText(f({ type: "numbers" }), "1500000.50", ctx)).toBe("1500000.5");
   });
 });

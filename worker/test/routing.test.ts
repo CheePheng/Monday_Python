@@ -5,9 +5,9 @@ import type { MondayItem, ObjectSpec } from "../src/types";
 
 const grouped: ObjectSpec = {
   object: "deals", objectTypeId: "0-3", searchFilters: [], modifiedProp: "m",
-  nameProps: ["dealname"], boardId: "B", idCol: "c_id",
+  nameProps: ["dealname"], boardId: "B", idCol: "c_id", syncStateCol: "c_sync",
   groupBy: { prop: "dealstage", map: { appointmentscheduled: "g1", closedwon: "g6" }, reverse: true },
-  fields: [],
+  createFromMonday: true, fields: [],
 };
 const single: ObjectSpec = { ...grouped, groupBy: { singleGroup: "gS" } };
 
@@ -30,8 +30,8 @@ describe("reverseGroup", () => {
 });
 
 const item = (id: string, hsId: string): MondayItem => ({
-  id, name: "x", updated_at: "2026-07-01T00:00:00Z", group: { id: "g1" },
-  column_values: [{ id: "c_id", text: hsId }],
+  id, name: "x", created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z",
+  group: { id: "g1" }, column_values: [{ id: "c_id", text: hsId }],
 });
 
 describe("indexByHubspotId", () => {

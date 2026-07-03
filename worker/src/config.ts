@@ -9,8 +9,14 @@ export const CONTACT_ID_COL = "numeric_mm4xw7rk"; // "HubSpot ID" on board 50296
 export const PORTAL_ID = 39939588;
 
 // Contacts/companies: only NEW records sync (boss decision 2026-07-03).
-// Widen or narrow the window by changing this one date.
 export const CREATED_AFTER_MS = Date.parse("2026-07-01T00:00:00Z");
+
+// monday cards created BEFORE this are never pushed to HubSpot (protects the 14 pre-existing
+// orphan Unassigned cards + any legacy rows). Only cards a salesperson adds after go-live create.
+export const CREATE_CUTOFF_MS = Date.parse("2026-07-03T00:00:00Z");
+
+// Records created from monday get stamped as Myla's and (for deals) into the Sales Pipeline.
+const MYLA_DEFAULTS = { sales_user: SALES_USER_MYLA, hubspot_owner_id: SALES_USER_MYLA };
 
 // HubSpot stage id -> monday group id (Myla's Deals board 5029480547)
 const STAGE_GROUPS: Record<string, string> = {
@@ -48,8 +54,11 @@ export const DEALS_MYLA: ObjectSpec = {
   nameReverse: "dealname",
   boardId: "5029480547",
   idCol: "numeric_mm4nz332",
+  syncStateCol: "text_mm4xxyzx",
   linkCol: "link_mm4ns4nn",
   groupBy: { prop: "dealstage", map: STAGE_GROUPS, reverse: true },
+  createFromMonday: true,
+  createDefaults: { pipeline: "default", ...MYLA_DEFAULTS },
   fields: [
     { hs: "hubspot_owner_id", col: "person", type: "people" },
     { hs: "dealstage", col: "color_mm4n27da", type: "status", labels: "stage" },
@@ -72,8 +81,10 @@ export const DEALS_UNASSIGNED: ObjectSpec = {
   nameProps: ["dealname"],
   boardId: "5029479220",
   idCol: "numeric_mm4wp9y2",
+  syncStateCol: "text_mm4xsfh3",
   linkCol: "link_mm4n9cce",
   groupBy: { singleGroup: "topics" },
+  createFromMonday: false, // system-populated bucket; never create HubSpot deals from here
   fields: [
     { hs: "hubspot_owner_id", col: "person", type: "people" },
     { hs: "pipeline", col: "status", type: "status", labels: "pipeline" },
@@ -97,8 +108,11 @@ export const COMPANIES_MYLA: ObjectSpec = {
   nameReverse: "name",
   boardId: "5029639440",
   idCol: COMPANY_ID_COL,
+  syncStateCol: "text_mm4xrhjt",
   linkCol: "link_mm4pvn78",
   groupBy: { singleGroup: "group_mm4s3z7e" },
+  createFromMonday: true,
+  createDefaults: { ...MYLA_DEFAULTS },
   fields: [
     { hs: "name", col: "text_mm4scke9", type: "text", reverse: true },
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
@@ -111,7 +125,6 @@ export const COMPANIES_MYLA: ObjectSpec = {
     { hs: "timezone", col: "text_mm4wp480", type: "text" },
     { hs: "description", col: "text_mm4wwtd0", type: "text", reverse: true },
     { hs: "linkedin_company_page", col: "text_mm4w6rzg", type: "text", reverse: true },
-    // Postal code column (phone_mm4s31p3) is a phone-type column — intentionally not mapped.
   ],
 };
 
@@ -124,11 +137,13 @@ export const CONTACTS_MYLA: ObjectSpec = {
   ],
   modifiedProp: "lastmodifieddate",
   nameProps: ["firstname", "lastname"],
-  // item name is "First Last" — splitting a rename back into first/last is ambiguous, so no nameReverse
   boardId: "5029639630",
   idCol: CONTACT_ID_COL,
+  syncStateCol: "text_mm4xpe1g",
   linkCol: "link_mm4pvn78",
   groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: true },
+  createFromMonday: true,
+  createDefaults: { ...MYLA_DEFAULTS },
   fields: [
     { hs: "lastname", col: "text_mm4scke9", type: "text", reverse: true },
     { hs: "email", col: "text_mm4p2bvb", type: "text", reverse: true },

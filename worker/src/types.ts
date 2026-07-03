@@ -32,14 +32,20 @@ export interface ObjectSpec {
   nameReverse?: string;  // HubSpot property to receive a renamed item (omit = name not reversible)
   boardId: string;
   idCol: string;         // numbers column storing the HubSpot record id (dedup key)
+  syncStateCol: string;  // hidden text column storing the last-synced HubSpot modified timestamp
   linkCol?: string;
   groupBy: GroupBy;
   fields: FieldSpec[];
+  // monday -> HubSpot record creation (new cards). false for system-populated boards (Unassigned).
+  createFromMonday: boolean;
+  // fixed HubSpot properties stamped on records created from monday (pipeline, owner, sales_user...).
+  createDefaults?: Record<string, string>;
 }
 
 export interface MondayItem {
   id: string;
   name: string;
+  created_at: string;
   updated_at: string;
   group: { id: string };
   column_values: { id: string; text: string | null }[];
@@ -58,5 +64,8 @@ export interface RunOpts { dryRun: boolean; writeHubspot: boolean; maxWrites: nu
 
 export interface Stats {
   processed: number; created: number; toMonday: number; toHubspot: number;
-  inSync: number; skipped: number; errors: number;
+  inSync: number; skipped: number; errors: number; adopted: number; createdInHubspot: number;
 }
+
+// A shared, mutable write budget threaded across all specs in one run.
+export interface Budget { left: number }

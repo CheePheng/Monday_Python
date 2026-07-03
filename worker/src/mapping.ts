@@ -42,16 +42,20 @@ export function buildColumnValues(rec: HsRecord, spec: ObjectSpec, ctx: Ctx): Re
   return cv;
 }
 
-/** Canonical text a monday column should show for this HubSpot value; null = not diffable. */
+/** Canonical text a monday column should show for this HubSpot value; null = not diffable.
+ * Trimmed + number-normalized so it round-trips against monday's echoed column text
+ * (monday trims text and renders "1500000.50" as "1500000.5") — otherwise every tick sees a
+ * phantom diff and loops. */
 export function expectedText(f: FieldSpec, value: string | null | undefined, ctx: Ctx): string | null {
   if (f.type === "people" || f.type === "phone") return null;
   if (value === null || value === undefined || value === "") return "";
-  const v = String(value);
+  const v = String(value).trim();
   switch (f.type) {
     case "date": return v.slice(0, 10);
-    case "status": case "text": return dict(f, ctx)[v] ?? v;
+    case "numbers": { const n = Number(v); return Number.isFinite(n) ? String(n) : v; }
+    case "status": case "text": return (dict(f, ctx)[v] ?? v).trim();
     case "dropdown":
-      return v.split(";").map(s => s.trim()).filter(Boolean).map(s => dict(f, ctx)[s] ?? s).join(", ");
+      return v.split(";").map(s => s.trim()).filter(Boolean).map(s => (dict(f, ctx)[s] ?? s).trim()).join(", ");
     default: return v;
   }
 }
