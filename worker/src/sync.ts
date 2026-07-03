@@ -72,8 +72,10 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
 
   if (dir === "none") {
     stats.inSync++;
-    if (lastSynced !== recModified) // establish baseline so future monday edits win correctly
+    if (lastSynced !== recModified) { // establish baseline so future monday edits win correctly
       await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: recModified }, opts);
+      budget.left--; // count the bookkeeping write so a first-run backlog can't overrun the tick
+    }
     return;
   }
 
@@ -88,10 +90,12 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
     // nothing reversible differs -> fall through to a forward write
   }
 
+  // Move BEFORE the value/syncState write: if the move fails, syncState stays unstamped so the next
+  // tick re-runs toMonday (never flips to a reverse write that reverts the HubSpot stage change).
+  if (diffs.some(d => d.kind === "group")) await moveItem(env, spec.boardId, existing.id, group, opts);
   const cv = buildUpdatePayload(diffs, rec, spec, ctx);
   cv[spec.syncStateCol] = recModified;
   await updateItem(env, spec.boardId, existing.id, itemName(rec, spec), cv, opts);
-  if (diffs.some(d => d.kind === "group")) await moveItem(env, spec.boardId, existing.id, group, opts);
   stats.toMonday++; budget.left--;
 }
 
@@ -111,9 +115,18 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   }
   const props = buildCreateProperties(item, spec, ctx);
   const created = await createRecord(env, spec, props, opts);
-  if (created)
-    await setColumns(env, spec.boardId, item.id,
-      { [spec.idCol]: created.id, [spec.syncStateCol]: created.modified, ...linkValue(spec, ctx, created.id) }, opts);
+  if (created) {
+    // The write-back is idempotent -> retries hard (setColumns retries=3). If it still fails, the
+    // HubSpot record exists but the card has no id and would re-create next tick: log the orphan and
+    // signal the caller to STOP creating this run so the failure can't cascade into duplicates.
+    try {
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.idCol]: created.id, [spec.syncStateCol]: created.modified, ...linkValue(spec, ctx, created.id) }, opts);
+    } catch (e) {
+      console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
+      throw new Error("WRITEBACK_FAILED");
+    }
+  }
   stats.createdInHubspot++; budget.left--;
 }
 
@@ -144,6 +157,7 @@ export async function syncSpec(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
       } catch (e) {
         stats.errors++;
         console.log(`error create-from-monday ${spec.object} item ${item.id}: ${String(e).slice(0, 300)}`);
+        if (String(e).includes("WRITEBACK_FAILED")) break; // stop creating this run — avoid dup cascade
       }
     }
   }

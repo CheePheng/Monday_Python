@@ -53,7 +53,10 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
   const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : {};
   if (f.type === "dropdown") {
     if (rev[text] !== undefined) return rev[text]; // whole-label match first (labels with commas)
-    return text.split(",").map(s => s.trim()).filter(Boolean).map(s => rev[s] ?? s).join(";");
+    // Multi-select: map each label; DROP labels not in the dictionary rather than passing them raw
+    // (a raw monday label is not a valid HubSpot enum value -> 400 that would retry every tick).
+    return text.split(",").map(s => s.trim()).filter(Boolean)
+      .map(s => rev[s]).filter((v): v is string => v !== undefined).join(";");
   }
   return rev[text] ?? text;
 }

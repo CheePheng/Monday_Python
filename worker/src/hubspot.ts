@@ -72,7 +72,10 @@ export async function createRecord(env: Env, spec: ObjectSpec, properties: Recor
     console.log(`DRY hubspot CREATE ${spec.object}: ${JSON.stringify(properties)}`);
     return null;
   }
-  const res = await hs(env, "POST", `/crm/v3/objects/${spec.object}`, { properties });
+  // retries=1: a CREATE is not idempotent — a network retry after HubSpot already processed the POST
+  // would make a duplicate record. (A 429 means it was NOT processed, but with retries=1 we simply
+  // surface it and let the card re-create next tick, which is safe.)
+  const res = await hs(env, "POST", `/crm/v3/objects/${spec.object}`, { properties }, 1);
   console.log(`hubspot CREATE ${spec.object} -> ${res.id}`);
   return { id: String(res.id), modified: res.properties?.[spec.modifiedProp] ?? "" };
 }
@@ -81,7 +84,7 @@ export async function createRecord(env: Env, spec: ObjectSpec, properties: Recor
 export async function searchContactByEmail(env: Env, email: string):
     Promise<{ id: string; modified: string } | null> {
   const body = {
-    filterGroups: [{ filters: [{ propertyName: "email", operator: "EQ", value: email }] }],
+    filterGroups: [{ filters: [{ propertyName: "email", operator: "EQ", value: email.trim().toLowerCase() }] }],
     properties: ["lastmodifieddate"], limit: 1,
   };
   const res = await hs(env, "POST", "/crm/v3/objects/contacts/search", body);

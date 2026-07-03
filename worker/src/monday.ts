@@ -76,14 +76,16 @@ export async function updateItem(env: Env, boardId: string, itemId: string, name
   console.log(`updated item ${itemId} on ${boardId}`);
 }
 
-/** Set specific columns on an item (no name change) — used for ID / Sync-State write-back. */
+/** Set specific columns on an item (no name change) — used for ID / Sync-State write-back.
+ * This write is IDEMPOTENT (same values every retry), so it retries hard: a dropped write-back
+ * after a HubSpot create is what would otherwise re-create the record next tick. */
 export async function setColumns(env: Env, boardId: string, itemId: string,
     cv: Record<string, unknown>, opts: RunOpts): Promise<void> {
   if (opts.dryRun) { console.log(`DRY setColumns item ${itemId}: ${JSON.stringify(cv)}`); return; }
   await gql(env,
     `mutation ($b:ID!, $i:ID!, $c:JSON!) {
        change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
-    { b: boardId, i: itemId, c: JSON.stringify(cv) }, 1);
+    { b: boardId, i: itemId, c: JSON.stringify(cv) }, 3);
 }
 
 export async function moveItem(env: Env, boardId: string, itemId: string, groupId: string,
