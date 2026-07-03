@@ -119,6 +119,19 @@ last-edit-wins/value-diff decision. A **dry-run flag** logs would-be writes to b
 executing them — used to verify Myla end-to-end before enabling live writes. `wrangler dev` +
 manual-trigger URL for local runs.
 
+## Platform limits & mitigations (added after re-review)
+
+- **Workers Paid plan ($5/mo) is required.** Free plan caps ~50 subrequests and ~10ms CPU per
+  invocation; a tick that writes many cards would die mid-run. Paid gives 1,000 subrequests / 30s CPU.
+- **Initial backfill runs once via the existing Python tools from a PC**, so the Worker only ever
+  processes small incremental diffs — a Cron tick never does a bulk migration.
+- **Contact volume guard:** fetch the HubSpot side incrementally (modified-since) and skip board
+  reads when nothing changed for that board. Measure Myla's real contact/company counts before
+  cutover; if a board approaches the 500-item read page, add pagination on the monday reads.
+- Rejected alternative, for the record: GitHub Actions cron running the existing Python (zero
+  rewrite, free) — its 5-min floor with 5–15-min real-world delays fails the "live" requirement,
+  and the Python needs major changes for the new structure anyway.
+
 ## Prerequisites / setup
 
 - **HubSpot scopes** on the private app: `crm.objects.contacts.read`+`.write`,
