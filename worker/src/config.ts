@@ -48,6 +48,7 @@ export const DEALS_MYLA: ObjectSpec = {
   searchFilters: [
     { propertyName: "pipeline", operator: "EQ", value: "default" },
     { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
+    { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS }, // new deals only
   ],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["dealname"],
@@ -77,6 +78,7 @@ export const DEALS_UNASSIGNED: ObjectSpec = {
   searchFilters: [
     { propertyName: "pipeline", operator: "EQ", value: "default" },
     { propertyName: "sales_user", operator: "NOT_HAS_PROPERTY" },
+    { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS }, // new deals only
   ],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["dealname"],
