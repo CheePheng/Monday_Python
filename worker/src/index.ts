@@ -3,7 +3,9 @@ import { runAll } from "./sync";
 
 function optsFromEnv(env: Env): RunOpts {
   const live = env.DRY_RUN === "false";
-  return { dryRun: !live, writeHubspot: live, maxWrites: 300 };
+  // 25 writes/tick keeps total subrequests under the free plan's 50 cap (setup+reads ~20).
+  // Overflow simply syncs on the next 2-min tick. Raise this after upgrading to Workers Paid.
+  return { dryRun: !live, writeHubspot: live, maxWrites: 25 };
 }
 
 export default {
