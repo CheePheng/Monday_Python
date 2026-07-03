@@ -3,6 +3,7 @@ import type { Env, MondayItem, RunOpts } from "./types";
 const URL_ = "https://api.monday.com/v2";
 
 async function gql(env: Env, query: string, variables: Record<string, unknown> = {}, retries = 3): Promise<any> {
+  let rateWaits = 0;
   for (let attempt = 1; ; attempt++) {
     try {
       const resp = await fetch(URL_, {
@@ -12,8 +13,19 @@ async function gql(env: Env, query: string, variables: Record<string, unknown> =
         body: JSON.stringify({ query, variables }),
       });
       const data: any = await resp.json().catch(() => ({}));
-      // monday returns some failures (rate limit, maintenance, auth) as {error_message,...} with a
-      // non-2xx status and NO `errors` key — treat those as failures instead of phantom success.
+      const errText = JSON.stringify(data.errors ?? data.error_message ?? "");
+      // Rate limit / complexity budget: the request did NOT apply, so it's always safe to wait and
+      // retry — even for mutations. monday resets the complexity budget each minute.
+      if ((resp.status === 429 || /complexity|rate.?limit|budget|too many|throttl/i.test(errText))
+          && rateWaits < 6) {
+        rateWaits++;
+        const m = /reset in (\d+)/i.exec(errText);
+        const waitS = Math.min(m ? Number(m[1]) + 1 : 15, 65);
+        await new Promise(res => setTimeout(res, waitS * 1000));
+        continue;
+      }
+      // monday returns some failures (maintenance, auth, bad query) as {error_message,...} with a
+      // non-2xx status and NO `errors` key — treat those as failures, not phantom success.
       if (!resp.ok || data.error_message || data.errors) {
         throw new Error(`monday ${resp.status}: ${data.error_message ?? JSON.stringify(data.errors ?? data).slice(0, 400)}`);
       }

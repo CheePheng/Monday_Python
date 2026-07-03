@@ -61,9 +61,10 @@ export const DEALS_MYLA: ObjectSpec = {
   createDefaults: { pipeline: "default", ...MYLA_DEFAULTS },
   fields: [
     { hs: "hubspot_owner_id", col: "person", type: "people" },
-    { hs: "dealstage", col: "color_mm4n27da", type: "status", labels: "stage" },
+    { hs: "sales_user", col: "dropdown_mm4wjkk9", type: "dropdown", labels: "salesUser" },
+    { hs: "dealstage", col: "dropdown_mm4wrmx7", type: "dropdown", labels: "stage" },
+    { hs: "pipeline", col: "color_mm4ws6k", type: "status", labels: "pipeline" },
     { hs: "createdate", col: "date4", type: "date" },
-    { hs: "pipeline", col: "dropdown_mm4ngscc", type: "dropdown", labels: "pipeline" },
     { hs: "dealtype", col: "dropdown_mm4nxhje", type: "dropdown", labels: "dealtype", reverse: true },
     { hs: "hs_priority", col: "dropdown_mm4nmmax", type: "dropdown", labels: "priority", reverse: true },
     { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true },

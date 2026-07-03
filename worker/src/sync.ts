@@ -10,7 +10,8 @@ import {
   createItem, getBoardItems, getUsersByEmail, moveItem, setColumns, updateItem,
 } from "./monday";
 import {
-  createRecord, getOwners, getPropertyOptions, patchRecord, searchAll, searchContactByEmail,
+  createRecord, getDealStageLabels, getOwners, getPropertyOptions, patchRecord, searchAll,
+  searchContactByEmail,
 } from "./hubspot";
 
 const emptyStats = (): Stats => ({
@@ -29,7 +30,7 @@ export async function buildCtx(env: Env): Promise<Ctx> {
          industry, companyType, contactSource, contactVendor] = await Promise.all([
     getOwners(env),
     getUsersByEmail(env),
-    getPropertyOptions(env, "deals", "dealstage"),
+    getDealStageLabels(env),
     getPropertyOptions(env, "deals", "dealtype"),
     getPropertyOptions(env, "deals", "hs_priority"),
     getPropertyOptions(env, "deals", "vendorschang_shang_lai_yuan"),

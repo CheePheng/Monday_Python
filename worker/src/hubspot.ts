@@ -105,6 +105,16 @@ export async function getOwners(env: Env): Promise<Record<string, { name: string
   return out;
 }
 
+/** Deal stage id -> label from the pipelines API. The `dealstage` PROPERTY has no options
+ * (stages live on the pipeline), so this is the correct source for stage display labels. */
+export async function getDealStageLabels(env: Env, pipelineId = "default"): Promise<Record<string, string>> {
+  const res = await hs(env, "GET", "/crm/v3/pipelines/deals");
+  const pipe = (res.results ?? []).find((p: any) => p.id === pipelineId);
+  const out: Record<string, string> = {};
+  for (const s of pipe?.stages ?? []) out[String(s.id)] = String(s.label);
+  return out;
+}
+
 export async function getPropertyOptions(env: Env, object: string, prop: string):
     Promise<Record<string, string>> {
   const res = await hs(env, "GET", `/crm/v3/properties/${object}/${prop}`);
