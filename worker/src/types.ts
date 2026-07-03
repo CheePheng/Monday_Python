@@ -1,0 +1,62 @@
+export interface Env {
+  MONDAY_API_TOKEN: string;
+  HUBSPOT_ACCESS_TOKEN: string;
+  TRIGGER_SECRET: string;
+  DRY_RUN: string; // "true" | "false"
+}
+
+export type ColType = "text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";
+export type LabelDict =
+  | "stage" | "dealtype" | "priority" | "vendor" | "pipeline"
+  | "industry" | "companyType" | "leadStatus" | "salesUser"
+  | "contactSource" | "contactVendor";
+
+export interface FieldSpec {
+  hs: string;            // HubSpot property name
+  col: string;           // monday column id
+  type: ColType;
+  labels?: LabelDict;    // enum label dictionary (HubSpot internal value -> display label)
+  reverse?: boolean;     // monday edits may be written back to HubSpot
+}
+
+export type GroupBy =
+  | { prop: string; map: Record<string, string>; reverse: boolean } // hs value -> monday group id
+  | { singleGroup: string };
+
+export interface ObjectSpec {
+  object: "deals" | "companies" | "contacts";
+  objectTypeId: "0-1" | "0-2" | "0-3"; // for HubSpot record deep links
+  searchFilters: Record<string, unknown>[]; // one HubSpot filterGroup's filters
+  modifiedProp: string;  // hs_lastmodifieddate | lastmodifieddate
+  nameProps: string[];   // properties composing the monday item name
+  nameReverse?: string;  // HubSpot property to receive a renamed item (omit = name not reversible)
+  boardId: string;
+  idCol: string;         // numbers column storing the HubSpot record id (dedup key)
+  linkCol?: string;
+  groupBy: GroupBy;
+  fields: FieldSpec[];
+}
+
+export interface MondayItem {
+  id: string;
+  name: string;
+  updated_at: string;
+  group: { id: string };
+  column_values: { id: string; text: string | null }[];
+}
+
+export interface HsRecord { id: string; properties: Record<string, string | null> }
+
+export interface Ctx {
+  labels: Partial<Record<LabelDict, Record<string, string>>>;
+  ownersById: Record<string, { name: string; email: string | null }>;
+  mondayUsersByEmail: Record<string, string>;
+  portalId: number;
+}
+
+export interface RunOpts { dryRun: boolean; writeHubspot: boolean; maxWrites: number }
+
+export interface Stats {
+  processed: number; created: number; toMonday: number; toHubspot: number;
+  inSync: number; skipped: number; errors: number;
+}
