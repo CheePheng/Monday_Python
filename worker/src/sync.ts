@@ -15,7 +15,7 @@ import {
 } from "./monday";
 import {
   createRecord, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord,
-  propertiesForSpec, searchAll, searchContactByEmail,
+  propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
 const emptyStats = (): Stats => ({
@@ -267,6 +267,24 @@ export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, b
     return wlog("hubspot", dealId, actionOf(stats), `board=${target.boardId}`);
   }
   return wlog("hubspot", dealId, "skipped", 'reason="deal not in scope (pipeline/owner/created-before-cutoff)"');
+}
+
+/** Every-minute fast poll: push only recently-CHANGED HubSpot deals to monday (near-instant even
+ * without HubSpot webhooks). Skips all work — and building ctx — when nothing changed. */
+export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000): Promise<string> {
+  const since = Date.now() - windowMs;
+  const ids = new Set<string>();
+  for (const spec of DEAL_SPECS) {
+    for (const id of await searchModifiedIds(env, spec, since)) ids.add(id);
+  }
+  if (ids.size === 0) return "incremental: no changed deals";
+  const budget: Budget = { left: opts.maxWrites };
+  for (const id of ids) {
+    if (budget.left <= 0) break;
+    try { await syncHubspotDeal(env, id, opts, budget); }
+    catch (e) { console.log(`incremental deal ${id} error: ${String(e).slice(0, 200)}`); }
+  }
+  return `incremental: ${ids.size} changed deal(s)`;
 }
 
 /** monday card changed -> reconcile the one linked HubSpot deal (create / update). */

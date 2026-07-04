@@ -5,7 +5,10 @@ near-instant (a few seconds); a **cron every 10 min** is only a backup that catc
 
 - **URL:** `https://hubspot-monday-sync.askada.workers.dev`
 - **Webhook endpoints:** `POST /webhooks/monday`, `POST /webhooks/hubspot`
-- **Cron (backup):** `*/10 * * * *` (set in `wrangler.jsonc`)
+- **Crons:** `* * * * *` = 1-min **incremental** poll (pushes recently-changed HubSpot deals to monday,
+  ~60s, so HubSpot→monday is near-instant even without HubSpot webhooks); `*/10 * * * *` = full backup.
+- **Latency:** monday→HubSpot = **seconds** (webhooks). HubSpot→monday = **~60s** via the poll, or
+  **seconds** once a HubSpot event source is wired (see the HubSpot webhooks section).
 - **Live/dry switch:** `vars.DRY_RUN` in `wrangler.jsonc` (`"false"` = live, anything else = dry). Redeploy to apply.
 
 Webhooks and cron share the **same core** (`reconcileRecord` / `createFromMonday` in `src/sync.ts`), so

@@ -70,6 +70,19 @@ export async function getRecord(env: Env, object: string, id: string, properties
   }
 }
 
+/** Ids of records matching a spec that changed at/after `sinceMs` (one page; the full cron backup
+ * catches any overflow). Cheap — used by the 1-minute incremental poll. */
+export async function searchModifiedIds(env: Env, spec: ObjectSpec, sinceMs: number): Promise<string[]> {
+  const body = {
+    filterGroups: [{ filters: [...spec.searchFilters,
+      { propertyName: spec.modifiedProp, operator: "GTE", value: sinceMs }] }],
+    sorts: [{ propertyName: spec.modifiedProp, direction: "DESCENDING" }],
+    properties: ["hs_object_id"], limit: 100,
+  };
+  const page = await hs(env, "POST", `/crm/v3/objects/${spec.object}/search`, body);
+  return (page.results ?? []).map((r: any) => String(r.id));
+}
+
 /** PATCH existing record (update-only). Returns the record's new modified timestamp (for Sync
  * State), or null when not actually written (dry / reverse writes disabled). */
 export async function patchRecord(env: Env, spec: ObjectSpec, id: string,
