@@ -64,11 +64,27 @@ Per board (start with **Deals 5029480547**), create a webhook pointing at the mo
 The Worker **ignores changes to its own bookkeeping columns** (Sync State / HubSpot ID / HubSpot Link),
 so those don't cause loops.
 
+**Already registered** on Deals board `5029480547`: `change_name`, `change_column_value`, `create_item`,
+`item_moved_to_any_group`. List them with `query { webhooks(board_id:5029480547){ id event } }`; register
+the same four on Company/Contact boards to make those instant too (the handler routes by board id).
+
 ### Create the HubSpot webhooks
-In your HubSpot **developer/app → Webhooks**, set the target URL to the HubSpot endpoint and subscribe to:
+> ⚠️ **HubSpot private apps cannot send webhooks.** To make HubSpot→monday instant you need **either**
+> a **HubSpot developer (public) app** with webhook subscriptions, **or** HubSpot **Workflows** that POST
+> to the endpoint on deal changes. Until one is set up, HubSpot→monday still syncs via the **10-min cron
+> backup** (the `/webhooks/hubspot` endpoint is built and tested; it just needs an event source).
+
+**Developer app:** in the app's **Webhooks** tab, set target URL = the HubSpot endpoint and subscribe to:
 - `deal.creation`
 - `deal.propertyChange` for: **dealname, dealstage, pipeline, hubspot_owner_id, sales_user** (add
   `dealtype`, `hs_priority` if you want those instant too).
+
+**Workflow alternative (no dev app):** create a deal-based workflow triggered on create/property-change,
+with a **"Send a webhook"** action → POST to the HubSpot endpoint (body = the deal). Simplest if you have
+Operations/Sales Hub.
+
+The webhook body just needs `{ "objectId": <dealId>, "subscriptionType": "deal.propertyChange" }` (an
+array or single object) — the Worker fetches the fresh deal itself.
 
 Optional signature check: put the app's **client secret** in the Worker as `HUBSPOT_APP_SECRET`
 (`npx wrangler secret put HUBSPOT_APP_SECRET`). When set, the Worker validates the `v3` signature and
