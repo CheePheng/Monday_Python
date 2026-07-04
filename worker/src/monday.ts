@@ -70,7 +70,7 @@ export async function getItem(env: Env, itemId: string): Promise<MondayItem | nu
 export async function findItemByColumn(env: Env, boardId: string, columnId: string, value: string):
     Promise<MondayItem[]> {
   const data = await gql(env,
-    `query ($b:ID!, $c:String!, $v:[String]) {
+    `query ($b:ID!, $c:String!, $v:[String!]!) {
        items_page_by_column_values(limit:10, board_id:$b,
          columns:[{ column_id:$c, column_values:$v }]) { items { ${ITEM_FIELDS} } } }`,
     { b: boardId, c: columnId, v: [value] });

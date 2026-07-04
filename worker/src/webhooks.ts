@@ -46,7 +46,7 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   // LOOP GUARD: ignore changes we made to our own bookkeeping columns (Sync State / HubSpot ID /
   // Link). Value columns still flow through, but value-diff will no-op an echo.
   const bookkeeping = new Set([spec.syncStateCol, spec.idCol, spec.linkCol].filter(Boolean) as string[]);
-  if (type === "update_column_value" && bookkeeping.has(columnId)) {
+  if (columnId && bookkeeping.has(columnId)) { // any column-change event on a bookkeeping column
     console.log(`[webhook] source=monday item=${itemId} type=${type} col=${columnId} action=ignored reason="own bookkeeping column"`);
     return new Response("ok");
   }
