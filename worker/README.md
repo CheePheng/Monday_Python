@@ -1,14 +1,19 @@
 # HubSpot ⇄ monday Sync Worker (live)
 
-An always-on Cloudflare Worker that two-way syncs HubSpot with Myla's monday boards every **2 minutes**.
+A Cloudflare Worker that two-way syncs HubSpot with Myla's monday boards. **Webhooks** make it
+near-instant (a few seconds); a **cron every 10 min** is only a backup that catches missed events.
 
 - **URL:** `https://hubspot-monday-sync.askada.workers.dev`
-- **Cron:** `*/2 * * * *` (set in `wrangler.jsonc`)
+- **Webhook endpoints:** `POST /webhooks/monday`, `POST /webhooks/hubspot`
+- **Cron (backup):** `*/10 * * * *` (set in `wrangler.jsonc`)
 - **Live/dry switch:** `vars.DRY_RUN` in `wrangler.jsonc` (`"false"` = live, anything else = dry). Redeploy to apply.
+
+Webhooks and cron share the **same core** (`reconcileRecord` / `createFromMonday` in `src/sync.ts`), so
+behaviour is identical whether an update arrives instantly or via the backup sweep.
 
 ## What it does
 
-Per 2-minute tick it reconciles four boards (config in `src/config.ts`):
+It reconciles four boards (config in `src/config.ts`):
 
 | Board | HubSpot object | Grouped by | Scope |
 |---|---|---|---|
@@ -36,7 +41,54 @@ curl -H "X-Trigger-Secret: $SECRET" \
 # object = deals | companies | contacts (omit for all); mode = dry | live
 ```
 
-`npx wrangler tail` streams live logs (each tick logs a per-board summary).
+`npx wrangler tail` streams live logs (webhooks log `[webhook] source=... action=...`).
+
+## Webhooks (near-instant sync)
+
+Endpoints (already live after deploy):
+- **monday →** `https://hubspot-monday-sync.askada.workers.dev/webhooks/monday`
+- **HubSpot →** `https://hubspot-monday-sync.askada.workers.dev/webhooks/hubspot`
+
+### Create the monday webhooks
+Per board (start with **Deals 5029480547**), create a webhook pointing at the monday endpoint. Two ways:
+- **API (recommended):** `create_webhook` mutation, one per event:
+  ```graphql
+  mutation { create_webhook(board_id: 5029480547,
+    url: "https://hubspot-monday-sync.askada.workers.dev/webhooks/monday",
+    event: create_item) { id } }
+  ```
+  Repeat with `event:` = **`create_item`**, **`change_name`**, **`change_column_value`**, **`move_item_to_group`**.
+  (monday sends a one-time challenge to the URL; the Worker answers it automatically.)
+- **UI:** board → **Integrations → Webhooks** (or the "Webhooks" integration recipe) for the same events.
+
+The Worker **ignores changes to its own bookkeeping columns** (Sync State / HubSpot ID / HubSpot Link),
+so those don't cause loops.
+
+### Create the HubSpot webhooks
+In your HubSpot **developer/app → Webhooks**, set the target URL to the HubSpot endpoint and subscribe to:
+- `deal.creation`
+- `deal.propertyChange` for: **dealname, dealstage, pipeline, hubspot_owner_id, sales_user** (add
+  `dealtype`, `hs_priority` if you want those instant too).
+
+Optional signature check: put the app's **client secret** in the Worker as `HUBSPOT_APP_SECRET`
+(`npx wrangler secret put HUBSPOT_APP_SECRET`). When set, the Worker validates the `v3` signature and
+rejects anything else; when unset, it accepts (the URL is unguessable).
+
+### Testing near-instant sync
+Run `npx wrangler tail` in one terminal, then:
+- **monday → HubSpot:** rename a card on the Deals board → within a few seconds the log shows
+  `source=monday ... action=updated-hubspot`, and the HubSpot deal name changes.
+- **HubSpot → monday:** change a deal's stage in HubSpot → log shows
+  `source=hubspot ... action=updated-monday` and the card moves group / updates.
+- **Create monday → HubSpot:** add a new card (owned board) → `action=created-hubspot`, and the card
+  gets a HubSpot Deal ID written back within seconds.
+
+### Confirming duplicate prevention
+- Rename the same card twice quickly → each webhook logs `updated-hubspot` but **no new HubSpot deal**
+  is created (the card already has a Deal ID). Re-running `/run` shows `inSync`.
+- Create a deal in HubSpot, then create a monday card for the same deal name manually: the HubSpot
+  webhook path searches **all** deal boards for the Deal ID first and logs `skipped-in-sync` /
+  `updated-*` instead of making a second card. Look for `action=skipped reason="..."` lines.
 
 ## Deploy / secrets
 

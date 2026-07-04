@@ -164,3 +164,10 @@ export const CONTACTS_MYLA: ObjectSpec = {
 };
 
 export const ALL_SPECS: ObjectSpec[] = [DEALS_MYLA, DEALS_UNASSIGNED, COMPANIES_MYLA, CONTACTS_MYLA];
+
+// Deal specs a HubSpot deal webhook can route to (owner-mapped board or the shared Unassigned board).
+export const DEAL_SPECS: ObjectSpec[] = [DEALS_MYLA, DEALS_UNASSIGNED];
+
+// boardId -> spec, so a monday webhook can find the spec for the board that fired it.
+export const SPEC_BY_BOARD: Record<string, ObjectSpec> =
+  Object.fromEntries(ALL_SPECS.map(s => [s.boardId, s]));

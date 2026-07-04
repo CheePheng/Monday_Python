@@ -52,6 +52,24 @@ export async function searchAll(env: Env, spec: ObjectSpec): Promise<HsRecord[]>
   return results;
 }
 
+export function propertiesForSpec(spec: ObjectSpec): string[] {
+  return propertiesFor(spec);
+}
+
+/** Fetch one HubSpot record by id (webhook fast path). Null if not found / archived. */
+export async function getRecord(env: Env, object: string, id: string, properties: string[]):
+    Promise<HsRecord | null> {
+  try {
+    const res = await hs(env, "GET",
+      `/crm/v3/objects/${object}/${id}?properties=${encodeURIComponent(properties.join(","))}`,
+      undefined, 1);
+    return { id: String(res.id), properties: res.properties ?? {} };
+  } catch (e) {
+    if (/: 404 /.test(String(e))) return null; // deleted/archived
+    throw e;
+  }
+}
+
 /** PATCH existing record (update-only). Returns the record's new modified timestamp (for Sync
  * State), or null when not actually written (dry / reverse writes disabled). */
 export async function patchRecord(env: Env, spec: ObjectSpec, id: string,

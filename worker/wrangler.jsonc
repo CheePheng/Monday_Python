@@ -2,7 +2,7 @@
   "name": "hubspot-monday-sync",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
-  "triggers": { "crons": ["*/2 * * * *"] },
+  "triggers": { "crons": ["*/10 * * * *"] },
   "vars": { "DRY_RUN": "false" },
   "observability": { "enabled": true }
 }

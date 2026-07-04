@@ -3,6 +3,8 @@ export interface Env {
   HUBSPOT_ACCESS_TOKEN: string;
   TRIGGER_SECRET: string;
   DRY_RUN: string; // "true" | "false"
+  HUBSPOT_APP_SECRET?: string;   // optional: validate HubSpot webhook v3 signatures if set
+  MONDAY_SIGNING_SECRET?: string; // optional: verify monday webhook JWT if set
 }
 
 export type ColType = "text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";

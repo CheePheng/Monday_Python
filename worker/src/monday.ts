@@ -56,6 +56,33 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
   return items;
 }
 
+const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text }";
+
+/** Fetch one item by id (webhook fast path). Null if it no longer exists. */
+export async function getItem(env: Env, itemId: string): Promise<MondayItem | null> {
+  const items: any[] = (await gql(env, `query ($i:[ID!]) { items(ids:$i) { ${ITEM_FIELDS} } }`,
+    { i: [itemId] })).items;
+  return items[0] ?? null;
+}
+
+/** Find items on a board whose column equals a value (used to locate a card by HubSpot Deal ID
+ * without reading the whole board). */
+export async function findItemByColumn(env: Env, boardId: string, columnId: string, value: string):
+    Promise<MondayItem[]> {
+  const data = await gql(env,
+    `query ($b:ID!, $c:String!, $v:[String]) {
+       items_page_by_column_values(limit:10, board_id:$b,
+         columns:[{ column_id:$c, column_values:$v }]) { items { ${ITEM_FIELDS} } } }`,
+    { b: boardId, c: columnId, v: [value] });
+  return data.items_page_by_column_values?.items ?? [];
+}
+
+export async function deleteItem(env: Env, itemId: string, opts: RunOpts): Promise<void> {
+  if (opts.dryRun) { console.log(`DRY delete item ${itemId}`); return; }
+  await gql(env, `mutation ($i:ID!) { delete_item(item_id:$i) { id } }`, { i: itemId }, 1);
+  console.log(`deleted item ${itemId}`);
+}
+
 export async function getUsersByEmail(env: Env): Promise<Record<string, string>> {
   const users: any[] = (await gql(env, "query { users(limit:500) { id email } }")).users;
   const out: Record<string, string> = {};
