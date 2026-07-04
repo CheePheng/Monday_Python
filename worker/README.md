@@ -7,8 +7,8 @@ near-instant (a few seconds); a **cron every 10 min** is only a backup that catc
 - **Webhook endpoints:** `POST /webhooks/monday`, `POST /webhooks/hubspot`
 - **Crons:** `* * * * *` = 1-min **incremental** poll (pushes recently-changed HubSpot deals to monday,
   ~60s, so HubSpot→monday is near-instant even without HubSpot webhooks); `*/10 * * * *` = full backup.
-- **Latency:** monday→HubSpot = **seconds** (webhooks). HubSpot→monday = **~60s** via the poll, or
-  **seconds** once a HubSpot event source is wired (see the HubSpot webhooks section).
+- **Latency:** monday→HubSpot = **seconds** (webhooks). HubSpot→monday = **seconds** (webhooks, via
+  the `hubspot-monday-webhook-sync` developer-projects app); the 1-min poll is a backup.
 - **Live/dry switch:** `vars.DRY_RUN` in `wrangler.jsonc` (`"false"` = live, anything else = dry). Redeploy to apply.
 
 Webhooks and cron share the **same core** (`reconcileRecord` / `createFromMonday` in `src/sync.ts`), so
@@ -71,23 +71,24 @@ so those don't cause loops.
 `item_moved_to_any_group`. List them with `query { webhooks(board_id:5029480547){ id event } }`; register
 the same four on Company/Contact boards to make those instant too (the handler routes by board id).
 
-### Create the HubSpot webhooks
-> ⚠️ **HubSpot private apps cannot send webhooks.** To make HubSpot→monday instant you need **either**
-> a **HubSpot developer (public) app** with webhook subscriptions, **or** HubSpot **Workflows** that POST
-> to the endpoint on deal changes. Until one is set up, HubSpot→monday still syncs via the **10-min cron
-> backup** (the `/webhooks/hubspot` endpoint is built and tested; it just needs an event source).
+### HubSpot webhooks — done via a developer-projects app ✅
+HubSpot→monday is instant through the **`hubspot-monday-webhook-sync`** developer-projects app (source in
+the repo folder of the same name), deployed and installed on portal **39939588**. It's a **private,
+static-auth** app on platform **2026.03** that POSTs to `/webhooks/hubspot`.
 
-**Developer app:** in the app's **Webhooks** tab, set target URL = the HubSpot endpoint and subscribe to:
-- `deal.creation`
-- `deal.propertyChange` for: **dealname, dealstage, pipeline, hubspot_owner_id, sales_user** (add
-  `dealtype`, `hs_priority` if you want those instant too).
+- Subscriptions (in `src/app/webhooks/webhooks-hsmeta.json`): deal `object.creation` +
+  `object.propertyChange` on **dealname, dealstage, pipeline, hubspot_owner_id, sales_user, dealtype,
+  hs_priority, vendorschang_shang_lai_yuan**.
+- Redeploy after config changes: `hs project upload --account 39939588` (creates a new build; auto-deploys).
+  Check install with `hs project app-install-status`; installing (a one-time click in the portal) is what
+  activates the webhooks.
+- **2026.03 schema notes:** config files are `*-hsmeta.json`; webhook subscriptions use `objectType`
+  (deal), and events arrive as `subscriptionType:"object.propertyChange"` + `objectTypeId:"0-3"`. The
+  Worker's `extractDealIds` handles this generic `object.*` shape **and** the legacy `deal.*` /
+  Workflow-payload shapes — it just needs the deal id; it fetches the fresh deal itself.
 
-**Workflow alternative (no dev app):** create a deal-based workflow triggered on create/property-change,
-with a **"Send a webhook"** action → POST to the HubSpot endpoint (body = the deal). Simplest if you have
-Operations/Sales Hub.
-
-The webhook body just needs `{ "objectId": <dealId>, "subscriptionType": "deal.propertyChange" }` (an
-array or single object) — the Worker fetches the fresh deal itself.
+> Alternative event sources still work with the same endpoint if ever needed: a HubSpot **Workflow** with a
+> "Send a webhook" action (body = the deal), or a legacy public app. The endpoint accepts all of these.
 
 Optional signature check: put the app's **client secret** in the Worker as `HUBSPOT_APP_SECRET`
 (`npx wrangler secret put HUBSPOT_APP_SECRET`). When set, the Worker validates the `v3` signature and

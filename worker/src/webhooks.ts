@@ -69,15 +69,23 @@ async function verifyHubspot(env: Env, req: Request, raw: string): Promise<boole
   return safeEq(expected, sig);
 }
 
-/** Pull deal id(s) from either a developer-app webhook (array of {objectId, subscriptionType})
- * or a Workflow "send webhook" payload (the deal object; id in one of several shapes). */
-function extractDealIds(body: any): string[] {
+/** Pull deal id(s) from any of the HubSpot webhook shapes we might receive:
+ *  - 2026 projects-app: subscriptionType "object.propertyChange"/"object.creation" + objectTypeId "0-3"
+ *  - legacy developer-app: subscriptionType "deal.propertyChange" (+ objectId)
+ *  - Workflow "send webhook": the deal object itself (no subscriptionType; id in hs_object_id/etc). */
+export function extractDealIds(body: any): string[] {
   const arr = Array.isArray(body) ? body : [body];
   const ids = new Set<string>();
   for (const e of arr) {
     if (!e || typeof e !== "object") continue;
     const sub = String(e.subscriptionType ?? e.eventType ?? "");
-    if (sub && !sub.startsWith("deal")) continue; // app event for a non-deal object
+    const objType = String(e.objectTypeId ?? e.objectType ?? "");
+    // Skip only events that are clearly for a NON-deal object. A "deal.*" prefix or an
+    // objectTypeId of "0-3" (deals) / objectType "deal" identifies a deal; a subscriptionType
+    // for another named object ("contact.*") or a different objectTypeId ("0-1") is rejected.
+    const nonDealSub = sub.includes(".") && !sub.startsWith("deal") && !sub.startsWith("object");
+    const nonDealObj = objType !== "" && objType !== "0-3" && objType.toLowerCase() !== "deal";
+    if (nonDealSub || nonDealObj) continue;
     const p = e.properties ?? {};
     let raw = e.objectId ?? e.hs_object_id ?? e.dealId ?? e.vid ?? e.id ?? p.hs_object_id ?? p.dealId;
     if (raw && typeof raw === "object") raw = raw.value; // legacy {value:"123"} shape
