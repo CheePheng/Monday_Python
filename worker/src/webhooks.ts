@@ -69,19 +69,38 @@ async function verifyHubspot(env: Env, req: Request, raw: string): Promise<boole
   return safeEq(expected, sig);
 }
 
+/** Pull deal id(s) from either a developer-app webhook (array of {objectId, subscriptionType})
+ * or a Workflow "send webhook" payload (the deal object; id in one of several shapes). */
+function extractDealIds(body: any): string[] {
+  const arr = Array.isArray(body) ? body : [body];
+  const ids = new Set<string>();
+  for (const e of arr) {
+    if (!e || typeof e !== "object") continue;
+    const sub = String(e.subscriptionType ?? e.eventType ?? "");
+    if (sub && !sub.startsWith("deal")) continue; // app event for a non-deal object
+    const p = e.properties ?? {};
+    let raw = e.objectId ?? e.hs_object_id ?? e.dealId ?? e.vid ?? e.id ?? p.hs_object_id ?? p.dealId;
+    if (raw && typeof raw === "object") raw = raw.value; // legacy {value:"123"} shape
+    if (raw != null && /^\d+$/.test(String(raw))) ids.add(String(raw));
+  }
+  return [...ids];
+}
+
 export async function handleHubspot(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
   const raw = await req.text();
   if (!(await verifyHubspot(env, req, raw))) {
     console.log('[webhook] source=hubspot action=rejected reason="bad signature"');
     return new Response("forbidden", { status: 403 });
   }
-  let events: any[] = [];
-  try { const b = JSON.parse(raw); events = Array.isArray(b) ? b : [b]; } catch { /* not json */ }
+  let body: any = null;
+  try { body = JSON.parse(raw); } catch { /* not json */ }
+  const events = Array.isArray(body) ? body : [body];
 
-  const dealIds = [...new Set(events
-    .filter(e => String(e.subscriptionType ?? e.eventType ?? "").startsWith("deal"))
-    .map(e => String(e.objectId ?? "")).filter(Boolean))];
-  if (!dealIds.length) return new Response("ok");
+  const dealIds = extractDealIds(body);
+  if (!dealIds.length) {
+    console.log(`[webhook] source=hubspot action=ignored reason="no deal id found" body=${raw.slice(0, 240)}`);
+    return new Response("ok");
+  }
 
   console.log(`[webhook] source=hubspot deals=${dealIds.join(",")} events=${events.length} action=received`);
   const opts = liveOpts(env);
