@@ -1,0 +1,31 @@
+{
+  "uid": "hubspot_monday_webhook_sync_app",
+  "type": "app",
+  "config": {
+    "description": "Emits deal creation/property-change webhooks to the Cloudflare Worker so HubSpot deal edits sync to monday.com in near real time.",
+    "name": "HubSpot to monday Webhook Sync",
+    "distribution": "private",
+    "auth": {
+      "type": "static",
+      "requiredScopes": [
+        "oauth",
+        "crm.objects.deals.read"
+      ],
+      "optionalScopes": [],
+      "conditionallyRequiredScopes": []
+    },
+    "permittedUrls": {
+      "fetch": [
+        "https://api.hubapi.com"
+      ],
+      "iframe": [],
+      "img": []
+    },
+    "support": {
+      "supportEmail": "support@example.com",
+      "documentationUrl": "https://example.com/docs",
+      "supportUrl": "https://example.com/support",
+      "supportPhone": "+18005555555"
+    }
+  }
+}
