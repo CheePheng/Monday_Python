@@ -21,6 +21,23 @@ function safeEq(a: string, b: string): boolean {
   return r === 0;
 }
 
+// Coalesce concurrent duplicate events within an isolate: if the same deal/item is already being
+// processed, return the in-flight promise instead of kicking off a second create/update. This closes
+// the window where two webhooks for the same BRAND-NEW record arrive together and both create a card
+// (the id-column search hasn't found anything yet for either). Best-effort per isolate; cross-isolate
+// bursts still converge via the id-column dedup + the cron backup, never a duplicate that survives.
+const inFlight = new Map<string, Promise<unknown>>();
+export function coalesce<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const existing = inFlight.get(key) as Promise<T> | undefined;
+  if (existing) {
+    console.log(`[webhook] action=coalesced key=${key} reason="duplicate event already in flight"`);
+    return existing;
+  }
+  const p = run().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
 // ------------------------------- monday -------------------------------
 // POST /webhooks/monday
 // Handles the subscription challenge, then item-created / name-changed / column-changed / moved.
@@ -53,20 +70,29 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
 
   console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} action=received`);
   const budget: Budget = { left: 30 };
-  ectx.waitUntil(syncMondayItem(env, boardId, itemId, liveOpts(env), budget)
+  // coalesce by item id so rapid edits (or our own write-back echoes) can't race into a duplicate.
+  ectx.waitUntil(coalesce(`md:${itemId}`, () => syncMondayItem(env, boardId, itemId, liveOpts(env), budget))
     .catch(e => console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
   return new Response("ok"); // respond fast so monday doesn't retry
 }
 
 // ------------------------------- hubspot -------------------------------
 // POST /webhooks/hubspot — deal.creation / deal.propertyChange (name, stage, pipeline, owner, sales_user).
-async function verifyHubspot(env: Env, req: Request, raw: string): Promise<boolean> {
-  if (!env.HUBSPOT_APP_SECRET) return true; // not configured -> accept (endpoint is unguessable)
+//
+// v3 signature (HubSpot docs): base64( HMAC-SHA256( clientSecret, method + fullUrl + rawBody + timestamp ) ),
+// sent in x-hubspot-signature-v3, with x-hubspot-request-timestamp for replay protection (reject > 5 min).
+// Enforced only when HUBSPOT_APP_SECRET is set (= the app's client secret); when unset we accept because
+// the endpoint URL is unguessable. Returns a specific reason so rejections are debuggable in the logs.
+type SigVerdict = { ok: boolean; reason: string };
+async function verifyHubspot(env: Env, req: Request, raw: string): Promise<SigVerdict> {
+  if (!env.HUBSPOT_APP_SECRET) return { ok: true, reason: "unsigned-accepted (no HUBSPOT_APP_SECRET set)" };
   const sig = req.headers.get("x-hubspot-signature-v3");
   const ts = req.headers.get("x-hubspot-request-timestamp");
-  if (!sig || !ts || Math.abs(Date.now() - Number(ts)) > 5 * 60_000) return false;
+  if (!sig || !ts) return { ok: false, reason: "missing signature/timestamp header" };
+  if (!Number.isFinite(Number(ts)) || Math.abs(Date.now() - Number(ts)) > 5 * 60_000)
+    return { ok: false, reason: "stale or invalid timestamp (replay guard)" };
   const expected = await hmacB64(env.HUBSPOT_APP_SECRET, `${req.method}${req.url}${raw}${ts}`);
-  return safeEq(expected, sig);
+  return safeEq(expected, sig) ? { ok: true, reason: "valid" } : { ok: false, reason: "signature mismatch" };
 }
 
 /** Pull deal id(s) from any of the HubSpot webhook shapes we might receive:
@@ -96,8 +122,9 @@ export function extractDealIds(body: any): string[] {
 
 export async function handleHubspot(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
   const raw = await req.text();
-  if (!(await verifyHubspot(env, req, raw))) {
-    console.log('[webhook] source=hubspot action=rejected reason="bad signature"');
+  const sig = await verifyHubspot(env, req, raw);
+  if (!sig.ok) {
+    console.log(`[webhook] source=hubspot action=rejected reason="${sig.reason}"`);
     return new Response("forbidden", { status: 403 });
   }
   let body: any = null;
@@ -113,8 +140,9 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
   console.log(`[webhook] source=hubspot deals=${dealIds.join(",")} events=${events.length} action=received`);
   const opts = liveOpts(env);
   const budget: Budget = { left: 30 };
+  // coalesce by deal id so a burst of property-change events for one deal can't race into a duplicate.
   ectx.waitUntil(Promise.all(dealIds.map(id =>
-    syncHubspotDeal(env, id, opts, budget)
+    coalesce(`hs:${id}`, () => syncHubspotDeal(env, id, opts, budget))
       .catch(e => console.log(`[webhook] source=hubspot deal=${id} action=error reason="${String(e).slice(0, 160)}"`)))));
   return new Response("ok"); // respond fast so HubSpot doesn't retry
 }

@@ -16,11 +16,14 @@ async function hs(env: Env, method: string, path: string, body?: unknown, retrie
       await new Promise(res => setTimeout(res, 1500 * attempt));
       continue;
     }
-    if (resp.status === 429 && attempt < retries) {    // rate limited: back off + retry
+    // 429 (rate limit) and 5xx (transient server error) did not durably apply for our safe/idempotent
+    // calls -> back off and retry. Bounded by `retries`: creates pass retries=1, so a POST is never
+    // retried and can't double-apply; searches/GET/PATCH (retries=3) ride out a blip.
+    if ((resp.status === 429 || resp.status >= 500) && attempt < retries) {
       await new Promise(res => setTimeout(res, 2000 * attempt));
       continue;
     }
-    if (!resp.ok) {                                    // 4xx/5xx: permanent — throw now, no retry
+    if (!resp.ok) {                                    // other 4xx (and exhausted 5xx): throw now
       throw new Error(`hubspot ${method} ${path}: ${resp.status} ${(await resp.text()).slice(0, 300)}`);
     }
     return resp.json();

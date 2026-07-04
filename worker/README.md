@@ -110,12 +110,76 @@ Run `npx wrangler tail` in one terminal, then:
   webhook path searches **all** deal boards for the Deal ID first and logs `skipped-in-sync` /
   `updated-*` instead of making a second card. Look for `action=skipped reason="..."` lines.
 
+## Production safety
+
+How each guarantee is enforced in code (all covered by `npx vitest run`):
+
+**Webhook authenticity**
+- **HubSpot:** `/webhooks/hubspot` validates the **v3 signature** when `HUBSPOT_APP_SECRET` is set —
+  `base64(HMAC-SHA256(clientSecret, method + url + rawBody + timestamp))` vs `x-hubspot-signature-v3`,
+  rejecting stale timestamps (>5 min, replay guard). Invalid requests get a `403` and a specific log
+  (`action=rejected reason="signature mismatch|missing …|stale …"`). When the secret is unset it accepts
+  (the URL is unguessable) and logs `unsigned-accepted`. See "Enabling HubSpot signature validation" below.
+- **monday:** the subscription **challenge** is echoed automatically, and only **configured board ids**
+  (`SPEC_BY_BOARD`) are processed — anything else logs `action=ignored reason="board not configured"`.
+
+**Loop prevention** (monday → HubSpot → monday can't ping-pong)
+- **Value-diff:** a side is written only for fields that actually differ (`fieldDiffs` / `buildUpdatePayload`).
+  An echo of our own write diffs to nothing → `action=skipped-in-sync`, no write.
+- **Direction by Sync-State timestamp,** not monday's `updated_at`: the hidden Sync-State column stores the
+  last-synced HubSpot `hs_lastmodifieddate`; HubSpot wins only if it changed since then, so the sync is
+  immune to its own writes and the fetch→write self-race.
+- **Bookkeeping-column guard:** monday column-change events on the Sync-State / HubSpot-ID / Link columns
+  are ignored outright.
+
+**Duplicate prevention** (idempotent on HubSpot Deal ID + monday item id)
+- monday → HubSpot: a card is only created if its **HubSpot ID column is empty**; the new id is written
+  back (retried hard — `setColumns` retries=3 — and aborts the create loop if it can't, to avoid orphans).
+- HubSpot → monday: `findLinkedDealItem` searches **every** deal board for the Deal ID before creating.
+- **Concurrency:** webhooks are **coalesced per record id** within an isolate (`coalesce()` in
+  `webhooks.ts`) so a burst of events for one deal/card can't race two creates. Cross-isolate bursts still
+  converge via the id search + the cron backup — a duplicate never survives.
+
+**Failure handling**
+- HubSpot `hs()` retries **429 + 5xx** with backoff on safe/idempotent calls; **creates use retries=1** so a
+  POST is never retried into a duplicate. Other 4xx throw immediately (no pointless retries).
+- monday `gql()` waits out **429 / complexity-budget** (safe even for mutations — the request didn't apply);
+  create/update/move mutations use retries=1, the idempotent Sync-State write-back retries=3.
+- Every failed sync logs the object + id + error (`error deals/<id>: …`, `source=… action=error reason="…"`).
+
+### Enabling HubSpot signature validation (safe rollout)
+The app's **client secret** is the HMAC key. Enable without risk of dropping live events:
+1. Grab the client secret from the app page (project `hubspot-monday-webhook-sync` → app → Auth).
+2. `cd worker && npx wrangler secret put HUBSPOT_APP_SECRET` (paste it) — no redeploy needed.
+3. `npx wrangler tail` and edit a deal. A good webhook logs `action=received`. If you instead see
+   `action=rejected reason="signature mismatch"`, the scheme differs — **roll back immediately** with
+   `npx wrangler secret delete HUBSPOT_APP_SECRET` (reverts to accept-unsigned) and open an issue.
+
+### Manual test checklist (post-deploy smoke test)
+Run `npx wrangler tail`, then confirm each line appears:
+- [ ] **HubSpot → monday update:** change a Myla deal's stage → `source=hubspot … action=updated-monday`;
+      card moves group within seconds.
+- [ ] **HubSpot → monday create:** create a Myla deal (Sales Pipeline, created today) → `action=created-monday`;
+      a card appears with the HubSpot ID + link filled.
+- [ ] **monday → HubSpot update:** rename that card → `source=monday … action=updated-hubspot`; deal renamed.
+- [ ] **monday → HubSpot create:** add a card on the Deals board → `action=created-hubspot`; a Deal ID is
+      written back to the card within seconds.
+- [ ] **No loop:** after any of the above, confirm the follow-on echo logs `action=skipped-in-sync` (not a
+      second write).
+- [ ] **No duplicate (HubSpot side):** rename the same card twice fast → both log `updated-hubspot`, **no**
+      new deal; `curl …/run?object=deals&mode=dry` shows `inSync`.
+- [ ] **No duplicate (monday side):** trigger the same deal webhook twice → second logs `skipped-in-sync`,
+      **no** second card.
+- [ ] **Signature (if enabled):** a real webhook logs `action=received`; a hand-crafted POST with no
+      signature logs `action=rejected`.
+
 ## Deploy / secrets
 
 ```bash
 npm install
 npx wrangler deploy
 # secrets (one-time): npx wrangler secret put MONDAY_API_TOKEN | HUBSPOT_ACCESS_TOKEN | TRIGGER_SECRET
+# optional hardening:  npx wrangler secret put HUBSPOT_APP_SECRET   (enables v3 signature validation)
 ```
 
 ## ⚠️ Free plan limit
@@ -142,4 +206,6 @@ that cap.
 
 ## Tests
 
-`npx vitest run` — 30 unit tests covering mapping, routing, dedup, and the reconcile direction logic.
+`npx vitest run` — 48 tests covering mapping, routing, dedup, reconcile direction, webhook-payload parsing,
+and the end-to-end hardening behaviours (create-once, update-existing, cross-board dedup, duplicate-payload
+safety, and the no-loop echo) driven through the real sync orchestration with in-memory API fakes.
