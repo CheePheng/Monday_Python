@@ -4,18 +4,25 @@ import { handleHubspot, handleMonday } from "./webhooks";
 
 function optsFromEnv(env: Env): RunOpts {
   const live = env.DRY_RUN === "false";
-  // 25 writes/tick keeps subrequests under the free-plan 50 cap.
-  return { dryRun: !live, writeHubspot: live, maxWrites: 25 };
+  // Writes/records per cron tick. Default 25 keeps subrequests under the free-plan 50 cap; raise via the
+  // MAX_WRITES var on Workers Paid (1,000 subrequests) so bulk imports catch up faster per tick.
+  const n = Number(env.MAX_WRITES ?? "25");
+  const maxWrites = Number.isFinite(n) && n > 0 ? n : 25;
+  return { dryRun: !live, writeHubspot: live, maxWrites };
 }
 
 export default {
-  // Two crons: every-minute incremental (HubSpot->monday near-instant) + a 10-min full backup.
+  // Webhooks are the primary, instant path. Crons are only safety nets:
+  //   - every 10 min: a LIGHT incremental check (recently-changed records only) that sweeps up any
+  //     missed webhook. Window >10 min so nothing slips between ticks.
+  //   - once a day (03:00 UTC): a FULL reconciliation (deep scan of every record). The heavy scan runs
+  //     daily instead of every minute to avoid unnecessary API load.
   async scheduled(event: ScheduledEvent, env: Env, ectx: ExecutionContext): Promise<void> {
     const opts = optsFromEnv(env);
-    if (event.cron === "*/10 * * * *") {
-      ectx.waitUntil(runAll(env, opts).then(s => console.log("cron-backup", JSON.stringify(s))));
+    if (event.cron === "0 3 * * *") {
+      ectx.waitUntil(runAll(env, opts).then(s => console.log("cron-daily-full", JSON.stringify(s))));
     } else {
-      ectx.waitUntil(runIncremental(env, opts).then(s => console.log("cron-incremental", s)));
+      ectx.waitUntil(runIncremental(env, opts, 11 * 60_000).then(s => console.log("cron-backup", s)));
     }
   },
 

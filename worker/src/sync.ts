@@ -301,6 +301,25 @@ export async function syncHubspotObject(env: Env, objectType: "deal" | "contact"
   return syncHubspotRecord(env, objectType === "contact" ? CONTACTS_MYLA : COMPANIES_MYLA, id, opts, budget);
 }
 
+/** A HubSpot record was DELETED -> delete the linked monday card. HubSpot is the source of truth,
+ * so this only removes the follow-up card; it never deletes anything in HubSpot. No-op if no card
+ * is linked. (We don't need to fetch the record — the delete event carries the id, and we find the
+ * card by its HubSpot ID column.) */
+export async function deleteHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
+    id: string, opts: RunOpts, budget: Budget): Promise<string> {
+  if (objectType === "deal") {
+    const linked = await findLinkedDealItem(env, id); // searches both deal boards
+    if (!linked) return wlog("deals", id, "skipped", 'reason="deleted in HubSpot; no linked monday card"');
+    await deleteItem(env, linked.item.id, opts); budget.left--;
+    return wlog("deals", id, "deleted-monday", `board=${linked.spec.boardId} item=${linked.item.id}`);
+  }
+  const spec = objectType === "contact" ? CONTACTS_MYLA : COMPANIES_MYLA;
+  const item = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  if (!item) return wlog(spec.object, id, "skipped", 'reason="deleted in HubSpot; no linked monday card"');
+  await deleteItem(env, item.id, opts); budget.left--;
+  return wlog(spec.object, id, "deleted-monday", `board=${spec.boardId} item=${item.id}`);
+}
+
 /** Every-minute fast poll: push recently-CHANGED HubSpot records to monday (near-instant even without
  * HubSpot webhooks — deals, contacts, AND companies). Skips work when nothing changed. */
 export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000): Promise<string> {

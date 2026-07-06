@@ -73,17 +73,26 @@ export async function getRecord(env: Env, object: string, id: string, properties
   }
 }
 
-/** Ids of records matching a spec that changed at/after `sinceMs` (one page; the full cron backup
- * catches any overflow). Cheap — used by the 1-minute incremental poll. */
-export async function searchModifiedIds(env: Env, spec: ObjectSpec, sinceMs: number): Promise<string[]> {
-  const body = {
-    filterGroups: [{ filters: [...spec.searchFilters,
-      { propertyName: spec.modifiedProp, operator: "GTE", value: sinceMs }] }],
-    sorts: [{ propertyName: spec.modifiedProp, direction: "DESCENDING" }],
-    properties: ["hs_object_id"], limit: 100,
-  };
-  const page = await hs(env, "POST", `/crm/v3/objects/${spec.object}/search`, body);
-  return (page.results ?? []).map((r: any) => String(r.id));
+/** Ids of records matching a spec that changed at/after `sinceMs`. Paginates (up to `maxPages` pages of
+ * 100) so a bulk import that changes many records in one window is fully swept by the 10-min backup, not
+ * capped at the first 100. The write BUDGET still throttles how many are pushed per tick. */
+export async function searchModifiedIds(env: Env, spec: ObjectSpec, sinceMs: number, maxPages = 20): Promise<string[]> {
+  const ids: string[] = [];
+  let after: string | undefined;
+  let pages = 0;
+  do {
+    const body: Record<string, unknown> = {
+      filterGroups: [{ filters: [...spec.searchFilters,
+        { propertyName: spec.modifiedProp, operator: "GTE", value: sinceMs }] }],
+      sorts: [{ propertyName: spec.modifiedProp, direction: "DESCENDING" }],
+      properties: ["hs_object_id"], limit: 100,
+      ...(after ? { after } : {}),
+    };
+    const page = await hs(env, "POST", `/crm/v3/objects/${spec.object}/search`, body);
+    for (const r of page.results ?? []) ids.push(String(r.id));
+    after = page.paging?.next?.after;
+  } while (after && ++pages < maxPages);
+  return ids;
 }
 
 /** PATCH existing record (update-only). Returns the record's new modified timestamp (for Sync

@@ -1,16 +1,17 @@
 # HubSpot ⇄ monday Sync Worker (live)
 
-A Cloudflare Worker that two-way syncs HubSpot with Myla's monday boards. **Webhooks** make it
-near-instant (a few seconds); a **cron every 10 min** is only a backup that catches missed events.
+A Cloudflare Worker that two-way syncs HubSpot with Myla's monday boards. **Webhooks** are the primary,
+near-instant path (a few seconds); crons are only safety nets.
 
 - **URL:** `https://hubspot-monday-sync.askada.workers.dev`
 - **Webhook endpoints:** `POST /webhooks/monday`, `POST /webhooks/hubspot`
-- **Crons (backup only):** `* * * * *` = 1-min **incremental** poll (pushes recently-changed HubSpot
-  **deals, contacts, and companies** to monday, ~60s — a safety net if a webhook is missed);
-  `*/10 * * * *` = full reconcile sweep.
-- **Latency:** monday→HubSpot = **seconds** (monday webhooks on all four boards). HubSpot→monday =
-  **seconds** for **deals, contacts, and companies** (HubSpot webhooks via the
-  `hubspot-monday-webhook-sync` developer-projects app); the 1-min poll only backstops missed events.
+- **Crons (backup only):** `*/10 * * * *` = **light incremental check** (recently-changed records only,
+  ~11-min window) that sweeps up any missed webhook; `0 3 * * *` = **daily full reconciliation** (deep scan
+  of every record). The heavy scan runs once a day instead of every minute to avoid unnecessary API load.
+- **Latency:** monday→HubSpot = **seconds** (monday webhooks on all three owned boards). HubSpot→monday =
+  **seconds** for **deals, contacts, and companies** — create, update, **and delete** — via HubSpot
+  webhooks (the `hubspot-monday-webhook-sync` developer-projects app); the 10-min check only backstops
+  missed events.
 - **Live/dry switch:** `vars.DRY_RUN` in `wrangler.jsonc` (`"false"` = live, anything else = dry). Redeploy to apply.
 
 Webhooks and cron share the **same core** (`reconcileRecord` / `createFromMonday` in `src/sync.ts`), so
@@ -33,7 +34,34 @@ own writes, so it converges and never ping-pongs.
 
 **Create:** a card added to a per-owner board (Deals/Company/Contact) after the go-live cutoff creates a
 HubSpot record and writes the new id back. Contacts adopt an existing HubSpot contact by email if one
-exists. **HubSpot records are never deleted**, and old history is never migrated (new-only).
+exists.
+
+**Delete (HubSpot → monday only):** when a deal/contact/company is **deleted in HubSpot** (the source of
+truth), the Worker **deletes** the linked monday card (`object.deletion` webhook → `deleteHubspotObject`
+→ `delete_item`). monday keeps deleted items in the board recycle bin for ~30 days, so it's recoverable.
+Requires the `MONDAY_API_TOKEN` user to have **item-delete permission** on the boards (an admin/service
+account — salespeople have delete disabled). It **never touches HubSpot** (deleting a monday card does
+nothing to HubSpot). No linked card ⇒ no-op.
+
+**Item-name mapping (primary column):** the monday item name maps to a single HubSpot property, reverse-
+synced, so editing the primary column writes back: **contacts** primary = `firstname` (Last Name is its own
+column = `lastname`); **companies** primary = `domain` (Company Name column = `name`); deals primary =
+`dealname`.
+
+**Bulk imports (a big Excel across contacts + companies + deals):** fully supported — a single import
+fires creation events for all three object types, and the Worker routes each event to the right board
+(`extractObjectEvents` by `objectTypeId`). Throughput, not routing, is the constraint:
+- Each Worker run is capped so it can't exceed Cloudflare's per-invocation subrequest limit: the webhook
+  handler processes ≤15 events per call, and each cron tick writes ≤ **`MAX_WRITES`** records.
+- A huge import therefore syncs **progressively**: webhooks handle the leading edge, and the **10-min
+  incremental** backup (now paginated) sweeps the rest, `MAX_WRITES` per tick, until caught up (the daily
+  full reconciliation is the final safety net).
+- **To go faster:** on **Workers Paid** (1,000 subrequests/invocation) raise `MAX_WRITES` in
+  `wrangler.jsonc` (e.g. `"150"`) and redeploy — each tick then syncs far more. On the free plan keep it
+  ~25. For a one-time backfill right after a big import, trigger the manual full reconcile:
+  `/run?mode=live&maxWrites=<high>` (it paginates every board).
+- **Scope still applies:** a record only syncs if **`sales_user` = Myla** (and, for contacts/companies,
+  created ≥ 2026-07-01). Set `sales_user` in the import file, or those rows are skipped by design.
 
 ## Manual trigger (testing / one-off)
 
@@ -83,7 +111,8 @@ on portal **39939588**. It's a **private, static-auth** app on platform **2026.0
   for **deals** (dealname, dealstage, pipeline, owner, sales_user, dealtype, hs_priority, vendor),
   **contacts** (firstname, lastname, email, jobtitle, company, phone, owner, sales_user, hs_lead_status,
   leadsource, manufacturer__c), and **companies** (name, owner, sales_user, industry, type, city, state,
-  numberofemployees, annualrevenue, description, linkedin_company_page).
+  numberofemployees, annualrevenue, description, linkedin_company_page) — plus **`object.deletion`** for
+  all three (→ deletes the linked card).
 - Scopes: `crm.objects.deals.read`, `crm.objects.contacts.read`, `crm.objects.companies.read`. The
   Worker's own writes use the private-app token (`HUBSPOT_ACCESS_TOKEN`), which has read+write on all three.
 - Redeploy after config changes: `hs project upload --account 39939588`. **Adding scopes requires a

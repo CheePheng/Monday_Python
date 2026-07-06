@@ -1,6 +1,6 @@
 import type { Budget, Env, RunOpts } from "./types";
 import { SPEC_BY_BOARD } from "./config";
-import { syncHubspotObject, syncMondayItem } from "./sync";
+import { deleteHubspotObject, syncHubspotObject, syncMondayItem } from "./sync";
 
 // Webhooks write for real when the Worker is live; a small per-webhook budget is plenty (1 record).
 function liveOpts(env: Env): RunOpts {
@@ -105,9 +105,9 @@ const OBJ_BY_TYPEID: Record<string, HsObjType> = { "0-1": "contact", "0-2": "com
  *  - Workflow "send webhook": the object itself (no subscriptionType; id in hs_object_id — assumed deal).
  * Deduped by type+id so a batch of property-change events for one record collapses to a single sync,
  * and mixed batches (deal + contact + company) are each routed to the right object type. */
-export function extractObjectEvents(body: any): { type: HsObjType; id: string }[] {
+export function extractObjectEvents(body: any): { type: HsObjType; id: string; deleted?: boolean }[] {
   const arr = Array.isArray(body) ? body : [body];
-  const out = new Map<string, { type: HsObjType; id: string }>();
+  const out = new Map<string, { type: HsObjType; id: string; deleted?: boolean }>();
   for (const e of arr) {
     if (!e || typeof e !== "object") continue;
     const sub = String(e.subscriptionType ?? e.eventType ?? "");
@@ -120,10 +120,14 @@ export function extractObjectEvents(body: any): { type: HsObjType; id: string }[
     else if (OBJ_BY_TYPEID[objTypeId]) type = OBJ_BY_TYPEID[objTypeId]; // generic "object.*" + objectTypeId
     else if (!sub && !objTypeId) type = "deal";                        // bare Workflow payload -> deal
     if (!type) continue;                                               // unresolvable object type -> skip
+    // deletion events: subscriptionType ends in ".deletion" (object.deletion / deal.deletion / ...).
+    const deleted = sub.split(".").pop() === "deletion";
     const p = e.properties ?? {};
     let raw = e.objectId ?? e.hs_object_id ?? e.dealId ?? e.vid ?? e.id ?? p.hs_object_id ?? p.dealId;
     if (raw && typeof raw === "object") raw = raw.value; // legacy {value:"123"} shape
-    if (raw != null && /^\d+$/.test(String(raw))) out.set(`${type}:${raw}`, { type, id: String(raw) });
+    if (raw != null && /^\d+$/.test(String(raw)))
+      out.set(`${type}:${raw}:${deleted ? "d" : "u"}`,
+        deleted ? { type, id: String(raw), deleted: true } : { type, id: String(raw) });
   }
   return [...out.values()];
 }
@@ -143,19 +147,28 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
   let body: any = null;
   try { body = JSON.parse(raw); } catch { /* not json */ }
 
-  // Route each event by object type; a single batch may mix deals, contacts, and companies.
+  // Route each event by object type; a single batch may mix deals, contacts, and companies,
+  // and creations/updates with deletions.
   const events = extractObjectEvents(body);
   if (!events.length) {
     console.log(`[webhook] source=hubspot action=ignored reason="no object id found" body=${raw.slice(0, 240)}`);
     return new Response("ok");
   }
 
-  console.log(`[webhook] source=hubspot events=${events.map(e => `${e.type}:${e.id}`).join(",")} action=received`);
+  console.log(`[webhook] source=hubspot events=${events.map(e => `${e.deleted ? "del:" : ""}${e.type}:${e.id}`).join(",")} action=received`);
   const opts = liveOpts(env);
   const budget: Budget = { left: 30 };
-  // coalesce by object type+id so a burst of events for one record can't race into a duplicate.
-  ectx.waitUntil(Promise.all(events.map(ev =>
-    coalesce(`hs:${ev.type}:${ev.id}`, () => syncHubspotObject(env, ev.type, ev.id, opts, budget))
+  // Subrequest safety: a large import can batch many creation events into one webhook. Process a
+  // bounded slice per invocation (each event costs a few subrequests); the 10-min backup reconcile
+  // sweeps up any overflow, so nothing is lost.
+  const MAX = 15;
+  if (events.length > MAX)
+    console.log(`[webhook] source=hubspot action=deferred count=${events.length - MAX} reason="batch > ${MAX}; backup catches overflow"`);
+  // coalesce by object type+id(+delete) so a burst of events for one record can't race into a duplicate.
+  ectx.waitUntil(Promise.all(events.slice(0, MAX).map(ev =>
+    coalesce(`hs:${ev.type}:${ev.id}:${ev.deleted ? "d" : "u"}`, () =>
+      ev.deleted ? deleteHubspotObject(env, ev.type, ev.id, opts, budget)
+                 : syncHubspotObject(env, ev.type, ev.id, opts, budget))
       .catch(e => console.log(`[webhook] source=hubspot ${ev.type}=${ev.id} action=error reason="${String(e).slice(0, 160)}"`)))));
   return new Response("ok"); // respond fast so HubSpot doesn't retry
 }

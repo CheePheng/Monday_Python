@@ -5,6 +5,7 @@ export interface Env {
   DRY_RUN: string; // "true" | "false"
   HUBSPOT_APP_SECRET?: string;   // optional: validate HubSpot webhook v3 signatures if set
   MONDAY_SIGNING_SECRET?: string; // optional: verify monday webhook JWT if set
+  MAX_WRITES?: string;           // optional: writes/records per cron tick (default 25; raise on Workers Paid)
 }
 
 export type ColType = "text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";

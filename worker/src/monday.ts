@@ -77,6 +77,9 @@ export async function findItemByColumn(env: Env, boardId: string, columnId: stri
   return data.items_page_by_column_values?.items ?? [];
 }
 
+// Mirrors a HubSpot deletion by hard-deleting the linked card. monday keeps deleted items in the board
+// recycle bin for ~30 days, so this is recoverable. Requires the API token's user to have item-delete
+// permission on the board (an admin/service account).
 export async function deleteItem(env: Env, itemId: string, opts: RunOpts): Promise<void> {
   if (opts.dryRun) { console.log(`DRY delete item ${itemId}`); return; }
   await gql(env, `mutation ($i:ID!) { delete_item(item_id:$i) { id } }`, { i: itemId }, 1);

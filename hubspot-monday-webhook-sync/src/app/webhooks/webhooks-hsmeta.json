@@ -42,7 +42,11 @@
         { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "numberofemployees", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "annualrevenue", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "description", "active": true },
-        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "linkedin_company_page", "active": true }
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "linkedin_company_page", "active": true },
+
+        { "subscriptionType": "object.deletion", "objectType": "deal", "active": true },
+        { "subscriptionType": "object.deletion", "objectType": "contact", "active": true },
+        { "subscriptionType": "object.deletion", "objectType": "company", "active": true }
       ]
     }
   }

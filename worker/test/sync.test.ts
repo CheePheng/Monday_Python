@@ -109,7 +109,7 @@ vi.mock("../src/hubspot", () => ({
 }));
 
 // Import AFTER the mocks are registered.
-import { syncHubspotDeal, syncHubspotObject, syncMondayItem } from "../src/sync";
+import { deleteHubspotObject, syncHubspotDeal, syncHubspotObject, syncMondayItem } from "../src/sync";
 import { extractDealIds } from "../src/webhooks";
 
 const BOARD = DEALS_MYLA.boardId;      // 5029480547
@@ -300,5 +300,45 @@ describe("contacts & companies sync via webhook the same way as deals", () => {
     await syncHubspotObject(env, "company", "80003", opts, budget());
     await syncHubspotObject(env, "company", "80003", opts, budget());
     expect(H.counts.createItem).toBe(1);
+  });
+});
+
+describe("HubSpot deletion -> monday card deletion (HubSpot is source of truth; never touches HubSpot)", () => {
+  const has = (idCol: string, hsId: string) =>
+    [...H.items.values()].some(i => H.colText(i, idCol) === hsId);
+
+  it("deal deletion deletes the linked deal card", async () => {
+    putDeal("9010", { dealname: "To Delete" });
+    await syncHubspotObject(env, "deal", "9010", opts, budget());
+    expect(has(ID_COL, "9010")).toBe(true);
+    const r = await deleteHubspotObject(env, "deal", "9010", opts, budget());
+    expect(r).toContain("deleted-monday");
+    expect(has(ID_COL, "9010")).toBe(false);
+  });
+
+  it("contact deletion deletes the linked contact card", async () => {
+    H.deals.set("70010", { id: "70010", properties: { firstname: "Del", lastname: "Me",
+      sales_user: SALES_USER_MYLA, createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" } });
+    await syncHubspotObject(env, "contact", "70010", opts, budget());
+    expect(has(CONTACTS_MYLA.idCol, "70010")).toBe(true);
+    const r = await deleteHubspotObject(env, "contact", "70010", opts, budget());
+    expect(r).toContain("deleted-monday");
+    expect(has(CONTACTS_MYLA.idCol, "70010")).toBe(false);
+  });
+
+  it("company deletion deletes the linked company card", async () => {
+    H.deals.set("80010", { id: "80010", properties: { name: "Del Co", domain: "delco.com",
+      sales_user: SALES_USER_MYLA, createdate: RECENT, hs_lastmodifieddate: RECENT } });
+    await syncHubspotObject(env, "company", "80010", opts, budget());
+    expect(has(COMPANIES_MYLA.idCol, "80010")).toBe(true);
+    const r = await deleteHubspotObject(env, "company", "80010", opts, budget());
+    expect(r).toContain("deleted-monday");
+    expect(has(COMPANIES_MYLA.idCol, "80010")).toBe(false);
+  });
+
+  it("deletion with no linked monday card is a safe no-op", async () => {
+    const r = await deleteHubspotObject(env, "deal", "99999999", opts, budget());
+    expect(r).toContain("skipped");
+    expect(H.counts.deleteItem).toBe(0);
   });
 });

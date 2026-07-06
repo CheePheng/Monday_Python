@@ -94,4 +94,17 @@ describe("extractObjectEvents (multi-object routing)", () => {
       { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 42 },
       { subscriptionType: "object.propertyChange", objectTypeId: "0-1", objectId: 42 },
     ])).toEqual([{ type: "deal", id: "42" }, { type: "contact", id: "42" }]));
+
+  it("marks object.deletion / <obj>.deletion events as deleted", () => {
+    expect(extractObjectEvents([{ subscriptionType: "object.deletion", objectTypeId: "0-1", objectId: 7 }]))
+      .toEqual([{ type: "contact", id: "7", deleted: true }]);
+    expect(extractObjectEvents([{ subscriptionType: "company.deletion", objectId: 8 }]))
+      .toEqual([{ type: "company", id: "8", deleted: true }]);
+  });
+
+  it("keeps a deletion and an update for the same object as separate events", () =>
+    expect(extractObjectEvents([
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 5 },
+      { subscriptionType: "object.deletion", objectTypeId: "0-3", objectId: 5 },
+    ])).toEqual([{ type: "deal", id: "5" }, { type: "deal", id: "5", deleted: true }]));
 });
