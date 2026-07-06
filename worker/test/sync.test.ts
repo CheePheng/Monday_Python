@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { DEALS_MYLA, SALES_USER_MYLA } from "../src/config";
+import { COMPANIES_MYLA, CONTACTS_MYLA, DEALS_MYLA, SALES_USER_MYLA } from "../src/config";
 
 // ---------------------------------------------------------------------------
 // In-memory fakes for the monday + HubSpot API layers so we can drive the REAL
@@ -109,7 +109,7 @@ vi.mock("../src/hubspot", () => ({
 }));
 
 // Import AFTER the mocks are registered.
-import { syncHubspotDeal, syncMondayItem } from "../src/sync";
+import { syncHubspotDeal, syncHubspotObject, syncMondayItem } from "../src/sync";
 import { extractDealIds } from "../src/webhooks";
 
 const BOARD = DEALS_MYLA.boardId;      // 5029480547
@@ -211,5 +211,90 @@ describe("hardening: create-once / update / dedup / no-loop (real sync orchestra
     const b = await syncMondayItem(env, BOARD, "i6", opts, budget());
     expect(b).toContain("skipped-in-sync");
     expect(H.counts.patchRecord).toBe(patchesAfterPush); // no HubSpot write -> no ping-pong
+  });
+});
+
+describe("contacts & companies sync via webhook the same way as deals", () => {
+  const putRecord = (id: string, props: Record<string, string>) => H.deals.set(id, { id, properties: props });
+  const putItemFor = (spec: any, key: string, hsId: string, name: string, groupId: string) =>
+    H.items.set(key, {
+      id: key, name, boardId: spec.boardId, created_at: RECENT, updated_at: RECENT,
+      group: { id: groupId },
+      column_values: [{ id: spec.idCol, text: hsId }, { id: spec.syncStateCol, text: "" }],
+    });
+
+  it("HubSpot contact.creation creates a monday contact item (linked by HubSpot id)", async () => {
+    putRecord("70001", { firstname: "Jane", lastname: "Doe", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    const r = await syncHubspotObject(env, "contact", "70001", opts, budget());
+    expect(H.counts.createItem).toBe(1);
+    expect(r).toContain("created-monday");
+    const card = [...H.items.values()].find(i => i.boardId === CONTACTS_MYLA.boardId)!;
+    expect(H.colText(card, CONTACTS_MYLA.idCol)).toBe("70001");
+  });
+
+  it("HubSpot contact.propertyChange updates the existing contact item (never creates)", async () => {
+    putRecord("70003", { firstname: "Edit", lastname: "Me", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    putItemFor(CONTACTS_MYLA, "ci3", "70003", "Stale Name", "group_mm4wk3z0"); // OPEN group
+    const r = await syncHubspotObject(env, "contact", "70003", opts, budget());
+    expect(H.counts.createItem).toBe(0);
+    expect(H.counts.updateItem).toBe(1);
+    expect(H.items.get("ci3").name).toBe("Edit Me");
+    expect(r).toContain("updated-monday");
+  });
+
+  it("contact with no Lead Status lands in the 'New' group (topics), not skipped", async () => {
+    putRecord("70002", { firstname: "No", lastname: "Status", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "" });
+    await syncHubspotObject(env, "contact", "70002", opts, budget());
+    expect(H.counts.createItem).toBe(1);
+    const card = [...H.items.values()].find(i => i.boardId === CONTACTS_MYLA.boardId)!;
+    expect(card.group.id).toBe("topics");
+  });
+
+  it("duplicate contact webhook does not create a duplicate item", async () => {
+    putRecord("70004", { firstname: "Dup", lastname: "Contact", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    await syncHubspotObject(env, "contact", "70004", opts, budget());
+    await syncHubspotObject(env, "contact", "70004", opts, budget());
+    expect(H.counts.createItem).toBe(1);
+  });
+
+  it("a contact not owned by Myla is skipped (out of scope, keyed on HubSpot Record ID)", async () => {
+    putRecord("70099", { firstname: "Not", lastname: "Myla", sales_user: "999",
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    const r = await syncHubspotObject(env, "contact", "70099", opts, budget());
+    expect(H.counts.createItem).toBe(0);
+    expect(r).toContain("out of scope");
+  });
+
+  it("HubSpot company.creation creates a monday company item (linked by HubSpot id)", async () => {
+    putRecord("80001", { name: "Acme Corp", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, hs_lastmodifieddate: RECENT });
+    const r = await syncHubspotObject(env, "company", "80001", opts, budget());
+    expect(H.counts.createItem).toBe(1);
+    expect(r).toContain("created-monday");
+    const card = [...H.items.values()].find(i => i.boardId === COMPANIES_MYLA.boardId)!;
+    expect(H.colText(card, COMPANIES_MYLA.idCol)).toBe("80001");
+  });
+
+  it("HubSpot company.propertyChange updates the existing company item (never creates)", async () => {
+    putRecord("80002", { name: "New Co Name", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, hs_lastmodifieddate: RECENT });
+    putItemFor(COMPANIES_MYLA, "co2", "80002", "Old Co Name", "group_mm4s3z7e"); // company single group
+    const r = await syncHubspotObject(env, "company", "80002", opts, budget());
+    expect(H.counts.createItem).toBe(0);
+    expect(H.counts.updateItem).toBe(1);
+    expect(H.items.get("co2").name).toBe("New Co Name");
+    expect(r).toContain("updated-monday");
+  });
+
+  it("duplicate company webhook does not create a duplicate item", async () => {
+    putRecord("80003", { name: "Dup Co", sales_user: SALES_USER_MYLA,
+      createdate: RECENT, hs_lastmodifieddate: RECENT });
+    await syncHubspotObject(env, "company", "80003", opts, budget());
+    await syncHubspotObject(env, "company", "80003", opts, budget());
+    expect(H.counts.createItem).toBe(1);
   });
 });

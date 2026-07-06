@@ -5,10 +5,12 @@ near-instant (a few seconds); a **cron every 10 min** is only a backup that catc
 
 - **URL:** `https://hubspot-monday-sync.askada.workers.dev`
 - **Webhook endpoints:** `POST /webhooks/monday`, `POST /webhooks/hubspot`
-- **Crons:** `* * * * *` = 1-min **incremental** poll (pushes recently-changed HubSpot deals to monday,
-  ~60s, so HubSpot→monday is near-instant even without HubSpot webhooks); `*/10 * * * *` = full backup.
-- **Latency:** monday→HubSpot = **seconds** (webhooks). HubSpot→monday = **seconds** (webhooks, via
-  the `hubspot-monday-webhook-sync` developer-projects app); the 1-min poll is a backup.
+- **Crons (backup only):** `* * * * *` = 1-min **incremental** poll (pushes recently-changed HubSpot
+  **deals, contacts, and companies** to monday, ~60s — a safety net if a webhook is missed);
+  `*/10 * * * *` = full reconcile sweep.
+- **Latency:** monday→HubSpot = **seconds** (monday webhooks on all four boards). HubSpot→monday =
+  **seconds** for **deals, contacts, and companies** (HubSpot webhooks via the
+  `hubspot-monday-webhook-sync` developer-projects app); the 1-min poll only backstops missed events.
 - **Live/dry switch:** `vars.DRY_RUN` in `wrangler.jsonc` (`"false"` = live, anything else = dry). Redeploy to apply.
 
 Webhooks and cron share the **same core** (`reconcileRecord` / `createFromMonday` in `src/sync.ts`), so
@@ -20,10 +22,10 @@ It reconciles four boards (config in `src/config.ts`):
 
 | Board | HubSpot object | Grouped by | Scope |
 |---|---|---|---|
-| Myla Mestiola Deals `5029480547` | deals (sales_user = Myla) | deal stage | created ≥ 2026-07-01 |
+| Myla Mestiola Deals `5029480547` | deals (sales_user = Myla) | deal stage | **all dates** (full history) |
 | Unassigned Deals `5029479220` | deals with **no** sales_user | one group | created ≥ 2026-07-01 |
 | Myla Company Follow Up `5029639440` | companies (sales_user = Myla) | one group | created ≥ 2026-07-01 |
-| Myla Contact Follow Up `5029639630` | contacts (sales_user = Myla) | lead status | created ≥ 2026-07-01 |
+| Myla Contact Follow Up `5029639630` | contacts (sales_user = Myla) | lead status (empty → **New**) | created ≥ 2026-07-01 |
 
 **Two-way, last-edit-wins:** for each linked record it compares fields; whichever side changed since the
 last sync wins (tracked in a hidden **Sync State** column per board). Direction is immune to the sync's
@@ -67,28 +69,35 @@ Per board (start with **Deals 5029480547**), create a webhook pointing at the mo
 The Worker **ignores changes to its own bookkeeping columns** (Sync State / HubSpot ID / HubSpot Link),
 so those don't cause loops.
 
-**Already registered** on Deals board `5029480547`: `change_name`, `change_column_value`, `create_item`,
-`item_moved_to_any_group`. List them with `query { webhooks(board_id:5029480547){ id event } }`; register
-the same four on Company/Contact boards to make those instant too (the handler routes by board id).
+**Already registered** — those four events on **all three** owned boards: Deals `5029480547`,
+Contacts `5029639630`, and Companies `5029639440` (the handler routes by board id via `SPEC_BY_BOARD`).
+List them with `query { webhooks(board_id:<id>){ id event } }`.
 
 ### HubSpot webhooks — done via a developer-projects app ✅
-HubSpot→monday is instant through the **`hubspot-monday-webhook-sync`** developer-projects app (source in
-the repo folder of the same name), deployed and installed on portal **39939588**. It's a **private,
-static-auth** app on platform **2026.03** that POSTs to `/webhooks/hubspot`.
+HubSpot→monday is instant for **deals, contacts, AND companies** through the
+**`hubspot-monday-webhook-sync`** developer-projects app (source in the repo folder of the same name),
+on portal **39939588**. It's a **private, static-auth** app on platform **2026.03** that POSTs to
+`/webhooks/hubspot`.
 
-- Subscriptions (in `src/app/webhooks/webhooks-hsmeta.json`): deal `object.creation` +
-  `object.propertyChange` on **dealname, dealstage, pipeline, hubspot_owner_id, sales_user, dealtype,
-  hs_priority, vendorschang_shang_lai_yuan**.
-- Redeploy after config changes: `hs project upload --account 39939588` (creates a new build; auto-deploys).
-  Check install with `hs project app-install-status`; installing (a one-time click in the portal) is what
-  activates the webhooks.
-- **2026.03 schema notes:** config files are `*-hsmeta.json`; webhook subscriptions use `objectType`
-  (deal), and events arrive as `subscriptionType:"object.propertyChange"` + `objectTypeId:"0-3"`. The
-  Worker's `extractDealIds` handles this generic `object.*` shape **and** the legacy `deal.*` /
-  Workflow-payload shapes — it just needs the deal id; it fetches the fresh deal itself.
+- Subscriptions (in `src/app/webhooks/webhooks-hsmeta.json`): `object.creation` + `object.propertyChange`
+  for **deals** (dealname, dealstage, pipeline, owner, sales_user, dealtype, hs_priority, vendor),
+  **contacts** (firstname, lastname, email, jobtitle, company, phone, owner, sales_user, hs_lead_status,
+  leadsource, manufacturer__c), and **companies** (name, owner, sales_user, industry, type, city, state,
+  numberofemployees, annualrevenue, description, linkedin_company_page).
+- Scopes: `crm.objects.deals.read`, `crm.objects.contacts.read`, `crm.objects.companies.read`. The
+  Worker's own writes use the private-app token (`HUBSPOT_ACCESS_TOKEN`), which has read+write on all three.
+- Redeploy after config changes: `hs project upload --account 39939588`. **Adding scopes requires a
+  re-install** — `hs project app-install-status` says "outdated scopes" until you reinstall in the portal.
+- **Routing:** the Worker's `extractObjectEvents` reads `objectTypeId` (`0-1` contact, `0-2` company,
+  `0-3` deal) — or the legacy `deal.*`/`contact.*`/`company.*` prefix — so a **mixed batch routes each
+  event to the right object type**. It fetches the fresh record itself (never trusts the payload value).
+- **Volume note:** contact/company webhooks fire **portal-wide** (HubSpot config can't filter by
+  `sales_user`), so the Worker fetches each and **drops non-Myla records after one read** (scope check
+  before any monday call). A giant import burst may exceed the free-plan per-invocation subrequest cap for
+  some events; those simply sync on the next 1-min poll (self-healing).
 
-> Alternative event sources still work with the same endpoint if ever needed: a HubSpot **Workflow** with a
-> "Send a webhook" action (body = the deal), or a legacy public app. The endpoint accepts all of these.
+> Alternative event sources still work with the same endpoint: a HubSpot **Workflow** "Send a webhook"
+> action, or a legacy public app. The endpoint accepts all of these.
 
 Optional signature check: put the app's **client secret** in the Worker as `HUBSPOT_APP_SECRET`
 (`npx wrangler secret put HUBSPOT_APP_SECRET`). When set, the Worker validates the `v3` signature and

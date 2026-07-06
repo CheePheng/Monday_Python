@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { specForDeal } from "../src/sync";
-import { extractDealIds } from "../src/webhooks";
+import { extractDealIds, extractObjectEvents } from "../src/webhooks";
 
 const deal = (p: Record<string, string>) => ({ properties: p });
 const RECENT = "2026-08-01T00:00:00Z"; // after CREATED_AFTER_MS (2026-07-01)
@@ -23,8 +23,12 @@ describe("specForDeal (HubSpot deal -> board routing)", () => {
     expect(specForDeal(deal({ pipeline: "someothersalespipeline", sales_user: "1739141284", createdate: RECENT })))
       .toBeNull());
 
-  it("created before the cutoff (old history) -> null", () =>
-    expect(specForDeal(deal({ pipeline: "default", sales_user: "1739141284", createdate: OLD })))
+  it("Myla's OLD deal still routes to her Deals board (full history backfilled)", () =>
+    expect(specForDeal(deal({ pipeline: "default", sales_user: "1739141284", createdate: OLD }))?.boardId)
+      .toBe("5029480547"));
+
+  it("an OLD deal with no sales_user -> null (Unassigned stays new-only)", () =>
+    expect(specForDeal(deal({ pipeline: "default", sales_user: "", createdate: OLD })))
       .toBeNull());
 });
 
@@ -62,4 +66,32 @@ describe("extractDealIds (HubSpot webhook payload parsing)", () => {
       { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 100, propertyName: "dealstage" },
       { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 100, propertyName: "pipeline" },
     ])).toEqual(["100"]));
+});
+
+describe("extractObjectEvents (multi-object routing)", () => {
+  it("routes a mixed batch of deal + contact + company by objectTypeId", () =>
+    expect(extractObjectEvents([
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 1 }, // deal
+      { subscriptionType: "object.creation", objectTypeId: "0-1", objectId: 2 },       // contact
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-2", objectId: 3 }, // company
+    ])).toEqual([{ type: "deal", id: "1" }, { type: "contact", id: "2" }, { type: "company", id: "3" }]));
+
+  it("legacy contact.* / company.* subscription prefixes route correctly", () => {
+    expect(extractObjectEvents([{ subscriptionType: "contact.creation", objectId: 5 }]))
+      .toEqual([{ type: "contact", id: "5" }]);
+    expect(extractObjectEvents([{ subscriptionType: "company.propertyChange", objectId: 6 }]))
+      .toEqual([{ type: "company", id: "6" }]);
+  });
+
+  it("dedups repeated events for the same object (type+id)", () =>
+    expect(extractObjectEvents([
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-1", objectId: 9, propertyName: "firstname" },
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-1", objectId: 9, propertyName: "lastname" },
+    ])).toEqual([{ type: "contact", id: "9" }]));
+
+  it("a deal and a contact sharing the same numeric id are kept separate", () =>
+    expect(extractObjectEvents([
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 42 },
+      { subscriptionType: "object.propertyChange", objectTypeId: "0-1", objectId: 42 },
+    ])).toEqual([{ type: "deal", id: "42" }, { type: "contact", id: "42" }]));
 });

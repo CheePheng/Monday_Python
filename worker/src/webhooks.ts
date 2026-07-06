@@ -1,6 +1,6 @@
 import type { Budget, Env, RunOpts } from "./types";
 import { SPEC_BY_BOARD } from "./config";
-import { syncHubspotDeal, syncMondayItem } from "./sync";
+import { syncHubspotObject, syncMondayItem } from "./sync";
 
 // Webhooks write for real when the Worker is live; a small per-webhook budget is plenty (1 record).
 function liveOpts(env: Env): RunOpts {
@@ -95,29 +95,42 @@ async function verifyHubspot(env: Env, req: Request, raw: string): Promise<SigVe
   return safeEq(expected, sig) ? { ok: true, reason: "valid" } : { ok: false, reason: "signature mismatch" };
 }
 
-/** Pull deal id(s) from any of the HubSpot webhook shapes we might receive:
- *  - 2026 projects-app: subscriptionType "object.propertyChange"/"object.creation" + objectTypeId "0-3"
- *  - legacy developer-app: subscriptionType "deal.propertyChange" (+ objectId)
- *  - Workflow "send webhook": the deal object itself (no subscriptionType; id in hs_object_id/etc). */
-export function extractDealIds(body: any): string[] {
+export type HsObjType = "deal" | "contact" | "company";
+const OBJ_BY_TYPEID: Record<string, HsObjType> = { "0-1": "contact", "0-2": "company", "0-3": "deal" };
+
+/** Pull (objectType, id) events from any HubSpot webhook shape we might receive:
+ *  - 2026 projects-app: subscriptionType "object.creation"/"object.propertyChange" + objectTypeId
+ *    ("0-1" contact, "0-2" company, "0-3" deal)
+ *  - legacy developer-app: subscriptionType "deal.*" / "contact.*" / "company.*" (+ objectId)
+ *  - Workflow "send webhook": the object itself (no subscriptionType; id in hs_object_id — assumed deal).
+ * Deduped by type+id so a batch of property-change events for one record collapses to a single sync,
+ * and mixed batches (deal + contact + company) are each routed to the right object type. */
+export function extractObjectEvents(body: any): { type: HsObjType; id: string }[] {
   const arr = Array.isArray(body) ? body : [body];
-  const ids = new Set<string>();
+  const out = new Map<string, { type: HsObjType; id: string }>();
   for (const e of arr) {
     if (!e || typeof e !== "object") continue;
     const sub = String(e.subscriptionType ?? e.eventType ?? "");
-    const objType = String(e.objectTypeId ?? e.objectType ?? "");
-    // Skip only events that are clearly for a NON-deal object. A "deal.*" prefix or an
-    // objectTypeId of "0-3" (deals) / objectType "deal" identifies a deal; a subscriptionType
-    // for another named object ("contact.*") or a different objectTypeId ("0-1") is rejected.
-    const nonDealSub = sub.includes(".") && !sub.startsWith("deal") && !sub.startsWith("object");
-    const nonDealObj = objType !== "" && objType !== "0-3" && objType.toLowerCase() !== "deal";
-    if (nonDealSub || nonDealObj) continue;
+    const objTypeId = String(e.objectTypeId ?? "");
+    const objName = String(e.objectType ?? "").toLowerCase();
+    let type: HsObjType | undefined;
+    if (sub.startsWith("deal") || objName === "deal") type = "deal";
+    else if (sub.startsWith("contact") || objName === "contact") type = "contact";
+    else if (sub.startsWith("company") || objName === "company") type = "company";
+    else if (OBJ_BY_TYPEID[objTypeId]) type = OBJ_BY_TYPEID[objTypeId]; // generic "object.*" + objectTypeId
+    else if (!sub && !objTypeId) type = "deal";                        // bare Workflow payload -> deal
+    if (!type) continue;                                               // unresolvable object type -> skip
     const p = e.properties ?? {};
     let raw = e.objectId ?? e.hs_object_id ?? e.dealId ?? e.vid ?? e.id ?? p.hs_object_id ?? p.dealId;
     if (raw && typeof raw === "object") raw = raw.value; // legacy {value:"123"} shape
-    if (raw != null && /^\d+$/.test(String(raw))) ids.add(String(raw));
+    if (raw != null && /^\d+$/.test(String(raw))) out.set(`${type}:${raw}`, { type, id: String(raw) });
   }
-  return [...ids];
+  return [...out.values()];
+}
+
+/** Back-compat helper (deal ids only) — used by tests and any deal-only caller. */
+export function extractDealIds(body: any): string[] {
+  return extractObjectEvents(body).filter(e => e.type === "deal").map(e => e.id);
 }
 
 export async function handleHubspot(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
@@ -129,20 +142,20 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
   }
   let body: any = null;
   try { body = JSON.parse(raw); } catch { /* not json */ }
-  const events = Array.isArray(body) ? body : [body];
 
-  const dealIds = extractDealIds(body);
-  if (!dealIds.length) {
-    console.log(`[webhook] source=hubspot action=ignored reason="no deal id found" body=${raw.slice(0, 240)}`);
+  // Route each event by object type; a single batch may mix deals, contacts, and companies.
+  const events = extractObjectEvents(body);
+  if (!events.length) {
+    console.log(`[webhook] source=hubspot action=ignored reason="no object id found" body=${raw.slice(0, 240)}`);
     return new Response("ok");
   }
 
-  console.log(`[webhook] source=hubspot deals=${dealIds.join(",")} events=${events.length} action=received`);
+  console.log(`[webhook] source=hubspot events=${events.map(e => `${e.type}:${e.id}`).join(",")} action=received`);
   const opts = liveOpts(env);
   const budget: Budget = { left: 30 };
-  // coalesce by deal id so a burst of property-change events for one deal can't race into a duplicate.
-  ectx.waitUntil(Promise.all(dealIds.map(id =>
-    coalesce(`hs:${id}`, () => syncHubspotDeal(env, id, opts, budget))
-      .catch(e => console.log(`[webhook] source=hubspot deal=${id} action=error reason="${String(e).slice(0, 160)}"`)))));
+  // coalesce by object type+id so a burst of events for one record can't race into a duplicate.
+  ectx.waitUntil(Promise.all(events.map(ev =>
+    coalesce(`hs:${ev.type}:${ev.id}`, () => syncHubspotObject(env, ev.type, ev.id, opts, budget))
+      .catch(e => console.log(`[webhook] source=hubspot ${ev.type}=${ev.id} action=error reason="${String(e).slice(0, 160)}"`)))));
   return new Response("ok"); // respond fast so HubSpot doesn't retry
 }

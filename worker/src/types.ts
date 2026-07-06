@@ -22,7 +22,9 @@ export interface FieldSpec {
 }
 
 export type GroupBy =
-  | { prop: string; map: Record<string, string>; reverse: boolean } // hs value -> monday group id
+  // hs value -> monday group id. fallbackGroup catches empty/unmapped values so the record is placed
+  // instead of skipped (e.g. a contact with no lead status still lands in the "New" group).
+  | { prop: string; map: Record<string, string>; reverse: boolean; fallbackGroup?: string }
   | { singleGroup: string };
 
 export interface ObjectSpec {

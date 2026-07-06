@@ -48,7 +48,8 @@ export const DEALS_MYLA: ObjectSpec = {
   searchFilters: [
     { propertyName: "pipeline", operator: "EQ", value: "default" },
     { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
-    { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS }, // new deals only
+    // No createdate filter: Myla's FULL Sales-Pipeline history syncs (old deals backfilled 2026-07-05).
+    // (Unassigned + companies/contacts stay new-only via their own createdate filters.)
   ],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["dealname"],
@@ -144,7 +145,8 @@ export const CONTACTS_MYLA: ObjectSpec = {
   idCol: CONTACT_ID_COL,
   syncStateCol: "text_mm4xpe1g",
   linkCol: "link_mm4pvn78",
-  groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: true },
+  // Contacts with no/unknown lead status land in the "New" group (topics) instead of being skipped.
+  groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: true, fallbackGroup: "topics" },
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [

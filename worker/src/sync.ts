@@ -1,7 +1,7 @@
 import type { Budget, Ctx, Env, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
 import {
-  ALL_SPECS, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS, DEALS_MYLA, DEALS_UNASSIGNED,
-  PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
+  ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
+  DEALS_MYLA, DEALS_UNASSIGNED, PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
@@ -222,11 +222,11 @@ function actionOf(s: Stats): string {
 export function specForDeal(deal: { properties: Record<string, string | null> }): ObjectSpec | null {
   const p = deal.properties;
   if (p.pipeline !== "default") return null;                                  // only the Sales Pipeline
-  if ((Date.parse(p.createdate ?? "") || 0) < CREATED_AFTER_MS) return null;   // new-only
   const su = p.sales_user;
-  if (su && su === SALES_USER_MYLA) return DEALS_MYLA;
-  if (!su) return DEALS_UNASSIGNED;
-  return null;                                                                 // another (un-onboarded) owner
+  if (su && su === SALES_USER_MYLA) return DEALS_MYLA;                          // Myla: ALL dates (backfilled)
+  const isNew = (Date.parse(p.createdate ?? "") || 0) >= CREATED_AFTER_MS;
+  if (!su && isNew) return DEALS_UNASSIGNED;                                    // Unassigned stays new-only
+  return null;                                                                 // another owner / old unassigned
 }
 
 /** Duplicate prevention: search every deal board for an existing card with this HubSpot Deal ID. */
@@ -269,22 +269,67 @@ export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, b
   return wlog("hubspot", dealId, "skipped", 'reason="deal not in scope (pipeline/owner/created-before-cutoff)"');
 }
 
-/** Every-minute fast poll: push only recently-CHANGED HubSpot deals to monday (near-instant even
- * without HubSpot webhooks). Skips all work — and building ctx — when nothing changed. */
+/** True when a contact/company is in Myla's sync scope (sales_user = Myla AND created >= cutoff).
+ * Mirrors the CONTACTS_MYLA / COMPANIES_MYLA search filters for the single-record webhook path. */
+function recInScope(rec: { properties: Record<string, string | null> }): boolean {
+  if (rec.properties.sales_user !== SALES_USER_MYLA) return false;
+  return (Date.parse(rec.properties.createdate ?? "") || 0) >= CREATED_AFTER_MS;
+}
+
+/** HubSpot contact/company changed -> reconcile the one matching card on its single board.
+ * (Deals use syncHubspotDeal, which also routes across the Myla/Unassigned boards.) */
+export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, opts: RunOpts,
+    budget: Budget): Promise<string> {
+  const ctx = await getCtxCached(env);
+  // Always fetch sales_user + createdate so we can scope-check even when they aren't mapped fields.
+  const props = [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])];
+  const rec = await getRecord(env, spec.object, id, props);
+  if (!rec) return wlog(spec.object, id, "skipped", 'reason="record not found (deleted/archived)"');
+  // Scope-check BEFORE the board lookup: contact/company webhooks fire portal-wide, so a non-Myla
+  // record must cost only this one fetch (no extra monday subrequest) before we drop it.
+  if (!recInScope(rec)) return wlog(spec.object, id, "skipped", 'reason="out of scope (sales_user/created-before-cutoff)"');
+  const existing = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  const stats = emptyStats();
+  await reconcileRecord(env, spec, ctx, opts, budget, rec, existing, stats);
+  return wlog(spec.object, id, actionOf(stats), `board=${spec.boardId}`);
+}
+
+/** Dispatch a HubSpot object event to the right sync path. */
+export async function syncHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
+    id: string, opts: RunOpts, budget: Budget): Promise<string> {
+  if (objectType === "deal") return syncHubspotDeal(env, id, opts, budget);
+  return syncHubspotRecord(env, objectType === "contact" ? CONTACTS_MYLA : COMPANIES_MYLA, id, opts, budget);
+}
+
+/** Every-minute fast poll: push recently-CHANGED HubSpot records to monday (near-instant even without
+ * HubSpot webhooks — deals, contacts, AND companies). Skips work when nothing changed. */
 export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000): Promise<string> {
   const since = Date.now() - windowMs;
-  const ids = new Set<string>();
-  for (const spec of DEAL_SPECS) {
-    for (const id of await searchModifiedIds(env, spec, since)) ids.add(id);
-  }
-  if (ids.size === 0) return "incremental: no changed deals";
   const budget: Budget = { left: opts.maxWrites };
-  for (const id of ids) {
+  let changed = 0;
+
+  // Deals: dedup ids across the two deal boards, route via the deal-aware path.
+  const dealIds = new Set<string>();
+  for (const spec of DEAL_SPECS) {
+    for (const id of await searchModifiedIds(env, spec, since)) dealIds.add(id);
+  }
+  for (const id of dealIds) {
     if (budget.left <= 0) break;
+    changed++;
     try { await syncHubspotDeal(env, id, opts, budget); }
     catch (e) { console.log(`incremental deal ${id} error: ${String(e).slice(0, 200)}`); }
   }
-  return `incremental: ${ids.size} changed deal(s)`;
+
+  // Contacts + companies: one board each.
+  for (const spec of [COMPANIES_MYLA, CONTACTS_MYLA]) {
+    for (const id of await searchModifiedIds(env, spec, since)) {
+      if (budget.left <= 0) break;
+      changed++;
+      try { await syncHubspotRecord(env, spec, id, opts, budget); }
+      catch (e) { console.log(`incremental ${spec.object} ${id} error: ${String(e).slice(0, 200)}`); }
+    }
+  }
+  return changed ? `incremental: ${changed} changed record(s)` : "incremental: no changes";
 }
 
 /** monday card changed -> reconcile the one linked HubSpot deal (create / update). */

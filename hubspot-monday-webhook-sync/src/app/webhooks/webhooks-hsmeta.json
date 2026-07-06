@@ -8,59 +8,41 @@
     },
     "subscriptions": {
       "crmObjects": [
-        {
-          "subscriptionType": "object.creation",
-          "objectType": "deal",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "dealname",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "dealstage",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "pipeline",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "hubspot_owner_id",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "sales_user",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "dealtype",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "hs_priority",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "deal",
-          "propertyName": "vendorschang_shang_lai_yuan",
-          "active": true
-        }
+        { "subscriptionType": "object.creation", "objectType": "deal", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "dealname", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "dealstage", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "pipeline", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "hubspot_owner_id", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "sales_user", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "dealtype", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "hs_priority", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "vendorschang_shang_lai_yuan", "active": true },
+
+        { "subscriptionType": "object.creation", "objectType": "contact", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "sales_user", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "hubspot_owner_id", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "firstname", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "lastname", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "email", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "jobtitle", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "company", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "phone", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "hs_lead_status", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "leadsource", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "manufacturer__c", "active": true },
+
+        { "subscriptionType": "object.creation", "objectType": "company", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "sales_user", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "name", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "hubspot_owner_id", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "industry", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "type", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "city", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "state", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "numberofemployees", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "annualrevenue", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "description", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "company", "propertyName": "linkedin_company_page", "active": true }
       ]
     }
   }

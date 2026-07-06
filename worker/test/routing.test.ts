@@ -10,6 +10,10 @@ const grouped: ObjectSpec = {
   createFromMonday: true, fields: [],
 };
 const single: ObjectSpec = { ...grouped, groupBy: { singleGroup: "gS" } };
+const withFallback: ObjectSpec = {
+  ...grouped,
+  groupBy: { prop: "hs_lead_status", map: { NEW: "gNew", OPEN: "gOpen" }, reverse: true, fallbackGroup: "gNew" },
+};
 
 describe("targetGroup", () => {
   it("maps the group-by property value", () =>
@@ -18,6 +22,12 @@ describe("targetGroup", () => {
     expect(targetGroup({ id: "1", properties: { dealstage: "weird" } }, grouped)).toBeNull());
   it("single-group boards always route to that group", () =>
     expect(targetGroup({ id: "1", properties: {} }, single)).toBe("gS"));
+  it("empty group-by value falls back instead of skipping (contact with no lead status)", () =>
+    expect(targetGroup({ id: "1", properties: { hs_lead_status: "" } }, withFallback)).toBe("gNew"));
+  it("unmapped group-by value also falls back", () =>
+    expect(targetGroup({ id: "1", properties: { hs_lead_status: "SOMETHING_ELSE" } }, withFallback)).toBe("gNew"));
+  it("a mapped value still wins over the fallback", () =>
+    expect(targetGroup({ id: "1", properties: { hs_lead_status: "OPEN" } }, withFallback)).toBe("gOpen"));
 });
 
 describe("reverseGroup", () => {
