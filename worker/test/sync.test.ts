@@ -240,7 +240,8 @@ describe("contacts & companies sync via webhook the same way as deals", () => {
     const r = await syncHubspotObject(env, "contact", "70003", opts, budget());
     expect(H.counts.createItem).toBe(0);
     expect(H.counts.updateItem).toBe(1);
-    expect(H.items.get("ci3").name).toBe("Edit Me");
+    expect(H.items.get("ci3").name).toBe("Edit");                          // item name = firstname
+    expect(H.colText(H.items.get("ci3"), CONTACTS_MYLA.idCol)).toBe("70003");
     expect(r).toContain("updated-monday");
   });
 
@@ -270,28 +271,31 @@ describe("contacts & companies sync via webhook the same way as deals", () => {
   });
 
   it("HubSpot company.creation creates a monday company item (linked by HubSpot id)", async () => {
-    putRecord("80001", { name: "Acme Corp", sales_user: SALES_USER_MYLA,
+    putRecord("80001", { name: "Acme Corp", domain: "acme.com", sales_user: SALES_USER_MYLA,
       createdate: RECENT, hs_lastmodifieddate: RECENT });
     const r = await syncHubspotObject(env, "company", "80001", opts, budget());
     expect(H.counts.createItem).toBe(1);
     expect(r).toContain("created-monday");
     const card = [...H.items.values()].find(i => i.boardId === COMPANIES_MYLA.boardId)!;
     expect(H.colText(card, COMPANIES_MYLA.idCol)).toBe("80001");
+    expect(card.name).toBe("acme.com");                     // primary column = domain
+    expect(H.colText(card, "text_mm4scke9")).toBe("Acme Corp"); // "Company Name" column = name
   });
 
   it("HubSpot company.propertyChange updates the existing company item (never creates)", async () => {
-    putRecord("80002", { name: "New Co Name", sales_user: SALES_USER_MYLA,
+    putRecord("80002", { name: "New Co Name", domain: "newco.com", sales_user: SALES_USER_MYLA,
       createdate: RECENT, hs_lastmodifieddate: RECENT });
-    putItemFor(COMPANIES_MYLA, "co2", "80002", "Old Co Name", "group_mm4s3z7e"); // company single group
+    putItemFor(COMPANIES_MYLA, "co2", "80002", "oldco.com", "group_mm4s3z7e"); // company single group
     const r = await syncHubspotObject(env, "company", "80002", opts, budget());
     expect(H.counts.createItem).toBe(0);
     expect(H.counts.updateItem).toBe(1);
-    expect(H.items.get("co2").name).toBe("New Co Name");
+    expect(H.items.get("co2").name).toBe("newco.com");            // primary column = domain
+    expect(H.colText(H.items.get("co2"), "text_mm4scke9")).toBe("New Co Name");
     expect(r).toContain("updated-monday");
   });
 
   it("duplicate company webhook does not create a duplicate item", async () => {
-    putRecord("80003", { name: "Dup Co", sales_user: SALES_USER_MYLA,
+    putRecord("80003", { name: "Dup Co", domain: "dupco.com", sales_user: SALES_USER_MYLA,
       createdate: RECENT, hs_lastmodifieddate: RECENT });
     await syncHubspotObject(env, "company", "80003", opts, budget());
     await syncHubspotObject(env, "company", "80003", opts, budget());

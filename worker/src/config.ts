@@ -108,8 +108,10 @@ export const COMPANIES_MYLA: ObjectSpec = {
     { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS },
   ],
   modifiedProp: "hs_lastmodifieddate",
-  nameProps: ["name"],
-  nameReverse: "name",
+  // The board's primary column is "Company domain name" -> item name = HubSpot `domain`.
+  // The company `name` maps to the separate "Company Name" text column (field below).
+  nameProps: ["domain"],
+  nameReverse: "domain",
   boardId: "5029639440",
   idCol: COMPANY_ID_COL,
   syncStateCol: "text_mm4xrhjt",
@@ -140,7 +142,10 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS },
   ],
   modifiedProp: "lastmodifieddate",
-  nameProps: ["firstname", "lastname"],
+  // The board's primary column is "First name" -> item name = HubSpot `firstname` (reverse-synced so
+  // editing it in monday writes back). `lastname` maps to the separate "Last Name" text column (field).
+  nameProps: ["firstname"],
+  nameReverse: "firstname",
   boardId: "5029639630",
   idCol: CONTACT_ID_COL,
   syncStateCol: "text_mm4xpe1g",
