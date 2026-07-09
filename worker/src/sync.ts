@@ -1,7 +1,7 @@
 import type { Budget, Ctx, Env, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
 import {
   ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
-  DEALS_MYLA, DEALS_UNASSIGNED, PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
+  DEALS, PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
@@ -220,13 +220,9 @@ function actionOf(s: Stats): string {
 
 /** Which deal board a HubSpot deal belongs to (or null if out of scope). */
 export function specForDeal(deal: { properties: Record<string, string | null> }): ObjectSpec | null {
-  const p = deal.properties;
-  if (p.pipeline !== "default") return null;                                  // only the Sales Pipeline
-  const su = p.sales_user;
-  if (su && su === SALES_USER_MYLA) return DEALS_MYLA;                          // Myla: ALL dates (backfilled)
-  const isNew = (Date.parse(p.createdate ?? "") || 0) >= CREATED_AFTER_MS;
-  if (!su && isNew) return DEALS_UNASSIGNED;                                    // Unassigned stays new-only
-  return null;                                                                 // another owner / old unassigned
+  // One shared board: any Sales-Pipeline deal (all sales users, all dates). A deal with no sales_user
+  // still routes here — it just lands in the Unassigned group (see targetGroup / noSalesUserGroup).
+  return deal.properties.pipeline === "default" ? DEALS : null;
 }
 
 /** Duplicate prevention: search every deal board for an existing card with this HubSpot Deal ID. */
@@ -242,7 +238,7 @@ async function findLinkedDealItem(env: Env, dealId: string):
 /** HubSpot deal changed -> reconcile the one matching monday card (create / update / move). */
 export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, budget: Budget): Promise<string> {
   const ctx = await getCtxCached(env);
-  const deal = await getRecord(env, "deals", dealId, propertiesForSpec(DEALS_MYLA));
+  const deal = await getRecord(env, "deals", dealId, propertiesForSpec(DEALS));
   if (!deal) return wlog("hubspot", dealId, "skipped", 'reason="deal not found (deleted/archived)"');
   const target = specForDeal(deal);
   const linked = await findLinkedDealItem(env, dealId); // dedup across all deal boards

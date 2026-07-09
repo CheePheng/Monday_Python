@@ -17,6 +17,9 @@
         { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "dealtype", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "hs_priority", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "vendorschang_shang_lai_yuan", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "amount", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "deal_currency_code", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "closedate", "active": true },
 
         { "subscriptionType": "object.creation", "objectType": "contact", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "sales_user", "active": true },

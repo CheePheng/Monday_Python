@@ -13,8 +13,16 @@ export interface Diff {
 export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx): Diff[] {
   const out: Diff[] = [];
   for (const f of spec.fields) {
+    if (f.type === "people") {
+      // People columns aren't text-diffable. Populate an EMPTY one when HubSpot has an owner that
+      // resolves to a monday user (backfills e.g. the new "Sales Users" column on existing cards);
+      // leave a filled column alone to avoid phantom diffs from display-name differences.
+      if (!colText(item, f.col) && formatValue(f, rec.properties[f.hs], ctx))
+        out.push({ kind: "field", f, hsText: "(person)", mdText: "" });
+      continue;
+    }
     const hsText = expectedText(f, rec.properties[f.hs], ctx);
-    if (hsText === null) continue; // people/phone: not diffable
+    if (hsText === null) continue; // phone: not diffable
     if (hsText === "") continue;   // empty HubSpot value: don't fight monday (no clear, no loop)
     const mdText = colText(item, f.col);
     if (hsText !== mdText) out.push({ kind: "field", f, hsText, mdText });

@@ -115,3 +115,22 @@ describe("buildCreateProperties", () => {
     });
   });
 });
+
+describe("fieldDiffs people population (backfills empty person columns like Sales Users)", () => {
+  const peopleSpec: ObjectSpec = { ...spec, nameProps: ["dealname"],
+    fields: [{ hs: "sales_user", col: "c_people", type: "people" }] };
+  const pctx: Ctx = { labels: {}, ownersById: { "555": { name: "Owner", email: "o@x.com" } },
+    mondayUsersByEmail: { "o@x.com": "42" }, portalId: 1 };
+  const recOwner = { id: "1", properties: { dealname: "Acme", sales_user: "555" } };
+  const emptyPeople = item({ column_values: [{ id: "c_people", text: "" }] });
+  const filledPeople = item({ column_values: [{ id: "c_people", text: "Owner" }] });
+
+  const hasPeople = (d: ReturnType<typeof fieldDiffs>) => d.some(x => x.kind === "field" && x.f?.col === "c_people");
+
+  it("diffs an EMPTY people column when the owner resolves to a monday user", () =>
+    expect(hasPeople(fieldDiffs(recOwner, emptyPeople, peopleSpec, pctx))).toBe(true));
+  it("does NOT diff a people column that already has someone", () =>
+    expect(hasPeople(fieldDiffs(recOwner, filledPeople, peopleSpec, pctx))).toBe(false));
+  it("does NOT diff when the owner doesn't resolve (no monday user)", () =>
+    expect(hasPeople(fieldDiffs({ id: "1", properties: { dealname: "Acme", sales_user: "999" } }, emptyPeople, peopleSpec, pctx))).toBe(false));
+});

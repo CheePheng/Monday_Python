@@ -18,7 +18,7 @@ export const CREATE_CUTOFF_MS = Date.parse("2026-07-03T00:00:00Z");
 // Records created from monday get stamped as Myla's and (for deals) into the Sales Pipeline.
 const MYLA_DEFAULTS = { sales_user: SALES_USER_MYLA, hubspot_owner_id: SALES_USER_MYLA };
 
-// HubSpot stage id -> monday group id (Myla's Deals board 5029480547)
+// HubSpot stage id -> monday group id (shared Deals board 5029480547)
 const STAGE_GROUPS: Record<string, string> = {
   appointmentscheduled: "group_mm4nf6fw",
   qualifiedtobuy: "group_title",
@@ -29,6 +29,8 @@ const STAGE_GROUPS: Record<string, string> = {
   closedlost: "group_mm4pw6e2",
   "2831885024": "group_mm4pdres",
 };
+// Deals with no sales_user land here (the "Unassigned Deals" group on the shared board 5029480547).
+const UNASSIGNED_GROUP = "group_mm53yk6d";
 
 // hs_lead_status internal value -> monday group id (Contact board 5029639630)
 const LEAD_STATUS_GROUPS: Record<string, string> = {
@@ -42,14 +44,12 @@ const LEAD_STATUS_GROUPS: Record<string, string> = {
   BAD_TIMING: "group_mm4w55z2",
 };
 
-export const DEALS_MYLA: ObjectSpec = {
+export const DEALS: ObjectSpec = {
   object: "deals",
   objectTypeId: "0-3",
+  // One shared board for ALL sales users: every Sales-Pipeline deal, any/no sales_user, all dates.
   searchFilters: [
     { propertyName: "pipeline", operator: "EQ", value: "default" },
-    { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
-    // No createdate filter: Myla's FULL Sales-Pipeline history syncs (old deals backfilled 2026-07-05).
-    // (Unassigned + companies/contacts stay new-only via their own createdate filters.)
   ],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["dealname"],
@@ -58,45 +58,23 @@ export const DEALS_MYLA: ObjectSpec = {
   idCol: "numeric_mm4nz332",
   syncStateCol: "text_mm4xxyzx",
   linkCol: "link_mm4ns4nn",
-  groupBy: { prop: "dealstage", map: STAGE_GROUPS, reverse: true },
+  // Group by stage; deals with no sales_user go to the "Unassigned Deals" group instead.
+  groupBy: { prop: "dealstage", map: STAGE_GROUPS, reverse: true, noSalesUserGroup: UNASSIGNED_GROUP },
   createFromMonday: true,
-  createDefaults: { pipeline: "default", ...MYLA_DEFAULTS },
+  // A card added by a salesperson creates a Sales-Pipeline deal; owner/sales_user get set in HubSpot
+  // afterward — until then it sits in the Unassigned group.
+  createDefaults: { pipeline: "default" },
   fields: [
-    { hs: "hubspot_owner_id", col: "person", type: "people" },
-    { hs: "sales_user", col: "dropdown_mm4wjkk9", type: "dropdown", labels: "salesUser" },
-    { hs: "dealstage", col: "dropdown_mm4wrmx7", type: "dropdown", labels: "stage" },
-    { hs: "pipeline", col: "color_mm4ws6k", type: "status", labels: "pipeline" },
-    { hs: "createdate", col: "date4", type: "date" },
-    { hs: "dealtype", col: "dropdown_mm4nxhje", type: "dropdown", labels: "dealtype", reverse: true },
-    { hs: "hs_priority", col: "dropdown_mm4nmmax", type: "dropdown", labels: "priority", reverse: true },
-    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true },
-  ],
-};
-
-export const DEALS_UNASSIGNED: ObjectSpec = {
-  object: "deals",
-  objectTypeId: "0-3",
-  searchFilters: [
-    { propertyName: "pipeline", operator: "EQ", value: "default" },
-    { propertyName: "sales_user", operator: "NOT_HAS_PROPERTY" },
-    { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS }, // new deals only
-  ],
-  modifiedProp: "hs_lastmodifieddate",
-  nameProps: ["dealname"],
-  boardId: "5029479220",
-  idCol: "numeric_mm4wp9y2",
-  syncStateCol: "text_mm4xsfh3",
-  linkCol: "link_mm4n9cce",
-  groupBy: { singleGroup: "topics" },
-  createFromMonday: false, // system-populated bucket; never create HubSpot deals from here
-  fields: [
-    { hs: "hubspot_owner_id", col: "person", type: "people" },
-    { hs: "pipeline", col: "status", type: "status", labels: "pipeline" },
-    { hs: "dealstage", col: "dropdown_mm4nkk6y", type: "dropdown", labels: "stage" },
-    { hs: "createdate", col: "date4", type: "date" },
-    { hs: "dealtype", col: "dropdown_mm4nkmg5", type: "dropdown", labels: "dealtype" },
-    { hs: "hs_priority", col: "dropdown_mm4n2mrd", type: "dropdown", labels: "priority" },
-    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4nys6v", type: "dropdown", labels: "vendor" },
+    { hs: "hubspot_owner_id", col: "person", type: "people" },                                    // Deal Owner
+    { hs: "sales_user", col: "multiple_person_mm532m82", type: "people" },                         // Sales Users (person)
+    { hs: "amount", col: "numeric_mm531t6e", type: "numbers" },                                    // Amounts
+    { hs: "deal_currency_code", col: "color_mm53vk99", type: "status" },                           // Currency
+    { hs: "closedate", col: "date_mm53ecz3", type: "date" },                                       // Close Date
+    { hs: "dealstage", col: "color_mm53fh1r", type: "status", labels: "stage" },                   // Deal Stage
+    { hs: "pipeline", col: "color_mm4ws6k", type: "status", labels: "pipeline" },                  // Deal Pipeline
+    { hs: "dealtype", col: "color_mm53cky8", type: "status", labels: "dealtype", reverse: true },  // Deal Type
+    { hs: "hs_priority", col: "dropdown_mm4nmmax", type: "dropdown", labels: "priority", reverse: true },        // Priority
+    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true }, // Vendors
   ],
 };
 
@@ -170,10 +148,10 @@ export const CONTACTS_MYLA: ObjectSpec = {
   ],
 };
 
-export const ALL_SPECS: ObjectSpec[] = [DEALS_MYLA, DEALS_UNASSIGNED, COMPANIES_MYLA, CONTACTS_MYLA];
+export const ALL_SPECS: ObjectSpec[] = [DEALS, COMPANIES_MYLA, CONTACTS_MYLA];
 
-// Deal specs a HubSpot deal webhook can route to (owner-mapped board or the shared Unassigned board).
-export const DEAL_SPECS: ObjectSpec[] = [DEALS_MYLA, DEALS_UNASSIGNED];
+// Deal boards a HubSpot deal webhook can route to (now just the one shared board).
+export const DEAL_SPECS: ObjectSpec[] = [DEALS];
 
 // boardId -> spec, so a monday webhook can find the spec for the board that fired it.
 export const SPEC_BY_BOARD: Record<string, ObjectSpec> =

@@ -25,7 +25,9 @@ export interface FieldSpec {
 export type GroupBy =
   // hs value -> monday group id. fallbackGroup catches empty/unmapped values so the record is placed
   // instead of skipped (e.g. a contact with no lead status still lands in the "New" group).
-  | { prop: string; map: Record<string, string>; reverse: boolean; fallbackGroup?: string }
+  // noSalesUserGroup overrides placement when the record has no sales_user (e.g. the shared Deals
+  // board's "Unassigned Deals" group).
+  | { prop: string; map: Record<string, string>; reverse: boolean; fallbackGroup?: string; noSalesUserGroup?: string }
   | { singleGroup: string };
 
 export interface ObjectSpec {

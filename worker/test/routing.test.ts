@@ -30,6 +30,18 @@ describe("targetGroup", () => {
     expect(targetGroup({ id: "1", properties: { hs_lead_status: "OPEN" } }, withFallback)).toBe("gOpen"));
 });
 
+const withNoOwner: ObjectSpec = {
+  ...grouped,
+  groupBy: { prop: "dealstage", map: { closedwon: "g6" }, reverse: true, noSalesUserGroup: "gUnassigned" },
+};
+
+describe("targetGroup noSalesUserGroup", () => {
+  it("a deal with no sales_user routes to the unassigned group", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "closedwon", sales_user: "" } }, withNoOwner)).toBe("gUnassigned"));
+  it("a deal WITH a sales_user still uses its stage group", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "closedwon", sales_user: "555" } }, withNoOwner)).toBe("g6"));
+});
+
 describe("reverseGroup", () => {
   it("maps a monday group id back to the HubSpot value", () =>
     expect(reverseGroup(grouped, "g6")).toBe("closedwon"));

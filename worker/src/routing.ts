@@ -2,6 +2,9 @@ import type { HsRecord, ObjectSpec } from "./types";
 
 export function targetGroup(rec: HsRecord, spec: ObjectSpec): string | null {
   if ("singleGroup" in spec.groupBy) return spec.groupBy.singleGroup;
+  // No sales_user -> the "Unassigned Deals" group (when configured), regardless of stage.
+  if (spec.groupBy.noSalesUserGroup && !(rec.properties.sales_user ?? "").trim())
+    return spec.groupBy.noSalesUserGroup;
   const v = rec.properties[spec.groupBy.prop];
   const mapped = v ? spec.groupBy.map[v] : undefined;   // empty OR unmapped value ->
   return mapped ?? spec.groupBy.fallbackGroup ?? null;  // fall back so the record isn't skipped

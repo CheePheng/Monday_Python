@@ -6,29 +6,25 @@ const deal = (p: Record<string, string>) => ({ properties: p });
 const RECENT = "2026-08-01T00:00:00Z"; // after CREATED_AFTER_MS (2026-07-01)
 const OLD = "2026-06-01T00:00:00Z";    // before the cutoff
 
-describe("specForDeal (HubSpot deal -> board routing)", () => {
-  it("Myla's sales_user in the default pipeline -> Myla Deals board", () =>
+describe("specForDeal (HubSpot deal -> shared board routing)", () => {
+  it("a default-pipeline deal (any sales_user) -> shared Deals board", () =>
     expect(specForDeal(deal({ pipeline: "default", sales_user: "1739141284", createdate: RECENT }))?.boardId)
       .toBe("5029480547"));
 
-  it("no sales_user -> Unassigned board", () =>
+  it("a default-pipeline deal with NO sales_user -> shared Deals board (lands in Unassigned group)", () =>
     expect(specForDeal(deal({ pipeline: "default", sales_user: "", createdate: RECENT }))?.boardId)
-      .toBe("5029479220"));
+      .toBe("5029480547"));
 
-  it("a different (un-onboarded) salesperson -> null", () =>
-    expect(specForDeal(deal({ pipeline: "default", sales_user: "999", createdate: RECENT })))
-      .toBeNull());
+  it("a different (non-Myla) sales_user -> shared Deals board too", () =>
+    expect(specForDeal(deal({ pipeline: "default", sales_user: "999", createdate: RECENT }))?.boardId)
+      .toBe("5029480547"));
 
-  it("a non-default pipeline -> null", () =>
-    expect(specForDeal(deal({ pipeline: "someothersalespipeline", sales_user: "1739141284", createdate: RECENT })))
-      .toBeNull());
-
-  it("Myla's OLD deal still routes to her Deals board (full history backfilled)", () =>
+  it("an OLD deal still routes (all dates on the shared board)", () =>
     expect(specForDeal(deal({ pipeline: "default", sales_user: "1739141284", createdate: OLD }))?.boardId)
       .toBe("5029480547"));
 
-  it("an OLD deal with no sales_user -> null (Unassigned stays new-only)", () =>
-    expect(specForDeal(deal({ pipeline: "default", sales_user: "", createdate: OLD })))
+  it("a non-default pipeline -> null", () =>
+    expect(specForDeal(deal({ pipeline: "someothersalespipeline", sales_user: "1739141284", createdate: RECENT })))
       .toBeNull());
 });
 
