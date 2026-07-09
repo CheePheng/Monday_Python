@@ -50,6 +50,20 @@ Requires the `MONDAY_API_TOKEN` user to have **item-delete permission** on the b
 account — salespeople have delete disabled). It **never touches HubSpot** (deleting a monday card does
 nothing to HubSpot). No linked card ⇒ no-op.
 
+**Associations & line items (HubSpot → monday only):** a one-directional pass (`src/associations.ts`)
+reflects HubSpot associations onto monday after the field reconcile — **never** writing HubSpot, keyed on
+Record ID / Line Item ID (never names):
+- **Deal** → `Associated Company`, `Associated Contact` (text, comma-joined names); **line items → subitems**
+  on board `5029480548` (`HubSpot Line Item ID`, `Unit Price`, `Quantity`, `Amount`, `Net Price`,
+  `Service Date`, `Unit Discount`, `Description`) + parent `Line Items Summary` / `Count` / `Total Value`.
+  Subitems dedup by the Line Item ID column: update existing, create new, **delete** ones removed in HubSpot.
+- **Company** → `Associated Contact`. **Contact** → `Associated Company`, `Associated Deal`.
+- **Refresh:** runs on the object's normal webhook + the backup reconcile. HubSpot association-change events
+  aren't used, so an association/line-item change that doesn't also change a field syncs on the next backup
+  tick (≤10 min). **Line items require `crm.objects.line_items.read`** on the Private App (Worker reads) and
+  the webhook app (`app-hsmeta.json`); association reads need no extra scope. Association text/subitems are
+  never pushed back to HubSpot.
+
 **Item-name mapping (primary column):** the monday item name maps to a single HubSpot property, reverse-
 synced, so editing the primary column writes back: **contacts** primary = `firstname` (Last Name is its own
 column = `lastname`); **companies** primary = `domain` (Company Name column = `name`); deals primary =

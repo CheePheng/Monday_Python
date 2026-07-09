@@ -8,6 +8,7 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
   const v = String(value);
   switch (f.type) {
     case "text": return dict(f, ctx)[v] ?? v;
+    case "long_text": return { text: v };   // monday long-text columns need { text } not a bare string
     case "numbers": return v;
     case "status": return { label: dict(f, ctx)[v] ?? v };
     case "dropdown": {
@@ -53,7 +54,7 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
   switch (f.type) {
     case "date": return v.slice(0, 10);
     case "numbers": { const n = Number(v); return Number.isFinite(n) ? String(n) : v; }
-    case "status": case "text": return (dict(f, ctx)[v] ?? v).trim();
+    case "status": case "text": case "long_text": return (dict(f, ctx)[v] ?? v).trim();
     case "dropdown":
       return v.split(";").map(s => s.trim()).filter(Boolean).map(s => (dict(f, ctx)[s] ?? s).trim()).join(", ");
     default: return v;

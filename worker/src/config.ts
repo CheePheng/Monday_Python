@@ -1,4 +1,4 @@
-import type { ObjectSpec } from "./types";
+import type { ObjectSpec, SubitemSpec } from "./types";
 
 // ---- Discovered constants (worker_discovery.py / add_id_columns.py, 2026-07-03) ----
 // sales_user values are raw HubSpot owner ids (the property has no labeled options).
@@ -44,6 +44,35 @@ const LEAD_STATUS_GROUPS: Record<string, string> = {
   BAD_TIMING: "group_mm4w55z2",
 };
 
+// ---- Association columns (created 2026-07-09) ----
+const DEAL_ASSOC_COMPANY = "text_mm53a30h";   // Deal board "Associated Company"
+const DEAL_ASSOC_CONTACT = "text_mm53k97q";   // Deal board "Associated Contact"
+const DEAL_LI_SUMMARY = "long_text_mm53xer1"; // "Line Items Summary"
+const DEAL_LI_COUNT = "numeric_mm53j24a";     // "Line Items Count"
+const DEAL_LI_TOTAL = "numeric_mm534mmf";     // "Line Items Total Value"
+const COMPANY_ASSOC_CONTACT = "text_mm5367qf"; // Company board "Associated Contact"
+const CONTACT_ASSOC_COMPANY = "text_mm53m5g0"; // Contact board "Associated Company"
+const CONTACT_ASSOC_DEAL = "text_mm53yyc3";    // Contact board "Associated Deal"
+
+// Deal line items -> subitems on board 5029480548. Line-item property names for Net Price / Service Date /
+// Unit Discount are CONFIRMED in the plan's Task 7 (needs crm.objects.line_items.read on the private app).
+export const LINE_ITEM_SUBITEMS: SubitemSpec = {
+  boardId: "5029480548",
+  idCol: "text_mm53ds6w",           // "HubSpot Line Item ID"
+  summaryCol: DEAL_LI_SUMMARY, countCol: DEAL_LI_COUNT, totalCol: DEAL_LI_TOTAL, totalProp: "amount",
+  statusCol: "status",              // removed line items -> subitem Status = "Removed"
+  fields: [
+    { hs: "price", col: "numeric_mm53rsfd", type: "numbers" },                       // Unit Price (HubSpot "Unit price")
+    { hs: "quantity", col: "numeric_mm531345", type: "numbers" },                    // Quantity
+    { hs: "hs_pre_discount_amount", col: "numeric_mm53txgw", type: "numbers" },      // Amount (pre-discount total)
+    { hs: "amount", col: "numeric_mm538yj9", type: "numbers" },                      // Net Price (HubSpot "Net price")
+    { hs: "service_date", col: "date_mm53chbv", type: "date" },                      // Service Date
+    { hs: "discount", col: "numeric_mm53pkyf", type: "numbers" },                    // Unit Discount
+    { hs: "hs_line_item_currency_code", col: "text_mm538b8k", type: "text" },        // Currency
+    { hs: "description", col: "long_text_mm53a511", type: "long_text" },             // Description
+  ],
+};
+
 export const DEALS: ObjectSpec = {
   object: "deals",
   objectTypeId: "0-3",
@@ -64,6 +93,11 @@ export const DEALS: ObjectSpec = {
   // A card added by a salesperson creates a Sales-Pipeline deal; owner/sales_user get set in HubSpot
   // afterward — until then it sits in the Unassigned group.
   createDefaults: { pipeline: "default" },
+  associations: [
+    { toObject: "companies", nameProps: ["name"], col: DEAL_ASSOC_COMPANY },
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], col: DEAL_ASSOC_CONTACT },
+    { toObject: "line_items", nameProps: ["name"], subitems: LINE_ITEM_SUBITEMS },
+  ],
   fields: [
     { hs: "hubspot_owner_id", col: "person", type: "people" },                                    // Deal Owner
     { hs: "sales_user", col: "multiple_person_mm532m82", type: "people" },                         // Sales Users (person)
@@ -95,6 +129,9 @@ export const COMPANIES_MYLA: ObjectSpec = {
   syncStateCol: "text_mm4xrhjt",
   linkCol: "link_mm4pvn78",
   groupBy: { singleGroup: "group_mm4s3z7e" },
+  associations: [
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], col: COMPANY_ASSOC_CONTACT },
+  ],
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
@@ -130,6 +167,10 @@ export const CONTACTS_MYLA: ObjectSpec = {
   linkCol: "link_mm4pvn78",
   // Contacts with no/unknown lead status land in the "New" group (topics) instead of being skipped.
   groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: true, fallbackGroup: "topics" },
+  associations: [
+    { toObject: "companies", nameProps: ["name"], col: CONTACT_ASSOC_COMPANY },
+    { toObject: "deals", nameProps: ["dealname"], col: CONTACT_ASSOC_DEAL },
+  ],
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [

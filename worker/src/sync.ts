@@ -1,4 +1,5 @@
-import type { Budget, Ctx, Env, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
+import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
+import { syncAssociations } from "./associations";
 import {
   ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
   DEALS, PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
@@ -149,6 +150,12 @@ export async function syncSpec(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
       stats.errors++;
       console.log(`error ${spec.object}/${rec.id}: ${String(e).slice(0, 300)}`);
     }
+    // Backup reconcile of associations/line-items — uses the already-fetched card (no extra read).
+    const assocCard = byId[String(rec.id)];
+    if (spec.associations && assocCard && budget.left > 0) {
+      try { await syncAssociations(env, spec, rec, assocCard, ctx, opts, budget); }
+      catch (e) { console.log(`assoc error ${spec.object}/${rec.id}: ${String(e).slice(0, 200)}`); }
+    }
   }
 
   if (spec.createFromMonday) {
@@ -247,12 +254,14 @@ export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, b
   if (linked) {
     if (target && target.boardId === linked.spec.boardId) {
       await reconcileRecord(env, linked.spec, ctx, opts, budget, deal, linked.item, stats); // update-in-place, never duplicate
+      await runAssociations(env, linked.spec, deal, ctx, opts, budget);
       return wlog("hubspot", dealId, actionOf(stats), `board=${linked.spec.boardId} item=${linked.item.id}`);
     }
     // reassigned to a different board (or left scope): remove the old card, recreate on the new board
     await deleteItem(env, linked.item.id, opts); budget.left--;
     if (target) {
       await reconcileRecord(env, target, ctx, opts, budget, deal, undefined, stats);
+      await runAssociations(env, target, deal, ctx, opts, budget);
       return wlog("hubspot", dealId, "moved", `from=${linked.spec.boardId} to=${target.boardId}`);
     }
     return wlog("hubspot", dealId, "removed", `reason="deal left mapped boards" was=${linked.spec.boardId}`);
@@ -260,9 +269,23 @@ export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, b
 
   if (target) {
     await reconcileRecord(env, target, ctx, opts, budget, deal, undefined, stats); // no card anywhere -> create one
+    await runAssociations(env, target, deal, ctx, opts, budget);
     return wlog("hubspot", dealId, actionOf(stats), `board=${target.boardId}`);
   }
   return wlog("hubspot", dealId, "skipped", 'reason="deal not in scope (pipeline/owner/created-before-cutoff)"');
+}
+
+/** After a HubSpot->monday reconcile, refresh the record's associations onto its (now-existing) card.
+ * One-directional + guarded so association failures (e.g. line_items 403) never break the main sync. */
+async function runAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, ctx: Ctx, opts: RunOpts,
+    budget: Budget): Promise<void> {
+  if (!spec.associations || budget.left <= 0) return;
+  try {
+    const card = (await findItemByColumn(env, spec.boardId, spec.idCol, rec.id))[0];
+    if (card) await syncAssociations(env, spec, rec, card, ctx, opts, budget);
+  } catch (e) {
+    console.log(`assoc error ${spec.object}/${rec.id}: ${String(e).slice(0, 200)}`);
+  }
 }
 
 /** True when a contact/company is in Myla's sync scope (sales_user = Myla AND created >= cutoff).
@@ -287,6 +310,7 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
   const existing = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
   const stats = emptyStats();
   await reconcileRecord(env, spec, ctx, opts, budget, rec, existing, stats);
+  await runAssociations(env, spec, rec, ctx, opts, budget);
   return wlog(spec.object, id, actionOf(stats), `board=${spec.boardId}`);
 }
 

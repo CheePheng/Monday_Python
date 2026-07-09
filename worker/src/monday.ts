@@ -65,6 +65,25 @@ export async function getItem(env: Env, itemId: string): Promise<MondayItem | nu
   return items[0] ?? null;
 }
 
+/** Subitems under a parent item (id, name, columns incl. the HubSpot Line Item ID column). */
+export async function getSubitems(env: Env, parentItemId: string): Promise<MondayItem[]> {
+  const data = await gql(env, `query ($i:[ID!]) { items(ids:$i) { subitems { ${ITEM_FIELDS} } } }`, { i: [parentItemId] });
+  return data.items?.[0]?.subitems ?? [];
+}
+
+/** Create a subitem under a parent. Returns the new subitem id (null in dry-run). retries=1 (a create). */
+export async function createSubitem(env: Env, parentItemId: string, name: string,
+    cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun) { console.log(`DRY create subitem '${name}' under ${parentItemId}`); return null; }
+  const data = await gql(env,
+    `mutation ($p:ID!, $n:String!, $c:JSON) {
+       create_subitem(parent_item_id:$p, item_name:$n, column_values:$c, create_labels_if_missing:true) { id } }`,
+    { p: parentItemId, n: name, c: JSON.stringify(cv) }, 1);
+  const sid = data.create_subitem?.id ?? null;
+  console.log(`created subitem ${sid} under ${parentItemId}`);
+  return sid;
+}
+
 /** Find items on a board whose column equals a value (used to locate a card by HubSpot Deal ID
  * without reading the whole board). */
 export async function findItemByColumn(env: Env, boardId: string, columnId: string, value: string):

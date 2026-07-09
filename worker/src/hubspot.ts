@@ -73,6 +73,20 @@ export async function getRecord(env: Env, object: string, id: string, properties
   }
 }
 
+/** Ids of records associated to `id` (HubSpot v4 associations). e.g. deal -> companies/contacts/line_items. */
+export async function getAssociatedIds(env: Env, fromObject: string, id: string, toObject: string): Promise<string[]> {
+  const res = await hs(env, "GET", `/crm/v4/objects/${fromObject}/${id}/associations/${toObject}?limit=100`, undefined, 3);
+  return (res.results ?? []).map((r: any) => String(r.toObjectId)).filter((x: string) => /^\d+$/.test(x));
+}
+
+/** Batch-read records by id (names for association columns, or line-item fields). Empty ids -> []. */
+export async function getRecordsByIds(env: Env, object: string, ids: string[], properties: string[]): Promise<HsRecord[]> {
+  if (!ids.length) return [];
+  const res = await hs(env, "POST", `/crm/v3/objects/${object}/batch/read`,
+    { properties, inputs: ids.map(id => ({ id })) });
+  return (res.results ?? []).map((r: any) => ({ id: String(r.id), properties: r.properties ?? {} }));
+}
+
 /** Ids of records matching a spec that changed at/after `sinceMs`. Paginates (up to `maxPages` pages of
  * 100) so a bulk import that changes many records in one window is fully swept by the 10-min backup, not
  * capped at the first 100. The write BUDGET still throttles how many are pushed per tick. */

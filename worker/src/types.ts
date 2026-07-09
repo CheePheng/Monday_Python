@@ -8,7 +8,7 @@ export interface Env {
   MAX_WRITES?: string;           // optional: writes/records per cron tick (default 25; raise on Workers Paid)
 }
 
-export type ColType = "text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";
+export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";
 export type LabelDict =
   | "stage" | "dealtype" | "priority" | "vendor" | "pipeline"
   | "industry" | "companyType" | "leadStatus" | "salesUser"
@@ -47,6 +47,26 @@ export interface ObjectSpec {
   createFromMonday: boolean;
   // fixed HubSpot properties stamped on records created from monday (pipeline, owner, sales_user...).
   createDefaults?: Record<string, string>;
+  // HubSpot associations to reflect onto the monday item (HubSpot -> monday only). See associations.ts.
+  associations?: AssocSpec[];
+}
+
+// A HubSpot association synced onto the parent monday item (HubSpot -> monday only, no reverse).
+export interface AssocSpec {
+  toObject: "companies" | "contacts" | "deals" | "line_items";
+  nameProps: string[];     // properties composing the associated record's display name / line-item name
+  col?: string;            // parent text column for comma-joined names (companies/contacts/deals)
+  subitems?: SubitemSpec;  // line_items only: sync each as a subitem
+}
+export interface SubitemSpec {
+  boardId: string;     // subitems board id
+  idCol: string;       // "HubSpot Line Item ID" text column (dedup key)
+  fields: FieldSpec[]; // line-item property -> subitem column
+  summaryCol: string;  // parent "Line Items Summary"
+  countCol: string;    // parent "Line Items Count"
+  totalCol: string;    // parent "Line Items Total Value"
+  totalProp: string;   // line-item property summed into totalCol
+  statusCol?: string;  // subitem status column: a removed line item is marked "Removed" (else deleted)
 }
 
 export interface MondayItem {
