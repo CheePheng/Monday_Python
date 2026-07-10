@@ -11,6 +11,11 @@ export const PORTAL_ID = 39939588;
 // Contacts/companies: only NEW records sync (boss decision 2026-07-03).
 export const CREATED_AFTER_MS = Date.parse("2026-07-01T00:00:00Z");
 
+// monday "All Members" team id, stamped onto the Shared column of Unassigned deals so everyone can view
+// them under "restricted to assigned people" board permissions. "" = disabled until the team is created.
+export const ALL_MEMBERS_TEAM_ID = "49243"; // monday "All Members" team
+const DEAL_SHARED_COL = "multiple_person_mm54sj70"; // "Shared" people column on the deal board 5029480547
+
 // monday cards created BEFORE this are never pushed to HubSpot (protects the 14 pre-existing
 // orphan Unassigned cards + any legacy rows). Only cards a salesperson adds after go-live create.
 export const CREATE_CUTOFF_MS = Date.parse("2026-07-03T00:00:00Z");
@@ -98,6 +103,9 @@ export const DEALS: ObjectSpec = {
     { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: DEAL_REL_CONTACT },
     { toObject: "line_items", nameProps: ["name"], subitems: LINE_ITEM_SUBITEMS },
   ],
+  // Unassigned deals (no sales_user) -> stamp the all-members team on the Shared column so everyone can
+  // see them under restricted board permissions. Active once ALL_MEMBERS_TEAM_ID is filled in.
+  unassignedShared: { col: DEAL_SHARED_COL, teamId: ALL_MEMBERS_TEAM_ID },
   fields: [
     { hs: "hubspot_owner_id", col: "person", type: "people" },                                    // Deal Owner
     { hs: "sales_user", col: "multiple_person_mm532m82", type: "people" },                         // Sales Users (person)

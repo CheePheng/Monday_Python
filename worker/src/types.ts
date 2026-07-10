@@ -49,6 +49,10 @@ export interface ObjectSpec {
   createDefaults?: Record<string, string>;
   // HubSpot associations to reflect onto the monday item (HubSpot -> monday only). See associations.ts.
   associations?: AssocSpec[];
+  // When set: on records with NO sales_user, assign `teamId` to the people column `col` so that under
+  // "restricted to assigned people" board permissions, Unassigned deals stay viewable by that team;
+  // the column is cleared once the record gets a sales_user. teamId "" = disabled (no-op).
+  unassignedShared?: { col: string; teamId: string };
 }
 
 // A HubSpot association synced onto the parent monday item (HubSpot -> monday only, no reverse).

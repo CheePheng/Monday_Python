@@ -73,6 +73,8 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
     return;
   }
 
+  await maintainShared(env, spec, rec, existing, opts, budget); // toggle the Shared team on sales_user change
+
   const lastSynced = colText(existing, spec.syncStateCol);
   const diffs = fieldDiffs(rec, existing, spec, ctx);
   const dir = decideDirection(diffs, recModified, lastSynced);
@@ -104,6 +106,24 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   cv[spec.syncStateCol] = recModified;
   await updateItem(env, spec.boardId, existing.id, itemName(rec, spec), cv, opts);
   stats.toMonday++; budget.left--;
+}
+
+/** Keep the "Shared" people column holding the all-members team on records with NO sales_user (so
+ * Unassigned deals stay viewable by everyone under restricted board permissions), cleared once assigned.
+ * People columns aren't text-diffed, so this toggles explicitly on the empty/non-empty column state. */
+async function maintainShared(env: Env, spec: ObjectSpec,
+    rec: { properties: Record<string, string | null> }, item: MondayItem, opts: RunOpts,
+    budget: Budget): Promise<void> {
+  const us = spec.unassignedShared;
+  if (!us?.teamId || budget.left <= 0) return;
+  const wantTeam = !(rec.properties.sales_user ?? "").trim();
+  const hasTeam = colText(item, us.col).trim() !== "";
+  if (wantTeam === hasTeam) return; // already correct
+  const value = wantTeam
+    ? { personsAndTeams: [{ id: Number(us.teamId), kind: "team" }] }
+    : { personsAndTeams: [] };
+  await setColumns(env, spec.boardId, item.id, { [us.col]: value }, opts); budget.left--;
+  console.log(`${spec.object}/${(rec as any).id ?? ""} shared-column action=${wantTeam ? "set-team" : "cleared"}`);
 }
 
 /** monday card with no HubSpot id (added after go-live) -> create/adopt a HubSpot record. */

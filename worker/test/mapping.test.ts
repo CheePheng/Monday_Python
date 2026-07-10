@@ -54,6 +54,18 @@ describe("buildColumnValues / itemName", () => {
     expect(itemName({ id: "1", properties: { dealname: "Acme" } }, spec)).toBe("Acme");
     expect(itemName({ id: "1", properties: {} }, spec)).toBe("deals 1");
   });
+
+  it("stamps the all-members team on the Shared column when the deal has NO sales_user", () => {
+    const shared: ObjectSpec = { ...spec, unassignedShared: { col: "c_shared", teamId: "999" } };
+    expect(buildColumnValues({ id: "1", properties: {} }, shared, ctx).c_shared)
+      .toEqual({ personsAndTeams: [{ id: 999, kind: "team" }] });
+    // has a sales_user -> Shared is left empty (only the salesperson can view it)
+    expect(buildColumnValues({ id: "1", properties: { sales_user: "555" } }, shared, ctx).c_shared)
+      .toBeUndefined();
+    // disabled when teamId is "" (team not created yet)
+    const off: ObjectSpec = { ...spec, unassignedShared: { col: "c_shared", teamId: "" } };
+    expect(buildColumnValues({ id: "1", properties: {} }, off, ctx).c_shared).toBeUndefined();
+  });
 });
 
 describe("expectedText (canonical comparison value)", () => {

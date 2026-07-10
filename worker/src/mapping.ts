@@ -40,6 +40,11 @@ export function buildColumnValues(rec: HsRecord, spec: ObjectSpec, ctx: Ctx): Re
     url: `https://app.hubspot.com/contacts/${ctx.portalId}/record/${spec.objectTypeId}/${rec.id}`,
     text: "Open in HubSpot",
   };
+  // No sales_user -> stamp the "Shared" people column with the all-members team so the Unassigned deal
+  // is viewable by everyone even under restricted (assigned-people-only) board permissions.
+  const us = spec.unassignedShared;
+  if (us?.teamId && !(rec.properties.sales_user ?? "").trim())
+    cv[us.col] = { personsAndTeams: [{ id: Number(us.teamId), kind: "team" }] };
   return cv;
 }
 
