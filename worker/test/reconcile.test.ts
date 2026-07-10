@@ -116,6 +116,38 @@ describe("buildCreateProperties", () => {
   });
 });
 
+describe("sales_user group moves (routing by HubSpot sales_user; existing item moved by Deal ID, never duplicated)", () => {
+  // A deals-style spec: group by stage, no-sales_user -> Unassigned; Sales Users is a (display) people column.
+  const dealsRule: ObjectSpec = {
+    ...spec,
+    groupBy: { prop: "dealstage", map: { appointmentscheduled: "gStage", closedwon: "g6" },
+               reverse: true, noSalesUserGroup: "gUnassigned" },
+    fields: [{ hs: "sales_user", col: "c_people", type: "people" }],
+  };
+  const MYLA = "1739141284";
+  const pctx: Ctx = { labels: {}, ownersById: { [MYLA]: { name: "Myla", email: "myla@x.com" } },
+    mondayUsersByEmail: { "myla@x.com": "42" }, portalId: 1 };
+  // card() keeps the SAME HubSpot Deal ID (9001) across group changes -> reconcile moves it, never creates.
+  const card = (groupId: string, avatar = "") => item({ group: { id: groupId },
+    column_values: [{ id: "c_id", text: "9001" }, { id: "c_people", text: avatar }] });
+  const dealRec = (sales_user: string) => ({ id: "9001",
+    properties: { dealname: "Acme", dealstage: "appointmentscheduled", sales_user } });
+  const groupDiff = (d: ReturnType<typeof fieldDiffs>) => d.find(x => x.kind === "group");
+
+  it("Myla -> empty: a card in a stage group gets a group move to Unassigned", () => {
+    const d = fieldDiffs(dealRec(""), card("gStage"), dealsRule, pctx);
+    expect(groupDiff(d)?.hsText).toBe("gUnassigned");
+  });
+  it("empty -> Myla: a card in Unassigned gets a group move to its Deal Stage group", () => {
+    const d = fieldDiffs(dealRec(MYLA), card("gUnassigned"), dealsRule, pctx);
+    expect(groupDiff(d)?.hsText).toBe("gStage");
+  });
+  it("blank monday avatar but sales_user = Myla stays in its Deal Stage group (no move to Unassigned)", () => {
+    const d = fieldDiffs(dealRec(MYLA), card("gStage", /* blank avatar */ ""), dealsRule, pctx);
+    expect(groupDiff(d)).toBeUndefined(); // routing ignores the blank avatar; sales_user is set -> stays put
+  });
+});
+
 describe("fieldDiffs people population (backfills empty person columns like Sales Users)", () => {
   const peopleSpec: ObjectSpec = { ...spec, nameProps: ["dealname"],
     fields: [{ hs: "sales_user", col: "c_people", type: "people" }] };
@@ -133,4 +165,29 @@ describe("fieldDiffs people population (backfills empty person columns like Sale
     expect(hasPeople(fieldDiffs(recOwner, filledPeople, peopleSpec, pctx))).toBe(false));
   it("does NOT diff when the owner doesn't resolve (no monday user)", () =>
     expect(hasPeople(fieldDiffs({ id: "1", properties: { dealname: "Acme", sales_user: "999" } }, emptyPeople, peopleSpec, pctx))).toBe(false));
+});
+
+describe("lead status: Lead Status column reverses to HubSpot; group is forward-only (no oscillation)", () => {
+  const contactSpec: ObjectSpec = {
+    ...spec,
+    // group FOLLOWS HubSpot (reverse:false); the status column is the reversible source of truth.
+    groupBy: { prop: "hs_lead_status", map: { NEW: "gNew", OPEN: "gOpen" }, reverse: false, fallbackGroup: "gNew" },
+    fields: [{ hs: "hs_lead_status", col: "c_status", type: "status", labels: "leadStatus", reverse: true }],
+  };
+  const lctx: Ctx = { labels: { leadStatus: { NEW: "New", OPEN: "Open" } }, ownersById: {}, mondayUsersByEmail: {}, portalId: 1 };
+  const cItem = (groupId: string, status: string) => item({ group: { id: groupId },
+    column_values: [{ id: "c_id", text: "9001" }, { id: "c_status", text: status }] });
+  const cRec = (hs_lead_status: string) => ({ id: "9001", properties: { dealname: "Acme", hs_lead_status } });
+
+  it("editing the Lead Status column writes back to HubSpot (New -> Open)", () => {
+    const md = cItem("gNew", "Open");                       // column edited to Open, HubSpot still NEW
+    const patch = buildReversePatch(fieldDiffs(cRec("NEW"), md, contactSpec, lctx), md, contactSpec, lctx);
+    expect(patch).toEqual({ hs_lead_status: "OPEN" });
+  });
+  it("a lagging group does NOT reverse-write lead status -> it moves forward instead of reverting", () => {
+    const md = cItem("gNew", "Open");                       // HubSpot already OPEN, column Open, group lags in gNew
+    const diffs = fieldDiffs(cRec("OPEN"), md, contactSpec, lctx);
+    expect(diffs.some(d => d.kind === "group")).toBe(true); // the group is behind...
+    expect(buildReversePatch(diffs, md, contactSpec, lctx)).toEqual({}); // ...but it does NOT write HubSpot (forward move only)
+  });
 });

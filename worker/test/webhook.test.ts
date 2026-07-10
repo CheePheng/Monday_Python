@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { specForDeal } from "../src/sync";
-import { extractDealIds, extractObjectEvents } from "../src/webhooks";
+import { extractDealIds, extractLineItemIds, extractObjectEvents } from "../src/webhooks";
 
 const deal = (p: Record<string, string>) => ({ properties: p });
 const RECENT = "2026-08-01T00:00:00Z"; // after CREATED_AFTER_MS (2026-07-01)
@@ -97,6 +97,32 @@ describe("extractObjectEvents (multi-object routing)", () => {
     expect(extractObjectEvents([{ subscriptionType: "company.deletion", objectId: 8 }]))
       .toEqual([{ type: "company", id: "8", deleted: true }]);
   });
+
+  it("routes an object.associationChange to a re-sync of the FROM object (fromObjectTypeId + fromObjectId)", () => {
+    // real 2026.03 payload shape: subscriptionType object.associationChange, from*/to* fields, fires per side
+    expect(extractObjectEvents({ subscriptionType: "object.associationChange", fromObjectTypeId: "0-3", fromObjectId: 9001, toObjectTypeId: "0-1", toObjectId: 5, associationType: "DEAL_TO_CONTACT" }))
+      .toEqual([{ type: "deal", id: "9001" }]);
+    expect(extractObjectEvents({ subscriptionType: "object.associationChange", fromObjectTypeId: "0-1", fromObjectId: 7, toObjectTypeId: "0-3", toObjectId: 9001, associationType: "CONTACT_TO_DEAL" }))
+      .toEqual([{ type: "contact", id: "7" }]);
+  });
+
+  it("an association-change is NOT treated as a deletion", () =>
+    expect(extractObjectEvents({ subscriptionType: "object.associationChange", fromObjectTypeId: "0-2", fromObjectId: 80010, toObjectTypeId: "0-1", toObjectId: 3 }))
+      .toEqual([{ type: "company", id: "80010" }]));
+});
+
+describe("extractLineItemIds (line-item edits -> parent deal)", () => {
+  it("pulls line-item ids (objectTypeId 0-8)", () =>
+    expect(extractLineItemIds([{ subscriptionType: "object.propertyChange", objectTypeId: "0-8", objectId: 31395364724, propertyName: "price" }]))
+      .toEqual(["31395364724"]));
+  it("pulls line-item ids (subscriptionType line_item.*) and dedups", () =>
+    expect(extractLineItemIds([
+      { subscriptionType: "line_item.propertyChange", objectId: 55 },
+      { subscriptionType: "line_item.propertyChange", objectId: 55 },
+    ])).toEqual(["55"]));
+  it("ignores non-line-item events", () =>
+    expect(extractLineItemIds([{ subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 9 }]))
+      .toEqual([]));
 
   it("keeps a deletion and an update for the same object as separate events", () =>
     expect(extractObjectEvents([

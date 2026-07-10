@@ -12,7 +12,7 @@ export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" |
 export type LabelDict =
   | "stage" | "dealtype" | "priority" | "vendor" | "pipeline"
   | "industry" | "companyType" | "leadStatus" | "salesUser"
-  | "contactSource" | "contactVendor";
+  | "contactSource" | "contactVendor" | "partnerWith";
 
 export interface FieldSpec {
   hs: string;            // HubSpot property name
@@ -56,16 +56,14 @@ export interface AssocSpec {
   toObject: "companies" | "contacts" | "deals" | "line_items";
   nameProps: string[];     // properties composing the associated record's display name / line-item name
   col?: string;            // parent text column for comma-joined names (companies/contacts/deals)
+  relationCol?: string;    // "Connect Boards" (board_relation) column: links to the actual monday cards.
+                           // monday can't CREATE this column type via API — make it in the UI, then set the id here.
   subitems?: SubitemSpec;  // line_items only: sync each as a subitem
 }
 export interface SubitemSpec {
   boardId: string;     // subitems board id
   idCol: string;       // "HubSpot Line Item ID" text column (dedup key)
   fields: FieldSpec[]; // line-item property -> subitem column
-  summaryCol: string;  // parent "Line Items Summary"
-  countCol: string;    // parent "Line Items Count"
-  totalCol: string;    // parent "Line Items Total Value"
-  totalProp: string;   // line-item property summed into totalCol
   statusCol?: string;  // subitem status column: a removed line item is marked "Removed" (else deleted)
 }
 

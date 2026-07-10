@@ -45,21 +45,21 @@ const LEAD_STATUS_GROUPS: Record<string, string> = {
 };
 
 // ---- Association columns (created 2026-07-09) ----
-const DEAL_ASSOC_COMPANY = "text_mm53a30h";   // Deal board "Associated Company"
-const DEAL_ASSOC_CONTACT = "text_mm53k97q";   // Deal board "Associated Contact"
-const DEAL_LI_SUMMARY = "long_text_mm53xer1"; // "Line Items Summary"
-const DEAL_LI_COUNT = "numeric_mm53j24a";     // "Line Items Count"
-const DEAL_LI_TOTAL = "numeric_mm534mmf";     // "Line Items Total Value"
-const COMPANY_ASSOC_CONTACT = "text_mm5367qf"; // Company board "Associated Contact"
-const CONTACT_ASSOC_COMPANY = "text_mm53m5g0"; // Contact board "Associated Company"
-const CONTACT_ASSOC_DEAL = "text_mm53yyc3";    // Contact board "Associated Deal"
+// Connect Boards (board_relation) link columns, created 2026-07-10 via the monday API (v2025-10).
+// These LINK the actual cards (not text names). Old text columns kept below for post-verify deletion.
+const DEAL_REL_COMPANY = "board_relation_mm54rrj3";    // Deal -> Company card link
+const DEAL_REL_CONTACT = "board_relation_mm5417sy";    // Deal -> Contact card link
+const COMPANY_REL_CONTACT = "board_relation_mm54e96";  // Company -> Contact card link
+const CONTACT_REL_COMPANY = "board_relation_mm54dbxk"; // Contact -> Company card link
+const CONTACT_REL_DEAL = "board_relation_mm54zahf";    // Contact -> Deal card link
+// Retired text association columns (delete after verification): Deal text_mm53a30h / text_mm53k97q,
+// Contact text_mm53m5g0 / text_mm53yyc3, Company text_mm5367qf.
 
 // Deal line items -> subitems on board 5029480548. Line-item property names for Net Price / Service Date /
 // Unit Discount are CONFIRMED in the plan's Task 7 (needs crm.objects.line_items.read on the private app).
 export const LINE_ITEM_SUBITEMS: SubitemSpec = {
   boardId: "5029480548",
   idCol: "text_mm53ds6w",           // "HubSpot Line Item ID"
-  summaryCol: DEAL_LI_SUMMARY, countCol: DEAL_LI_COUNT, totalCol: DEAL_LI_TOTAL, totalProp: "amount",
   statusCol: "status",              // removed line items -> subitem Status = "Removed"
   fields: [
     { hs: "price", col: "numeric_mm53rsfd", type: "numbers" },                       // Unit Price (HubSpot "Unit price")
@@ -94,8 +94,8 @@ export const DEALS: ObjectSpec = {
   // afterward — until then it sits in the Unassigned group.
   createDefaults: { pipeline: "default" },
   associations: [
-    { toObject: "companies", nameProps: ["name"], col: DEAL_ASSOC_COMPANY },
-    { toObject: "contacts", nameProps: ["firstname", "lastname"], col: DEAL_ASSOC_CONTACT },
+    { toObject: "companies", nameProps: ["name"], relationCol: DEAL_REL_COMPANY },
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: DEAL_REL_CONTACT },
     { toObject: "line_items", nameProps: ["name"], subitems: LINE_ITEM_SUBITEMS },
   ],
   fields: [
@@ -116,7 +116,8 @@ export const COMPANIES_MYLA: ObjectSpec = {
   object: "companies",
   objectTypeId: "0-2",
   searchFilters: [
-    { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
+    // All sales users (not just Myla): any record with a sales_user assigned.
+    { propertyName: "sales_user", operator: "HAS_PROPERTY" },
     { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS },
   ],
   modifiedProp: "hs_lastmodifieddate",
@@ -130,15 +131,17 @@ export const COMPANIES_MYLA: ObjectSpec = {
   linkCol: "link_mm4pvn78",
   groupBy: { singleGroup: "group_mm4s3z7e" },
   associations: [
-    { toObject: "contacts", nameProps: ["firstname", "lastname"], col: COMPANY_ASSOC_CONTACT },
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: COMPANY_REL_CONTACT },
   ],
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
     { hs: "name", col: "text_mm4scke9", type: "text", reverse: true },
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
-    { hs: "industry", col: "dropdown_mm4wj6nv", type: "dropdown", labels: "industry", reverse: true },
-    { hs: "type", col: "dropdown_mm4wa6ak", type: "dropdown", labels: "companyType", reverse: true },
+    { hs: "sales_user", col: "multiple_person_mm54phd7", type: "people" },  // "Sales Users" people col
+    { hs: "industry", col: "dropdown_mm54zrp2", type: "dropdown", labels: "industry", reverse: true }, // single-select dropdown (limit_select): 200 options, one pick
+    { hs: "type", col: "color_mm545z1t", type: "status", labels: "companyType", reverse: true },
+    { hs: "partner_with", col: "color_mm54xzax", type: "status", labels: "partnerWith" },  // "Partner With"
     { hs: "city", col: "text_mm4p2bvb", type: "text", reverse: true },
     { hs: "state", col: "text_mm4sznkw", type: "text", reverse: true },
     { hs: "numberofemployees", col: "numeric_mm4ww8gs", type: "numbers", reverse: true },
@@ -153,7 +156,8 @@ export const CONTACTS_MYLA: ObjectSpec = {
   object: "contacts",
   objectTypeId: "0-1",
   searchFilters: [
-    { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
+    // All sales users (not just Myla): any record with a sales_user assigned.
+    { propertyName: "sales_user", operator: "HAS_PROPERTY" },
     { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS },
   ],
   modifiedProp: "lastmodifieddate",
@@ -166,10 +170,13 @@ export const CONTACTS_MYLA: ObjectSpec = {
   syncStateCol: "text_mm4xpe1g",
   linkCol: "link_mm4pvn78",
   // Contacts with no/unknown lead status land in the "New" group (topics) instead of being skipped.
-  groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: true, fallbackGroup: "topics" },
+  // reverse:false -> the group FOLLOWS HubSpot (forward-only). Lead status is edited via the "Lead
+  // Status" column (the reversible field below); the group then moves to match on the next sync. If the
+  // group also reverse-wrote hs_lead_status it would fight the column edit and oscillate ("Open" -> "New").
+  groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: false, fallbackGroup: "topics" },
   associations: [
-    { toObject: "companies", nameProps: ["name"], col: CONTACT_ASSOC_COMPANY },
-    { toObject: "deals", nameProps: ["dealname"], col: CONTACT_ASSOC_DEAL },
+    { toObject: "companies", nameProps: ["name"], relationCol: CONTACT_REL_COMPANY },
+    { toObject: "deals", nameProps: ["dealname"], relationCol: CONTACT_REL_DEAL },
   ],
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
@@ -180,10 +187,10 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { hs: "company", col: "text_mm4sbj9b", type: "text" },
     { hs: "phone", col: "phone_mm4s31p3", type: "phone" },
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
-    { hs: "sales_user", col: "dropdown_mm4thdr", type: "dropdown", labels: "salesUser" },
+    { hs: "sales_user", col: "multiple_person_mm542gng", type: "people" },  // "Sales Users" people col
     { hs: "createdate", col: "date_mm4s2bjd", type: "date" },
     { hs: "notes_last_updated", col: "date4", type: "date" },
-    { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus" },
+    { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus", reverse: true }, // edit here -> writes back to HubSpot
     { hs: "leadsource", col: "dropdown_mm4sj3kw", type: "dropdown", labels: "contactSource" },
     { hs: "manufacturer__c", col: "dropdown_mm4t8gjf", type: "dropdown", labels: "contactVendor" },
   ],
@@ -197,3 +204,9 @@ export const DEAL_SPECS: ObjectSpec[] = [DEALS];
 // boardId -> spec, so a monday webhook can find the spec for the board that fired it.
 export const SPEC_BY_BOARD: Record<string, ObjectSpec> =
   Object.fromEntries(ALL_SPECS.map(s => [s.boardId, s]));
+
+// object name -> spec, so a Connect-Boards association can resolve the target board + its HubSpot-id
+// column (to turn associated HubSpot ids into the monday cards to link). line_items has no board.
+export const SPEC_BY_OBJECT: Record<string, ObjectSpec> = {
+  deals: DEALS, companies: COMPANIES_MYLA, contacts: CONTACTS_MYLA,
+};

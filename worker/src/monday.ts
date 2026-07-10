@@ -96,6 +96,35 @@ export async function findItemByColumn(env: Env, boardId: string, columnId: stri
   return data.items_page_by_column_values?.items ?? [];
 }
 
+/** Map of HubSpot id -> monday card id on a board, for the given HubSpot ids (via the board's id column).
+ * Used to turn associated HubSpot ids into the monday cards to link, and to spot which are missing. */
+export async function findItemIdsByColumn(env: Env, boardId: string, columnId: string, values: string[]):
+    Promise<Record<string, string>> {
+  if (!values.length) return {};
+  const data = await gql(env,
+    `query ($b:ID!, $c:String!, $cl:[String!]!, $v:[String!]!) {
+       items_page_by_column_values(limit:100, board_id:$b,
+         columns:[{ column_id:$c, column_values:$v }]) {
+           items { id column_values(ids:$cl) { text } } } }`,
+    { b: boardId, c: columnId, cl: [columnId], v: values });
+  const out: Record<string, string> = {};
+  for (const it of data.items_page_by_column_values?.items ?? []) {
+    const t = (it.column_values?.[0]?.text ?? "").trim();
+    if (t) out[t] = String(it.id);
+  }
+  return out;
+}
+
+/** The item ids currently linked in a board_relation ("Connect Boards") column on one item. */
+export async function getLinkedItemIds(env: Env, itemId: string, relationCol: string): Promise<string[]> {
+  const data = await gql(env,
+    `query ($i:[ID!], $c:[String!]) {
+       items(ids:$i) { column_values(ids:$c) { ... on BoardRelationValue { linked_item_ids } } } }`,
+    { i: [itemId], c: [relationCol] });
+  const cv = data.items?.[0]?.column_values?.[0];
+  return (cv?.linked_item_ids ?? []).map((x: any) => String(x));
+}
+
 // Mirrors a HubSpot deletion by hard-deleting the linked card. monday keeps deleted items in the board
 // recycle bin for ~30 days, so this is recoverable. Requires the API token's user to have item-delete
 // permission on the board (an admin/service account).
@@ -115,14 +144,15 @@ export async function getUsersByEmail(env: Env): Promise<Record<string, string>>
 // --- writes: mutations use retries=1 so an ambiguous network failure can't double-apply ---
 
 export async function createItem(env: Env, boardId: string, groupId: string, name: string,
-    cv: Record<string, unknown>, opts: RunOpts): Promise<void> {
-  if (opts.dryRun) { console.log(`DRY create '${name}' on ${boardId}/${groupId}`); return; }
-  await gql(env,
+    cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun) { console.log(`DRY create '${name}' on ${boardId}/${groupId}`); return null; }
+  const data = await gql(env,
     `mutation ($b:ID!, $g:String!, $n:String!, $c:JSON) {
        create_item(board_id:$b, group_id:$g, item_name:$n, column_values:$c,
                    create_labels_if_missing:true) { id } }`,
     { b: boardId, g: groupId, n: name, c: JSON.stringify(cv) }, 1);
   console.log(`created '${name}' on ${boardId}/${groupId}`);
+  return data.create_item?.id ?? null;
 }
 
 export async function updateItem(env: Env, boardId: string, itemId: string, name: string,

@@ -2,7 +2,7 @@ import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats
 import { syncAssociations } from "./associations";
 import {
   ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
-  DEALS, PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
+  DEALS, PORTAL_ID, SPEC_BY_BOARD,
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
@@ -32,7 +32,7 @@ function linkValue(spec: ObjectSpec, ctx: Ctx, id: string): Record<string, unkno
 
 export async function buildCtx(env: Env): Promise<Ctx> {
   const [ownersById, mondayUsersByEmail, stage, dealtype, priority, vendor, leadStatus,
-         industry, companyType, contactSource, contactVendor] = await Promise.all([
+         industry, companyType, contactSource, contactVendor, partnerWith] = await Promise.all([
     getOwners(env),
     getUsersByEmail(env),
     getDealStageLabels(env),
@@ -44,13 +44,14 @@ export async function buildCtx(env: Env): Promise<Ctx> {
     getPropertyOptions(env, "companies", "type"),
     getPropertyOptions(env, "contacts", "leadsource"),
     getPropertyOptions(env, "contacts", "manufacturer__c"),
+    getPropertyOptions(env, "companies", "partner_with"),
   ]);
   // sales_user values are raw owner ids; label them with owner names.
   const salesUser: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.name) salesUser[id] = o.name;
   return {
     labels: { stage, dealtype, priority, vendor, leadStatus, industry, companyType,
-              contactSource, contactVendor, salesUser,
+              contactSource, contactVendor, salesUser, partnerWith,
               pipeline: { default: "Sales Pipeline" } },
     ownersById, mondayUsersByEmail, portalId: PORTAL_ID,
   };
@@ -288,10 +289,12 @@ async function runAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, ctx: C
   }
 }
 
-/** True when a contact/company is in Myla's sync scope (sales_user = Myla AND created >= cutoff).
- * Mirrors the CONTACTS_MYLA / COMPANIES_MYLA search filters for the single-record webhook path. */
+/** True when a contact/company is in the board's own sync scope (ANY sales_user AND created >= cutoff).
+ * Mirrors the CONTACTS_MYLA / COMPANIES_MYLA search filters (sales_user HAS_PROPERTY + createdate) for
+ * the single-record webhook path. NB: associated records that fall outside this are still created on
+ * demand by the association pass (ensureTargetCard) so their deal/contact/company links resolve. */
 function recInScope(rec: { properties: Record<string, string | null> }): boolean {
-  if (rec.properties.sales_user !== SALES_USER_MYLA) return false;
+  if (!(rec.properties.sales_user ?? "").trim()) return false;
   return (Date.parse(rec.properties.createdate ?? "") || 0) >= CREATED_AFTER_MS;
 }
 

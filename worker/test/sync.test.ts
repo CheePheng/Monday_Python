@@ -262,12 +262,19 @@ describe("contacts & companies sync via webhook the same way as deals", () => {
     expect(H.counts.createItem).toBe(1);
   });
 
-  it("a contact not owned by Myla is skipped (out of scope, keyed on HubSpot Record ID)", async () => {
-    putRecord("70099", { firstname: "Not", lastname: "Myla", sales_user: "999",
+  it("a contact with NO sales_user is skipped (out of scope; all-sales-users filter needs a sales_user)", async () => {
+    putRecord("70099", { firstname: "No", lastname: "SalesUser", sales_user: "",
       createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
     const r = await syncHubspotObject(env, "contact", "70099", opts, budget());
     expect(H.counts.createItem).toBe(0);
     expect(r).toContain("out of scope");
+  });
+
+  it("a contact owned by ANY sales user (not just Myla) is now in scope and creates a card", async () => {
+    putRecord("70098", { firstname: "Other", lastname: "Rep", sales_user: "431181649",
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    await syncHubspotObject(env, "contact", "70098", opts, budget());
+    expect(H.counts.createItem).toBe(1);
   });
 
   it("HubSpot company.creation creates a monday company item (linked by HubSpot id)", async () => {
