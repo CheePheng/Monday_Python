@@ -115,6 +115,19 @@ export async function findItemIdsByColumn(env: Env, boardId: string, columnId: s
   return out;
 }
 
+/** Text of one column across several items -> { itemId: text }. Used to resolve linked cards to their
+ * HubSpot id (for reversing a Connect-Boards link into a HubSpot association). */
+export async function getItemsColumnText(env: Env, itemIds: string[], columnId: string):
+    Promise<Record<string, string>> {
+  if (!itemIds.length) return {};
+  const data = await gql(env,
+    `query ($i:[ID!], $c:[String!]) { items(ids:$i) { id column_values(ids:$c) { text } } }`,
+    { i: itemIds, c: [columnId] });
+  const out: Record<string, string> = {};
+  for (const it of data.items ?? []) out[String(it.id)] = (it.column_values?.[0]?.text ?? "").trim();
+  return out;
+}
+
 /** The item ids currently linked in a board_relation ("Connect Boards") column on one item. */
 export async function getLinkedItemIds(env: Env, itemId: string, relationCol: string): Promise<string[]> {
   const data = await gql(env,

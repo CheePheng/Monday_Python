@@ -79,6 +79,59 @@ export async function getAssociatedIds(env: Env, fromObject: string, id: string,
   return (res.results ?? []).map((r: any) => String(r.toObjectId)).filter((x: string) => /^\d+$/.test(x));
 }
 
+/** Create a DEFAULT association (idempotent PUT) between two records — used to reverse a monday
+ * Connect-Boards link into a HubSpot association. Additive: callers never delete. */
+export async function putAssociation(env: Env, fromObject: string, fromId: string,
+    toObject: string, toId: string, opts: RunOpts): Promise<void> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+    return;
+  }
+  await hs(env, "PUT", `/crm/v4/objects/${fromObject}/${fromId}/associations/default/${toObject}/${toId}`, undefined, 3);
+  console.log(`hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+}
+
+/** Create a line item and associate it to a deal (line_item->deal default type = 20). Returns the new
+ * id. Requires crm.objects.line_items.write — throws 403 until the private app's scope is added. */
+export async function createLineItem(env: Env, properties: Record<string, string>, dealId: string,
+    opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot CREATE line_item on deal ${dealId}: ${JSON.stringify(properties)}`);
+    return null;
+  }
+  const res = await hs(env, "POST", "/crm/v3/objects/line_items", {
+    properties,
+    associations: [{ to: { id: dealId }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 20 }] }],
+  }, 1);
+  console.log(`hubspot CREATE line_item -> ${res.id} on deal ${dealId}`);
+  return res.id ? String(res.id) : null;
+}
+
+// --- live search for the vibe app picker (/app/search) ---
+const SEARCH_PROPS: Record<string, string[]> = {
+  contacts: ["firstname", "lastname", "email"],
+  companies: ["name", "domain"],
+  products: ["name", "price"],
+};
+
+/** HubSpot result -> a compact { name, secondary } for the picker. Pure (unit-testable). */
+export function mapSearchResult(type: string, p: Record<string, any>): { name: string; secondary: string } {
+  if (type === "contacts") {
+    const name = [p.firstname, p.lastname].filter(Boolean).join(" ").trim();
+    return { name: name || p.email || "(no name)", secondary: p.email ?? "" };
+  }
+  if (type === "companies") return { name: p.name || "(no name)", secondary: p.domain ?? "" };
+  return { name: p.name || "(no name)", secondary: p.price != null ? String(p.price) : "" }; // products
+}
+
+/** Full-text search one HubSpot object type; returns up to `limit` (<=20) compact hits. */
+export async function searchObjects(env: Env, type: string, q: string, limit: number):
+    Promise<{ id: string; name: string; secondary: string }[]> {
+  const res = await hs(env, "POST", `/crm/v3/objects/${type}/search`,
+    { query: q, properties: SEARCH_PROPS[type] ?? ["name"], limit: Math.min(Math.max(limit, 1), 20) }, 2);
+  return (res.results ?? []).map((r: any) => ({ id: String(r.id), ...mapSearchResult(type, r.properties ?? {}) }));
+}
+
 /** Batch-read records by id (names for association columns, or line-item fields). Empty ids -> []. */
 export async function getRecordsByIds(env: Env, object: string, ids: string[], properties: string[]): Promise<HsRecord[]> {
   if (!ids.length) return [];

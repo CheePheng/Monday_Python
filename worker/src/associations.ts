@@ -1,6 +1,6 @@
-import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts } from "./types";
-import { getAssociatedIds, getRecordsByIds, propertiesForSpec } from "./hubspot";
-import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getLinkedItemIds, getSubitems, setColumns, updateItem } from "./monday";
+import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, SubitemSpec } from "./types";
+import { createLineItem, getAssociatedIds, getRecordsByIds, propertiesForSpec, putAssociation } from "./hubspot";
+import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItemsColumnText, getLinkedItemIds, getSubitems, setColumns, updateItem } from "./monday";
 import { SPEC_BY_OBJECT } from "./config";
 import { buildColumnValues, formatValue, itemName } from "./mapping";
 import { targetGroup } from "./routing";
@@ -20,6 +20,84 @@ export async function syncAssociations(env: Env, spec: ObjectSpec, rec: HsRecord
       if (a.col) await syncNameColumn(env, spec, a, ids, rec, item, opts, budget);
     } catch (e) {
       console.log(`source=hubspot object=${spec.object} id=${rec.id} association=${a.toObject} action=error reason="${String(e).slice(0, 140)}"`);
+    }
+  }
+}
+
+/** REVERSE association pass (monday -> HubSpot). Additive + set-only: for each Connect-Boards column, add
+ * any monday-linked record as a HubSpot association if it isn't one already; NEVER deletes. Idempotent PUT,
+ * so it converges with the forward pass. Meant for the monday-edit path only (not the cron reconcile) so it
+ * can't re-add a HubSpot-removed link. */
+export async function reverseAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, item: MondayItem,
+    opts: RunOpts, budget: Budget): Promise<void> {
+  for (const a of spec.associations ?? []) {
+    if (!a.relationCol) continue;
+    try {
+      const target = SPEC_BY_OBJECT[a.toObject];
+      if (!target) continue;
+      const linkedCards = await getLinkedItemIds(env, item.id, a.relationCol);
+      if (!linkedCards.length) continue;
+      const hsIdByCard = await getItemsColumnText(env, linkedCards, target.idCol);
+      const want = [...new Set(Object.values(hsIdByCard).filter(id => /^\d+$/.test(id)))];
+      if (!want.length) continue;
+      const current = new Set(await getAssociatedIds(env, spec.object, rec.id, a.toObject));
+      let added = 0;
+      for (const hsId of want) {
+        if (current.has(hsId)) continue;
+        if (budget.left <= 0) break;
+        await putAssociation(env, spec.object, rec.id, a.toObject, hsId, opts); budget.left--; added++;
+      }
+      console.log(`source=monday object=${spec.object} id=${rec.id} reverse=${a.toObject} linked=${want.length} added=${added} action=reverse-associated`);
+    } catch (e) {
+      console.log(`reverse-assoc error ${spec.object}/${rec.id} ${a.toObject}: ${String(e).slice(0, 160)}`);
+    }
+  }
+}
+
+// HubSpot COMPUTES these from price/quantity/discount — don't send them on a line-item create.
+const LI_CALCULATED = new Set(["amount", "hs_pre_discount_amount"]);
+
+/** REVERSE line-item pass (monday subitems -> HubSpot line items). id-keyed + additive: creates a HubSpot
+ * line item only for a subitem with an EMPTY "HubSpot Line Item ID", then stamps the returned id back so
+ * the forward pass treats it as synced (no duplicate). Never deletes. Requires crm.objects.line_items.write. */
+export async function reverseLineItems(env: Env, sub: SubitemSpec, parentItem: MondayItem,
+    dealHubspotId: string, opts: RunOpts, budget: Budget): Promise<void> {
+  const subitems = await getSubitems(env, parentItem.id);
+  const idless = subitems.filter(s => !colText(s, sub.idCol)); // no HubSpot Line Item ID yet
+  if (!idless.length) return;
+  // Dedup guard (webhook coalescing is per-isolate; two isolates could double-create): adopt an existing
+  // same-name line item already on this deal instead of creating a second one.
+  const byName: Record<string, string> = {};
+  try {
+    const liIds = await getAssociatedIds(env, "deals", dealHubspotId, "line_items");
+    const lis = liIds.length ? await getRecordsByIds(env, "line_items", liIds, ["name"]) : [];
+    for (const li of lis) { const n = (li.properties.name ?? "").trim(); if (n && !(n in byName)) byName[n] = li.id; }
+  } catch { /* best-effort dedup */ }
+  for (const s of idless) {
+    if (budget.left <= 0) break;
+    const name = (s.name ?? "").trim();
+    if (name && byName[name]) { // a matching line item already exists -> adopt it, never duplicate
+      const liId = byName[name]; delete byName[name];
+      await setColumns(env, sub.boardId, s.id, { [sub.idCol]: liId }, opts); budget.left--;
+      console.log(`source=monday reverse-line-item deal=${dealHubspotId} subitem=${s.id} line_item=${liId} action=adopted`);
+      continue;
+    }
+    const props: Record<string, string> = {};
+    if (name) props["name"] = name;
+    for (const f of sub.fields) {
+      if (LI_CALCULATED.has(f.hs)) continue;
+      const v = colText(s, f.col).trim();
+      if (v) props[f.hs] = f.type === "date" ? v.slice(0, 10) : v;
+    }
+    // Picked from the HubSpot product library -> link the line item to the product (inherits price/name).
+    if (sub.productIdCol) { const pid = colText(s, sub.productIdCol).trim(); if (pid) props["hs_product_id"] = pid; }
+    if (!props["name"] && !props["price"]) continue; // nothing meaningful to create
+    try {
+      const liId = await createLineItem(env, props, dealHubspotId, opts); budget.left--;
+      if (liId) await setColumns(env, sub.boardId, s.id, { [sub.idCol]: liId }, opts);
+      console.log(`source=monday reverse-line-item deal=${dealHubspotId} subitem=${s.id} line_item=${liId} action=created`);
+    } catch (e) {
+      console.log(`reverse-line-item error deal=${dealHubspotId} subitem=${s.id}: ${String(e).slice(0, 140)} (needs crm.objects.line_items.write?)`);
     }
   }
 }

@@ -1,5 +1,5 @@
 import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
-import { syncAssociations } from "./associations";
+import { reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
   ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
   DEALS, PORTAL_ID, SPEC_BY_BOARD,
@@ -414,6 +414,12 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
     const deal = await getRecord(env, spec.object, dealId, propertiesForSpec(spec));
     if (!deal) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${dealId} not in HubSpot"`);
     await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats);
+    // Reverse Connect-Boards links -> HubSpot associations (monday-edit path only; additive/set-only).
+    if (budget.left > 0) await reverseAssociations(env, spec, deal, item, opts, budget);
+    // Reverse monday subitems -> HubSpot line items (id-keyed; only when the write scope is enabled).
+    const liSub = spec.associations?.find(a => a.subitems)?.subitems;
+    if (env.LINE_ITEM_WRITE === "true" && liSub && budget.left > 0)
+      await reverseLineItems(env, liSub, item, deal.id, opts, budget);
     return wlog("monday", itemId, actionOf(stats), `board=${boardId} deal=${dealId}`);
   }
 

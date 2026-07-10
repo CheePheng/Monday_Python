@@ -6,6 +6,8 @@ export interface Env {
   HUBSPOT_APP_SECRET?: string;   // optional: validate HubSpot webhook v3 signatures if set
   MONDAY_SIGNING_SECRET?: string; // optional: verify monday webhook JWT if set
   MAX_WRITES?: string;           // optional: writes/records per cron tick (default 25; raise on Workers Paid)
+  LINE_ITEM_WRITE?: string;      // "true" once the token has crm.objects.line_items.write (enables reverse line items)
+  APP_SECRET?: string;           // shared secret the vibe app sends to /app/search (falls back to TRIGGER_SECRET)
 }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";
@@ -69,6 +71,7 @@ export interface SubitemSpec {
   idCol: string;       // "HubSpot Line Item ID" text column (dedup key)
   fields: FieldSpec[]; // line-item property -> subitem column
   statusCol?: string;  // subitem status column: a removed line item is marked "Removed" (else deleted)
+  productIdCol?: string; // subitem text column holding a HubSpot product id -> reverse sets hs_product_id
 }
 
 export interface MondayItem {

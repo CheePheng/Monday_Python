@@ -1,6 +1,13 @@
 import type { Env, RunOpts } from "./types";
 import { runAll, runIncremental } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
+import { searchObjects } from "./hubspot";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,OPTIONS",
+  "Access-Control-Allow-Headers": "X-App-Secret, Content-Type",
+};
 
 function optsFromEnv(env: Env): RunOpts {
   const live = env.DRY_RUN === "false";
@@ -32,6 +39,29 @@ export default {
     // Near-instant fast paths (no secret header — guarded by the challenge/signature inside).
     if (url.pathname === "/webhooks/monday") return handleMonday(req, env, ectx);
     if (url.pathname === "/webhooks/hubspot") return handleHubspot(req, env, ectx);
+
+    // Live HubSpot picker for the vibe app: GET /app/search?type=contacts|companies|products&q=&limit=
+    // Auth: header X-App-Secret (falls back to TRIGGER_SECRET). CORS-enabled (app calls cross-origin).
+    if (url.pathname === "/app/search") {
+      if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+      const secret = env.APP_SECRET || env.TRIGGER_SECRET;
+      if (!secret || req.headers.get("x-app-secret") !== secret)
+        return new Response("forbidden", { status: 403, headers: CORS });
+      const type = url.searchParams.get("type") ?? "";
+      if (!["contacts", "companies", "products"].includes(type))
+        return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: CORS });
+      const q = url.searchParams.get("q") ?? "";
+      const limit = Number(url.searchParams.get("limit") ?? "10");
+      try {
+        const results = await searchObjects(env, type, q, Number.isFinite(limit) ? limit : 10);
+        return Response.json({ results }, { headers: CORS });
+      } catch (e) {
+        // products (or any type) missing its read scope -> degrade gracefully instead of 500.
+        const scope = /403|forbidden|scope/i.test(String(e));
+        console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
+        return Response.json({ results: [], error: scope ? "scope" : "search-failed" }, { headers: CORS });
+      }
+    }
 
     // Manual full reconcile: header `X-Trigger-Secret: <secret>`
     //   /run?object=deals|companies|contacts&mode=dry|live&maxWrites=300

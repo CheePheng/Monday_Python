@@ -3,6 +3,6 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "triggers": { "crons": ["*/10 * * * *", "0 3 * * *"] },
-  "vars": { "DRY_RUN": "false", "MAX_WRITES": "100" },
+  "vars": { "DRY_RUN": "false", "MAX_WRITES": "100", "LINE_ITEM_WRITE": "true" },
   "observability": { "enabled": true }
 }

@@ -7,8 +7,11 @@ const H = vi.hoisted(() => {
   const parentCols = new Map<string, Record<string, any>>();    // parent itemId -> {col: raw value}
   const subitems = new Map<string, any[]>();        // parentId -> [{id,name,column_values}]
   const targetItems = new Map<string, string>();    // HubSpot id -> monday card id on the target board
+  const targetHsId = new Map<string, string>();     // monday card id -> its HubSpot id (reverse resolve)
   const links = new Map<string, string[]>();        // `${itemId}:${col}` -> currently linked item ids
-  const counts: Record<string, number> = { createSubitem: 0, updateItem: 0, deleteItem: 0, setColumns: 0, createItem: 0 };
+  const puts: string[][] = [];                      // recorded putAssociation calls [from,fromId,to,toId]
+  const lineItemProps: any[] = [];                  // recorded createLineItem property payloads
+  const counts: Record<string, number> = { createSubitem: 0, updateItem: 0, deleteItem: 0, setColumns: 0, createItem: 0, createLineItem: 0 };
   let next = 900;
   const tt = (v: any): string => {
     if (v == null) return "";
@@ -20,15 +23,17 @@ const H = vi.hoisted(() => {
   };
   const colText = (it: any, c: string) => (it.column_values.find((x: any) => x.id === c)?.text ?? "").trim();
   const reset = () => { assoc.clear(); records.clear(); parentCols.clear(); subitems.clear();
-    targetItems.clear(); links.clear(); next = 900;
+    targetItems.clear(); targetHsId.clear(); links.clear(); puts.length = 0; lineItemProps.length = 0; next = 900;
     for (const k in counts) counts[k] = 0; };
-  return { assoc, records, parentCols, subitems, targetItems, links, counts, tt, colText, reset, id: () => "s" + (next++) };
+  return { assoc, records, parentCols, subitems, targetItems, targetHsId, links, puts, lineItemProps, counts, tt, colText, reset, id: () => "s" + (next++) };
 });
 
 vi.mock("../src/hubspot", () => ({
   getAssociatedIds: async (_e: any, f: string, id: string, t: string) => H.assoc.get(`${f}:${id}:${t}`) ?? [],
   getRecordsByIds: async (_e: any, o: string, ids: string[]) => ids.map(id => H.records.get(`${o}:${id}`)).filter(Boolean),
   propertiesForSpec: () => [],
+  putAssociation: async (_e: any, from: string, fromId: string, to: string, toId: string) => { H.puts.push([from, fromId, to, toId]); },
+  createLineItem: async (_e: any, p: any, _deal: string) => { H.counts.createLineItem++; H.lineItemProps.push(p); return "999"; },
 }));
 vi.mock("../src/monday", () => ({
   getSubitems: async (_e: any, p: string) => H.subitems.get(p) ?? [],
@@ -50,6 +55,8 @@ vi.mock("../src/monday", () => ({
   },
   findItemIdsByColumn: async (_e: any, _b: string, _c: string, values: string[]) =>
     Object.fromEntries(values.filter(v => H.targetItems.has(v)).map(v => [v, H.targetItems.get(v)])),
+  getItemsColumnText: async (_e: any, itemIds: string[], _c: string) =>
+    Object.fromEntries(itemIds.map(id => [id, H.targetHsId.get(id) ?? ""])),
   getLinkedItemIds: async (_e: any, itemId: string, col: string) => H.links.get(`${itemId}:${col}`) ?? [],
   createItem: async (_e: any, _b: string, _g: string, _n: string, _c: any) => {
     H.counts.createItem++; return String(700 + H.counts.createItem); // numeric card id
@@ -60,7 +67,7 @@ vi.mock("../src/monday", () => ({
   },
 }));
 
-import { syncAssociations } from "../src/associations";
+import { reverseAssociations, reverseLineItems, syncAssociations } from "../src/associations";
 import { DEALS, COMPANIES_MYLA } from "../src/config";
 
 const env: any = {}; const opts = { dryRun: false, writeHubspot: false, maxWrites: 50 }; const budget = () => ({ left: 50 });
@@ -148,6 +155,41 @@ describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
     H.links.set("100:conn_co", ["901"]); // already linked -> must skip
     await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
     expect(H.counts.setColumns).toBe(0);
+  });
+
+  it("reverseLineItems creates a HubSpot line item only for subitems lacking an id, then stamps it", async () => {
+    H.subitems.set("100", [
+      { id: "s1", name: "Widget", column_values: [{ id: LI.idCol, text: "" }, { id: "numeric_mm53rsfd", text: "50" }] },
+      { id: "s2", name: "Synced", column_values: [{ id: LI.idCol, text: "31395364724" }] },
+    ]);
+    await reverseLineItems(env, LI, item("100"), "DEAL1", opts, budget());
+    expect(H.counts.createLineItem).toBe(1);                    // only s1 (no id) created
+    expect(H.parentCols.get("s1")![LI.idCol]).toBe("999");      // returned line-item id stamped onto the subitem
+  });
+
+  it("reverseLineItems adopts an existing same-name line item instead of duplicating (cross-isolate guard)", async () => {
+    H.subitems.set("100", [{ id: "s1", name: "Widget", column_values: [{ id: LI.idCol, text: "" }, { id: "numeric_mm53rsfd", text: "50" }] }]);
+    H.assoc.set("deals:DEAL1:line_items", ["777"]);                     // deal already has a "Widget" line item
+    H.records.set("line_items:777", { id: "777", properties: { name: "Widget" } });
+    await reverseLineItems(env, LI, item("100"), "DEAL1", opts, budget());
+    expect(H.counts.createLineItem).toBe(0);                            // adopted, not created
+    expect(H.parentCols.get("s1")![LI.idCol]).toBe("777");             // adopted id stamped onto the subitem
+  });
+
+  it("reverseLineItems sets hs_product_id when the product-id column is filled (picked from the catalog)", async () => {
+    H.subitems.set("100", [{ id: "s1", name: "Prod", column_values: [
+      { id: LI.idCol, text: "" }, { id: "numeric_mm53rsfd", text: "50" }, { id: LI.productIdCol!, text: "PROD123" }] }]);
+    await reverseLineItems(env, LI, item("100"), "DEAL1", opts, budget());
+    expect(H.lineItemProps[0].hs_product_id).toBe("PROD123");
+  });
+
+  it("reverseAssociations PUTs monday links missing from HubSpot, skips present ones (additive)", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11"]);              // HubSpot already has company 11
+    H.links.set("100:conn_co", ["901", "902"]);            // monday deal card 100 links cards 901, 902
+    H.targetHsId.set("901", "11"); H.targetHsId.set("902", "22"); // linked card -> its HubSpot id
+    await reverseAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), opts, budget());
+    expect(H.puts).toEqual([["deals", "1", "companies", "22"]]); // only 22 is missing -> PUT; 11 skipped
   });
 
   it("creates the target card on demand when it's missing from the board, then links it", async () => {
