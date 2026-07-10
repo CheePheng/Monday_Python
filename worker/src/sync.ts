@@ -49,11 +49,16 @@ export async function buildCtx(env: Env): Promise<Ctx> {
   // sales_user values are raw owner ids; label them with owner names.
   const salesUser: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.name) salesUser[id] = o.name;
+  // Reverse lookups for people-column reverse-sync: monday person id -> email -> HubSpot owner id.
+  const mondayEmailByUserId: Record<string, string> = {};
+  for (const [email, id] of Object.entries(mondayUsersByEmail)) mondayEmailByUserId[id] = email;
+  const ownerIdByEmail: Record<string, string> = {};
+  for (const [id, o] of Object.entries(ownersById)) if (o.email) ownerIdByEmail[o.email.toLowerCase()] = id;
   return {
     labels: { stage, dealtype, priority, vendor, leadStatus, industry, companyType,
               contactSource, contactVendor, salesUser, partnerWith,
               pipeline: { default: "Sales Pipeline" } },
-    ownersById, mondayUsersByEmail, portalId: PORTAL_ID,
+    ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, portalId: PORTAL_ID,
   };
 }
 

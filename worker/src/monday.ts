@@ -44,11 +44,11 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
     const page: any = cursor
       ? (await gql(env,
           `query ($c:String!) { next_items_page(cursor:$c, limit:500) {
-             cursor items { id name created_at updated_at group { id } column_values { id text } } } }`,
+             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } } } } }`,
           { c: cursor })).next_items_page
       : (await gql(env,
           `query ($b:[ID!]) { boards(ids:$b) { items_page(limit:500) {
-             cursor items { id name created_at updated_at group { id } column_values { id text } } } } }`,
+             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } } } } } }`,
           { b: [boardId] })).boards[0].items_page;
     items.push(...page.items);
     cursor = page.cursor;
@@ -56,7 +56,7 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
   return items;
 }
 
-const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text }";
+const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } }";
 
 /** Fetch one item by id (webhook fast path). Null if it no longer exists. */
 export async function getItem(env: Env, itemId: string): Promise<MondayItem | null> {

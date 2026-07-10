@@ -7,7 +7,7 @@ import type { Ctx, MondayItem, ObjectSpec } from "../src/types";
 
 const ctx: Ctx = {
   labels: { dealtype: { existingbusiness: "Existing Business", newbusiness: "New Business" } },
-  ownersById: {}, mondayUsersByEmail: {}, portalId: 1,
+  ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1,
 };
 
 const spec: ObjectSpec = {
@@ -126,7 +126,8 @@ describe("sales_user group moves (routing by HubSpot sales_user; existing item m
   };
   const MYLA = "1739141284";
   const pctx: Ctx = { labels: {}, ownersById: { [MYLA]: { name: "Myla", email: "myla@x.com" } },
-    mondayUsersByEmail: { "myla@x.com": "42" }, portalId: 1 };
+    mondayUsersByEmail: { "myla@x.com": "42" }, mondayEmailByUserId: { "42": "myla@x.com" },
+    ownerIdByEmail: { "myla@x.com": MYLA }, portalId: 1 };
   // card() keeps the SAME HubSpot Deal ID (9001) across group changes -> reconcile moves it, never creates.
   const card = (groupId: string, avatar = "") => item({ group: { id: groupId },
     column_values: [{ id: "c_id", text: "9001" }, { id: "c_people", text: avatar }] });
@@ -152,7 +153,8 @@ describe("fieldDiffs people population (backfills empty person columns like Sale
   const peopleSpec: ObjectSpec = { ...spec, nameProps: ["dealname"],
     fields: [{ hs: "sales_user", col: "c_people", type: "people" }] };
   const pctx: Ctx = { labels: {}, ownersById: { "555": { name: "Owner", email: "o@x.com" } },
-    mondayUsersByEmail: { "o@x.com": "42" }, portalId: 1 };
+    mondayUsersByEmail: { "o@x.com": "42" }, mondayEmailByUserId: { "42": "o@x.com" },
+    ownerIdByEmail: { "o@x.com": "555" }, portalId: 1 };
   const recOwner = { id: "1", properties: { dealname: "Acme", sales_user: "555" } };
   const emptyPeople = item({ column_values: [{ id: "c_people", text: "" }] });
   const filledPeople = item({ column_values: [{ id: "c_people", text: "Owner" }] });
@@ -174,7 +176,7 @@ describe("lead status: Lead Status column reverses to HubSpot; group is forward-
     groupBy: { prop: "hs_lead_status", map: { NEW: "gNew", OPEN: "gOpen" }, reverse: false, fallbackGroup: "gNew" },
     fields: [{ hs: "hs_lead_status", col: "c_status", type: "status", labels: "leadStatus", reverse: true }],
   };
-  const lctx: Ctx = { labels: { leadStatus: { NEW: "New", OPEN: "Open" } }, ownersById: {}, mondayUsersByEmail: {}, portalId: 1 };
+  const lctx: Ctx = { labels: { leadStatus: { NEW: "New", OPEN: "Open" } }, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1 };
   const cItem = (groupId: string, status: string) => item({ group: { id: groupId },
     column_values: [{ id: "c_id", text: "9001" }, { id: "c_status", text: status }] });
   const cRec = (hs_lead_status: string) => ({ id: "9001", properties: { dealname: "Acme", hs_lead_status } });
@@ -190,4 +192,33 @@ describe("lead status: Lead Status column reverses to HubSpot; group is forward-
     expect(diffs.some(d => d.kind === "group")).toBe(true); // the group is behind...
     expect(buildReversePatch(diffs, md, contactSpec, lctx)).toEqual({}); // ...but it does NOT write HubSpot (forward move only)
   });
+});
+
+describe("Sales Users people column reverses to HubSpot sales_user (assign in monday -> HubSpot)", () => {
+  // monday user 42 -> rep@x.com -> HubSpot owner 555
+  const rctx: Ctx = { labels: {}, ownersById: { "555": { name: "Rep", email: "rep@x.com" } },
+    mondayUsersByEmail: { "rep@x.com": "42" }, mondayEmailByUserId: { "42": "rep@x.com" },
+    ownerIdByEmail: { "rep@x.com": "555" }, portalId: 1 };
+  const rspec: ObjectSpec = { ...spec, fields: [{ hs: "sales_user", col: "c_people", type: "people", reverse: true }] };
+  const pitem = (persons: { id: string; kind: string }[]) => item({
+    column_values: [{ id: "c_id", text: "9001" },
+      { id: "c_people", text: persons.length ? "Rep" : "", persons_and_teams: persons }] });
+  const rRec = (sales_user?: string) => ({ id: "9001", properties: { dealname: "Acme", ...(sales_user ? { sales_user } : {}) } });
+  const P = [{ id: "42", kind: "person" }];
+
+  it("assigning a person whose owner differs from HubSpot -> reversible people diff carrying the owner id", () => {
+    const d = fieldDiffs(rRec(""), pitem(P), rspec, rctx);
+    expect(d.find(x => x.f?.col === "c_people")).toMatchObject({ kind: "field", hsText: "", mdText: "555" });
+    expect(buildReversePatch(d, pitem(P), rspec, rctx)).toEqual({ sales_user: "555" });
+  });
+  it("person already matching HubSpot owner -> no diff (loop-safe id compare)", () =>
+    expect(fieldDiffs(rRec("555"), pitem(P), rspec, rctx).some(x => x.f?.col === "c_people")).toBe(false));
+  it("unmapped person (no HubSpot owner) -> no diff (skipped)", () =>
+    expect(fieldDiffs(rRec(""), pitem([{ id: "99", kind: "person" }]), rspec, rctx).some(x => x.f?.col === "c_people")).toBe(false));
+  it("empty Sales Users -> forward-fill heal only, never a reverse diff (set-only)", () => {
+    const d = fieldDiffs(rRec("555"), pitem([]), rspec, rctx);
+    expect(d.find(x => x.f?.col === "c_people")).toMatchObject({ mdText: "" }); // forward fill (empty), not reverse
+  });
+  it("buildCreateProperties uses the assigned person's owner id for a monday-created record", () =>
+    expect(buildCreateProperties(pitem(P), rspec, rctx).sales_user).toBe("555"));
 });

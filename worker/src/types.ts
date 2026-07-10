@@ -77,7 +77,7 @@ export interface MondayItem {
   created_at: string;
   updated_at: string;
   group: { id: string };
-  column_values: { id: string; text: string | null }[];
+  column_values: { id: string; text: string | null; persons_and_teams?: { id: string; kind: string }[] }[];
 }
 
 export interface HsRecord { id: string; properties: Record<string, string | null> }
@@ -86,6 +86,8 @@ export interface Ctx {
   labels: Partial<Record<LabelDict, Record<string, string>>>;
   ownersById: Record<string, { name: string; email: string | null }>;
   mondayUsersByEmail: Record<string, string>;
+  mondayEmailByUserId: Record<string, string>; // monday user id -> email (reverse of mondayUsersByEmail)
+  ownerIdByEmail: Record<string, string>;       // email (lowercased) -> HubSpot owner id
   portalId: number;
 }
 

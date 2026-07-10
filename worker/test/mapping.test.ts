@@ -10,6 +10,7 @@ const ctx: Ctx = {
   },
   ownersById: { "555": { name: "Myla Mestiola", email: "myla@x.com" } },
   mondayUsersByEmail: { "myla@x.com": "1001" },
+  mondayEmailByUserId: { "1001": "myla@x.com" }, ownerIdByEmail: { "myla@x.com": "555" },
   portalId: 39939588,
 };
 

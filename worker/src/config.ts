@@ -108,7 +108,7 @@ export const DEALS: ObjectSpec = {
   unassignedShared: { col: DEAL_SHARED_COL, teamId: ALL_MEMBERS_TEAM_ID },
   fields: [
     { hs: "hubspot_owner_id", col: "person", type: "people" },                                    // Deal Owner
-    { hs: "sales_user", col: "multiple_person_mm532m82", type: "people" },                         // Sales Users (person)
+    { hs: "sales_user", col: "multiple_person_mm532m82", type: "people", reverse: true },           // Sales Users (assign in monday -> HubSpot sales_user)
     { hs: "amount", col: "numeric_mm531t6e", type: "numbers" },                                    // Amounts
     { hs: "deal_currency_code", col: "color_mm53vk99", type: "status" },                           // Currency
     { hs: "closedate", col: "date_mm53ecz3", type: "date" },                                       // Close Date
@@ -146,7 +146,7 @@ export const COMPANIES_MYLA: ObjectSpec = {
   fields: [
     { hs: "name", col: "text_mm4scke9", type: "text", reverse: true },
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
-    { hs: "sales_user", col: "multiple_person_mm54phd7", type: "people" },  // "Sales Users" people col
+    { hs: "sales_user", col: "multiple_person_mm54phd7", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "industry", col: "dropdown_mm54zrp2", type: "dropdown", labels: "industry", reverse: true }, // single-select dropdown (limit_select): 200 options, one pick
     { hs: "type", col: "color_mm545z1t", type: "status", labels: "companyType", reverse: true },
     { hs: "partner_with", col: "color_mm54xzax", type: "status", labels: "partnerWith" },  // "Partner With"
@@ -195,7 +195,7 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { hs: "company", col: "text_mm4sbj9b", type: "text" },
     { hs: "phone", col: "phone_mm4s31p3", type: "phone" },
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
-    { hs: "sales_user", col: "multiple_person_mm542gng", type: "people" },  // "Sales Users" people col
+    { hs: "sales_user", col: "multiple_person_mm542gng", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "createdate", col: "date_mm4s2bjd", type: "date" },
     { hs: "notes_last_updated", col: "date4", type: "date" },
     { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus", reverse: true }, // edit here -> writes back to HubSpot
