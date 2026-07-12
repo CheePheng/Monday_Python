@@ -132,6 +132,27 @@ export async function searchObjects(env: Env, type: string, q: string, limit: nu
   return (res.results ?? []).map((r: any) => ({ id: String(r.id), ...mapSearchResult(type, r.properties ?? {}) }));
 }
 
+// note -> object default association type ids (HUBSPOT_DEFINED).
+const NOTE_ASSOC: Record<string, number> = { deals: 214, contacts: 202, companies: 190 };
+
+/** Create a HubSpot note associated to a deal/contact/company — a monday Update mirrored to Activities. */
+export async function createNote(env: Env, body: string, tsMs: number, ownerId: string | undefined,
+    objectType: string, objectId: string, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot CREATE note on ${objectType}/${objectId}: ${body.slice(0, 80)}`);
+    return null;
+  }
+  const props: Record<string, string> = { hs_note_body: body, hs_timestamp: String(tsMs) };
+  if (ownerId) props["hubspot_owner_id"] = ownerId;
+  const res = await hs(env, "POST", "/crm/v3/objects/notes", {
+    properties: props,
+    associations: [{ to: { id: objectId },
+      types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: NOTE_ASSOC[objectType] ?? 214 }] }],
+  }, 1);
+  console.log(`hubspot CREATE note -> ${res.id} on ${objectType}/${objectId}`);
+  return res.id ? String(res.id) : null;
+}
+
 /** Batch-read records by id (names for association columns, or line-item fields). Empty ids -> []. */
 export async function getRecordsByIds(env: Env, object: string, ids: string[], properties: string[]): Promise<HsRecord[]> {
   if (!ids.length) return [];

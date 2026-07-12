@@ -66,7 +66,7 @@ export const LINE_ITEM_SUBITEMS: SubitemSpec = {
   boardId: "5029480548",
   idCol: "text_mm53ds6w",           // "HubSpot Line Item ID"
   statusCol: "status",              // removed line items -> subitem Status = "Removed"
-  productIdCol: "text_mm54hbvj",    // "HubSpot Product ID" -> reverse sets hs_product_id (links to the product)
+  productIdCol: "text_mm54hbvj",    // "HubSpot Product ID" (vibe app sets this) -> reverse sets hs_product_id
   fields: [
     { hs: "price", col: "numeric_mm53rsfd", type: "numbers" },                       // Unit Price (HubSpot "Unit price")
     { hs: "quantity", col: "numeric_mm531345", type: "numbers" },                    // Quantity

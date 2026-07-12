@@ -71,7 +71,7 @@ export interface SubitemSpec {
   idCol: string;       // "HubSpot Line Item ID" text column (dedup key)
   fields: FieldSpec[]; // line-item property -> subitem column
   statusCol?: string;  // subitem status column: a removed line item is marked "Removed" (else deleted)
-  productIdCol?: string; // subitem text column holding a HubSpot product id -> reverse sets hs_product_id
+  productIdCol?: string;   // subitem text column holding a HubSpot product id -> reverse sets hs_product_id
 }
 
 export interface MondayItem {

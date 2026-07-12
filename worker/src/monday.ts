@@ -147,6 +147,13 @@ export async function deleteItem(env: Env, itemId: string, opts: RunOpts): Promi
   console.log(`deleted item ${itemId}`);
 }
 
+/** One monday user's name + email (to attribute a monday Update -> HubSpot note). Null if not found. */
+export async function getUserById(env: Env, userId: string): Promise<{ name: string; email: string } | null> {
+  const users: any[] = (await gql(env, "query ($u:[ID!]) { users(ids:$u) { name email } }", { u: [userId] })).users;
+  const u = users?.[0];
+  return u ? { name: u.name ?? "", email: u.email ?? "" } : null;
+}
+
 export async function getUsersByEmail(env: Env): Promise<Record<string, string>> {
   const users: any[] = (await gql(env, "query { users(limit:500) { id email } }")).users;
   const out: Record<string, string> = {};

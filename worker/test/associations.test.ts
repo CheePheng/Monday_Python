@@ -23,7 +23,8 @@ const H = vi.hoisted(() => {
   };
   const colText = (it: any, c: string) => (it.column_values.find((x: any) => x.id === c)?.text ?? "").trim();
   const reset = () => { assoc.clear(); records.clear(); parentCols.clear(); subitems.clear();
-    targetItems.clear(); targetHsId.clear(); links.clear(); puts.length = 0; lineItemProps.length = 0; next = 900;
+    targetItems.clear(); targetHsId.clear(); links.clear(); puts.length = 0; lineItemProps.length = 0;
+    next = 900;
     for (const k in counts) counts[k] = 0; };
   return { assoc, records, parentCols, subitems, targetItems, targetHsId, links, puts, lineItemProps, counts, tt, colText, reset, id: () => "s" + (next++) };
 });

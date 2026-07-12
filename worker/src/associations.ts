@@ -89,7 +89,7 @@ export async function reverseLineItems(env: Env, sub: SubitemSpec, parentItem: M
       const v = colText(s, f.col).trim();
       if (v) props[f.hs] = f.type === "date" ? v.slice(0, 10) : v;
     }
-    // Picked from the HubSpot product library -> link the line item to the product (inherits price/name).
+    // Picked from the HubSpot product library (the vibe app sets the product id) -> link the line item.
     if (sub.productIdCol) { const pid = colText(s, sub.productIdCol).trim(); if (pid) props["hs_product_id"] = pid; }
     if (!props["name"] && !props["price"]) continue; // nothing meaningful to create
     try {

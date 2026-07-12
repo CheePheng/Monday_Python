@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { specForDeal } from "../src/sync";
-import { extractDealIds, extractLineItemIds, extractObjectEvents } from "../src/webhooks";
+import { extractDealIds, extractLineItemIds, extractObjectEvents, extractUpdate } from "../src/webhooks";
 
 const deal = (p: Record<string, string>) => ({ properties: p });
 const RECENT = "2026-08-01T00:00:00Z"; // after CREATED_AFTER_MS (2026-07-01)
@@ -109,6 +109,20 @@ describe("extractObjectEvents (multi-object routing)", () => {
   it("an association-change is NOT treated as a deletion", () =>
     expect(extractObjectEvents({ subscriptionType: "object.associationChange", fromObjectTypeId: "0-2", fromObjectId: 80010, toObjectTypeId: "0-1", toObjectId: 3 }))
       .toEqual([{ type: "company", id: "80010" }]));
+});
+
+describe("extractUpdate (monday Update -> HubSpot note)", () => {
+  it("parses a create_update event", () =>
+    expect(extractUpdate({ type: "create_update", pulseId: 100, userId: 42, textBody: "hi there" }))
+      .toEqual({ itemId: "100", userId: "42", text: "hi there" }));
+  it("falls back to body when textBody is absent", () =>
+    expect(extractUpdate({ type: "create_update", pulseId: 7, body: "note body" }))
+      .toEqual({ itemId: "7", userId: "", text: "note body" }));
+  it("ignores non-update events and empty text", () => {
+    expect(extractUpdate({ type: "change_column_value", pulseId: 1 })).toBeNull();
+    expect(extractUpdate({ type: "create_update", pulseId: 1, textBody: "   " })).toBeNull();
+    expect(extractUpdate({ type: "create_update", textBody: "x" })).toBeNull(); // no item id
+  });
 });
 
 describe("extractLineItemIds (line-item edits -> parent deal)", () => {

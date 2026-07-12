@@ -1,7 +1,9 @@
-import type { Budget, Env, RunOpts } from "./types";
+import type { Budget, Env, ObjectSpec, RunOpts } from "./types";
 import { SPEC_BY_BOARD } from "./config";
-import { getAssociatedIds } from "./hubspot";
-import { deleteHubspotObject, syncHubspotObject, syncMondayItem } from "./sync";
+import { createNote, getAssociatedIds } from "./hubspot";
+import { getItem, getUserById } from "./monday";
+import { colText } from "./dedup";
+import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 
 // Webhooks write for real when the Worker is live; a small per-webhook budget is plenty (1 record).
 function liveOpts(env: Env): RunOpts {
@@ -40,8 +42,40 @@ export function coalesce<T>(key: string, run: () => Promise<T>): Promise<T> {
 }
 
 // ------------------------------- monday -------------------------------
+
+/** Parse a monday create_update webhook event -> { itemId, userId, text }, or null for other events. */
+export function extractUpdate(ev: any): { itemId: string; userId: string; text: string } | null {
+  if (String(ev?.type ?? "") !== "create_update") return null;
+  const itemId = String(ev.pulseId ?? ev.itemId ?? "");
+  const text = String(ev.textBody ?? ev.body ?? "").trim();
+  if (!itemId || !text) return null;
+  return { itemId, userId: String(ev.userId ?? ""), text };
+}
+
+/** A monday Update -> a Note on the matching HubSpot record, prefixed with the author. */
+async function syncMondayUpdate(env: Env, spec: ObjectSpec, ev: any): Promise<void> {
+  const u = extractUpdate(ev);
+  if (!u) return;
+  const item = await getItem(env, u.itemId);
+  const hsId = item ? colText(item, spec.idCol) : "";
+  if (!hsId) {
+    console.log(`[webhook] source=monday-update item=${u.itemId} action=skipped reason="not linked to HubSpot"`);
+    return;
+  }
+  const ctx = await getCtxCached(env);
+  let author = "a monday user";
+  let ownerId: string | undefined;
+  if (u.userId) {
+    const mu = await getUserById(env, u.userId);
+    if (mu) { if (mu.name) author = mu.name; ownerId = mu.email ? ctx.ownerIdByEmail[mu.email.toLowerCase()] : undefined; }
+  }
+  const noteId = await createNote(env, `Update by ${author} (via monday): ${u.text}`,
+    Date.now(), ownerId, spec.object, hsId, liveOpts(env));
+  console.log(`[webhook] source=monday-update item=${u.itemId} object=${spec.object}/${hsId} note=${noteId} action=created`);
+}
+
 // POST /webhooks/monday
-// Handles the subscription challenge, then item-created / name-changed / column-changed / moved.
+// Handles the subscription challenge, then item-created / name-changed / column-changed / moved / update.
 export async function handleMonday(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
   const raw = await req.text();
   let body: any = {};
@@ -59,6 +93,13 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
 
   if (!spec || !itemId) {
     console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} action=ignored reason="board not configured / no item"`);
+    return new Response("ok");
+  }
+  // A posted Update ("Updates" feed) -> a Note on the matching HubSpot record (Activities). One-way.
+  if (type === "create_update") {
+    console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=create_update action=received`);
+    ectx.waitUntil(coalesce(`upd:${ev.updateId ?? itemId}`, () => syncMondayUpdate(env, spec, ev))
+      .catch(e => console.log(`[webhook] source=monday-update item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
     return new Response("ok");
   }
   // LOOP GUARD: ignore changes we made to our own bookkeeping columns (Sync State / HubSpot ID /
