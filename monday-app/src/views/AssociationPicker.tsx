@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Search, Chips } from "@vibe/core";
 import { searchHubspot, deleteHubspotAssociation, type Hit } from "../worker-client";
 import { findOrCreateContact, findOrCreateCompany } from "../monday-client";
 
@@ -8,11 +9,7 @@ interface Props {
   value: Assoc[]; onChange: (next: Assoc[]) => void;
 }
 
-const chip: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 8px", borderRadius: 12,
-  background: "var(--primary-selected-color, #cce5ff)", fontSize: 13,
-};
-const hitRow: React.CSSProperties = { cursor: "pointer", padding: "4px 6px", fontSize: 13 };
+const hitRow: React.CSSProperties = { cursor: "pointer", padding: "4px 6px", fontSize: 13, borderRadius: 4 };
 
 export default function AssociationPicker({ kind, token, dealHubspotId, value, onChange }: Props) {
   const [q, setQ] = useState("");
@@ -31,24 +28,23 @@ export default function AssociationPicker({ kind, token, dealHubspotId, value, o
     setQ(""); setHits([]);
   }
   async function remove(a: Assoc) {
-    // If the deal is already synced to HubSpot, propagate the unlink; otherwise just drop it locally.
-    if (dealHubspotId) { try { await deleteHubspotAssociation(token, kind, dealHubspotId, a.hubspotId); } catch { /* surfaced on save */ } }
-    onChange(value.filter(v => v.hubspotId !== a.hubspotId));
+    // Propagate the unlink only when both the deal and the linked record already exist in HubSpot;
+    // otherwise just drop the monday link (nothing to disassociate yet).
+    if (dealHubspotId && a.hubspotId) {
+      try { await deleteHubspotAssociation(token, kind, dealHubspotId, a.hubspotId); } catch { /* surfaced on save */ }
+    }
+    onChange(value.filter(v => v.itemId !== a.itemId));
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <strong>{kind === "contacts" ? "Contacts" : "Companies"}</strong>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {value.map(a => (
-          <span key={a.hubspotId} style={chip}>
-            {a.label}
-            <span style={{ cursor: "pointer", fontWeight: 700 }} onClick={() => void remove(a)}>×</span>
-          </span>
+          <Chips key={a.itemId} id={a.itemId} label={a.label} onDelete={() => void remove(a)} />
         ))}
       </div>
-      <input placeholder={`Search ${kind}`} value={q} onChange={e => void search(e.target.value)}
-        style={{ padding: "6px 10px" }} />
+      <Search size="small" placeholder={`Search ${kind}`} value={q} onChange={search} />
       {hits.map(h => (
         <div key={h.id} style={hitRow} onClick={() => void add(h)}>{h.name} · {h.secondary}</div>
       ))}

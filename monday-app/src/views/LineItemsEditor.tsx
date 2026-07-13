@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@vibe/core";
+import { Button, Search, TextField } from "@vibe/core";
 import { searchHubspot, updateHubspotLineItem, deleteHubspotLineItem, type Hit } from "../worker-client";
 import { lineItemToSubitemColumns } from "../lib/columns";
 import { createSubitem, updateSubitemColumns, deleteItem } from "../monday-client";
@@ -10,8 +10,7 @@ export interface LineItem {
 }
 interface Props { token: string; value: LineItem[]; onChange: (n: LineItem[]) => void }
 
-const num: React.CSSProperties = { padding: "4px 6px", width: 80 };
-const hitRow: React.CSSProperties = { cursor: "pointer", padding: "4px 6px", fontSize: 13 };
+const hitRow: React.CSSProperties = { cursor: "pointer", padding: "4px 6px", fontSize: 13, borderRadius: 4 };
 
 export default function LineItemsEditor({ token, value, onChange }: Props) {
   const [q, setQ] = useState("");
@@ -35,19 +34,21 @@ export default function LineItemsEditor({ token, value, onChange }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <strong>Line items</strong>
       {value.map((li, i) => (
-        <div key={li.subitemId ?? i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div key={li.subitemId ?? i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <span style={{ flex: 1 }}>{li.name}</span>
-          <input aria-label="Quantity" placeholder="Qty" value={li.quantity} style={num}
-            onChange={e => patch(i, { quantity: e.target.value })} />
-          <input aria-label="Unit price" placeholder="Unit price" value={li.unitPrice} style={num}
-            onChange={e => patch(i, { unitPrice: e.target.value })} />
+          <div style={{ width: 90 }}>
+            <TextField title="Qty" value={li.quantity} onChange={(v) => patch(i, { quantity: v })} size="small" />
+          </div>
+          <div style={{ width: 110 }}>
+            <TextField title="Unit price" value={li.unitPrice} onChange={(v) => patch(i, { unitPrice: v })} size="small" />
+          </div>
           <Button kind="tertiary" size="small" onClick={() => void remove(i)}>Remove</Button>
         </div>
       ))}
-      <input placeholder="Add product" value={q} onChange={e => void search(e.target.value)} style={{ padding: "6px 10px" }} />
+      <Search size="small" placeholder="Add product" value={q} onChange={search} />
       {hits.map(h => <div key={h.id} style={hitRow} onClick={() => addFromProduct(h)}>{h.name} · {h.secondary}</div>)}
     </div>
   );
