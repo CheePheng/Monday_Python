@@ -26,7 +26,9 @@ async function hs(env: Env, method: string, path: string, body?: unknown, retrie
     if (!resp.ok) {                                    // other 4xx (and exhausted 5xx): throw now
       throw new Error(`hubspot ${method} ${path}: ${resp.status} ${(await resp.text()).slice(0, 300)}`);
     }
-    return resp.json();
+    if (resp.status === 204) return undefined;          // no-content (e.g. DELETE) -> nothing to parse
+    const text = await resp.text();
+    return text ? JSON.parse(text) : undefined;         // tolerate any other empty-body success
   }
 }
 
@@ -91,6 +93,24 @@ export async function putAssociation(env: Env, fromObject: string, fromId: strin
   console.log(`hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
 }
 
+/** Remove a DEFAULT association between two records (reverse of putAssociation). Idempotent; 404 -> gone. */
+export async function deleteAssociation(env: Env, fromObject: string, fromId: string,
+    toObject: string, toId: string, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot UNASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+    return false;
+  }
+  try {
+    await hs(env, "DELETE",
+      `/crm/v4/objects/${fromObject}/${fromId}/associations/${toObject}/${toId}`, undefined, 3);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) { console.log(`hubspot UNASSOC ${fromObject}/${fromId}: already gone`); return true; }
+    throw e;
+  }
+  console.log(`hubspot UNASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+  return true;
+}
+
 /** Create a line item and associate it to a deal (line_item->deal default type = 20). Returns the new
  * id. Requires crm.objects.line_items.write — throws 403 until the private app's scope is added. */
 export async function createLineItem(env: Env, properties: Record<string, string>, dealId: string,
@@ -105,6 +125,34 @@ export async function createLineItem(env: Env, properties: Record<string, string
   }, 1);
   console.log(`hubspot CREATE line_item -> ${res.id} on deal ${dealId}`);
   return res.id ? String(res.id) : null;
+}
+
+/** Update an existing HubSpot line item by id (qty/price/etc.). retries=3 (PATCH is idempotent). */
+export async function patchLineItem(env: Env, lineItemId: string,
+    properties: Record<string, string>, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot PATCH line_item ${lineItemId}: ${JSON.stringify(properties)}`);
+    return false;
+  }
+  await hs(env, "PATCH", `/crm/v3/objects/line_items/${lineItemId}`, { properties }, 3);
+  console.log(`hubspot PATCH line_item ${lineItemId}: ${Object.keys(properties).join(",")}`);
+  return true;
+}
+
+/** Delete a HubSpot line item by id (archive). retries=3 (DELETE is idempotent). 404 -> already gone. */
+export async function deleteLineItem(env: Env, lineItemId: string, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot DELETE line_item ${lineItemId}`);
+    return false;
+  }
+  try {
+    await hs(env, "DELETE", `/crm/v3/objects/line_items/${lineItemId}`, undefined, 3);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) { console.log(`hubspot DELETE line_item ${lineItemId}: already gone`); return true; }
+    throw e;
+  }
+  console.log(`hubspot DELETE line_item ${lineItemId}`);
+  return true;
 }
 
 // --- live search for the vibe app picker (/app/search) ---
