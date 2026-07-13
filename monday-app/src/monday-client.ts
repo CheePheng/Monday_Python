@@ -139,3 +139,15 @@ export async function findOrCreateCompany(hubspotId: string, name: string): Prom
   return (await findCardByHubspotId(COMPANY_BOARD, COMPANY_ID_COL, hubspotId))
     ?? await createOnBoard(COMPANY_BOARD, COMPANY_ID_COL, hubspotId, name);
 }
+
+/** Resolve linked monday item ids to { itemId, name, hubspotId } — used to hydrate association chips in
+ * edit mode so existing links are shown (and removable). `idCol` is the board's HubSpot-id column. */
+export async function getCardsByIds(itemIds: string[], idCol: string):
+    Promise<{ itemId: string; name: string; hubspotId: string }[]> {
+  if (!itemIds.length) return [];
+  const d: any = await api(`query ($ids:[ID!], $cols:[String!]) {
+    items(ids:$ids) { id name column_values(ids:$cols) { id text } } }`, { ids: itemIds, cols: [idCol] });
+  return (d.items ?? []).map((it: any) => ({
+    itemId: String(it.id), name: it.name, hubspotId: it.column_values?.[0]?.text ?? "",
+  }));
+}
