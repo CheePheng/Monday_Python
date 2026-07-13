@@ -31,12 +31,17 @@ npx wrangler deploy
 ## Add to a board
 Open the Hubspot Deals board → **+ (Add view)** → the app's Board View → "Deal Cockpit".
 
-## v1 notes / known follow-ups
-- **Presentation is plain HTML under Vibe's `ThemeProvider`** (inherits monday's theme). The list, modal,
-  and inputs are lightweight; upgrade to full Vibe `Table`/`Modal`/inputs during live polish (a
-  presentational swap — all data flow lives in the tested `src/lib` + `*-client.ts`).
-- **Association editing in the modal starts empty** in edit mode (add works; existing contact/company
-  links are shown on the board itself). To let users *remove* a link from the modal, hydrate the chips
-  from the deal's `linked_item_ids` (needs a small `getCardsByIds` query). Deferred from v1.
+## Secrets — confirmed values (do NOT commit these)
+- `MONDAY_ACCOUNT_ID` = `34747182` (Dkmecosystem).
+- `MONDAY_APP_SESSION_SECRET` = the app's **Client Secret** (per the account owner). If real session
+  tokens 403 after deploy, switch to the **Signing Secret** instead — the Worker verifies whichever
+  secret actually signed the token.
+
+## Notes
+- **Full Vibe UI** (`@vibe/core`): Vibe `Table` for the list; legacy `Modal` + `ModalFooterButtons` for
+  the editor; `TextField` / `Dropdown` / `Search` / `TextArea` / `Chips` for inputs; `Button` for actions.
+  (Row-open is an "Open" button per row — Vibe's `TableRow` has no `onClick`.)
+- **Association chips hydrate in edit mode** (`getCardsByIds`), so existing contact/company links show and
+  can be removed (removal disassociates in HubSpot only when both records already exist there).
 - The `/app/*` endpoints accept either a valid session token or `X-Trigger-Secret` (server-to-server);
   the old static `X-App-Secret` browser path was removed.
