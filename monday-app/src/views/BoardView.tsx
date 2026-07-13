@@ -1,57 +1,64 @@
 import { useMemo, useState } from "react";
-import {
-  Button, Search, Dropdown, Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell,
-} from "@vibe/core";
 import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
 import DealModal from "./DealModal";
 
-const COLUMNS = [
-  { id: "name", title: "Deal" }, { id: "stage", title: "Stage" }, { id: "amount", title: "Amount" },
-  { id: "closeDate", title: "Close date" }, { id: "company", title: "Company" }, { id: "contact", title: "Contact" },
-  { id: "actions", title: "" },
-];
-
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
+function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 function money(amount?: string, cur?: string): string {
   if (!amount) return "—";
   const n = Number(amount);
   if (!isFinite(n)) return amount;
   const s = CUR_SYMBOL[cur ?? ""];
-  const num = n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  return s ? `${s}${num}` : `${num}${cur ? " " + cur : ""}`;
+  return s ? `${s}${fmt(n)}` : `${fmt(n)}${cur ? " " + cur : ""}`;
 }
-function stageStyle(stage: string): { bg: string; fg: string } {
+function stageVars(stage: string): { bg: string; fg: string } {
   const s = stage.toLowerCase();
-  if (s.includes("won")) return { bg: "rgba(0,200,117,.16)", fg: "#00c875" };
-  if (s.includes("lost")) return { bg: "rgba(226,68,92,.16)", fg: "#e2445c" };
-  if (s.includes("contract")) return { bg: "rgba(88,101,242,.16)", fg: "#8a97ff" };
-  if (s.includes("decision")) return { bg: "rgba(51,170,255,.16)", fg: "#33aaff" };
-  if (s.includes("presentation")) return { bg: "rgba(177,139,255,.16)", fg: "#b18bff" };
-  if (s.includes("qualified")) return { bg: "rgba(255,184,77,.16)", fg: "#ffb84d" };
-  return { bg: "rgba(128,138,157,.16)", fg: "var(--secondary-text-color)" };
+  if (s.includes("won")) return { bg: "var(--green-soft)", fg: "var(--green)" };
+  if (s.includes("lost")) return { bg: "var(--red-soft)", fg: "var(--red)" };
+  if (s.includes("contract")) return { bg: "var(--violet-soft)", fg: "var(--violet)" };
+  if (s.includes("decision")) return { bg: "var(--sky-soft)", fg: "var(--sky)" };
+  if (s.includes("presentation")) return { bg: "var(--violet-soft)", fg: "var(--violet)" };
+  if (s.includes("qualified")) return { bg: "var(--amber-soft)", fg: "var(--amber)" };
+  return { bg: "var(--accent-soft)", fg: "var(--accent)" };
+}
+const AVATAR = ["#4b6ef5", "#7b5cff", "#e8952a", "#10b26b", "#2b90d9", "#e14a63", "#0ea5a5", "#d9488c"];
+function avatarFor(name: string) {
+  let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) | 0;
+  const c1 = AVATAR[Math.abs(h) % AVATAR.length];
+  const c2 = AVATAR[Math.abs(h >> 3) % AVATAR.length];
+  return `linear-gradient(135deg, ${c1}, ${c2})`;
+}
+function initials(name: string): string {
+  const t = name.trim(); if (!t) return "?";
+  if (/[一-鿿]/.test(t)) return t.slice(0, 1);
+  const p = t.split(/\s+/);
+  return (p[0][0] + (p[1]?.[0] ?? "")).toUpperCase();
 }
 
-function StageBadge({ stage }: { stage: string }) {
-  if (!stage) return <span style={{ color: "var(--secondary-text-color)" }}>—</span>;
-  const { bg, fg } = stageStyle(stage);
+function Badge({ stage }: { stage: string }) {
+  if (!stage) return <span className="dc-mut">—</span>;
+  const { bg, fg } = stageVars(stage);
+  return <span className="dc-badge" style={{ background: bg, color: fg }}>{stage}</span>;
+}
+
+function Kpi({ label, value, foot, color }: { label: string; value: string; foot?: string; color: string }) {
   return (
-    <span style={{
-      display: "inline-block", padding: "3px 10px", borderRadius: 14, fontSize: 12, fontWeight: 600,
-      background: bg, color: fg, whiteSpace: "nowrap",
-    }}>{stage}</span>
+    <div className="dc-kpi" style={{ ["--k" as any]: color }}>
+      <div className="dc-kpi-label">{label}</div>
+      <div className="dc-kpi-value">{value}</div>
+      {foot && <div className="dc-kpi-foot">{foot}</div>}
+    </div>
   );
 }
-
-const muted: React.CSSProperties = { color: "var(--secondary-text-color)" };
 
 export default function BoardView() {
   const board = useBoard();
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("");
   const [mine, setMine] = useState(false);
-  const [editing, setEditing] = useState<string | null | undefined>(undefined); // undefined=closed, null=new, id=edit
+  const [editing, setEditing] = useState<string | null | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
 
   const stages = useMemo(() => (board.meta ? stageOptions(board.meta.groups) : []), [board.meta]);
@@ -59,81 +66,98 @@ export default function BoardView() {
     () => filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId }),
     [board.rows, q, stage, mine, board.userId]);
 
+  const kpi = useMemo(() => {
+    const all = board.rows;
+    const isWon = (s: string) => s.toLowerCase().includes("won");
+    const isLost = (s: string) => s.toLowerCase().includes("lost");
+    const open = all.filter(r => !isWon(r.stage) && !isLost(r.stage));
+    const curCount: Record<string, number> = {};
+    let pipeline = 0;
+    for (const r of open) { const n = Number(r.amount); if (isFinite(n)) pipeline += n; if (r.currency) curCount[r.currency] = (curCount[r.currency] ?? 0) + 1; }
+    const domCur = Object.entries(curCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const sym = CUR_SYMBOL[domCur ?? ""] ?? "";
+    const won = all.filter(r => isWon(r.stage)).length;
+    const lost = all.filter(r => isLost(r.stage)).length;
+    const winRate = won + lost > 0 ? Math.round((won / (won + lost)) * 100) : 0;
+    return { pipeline: sym + fmt(pipeline), active: open.length, won, winRate };
+  }, [board.rows]);
+
   if (board.loading)
-    return <div style={{ padding: 48, textAlign: "center", ...muted }}>Loading deals…</div>;
+    return <div className="dc-wrap"><div className="dc-loading"><div className="dc-spinner" />Loading deals…</div></div>;
   if (board.schemaErrors.length)
     return (
-      <div style={{ padding: 24, maxWidth: 640 }}>
-        <h3 style={{ marginTop: 0 }}>Configuration error — the board schema does not match this app.</h3>
-        <ul>{board.schemaErrors.map(e => <li key={e} style={{ marginBottom: 4 }}>{e}</li>)}</ul>
-        <p style={muted}>Fix the board (or update board-config) and reload. Writing is disabled until this passes.</p>
-      </div>
+      <div className="dc-wrap"><div className="dc-config">
+        <h3>Configuration error — the board schema doesn't match this app.</h3>
+        <ul>{board.schemaErrors.map(e => <li key={e} style={{ marginBottom: 4 }}><code>{e}</code></li>)}</ul>
+        <p className="dc-mut">Fix the board (or update board-config) and reload. Writing is disabled until this passes.</p>
+      </div></div>
     );
-  if (board.error) return <div style={{ padding: 24 }}>Failed to load: {board.error}</div>;
+  if (board.error) return <div className="dc-wrap"><div className="dc-config">Failed to load: {board.error}</div></div>;
 
   return (
-    <div style={{ padding: "20px 24px", maxWidth: 1400, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Deals</h1>
-        <span style={{ ...muted, fontSize: 14 }}>{rows.length} of {board.rows.length}</span>
-        <div style={{ flex: 1 }} />
-        <Button onClick={() => setEditing(null)}>+ Create deal</Button>
+    <div className="dc-wrap">
+      <div className="dc-header">
+        <h1 className="dc-title">Deals</h1>
+        <span className="dc-sub">{rows.length} of {board.rows.length}</span>
+        <div className="dc-spacer" />
+        <button className="dc-btn dc-btn-primary" onClick={() => setEditing(null)}>＋ Create deal</button>
       </div>
 
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <div style={{ flex: "1 1 260px", maxWidth: 340 }}>
-          <Search size="small" placeholder="Search deals" value={q} onChange={setQ} />
-        </div>
-        <div style={{ width: 220 }}>
-          <Dropdown size="small" placeholder="All stages" clearable
-            value={stage ? { label: stage, value: stage } : undefined}
-            options={stages.map(s => ({ label: s, value: s }))}
-            onOptionSelect={(o: any) => setStage(o?.value ?? "")}
-            onClear={() => setStage("")} />
-        </div>
-        <Button kind={mine ? "primary" : "tertiary"} size="small" onClick={() => setMine(m => !m)}>My deals</Button>
+      <div className="dc-kpis">
+        <Kpi label="Open pipeline" value={kpi.pipeline} foot={`${kpi.active} active deals`} color="var(--accent)" />
+        <Kpi label="Active deals" value={String(kpi.active)} color="var(--sky)" />
+        <Kpi label="Won" value={String(kpi.won)} foot="closed won" color="var(--green)" />
+        <Kpi label="Win rate" value={`${kpi.winRate}%`} foot="won ÷ closed" color="var(--violet)" />
       </div>
 
-      {/* Table */}
-      <div style={{ border: "1px solid var(--layout-border-color)", borderRadius: 10, overflow: "hidden" }}>
-        <Table columns={COLUMNS} errorState={<div style={{ padding: 24 }}>Failed to load.</div>}
-          emptyState={<div style={{ padding: 24, ...muted }}>No deals match your filters.</div>}>
-          <TableHeader>
-            {COLUMNS.map(c => <TableHeaderCell key={c.id} title={c.title} />)}
-          </TableHeader>
-          <TableBody>
-            {rows.map((r: DealRow) => (
-              <TableRow key={r.id}>
-                <TableCell><span style={{ fontWeight: 500 }}>{r.name}</span></TableCell>
-                <TableCell><StageBadge stage={r.stage} /></TableCell>
-                <TableCell><span style={{ fontVariantNumeric: "tabular-nums" }}>{money(r.amount, r.currency)}</span></TableCell>
-                <TableCell><span style={muted}>{r.closeDate || "—"}</span></TableCell>
-                <TableCell><span style={r.company ? undefined : muted}>{r.company || "—"}</span></TableCell>
-                <TableCell><span style={r.contact ? undefined : muted}>{r.contact || "—"}</span></TableCell>
-                <TableCell><Button kind="tertiary" size="small" onClick={() => setEditing(r.id)}>Open</Button></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="dc-toolbar">
+        <div className="dc-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+          <input className="dc-input" placeholder="Search deals" value={q} onChange={e => setQ(e.target.value)} />
+        </div>
+        <select className="dc-select" value={stage} onChange={e => setStage(e.target.value)}>
+          <option value="">All stages</option>
+          {stages.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (mine ? " on" : "")} onClick={() => setMine(m => !m)}>My deals</button>
+      </div>
+
+      <div className="dc-panel">
+        <div className="dc-table-scroll">
+          <table className="dc-table">
+            <thead><tr>
+              <th>Deal</th><th>Stage</th><th className="r">Amount</th><th>Close date</th><th>Company</th><th>Contact</th><th></th>
+            </tr></thead>
+            <tbody>
+              {rows.length === 0
+                ? <tr><td colSpan={7}><div className="dc-empty">No deals match your filters.</div></td></tr>
+                : rows.map((r: DealRow) => (
+                  <tr key={r.id} onClick={() => setEditing(r.id)}>
+                    <td>
+                      <div className="dc-deal">
+                        <span className="dc-avatar" style={{ background: avatarFor(r.name) }}>{initials(r.name)}</span>
+                        <span className="dc-deal-name">{r.name}</span>
+                      </div>
+                    </td>
+                    <td><Badge stage={r.stage} /></td>
+                    <td className="r"><span className="dc-money">{money(r.amount, r.currency)}</span></td>
+                    <td className="dc-mut">{r.closeDate || "—"}</td>
+                    <td className={r.company ? "" : "dc-mut"}>{r.company || "—"}</td>
+                    <td className={r.contact ? "" : "dc-mut"}>{r.contact || "—"}</td>
+                    <td className="r"><span className="dc-open dc-btn dc-btn-sm">Open →</span></td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {editing !== undefined && (
-        <DealModal
-          itemId={editing} board={board}
+        <DealModal itemId={editing} board={board}
           onClose={() => setEditing(undefined)}
-          onSaved={async (msg) => { setEditing(undefined); setToast(msg); await board.reload(); }}
-        />
+          onSaved={async (msg) => { setEditing(undefined); setToast(msg); await board.reload(); }} />
       )}
-      {toast && (
-        <div onClick={() => setToast(null)}
-          style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)",
-            background: "#00854d", color: "#fff", padding: "11px 18px", borderRadius: 8, cursor: "pointer",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.28)", fontWeight: 500 }}>
-          {toast}
-        </div>
-      )}
+      {toast && <div className="dc-toast" onClick={() => setToast(null)}>✓ {toast}</div>}
     </div>
   );
 }

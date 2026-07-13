@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Search, Chips } from "@vibe/core";
 import { searchHubspot, deleteHubspotAssociation, type Hit } from "../worker-client";
 import { findOrCreateContact, findOrCreateCompany } from "../monday-client";
 
@@ -8,8 +7,6 @@ interface Props {
   kind: "contacts" | "companies"; token: string; dealHubspotId: string | null;
   value: Assoc[]; onChange: (next: Assoc[]) => void;
 }
-
-const hitRow: React.CSSProperties = { cursor: "pointer", padding: "4px 6px", fontSize: 13, borderRadius: 4 };
 
 export default function AssociationPicker({ kind, token, dealHubspotId, value, onChange }: Props) {
   const [q, setQ] = useState("");
@@ -28,8 +25,6 @@ export default function AssociationPicker({ kind, token, dealHubspotId, value, o
     setQ(""); setHits([]);
   }
   async function remove(a: Assoc) {
-    // Propagate the unlink only when both the deal and the linked record already exist in HubSpot;
-    // otherwise just drop the monday link (nothing to disassociate yet).
     if (dealHubspotId && a.hubspotId) {
       try { await deleteHubspotAssociation(token, kind, dealHubspotId, a.hubspotId); } catch { /* surfaced on save */ }
     }
@@ -37,17 +32,27 @@ export default function AssociationPicker({ kind, token, dealHubspotId, value, o
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <strong>{kind === "contacts" ? "Contacts" : "Companies"}</strong>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {value.map(a => (
-          <Chips key={a.itemId} id={a.itemId} label={a.label} onDelete={() => void remove(a)} />
-        ))}
-      </div>
-      <Search size="small" placeholder={`Search ${kind}`} value={q} onChange={search} />
-      {hits.map(h => (
-        <div key={h.id} style={hitRow} onClick={() => void add(h)}>{h.name} · {h.secondary}</div>
-      ))}
+    <div>
+      <div className="dc-section-title">{kind === "contacts" ? "Contacts" : "Companies"}</div>
+      {value.length > 0 && (
+        <div className="dc-chips">
+          {value.map(a => (
+            <span key={a.itemId} className="dc-chip">{a.label}
+              <button onClick={() => void remove(a)} aria-label="Remove">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input className="dc-field-input" placeholder={`Search ${kind}…`} value={q} onChange={e => void search(e.target.value)} />
+      {hits.length > 0 && (
+        <div className="dc-results">
+          {hits.map(h => (
+            <div key={h.id} className="dc-result" onClick={() => void add(h)}>
+              <span>{h.name}</span><small>{h.secondary}</small>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

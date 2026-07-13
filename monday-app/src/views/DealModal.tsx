@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Modal, ModalContent, ModalFooterButtons, TextField, Dropdown } from "@vibe/core";
 import type { BoardState } from "../useBoard";
 import { dealFormToColumnValues, boardRelationValue, type DealForm } from "../lib/columns";
 import { groupIdForStage, stageOptions } from "../lib/stage";
@@ -14,9 +13,6 @@ import UpdatesPanel from "./UpdatesPanel";
 
 interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void }
 
-const row: React.CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap" };
-const col: React.CSSProperties = { flex: 1, minWidth: 160 };
-
 export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   const isEdit = itemId != null;
   const [name, setName] = useState("");
@@ -30,7 +26,6 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const stages = board.meta ? stageOptions(board.meta.groups) : [];
 
-  // Edit mode: hydrate from the existing card + its subitems + its linked association cards.
   useEffect(() => {
     if (!isEdit || !board.meta) return;
     void (async () => {
@@ -64,24 +59,21 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   async function save() {
     setSaving(true); setErr(null);
     try {
-      // 1) Parent item: create once (persisted) or update.
       let parentId = createdItemId;
       if (!parentId) {
         const groupId = groupIdForStage(form.stage ?? stages[0], board.meta!.groups) ?? board.meta!.groups[0].id;
         parentId = await createDeal(groupId, name || "New Deal", dealFormToColumnValues(form));
-        setCreatedItemId(parentId); // from here on, retries reuse this id and never create a second deal
+        setCreatedItemId(parentId); // retries reuse this id, never create a second deal
       } else if (isEdit) {
         await renameDeal(parentId, name);
         await updateDealColumns(parentId, dealFormToColumnValues(form));
         const gid = form.stage ? groupIdForStage(form.stage, board.meta!.groups) : undefined;
         if (gid) await moveToGroup(parentId, gid);
       }
-      // 2) Associations: link the found/created cards on the deal's relation columns.
       await updateDealColumns(parentId, {
         [DEAL_COLS.contact.id]: boardRelationValue(contacts.map(c => c.itemId)),
         [DEAL_COLS.company.id]: boardRelationValue(companies.map(c => c.itemId)),
       });
-      // 3) Line items: create new subitems / update+mirror synced ones.
       const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
       onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
@@ -90,38 +82,60 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
     } finally { setSaving(false); }
   }
 
-  const stageValue = form.stage ? { label: form.stage, value: form.stage } : undefined;
+  const set = (p: Partial<DealForm>) => setForm(f => ({ ...f, ...p }));
 
   return (
-    <Modal id="deal-cockpit-modal" show title={isEdit ? "Edit Deal" : "Create Deal"} onClose={onClose} width="720px">
-      <ModalContent>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <TextField title="Deal name" value={name} onChange={setName} />
-          <div style={row}>
-            <div style={col}><TextField title="Amount" value={form.amount ?? ""} onChange={v => setForm(f => ({ ...f, amount: v }))} /></div>
-            <div style={col}><TextField title="Currency" value={form.currency ?? ""} onChange={v => setForm(f => ({ ...f, currency: v }))} /></div>
-            <div style={col}><TextField title="Close date (YYYY-MM-DD)" value={form.closeDate ?? ""} onChange={v => setForm(f => ({ ...f, closeDate: v }))} /></div>
-          </div>
-          <div>
-            <div style={{ fontSize: 13, marginBottom: 4 }}>Stage</div>
-            <Dropdown placeholder="Select stage…" clearable value={stageValue}
-              options={stages.map(s => ({ label: s, value: s }))}
-              onOptionSelect={(o: any) => setForm(f => ({ ...f, stage: o?.value }))}
-              onClear={() => setForm(f => ({ ...f, stage: undefined }))} />
-          </div>
-          <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts} onChange={setContacts} />
-          <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies} onChange={setCompanies} />
-          <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={setLineItems} />
-          {isEdit && itemId && <UpdatesPanel itemId={itemId} />}
-          {err && <div style={{ color: "#d83a52" }}>{err}</div>}
+    <div className="dc-backdrop" onClick={onClose}>
+      <div className="dc-modal" onClick={e => e.stopPropagation()}>
+        <div className="dc-modal-head">
+          <h2>{isEdit ? "Edit deal" : "Create deal"}</h2>
+          <button className="dc-x" onClick={onClose} aria-label="Close">×</button>
         </div>
-      </ModalContent>
-      <ModalFooterButtons
-        primaryButtonText={saving ? "Saving…" : "Save"}
-        secondaryButtonText="Cancel"
-        onPrimaryButtonClick={() => { if (!saving) void save(); }}
-        onSecondaryButtonClick={onClose}
-      />
-    </Modal>
+
+        <div className="dc-modal-body">
+          <div className="dc-field">
+            <label className="dc-field-label">Deal name</label>
+            <input className="dc-field-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Acme — Q3 Renewal" />
+          </div>
+
+          <div className="dc-grid">
+            <div className="dc-field"><label className="dc-field-label">Amount</label>
+              <input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" /></div>
+            <div className="dc-field"><label className="dc-field-label">Currency</label>
+              <input className="dc-field-input" value={form.currency ?? ""} onChange={e => set({ currency: e.target.value })} placeholder="USD" /></div>
+            <div className="dc-field"><label className="dc-field-label">Close date</label>
+              <input className="dc-field-input" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} placeholder="YYYY-MM-DD" /></div>
+          </div>
+
+          <div className="dc-field">
+            <label className="dc-field-label">Stage</label>
+            <select className="dc-field-input" value={form.stage ?? ""} onChange={e => set({ stage: e.target.value })}>
+              <option value="">Select stage…</option>
+              {stages.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div className="dc-card">
+            <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts} onChange={setContacts} />
+          </div>
+          <div className="dc-card">
+            <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies} onChange={setCompanies} />
+          </div>
+          <div className="dc-card">
+            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={setLineItems} />
+          </div>
+          {isEdit && itemId && <div className="dc-card"><UpdatesPanel itemId={itemId} /></div>}
+
+          {err && <div className="dc-err">{err}</div>}
+        </div>
+
+        <div className="dc-modal-foot">
+          <button className="dc-btn" onClick={onClose}>Cancel</button>
+          <button className="dc-btn dc-btn-primary" disabled={saving} onClick={() => { if (!saving) void save(); }}>
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Create deal"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

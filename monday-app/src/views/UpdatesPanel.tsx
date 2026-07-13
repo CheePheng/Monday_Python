@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Button, TextArea } from "@vibe/core";
 import { getUpdates, postUpdate } from "../monday-client";
 
 export default function UpdatesPanel({ itemId }: { itemId: string }) {
@@ -17,15 +16,19 @@ export default function UpdatesPanel({ itemId }: { itemId: string }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <strong>Updates</strong>
-      <TextArea placeholder="Write an update…" value={text} onChange={e => setText(e.target.value)} />
-      <div><Button size="small" loading={busy} disabled={busy} onClick={() => void post()}>Post update</Button></div>
-      {list.map(u => (
-        <div key={u.id} style={{ fontSize: 13 }}>
-          <b>{u.creator?.name ?? "User"}:</b> {u.body.replace(/<[^>]+>/g, "")}
-        </div>
-      ))}
+    <div>
+      <div className="dc-section-title">Updates</div>
+      <textarea className="dc-field-input" rows={3} placeholder="Write an update…" value={text} onChange={e => setText(e.target.value)} />
+      <div style={{ marginTop: 8 }}>
+        <button className="dc-btn dc-btn-sm dc-btn-primary" disabled={busy} onClick={() => void post()}>
+          {busy ? "Posting…" : "Post update"}
+        </button>
+      </div>
+      <div style={{ marginTop: 6 }}>
+        {list.map(u => (
+          <div key={u.id} className="dc-upd"><b>{u.creator?.name ?? "User"}</b>&nbsp; {u.body.replace(/<[^>]+>/g, "")}</div>
+        ))}
+      </div>
     </div>
   );
 }
