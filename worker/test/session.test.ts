@@ -52,6 +52,23 @@ describe("verifySessionToken", () => {
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("account not allowed");
   });
+  it("rejects a token missing account/user claim", async () => {
+    const tok = await sign({ exp: future() });
+    const r = await verifySessionToken(SECRET, tok, ACCOUNT, Date.now());
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("missing account/user claim");
+  });
+  it("rejects a tampered payload (signature no longer matches)", async () => {
+    const tok = await sign({ exp: future(), dat: { account_id: 12345, user_id: 1 } });
+    const [h, , s] = tok.split(".");
+    // Swap in a DIFFERENT (still valid-JSON) payload but keep the original signature: the classic
+    // "escalate my account_id without re-signing" attack must be caught by the signature check.
+    const forged = b64url(new TextEncoder().encode(
+      JSON.stringify({ exp: future(), dat: { account_id: 99999, user_id: 1 } })));
+    const r = await verifySessionToken(SECRET, `${h}.${forged}.${s}`, ACCOUNT, Date.now());
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("signature mismatch");
+  });
   it("rejects a malformed token", async () => {
     const r = await verifySessionToken(SECRET, "not.a.jwt", ACCOUNT, Date.now());
     expect(r.ok).toBe(false);

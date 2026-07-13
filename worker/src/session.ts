@@ -16,6 +16,14 @@ function bytesToB64url(bytes: Uint8Array): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** Constant-time string compare (mirrors safeEq in webhooks.ts) so signature checks don't leak timing. */
+function timingSafeEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
 /** Pick account/user id from nested `dat` or flat claims; always returned as strings. */
 function claim(payload: any, keys: string[]): string | undefined {
   const dat = payload?.dat ?? {};
@@ -46,10 +54,11 @@ export async function verifySessionToken(
     const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${h}.${p}`));
     expected = bytesToB64url(new Uint8Array(sig));
   } catch { return { ok: false, reason: "malformed token" }; }
-  if (expected !== s) return { ok: false, reason: "signature mismatch" };
+  if (!timingSafeEq(expected, s)) return { ok: false, reason: "signature mismatch" };
 
   const exp = Number(payload?.exp);
-  if (!Number.isFinite(exp) || exp * 1000 <= nowMs) return { ok: false, reason: "expired" };
+  if (!Number.isFinite(exp)) return { ok: false, reason: "missing/invalid exp claim" };
+  if (exp * 1000 <= nowMs) return { ok: false, reason: "expired" };
 
   const accountId = claim(payload, ["accountId", "account_id"]);
   const userId = claim(payload, ["userId", "user_id"]);
