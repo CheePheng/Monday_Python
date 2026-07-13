@@ -8,6 +8,8 @@ export interface Env {
   MAX_WRITES?: string;           // optional: writes/records per cron tick (default 25; raise on Workers Paid)
   LINE_ITEM_WRITE?: string;      // "true" once the token has crm.objects.line_items.write (enables reverse line items)
   APP_SECRET?: string;           // shared secret the vibe app sends to /app/search (falls back to TRIGGER_SECRET)
+  MONDAY_APP_SESSION_SECRET?: string; // signs the monday Board View sessionToken JWT (verify empirically: Client vs Signing secret)
+  MONDAY_ACCOUNT_ID?: string;         // the one allowed monday account id (rejects tokens from any other account)
 }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";
