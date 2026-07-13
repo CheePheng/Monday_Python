@@ -1,13 +1,32 @@
 import type { Env, RunOpts } from "./types";
 import { runAll, runIncremental } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation } from "./hubspot";
+import { verifySessionToken } from "./session";
+import { parseLineItemBody, parseAssociationBody } from "./app-routes";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,OPTIONS",
-  "Access-Control-Allow-Headers": "X-App-Secret, Content-Type",
+  "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, X-Trigger-Secret, Content-Type",
 };
+
+// Writes for real when the Worker is live (mirrors optsFromEnv but with a small per-request budget).
+function appWriteOpts(env: Env): RunOpts {
+  const live = env.DRY_RUN === "false";
+  return { dryRun: !live, writeHubspot: live, maxWrites: 5 };
+}
+
+// Auth for /app/*: a valid monday session token (browser) OR X-Trigger-Secret (server-to-server).
+// The old static X-App-Secret path is retired (it was exposed in frontend prompt material).
+async function authApp(req: Request, env: Env): Promise<{ ok: boolean; reason: string }> {
+  const trigger = req.headers.get("x-trigger-secret");
+  if (trigger && env.TRIGGER_SECRET && trigger === env.TRIGGER_SECRET) return { ok: true, reason: "trigger-secret" };
+  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!bearer) return { ok: false, reason: "no session token / trigger secret" };
+  const v = await verifySessionToken(env.MONDAY_APP_SESSION_SECRET ?? "", bearer, env.MONDAY_ACCOUNT_ID, Date.now());
+  return { ok: v.ok, reason: v.reason };
+}
 
 function optsFromEnv(env: Env): RunOpts {
   const live = env.DRY_RUN === "false";
@@ -40,27 +59,62 @@ export default {
     if (url.pathname === "/webhooks/monday") return handleMonday(req, env, ectx);
     if (url.pathname === "/webhooks/hubspot") return handleHubspot(req, env, ectx);
 
-    // Live HubSpot picker for the vibe app: GET /app/search?type=contacts|companies|products&q=&limit=
-    // Auth: header X-App-Secret (falls back to TRIGGER_SECRET). CORS-enabled (app calls cross-origin).
-    if (url.pathname === "/app/search") {
+    // App API (browser Board View app, cross-origin). Auth: monday session token or X-Trigger-Secret.
+    if (url.pathname.startsWith("/app/")) {
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
-      const secret = env.APP_SECRET || env.TRIGGER_SECRET;
-      if (!secret || req.headers.get("x-app-secret") !== secret)
+      const auth = await authApp(req, env);
+      if (!auth.ok) {
+        console.log(`[app] path=${url.pathname} action=rejected reason="${auth.reason}"`);
         return new Response("forbidden", { status: 403, headers: CORS });
-      const type = url.searchParams.get("type") ?? "";
-      if (!["contacts", "companies", "products"].includes(type))
-        return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: CORS });
-      const q = url.searchParams.get("q") ?? "";
-      const limit = Number(url.searchParams.get("limit") ?? "10");
-      try {
-        const results = await searchObjects(env, type, q, Number.isFinite(limit) ? limit : 10);
-        return Response.json({ results }, { headers: CORS });
-      } catch (e) {
-        // products (or any type) missing its read scope -> degrade gracefully instead of 500.
-        const scope = /403|forbidden|scope/i.test(String(e));
-        console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
-        return Response.json({ results: [], error: scope ? "scope" : "search-failed" }, { headers: CORS });
       }
+
+      // GET /app/search?type=contacts|companies|products&q=&limit=
+      if (url.pathname === "/app/search" && req.method === "GET") {
+        const type = url.searchParams.get("type") ?? "";
+        if (!["contacts", "companies", "products"].includes(type))
+          return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: CORS });
+        const q = url.searchParams.get("q") ?? "";
+        const limit = Number(url.searchParams.get("limit") ?? "10");
+        try {
+          const results = await searchObjects(env, type, q, Number.isFinite(limit) ? limit : 10);
+          return Response.json({ results }, { headers: CORS });
+        } catch (e) {
+          const scope = /403|forbidden|scope/i.test(String(e));
+          console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
+          return Response.json({ results: [], error: scope ? "scope" : "search-failed" }, { headers: CORS });
+        }
+      }
+
+      // POST /app/line-item {lineItemId, properties}  |  DELETE /app/line-item {lineItemId}
+      if (url.pathname === "/app/line-item" && (req.method === "POST" || req.method === "DELETE")) {
+        const body = await req.json().catch(() => ({}));
+        const p = parseLineItemBody(req.method === "POST" ? "PATCH" : "DELETE", body);
+        if (!p.ok) return Response.json({ error: p.error }, { status: 400, headers: CORS });
+        try {
+          if (req.method === "POST") await patchLineItem(env, p.lineItemId!, p.properties!, appWriteOpts(env));
+          else await deleteLineItem(env, p.lineItemId!, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/line-item] ${req.method} ${p.lineItemId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // DELETE /app/association {fromObject, fromId, toObject, toId}
+      if (url.pathname === "/app/association" && req.method === "DELETE") {
+        const body = await req.json().catch(() => ({}));
+        const a = parseAssociationBody(body);
+        if (!a.ok) return Response.json({ error: a.error }, { status: 400, headers: CORS });
+        try {
+          await deleteAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/association] ${a.fromId}->${a.toId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      return new Response("not found", { status: 404, headers: CORS });
     }
 
     // Manual full reconcile: header `X-Trigger-Secret: <secret>`
