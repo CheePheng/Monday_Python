@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { validateBoardSchema } from "./schema";
 
-// monday `columns { id type }` shape. Board-relation type in monday is "board_relation".
+// monday `columns { id type }` shape (real 2024-10 type strings: numbers, people, board_relation, ...).
 const OK_COLS = [
-  { id: "numeric_mm4nz332", type: "numeric" }, { id: "color_mm4ws6k", type: "status" },
+  { id: "numeric_mm4nz332", type: "numbers" }, { id: "color_mm4ws6k", type: "status" },
   { id: "color_mm53fh1r", type: "status" }, { id: "dropdown_mm4n4f7r", type: "dropdown" },
-  { id: "numeric_mm531t6e", type: "numeric" }, { id: "color_mm53vk99", type: "status" },
-  { id: "date_mm53ecz3", type: "date" }, { id: "multiple_person_mm532m82", type: "multiple-person" },
-  { id: "person", type: "multiple-person" }, { id: "color_mm53cky8", type: "status" },
+  { id: "numeric_mm531t6e", type: "numbers" }, { id: "color_mm53vk99", type: "status" },
+  { id: "date_mm53ecz3", type: "date" }, { id: "multiple_person_mm532m82", type: "people" },
+  { id: "person", type: "people" }, { id: "color_mm53cky8", type: "status" },
   { id: "color_mm532rej", type: "status" }, { id: "board_relation_mm54rrj3", type: "board_relation" },
   { id: "board_relation_mm5417sy", type: "board_relation" },
 ];

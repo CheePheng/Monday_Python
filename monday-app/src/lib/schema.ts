@@ -1,10 +1,11 @@
 import { DEAL_COLS, UNASSIGNED_GROUP, type ColSpec } from "../board-config";
 
-// monday column `type` strings for each expected `kind`. board-relation reports "board_relation";
-// numeric->"numeric"; status->"status"; dropdown->"dropdown"; date->"date"; people->"multiple-person".
+// monday column `type` strings for each expected `kind` (confirmed against the live 2024-10 API):
+// numbers column -> "numbers"; people/person -> "people"; status -> "status"; dropdown -> "dropdown";
+// date -> "date"; Connect Boards -> "board_relation"; text -> "text"; long text -> "long-text".
 const KIND_TO_MONDAY_TYPE: Record<string, string> = {
-  numeric: "numeric", status: "status", dropdown: "dropdown", date: "date",
-  "multiple-person": "multiple-person", "board-relation": "board_relation", text: "text", "long-text": "long-text",
+  numeric: "numbers", status: "status", dropdown: "dropdown", date: "date",
+  "multiple-person": "people", "board-relation": "board_relation", text: "text", "long-text": "long-text",
 };
 
 export interface SchemaResult { ok: boolean; errors: string[] }
