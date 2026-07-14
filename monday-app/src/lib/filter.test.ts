@@ -18,4 +18,12 @@ describe("filterDeals", () => {
     expect(filterDeals(ROWS, { mine: true, myUserId: "111" }).map(r => r.id)).toEqual(["1", "3"]));
   it("filters combine (AND)", () =>
     expect(filterDeals(ROWS, { q: "acme", mine: true, myUserId: "333" }).map(r => r.id)).toEqual(["3"]));
+  it("search also matches company and contact", () => {
+    const rs: DealRow[] = [
+      { id: "1", name: "Deal one", stage: "s", salesUserIds: [], company: "Acme Corp" },
+      { id: "2", name: "Deal two", stage: "s", salesUserIds: [], contact: "Jane Acme" },
+      { id: "3", name: "Deal three", stage: "s", salesUserIds: [], company: "Beta" },
+    ];
+    expect(filterDeals(rs, { q: "acme" }).map(r => r.id)).toEqual(["1", "2"]);
+  });
 });
