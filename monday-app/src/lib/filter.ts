@@ -1,6 +1,7 @@
 export interface DealRow {
   id: string; name: string; stage: string; groupId?: string; salesUserIds: string[];
   amount?: string; currency?: string; closeDate?: string; company?: string; contact?: string;
+  hubspotId?: string;
 }
 export interface DealFilter { q?: string; stage?: string; mine?: boolean; myUserId?: string }
 

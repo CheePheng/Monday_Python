@@ -3,6 +3,11 @@ import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
 import DealModal from "./DealModal";
+import { computeKpis } from "../lib/kpi";
+import { sortDeals, type SortKey } from "../lib/sort";
+import KanbanView from "./KanbanView";
+import { deleteItem } from "../monday-client";
+import { archiveHubspotDeal } from "../worker-client";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
 function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
@@ -12,6 +17,10 @@ function money(amount?: string, cur?: string): string {
   if (!isFinite(n)) return amount;
   const s = CUR_SYMBOL[cur ?? ""];
   return s ? `${s}${fmt(n)}` : `${fmt(n)}${cur ? " " + cur : ""}`;
+}
+function fmtPipe({ currency, total }: { currency: string; total: number }): string {
+  const s = CUR_SYMBOL[currency ?? ""];
+  return s ? `${s}${Math.round(total).toLocaleString()}` : `${Math.round(total).toLocaleString()} ${currency}`;
 }
 function stageVars(stage: string): { bg: string; fg: string } {
   const s = stage.toLowerCase();
@@ -60,27 +69,36 @@ export default function BoardView() {
   const [mine, setMine] = useState(false);
   const [editing, setEditing] = useState<string | null | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "closeDate", dir: "asc" });
+  const [view, setView] = useState<"table" | "board">("table");
 
   const stages = useMemo(() => (board.meta ? stageOptions(board.meta.groups) : []), [board.meta]);
   const rows = useMemo(
-    () => filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId }),
-    [board.rows, q, stage, mine, board.userId]);
+    () => sortDeals(filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId }), sort.key, sort.dir),
+    [board.rows, q, stage, mine, board.userId, sort]);
 
-  const kpi = useMemo(() => {
-    const all = board.rows;
-    const isWon = (s: string) => s.toLowerCase().includes("won");
-    const isLost = (s: string) => s.toLowerCase().includes("lost");
-    const open = all.filter(r => !isWon(r.stage) && !isLost(r.stage));
-    const curCount: Record<string, number> = {};
-    let pipeline = 0;
-    for (const r of open) { const n = Number(r.amount); if (isFinite(n)) pipeline += n; if (r.currency) curCount[r.currency] = (curCount[r.currency] ?? 0) + 1; }
-    const domCur = Object.entries(curCount).sort((a, b) => b[1] - a[1])[0]?.[0];
-    const sym = CUR_SYMBOL[domCur ?? ""] ?? "";
-    const won = all.filter(r => isWon(r.stage)).length;
-    const lost = all.filter(r => isLost(r.stage)).length;
-    const winRate = won + lost > 0 ? Math.round((won / (won + lost)) * 100) : 0;
-    return { pipeline: sym + fmt(pipeline), active: open.length, won, winRate };
-  }, [board.rows]);
+  const kpi = useMemo(() => computeKpis(board.rows), [board.rows]);
+  const pipeRest = kpi.pipeline.slice(1);
+  const pipeFoot = pipeRest.length
+    ? pipeRest.slice(0, 2).map(fmtPipe).join(" · ") + (pipeRest.length > 2 ? ` · +${pipeRest.length - 2} more` : "")
+    : `${kpi.active} active deals`;
+
+  function sortIndicator(key: SortKey): string {
+    if (sort.key !== key) return "";
+    return sort.dir === "asc" ? " ▲" : " ▼";
+  }
+  function toggleSort(key: SortKey) {
+    setSort(s => ({ key, dir: s.key === key && s.dir === "asc" ? "desc" : "asc" }));
+  }
+
+  async function del(r: DealRow) {
+    if (!confirm(`Delete "${r.name}"? This archives the deal in HubSpot.`)) return;
+    try {
+      if (r.hubspotId) await archiveHubspotDeal(board.sessionToken, r.hubspotId);
+      await deleteItem(r.id);
+      setToast("Deal deleted"); await board.reload();
+    } catch (e) { setToast("Delete failed: " + String(e).slice(0, 120)); }
+  }
 
   if (board.loading)
     return <div className="dc-wrap"><div className="dc-loading"><div className="dc-spinner" />Loading deals…</div></div>;
@@ -104,7 +122,7 @@ export default function BoardView() {
       </div>
 
       <div className="dc-kpis">
-        <Kpi label="Open pipeline" value={kpi.pipeline} foot={`${kpi.active} active deals`} color="var(--accent)" />
+        <Kpi label="Open pipeline" value={kpi.pipeline[0] ? fmtPipe(kpi.pipeline[0]) : "—"} foot={pipeFoot} color="var(--accent)" />
         <Kpi label="Active deals" value={String(kpi.active)} color="var(--sky)" />
         <Kpi label="Won" value={String(kpi.won)} foot="closed won" color="var(--green)" />
         <Kpi label="Win rate" value={`${kpi.winRate}%`} foot="won ÷ closed" color="var(--violet)" />
@@ -120,37 +138,54 @@ export default function BoardView() {
           {stages.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (mine ? " on" : "")} onClick={() => setMine(m => !m)}>My deals</button>
+        <div className="dc-spacer" />
+        <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (view === "table" ? " on" : "")} onClick={() => setView("table")}>Table</button>
+        <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (view === "board" ? " on" : "")} onClick={() => setView("board")}>Board</button>
+        <button className="dc-btn dc-btn-ghost dc-btn-sm" onClick={() => void board.reload()}>⟳ Refresh</button>
       </div>
 
-      <div className="dc-panel">
-        <div className="dc-table-scroll">
-          <table className="dc-table">
-            <thead><tr>
-              <th>Deal</th><th>Stage</th><th className="r">Amount</th><th>Close date</th><th>Company</th><th>Contact</th><th></th>
-            </tr></thead>
-            <tbody>
-              {rows.length === 0
-                ? <tr><td colSpan={7}><div className="dc-empty">No deals match your filters.</div></td></tr>
-                : rows.map((r: DealRow) => (
-                  <tr key={r.id} onClick={() => setEditing(r.id)}>
-                    <td>
-                      <div className="dc-deal">
-                        <span className="dc-avatar" style={{ background: avatarFor(r.name) }}>{initials(r.name)}</span>
-                        <span className="dc-deal-name">{r.name}</span>
-                      </div>
-                    </td>
-                    <td><Badge stage={r.stage} /></td>
-                    <td className="r"><span className="dc-money">{money(r.amount, r.currency)}</span></td>
-                    <td className="dc-mut">{r.closeDate || "—"}</td>
-                    <td className={r.company ? "" : "dc-mut"}>{r.company || "—"}</td>
-                    <td className={r.contact ? "" : "dc-mut"}>{r.contact || "—"}</td>
-                    <td className="r"><span className="dc-open dc-btn dc-btn-sm">Open →</span></td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+      {view === "board" ? (
+        <KanbanView board={board} rows={rows} onOpen={setEditing} onToast={setToast} />
+      ) : (
+        <div className="dc-panel">
+          <div className="dc-table-scroll">
+            <table className="dc-table">
+              <thead><tr>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("name")}>Deal{sortIndicator("name")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("stage")}>Stage{sortIndicator("stage")}</th>
+                <th className="r" style={{ cursor: "pointer" }} onClick={() => toggleSort("amount")}>Amount{sortIndicator("amount")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("closeDate")}>Close date{sortIndicator("closeDate")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("company")}>Company{sortIndicator("company")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("contact")}>Contact{sortIndicator("contact")}</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                {rows.length === 0
+                  ? <tr><td colSpan={7}><div className="dc-empty">No deals match your filters.</div></td></tr>
+                  : rows.map((r: DealRow) => (
+                    <tr key={r.id} onClick={() => setEditing(r.id)}>
+                      <td>
+                        <div className="dc-deal">
+                          <span className="dc-avatar" style={{ background: avatarFor(r.name) }}>{initials(r.name)}</span>
+                          <span className="dc-deal-name">{r.name}</span>
+                        </div>
+                      </td>
+                      <td><Badge stage={r.stage} /></td>
+                      <td className="r"><span className="dc-money">{money(r.amount, r.currency)}</span></td>
+                      <td className="dc-mut">{r.closeDate || "—"}</td>
+                      <td className={r.company ? "" : "dc-mut"}>{r.company || "—"}</td>
+                      <td className={r.contact ? "" : "dc-mut"}>{r.contact || "—"}</td>
+                      <td className="r">
+                        <span className="dc-open dc-btn dc-btn-sm" style={{ marginRight: 6 }}>Open →</span>
+                        <button className="dc-btn dc-btn-sm" title="Delete" onClick={e => { e.stopPropagation(); void del(r); }}>🗑</button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {editing !== undefined && (
         <DealModal itemId={editing} board={board}

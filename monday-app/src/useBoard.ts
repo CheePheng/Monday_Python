@@ -34,6 +34,7 @@ function toRow(item: RawItem): DealRow {
     amount: colText(item, DEAL_COLS.amount.id), currency: colText(item, DEAL_COLS.currency.id),
     closeDate: colText(item, DEAL_COLS.closeDate.id),
     company: colText(item, DEAL_COLS.company.id), contact: colText(item, DEAL_COLS.contact.id),
+    hubspotId: colText(item, DEAL_COLS.hubspotDealId.id) || undefined,
   };
 }
 
