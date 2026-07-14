@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getContext, getBoardMeta, getUsers, getDeals, type AccountUser, type BoardMeta, type RawItem } from "./monday-client";
+import { getContext, getBoardMeta, getUsers, getDeals, getItemNames, type AccountUser, type BoardMeta, type RawItem } from "./monday-client";
 import { validateBoardSchema } from "./lib/schema";
 import { columnLabels } from "./lib/labels";
 import { DEAL_COLS } from "./board-config";
@@ -29,7 +29,7 @@ function peopleIds(item: RawItem, colId: string): string[] {
 
 function toRow(item: RawItem): DealRow {
   return {
-    id: item.id, name: item.name, stage: colText(item, DEAL_COLS.stage.id),
+    id: item.id, name: item.name, stage: colText(item, DEAL_COLS.stage.id), groupId: item.group.id,
     salesUserIds: peopleIds(item, DEAL_COLS.salesUsers.id),
     amount: colText(item, DEAL_COLS.amount.id), currency: colText(item, DEAL_COLS.currency.id),
     closeDate: colText(item, DEAL_COLS.closeDate.id),
@@ -58,15 +58,31 @@ export function useBoard(): BoardState {
       const schema = validateBoardSchema(meta.columns, meta.groups);
       if (!schema.ok) { setS(p => ({ ...p, loading: false, schemaErrors: schema.errors, meta })); return; }
       const [users, items] = await Promise.all([getUsers(), getDeals()]);
+      const linkIds = new Set<string>();
+      for (const it of items) {
+        for (const id of linkedIds(it, DEAL_COLS.company.id)) linkIds.add(id);
+        for (const id of linkedIds(it, DEAL_COLS.contact.id)) linkIds.add(id);
+      }
+      const names = await getItemNames([...linkIds]);
+      const nameList = (it: RawItem, col: string) => linkedIds(it, col).map(id => names[id]).filter(Boolean).join(", ");
+      const rows = items.map(it => ({ ...toRow(it),
+        company: nameList(it, DEAL_COLS.company.id), contact: nameList(it, DEAL_COLS.contact.id) }));
       setS({
         loading: false, error: null, schemaErrors: [], userId: ctx.userId, sessionToken: ctx.sessionToken,
-        users, meta, options: optionsFrom(meta), rows: items.map(toRow),
+        users, meta, options: optionsFrom(meta), rows,
       });
     } catch (e) {
       setS(p => ({ ...p, loading: false, error: String(e).slice(0, 200) }));
     }
   }
   useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    let last = Date.now();
+    const onFocus = () => { if (Date.now() - last > 15000) { last = Date.now(); void load(); } };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
+  }, []);
   return { ...s, reload: load };
 }
 
