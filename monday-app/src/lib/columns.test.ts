@@ -38,4 +38,7 @@ describe("lineItemToSubitemColumns", () => {
   it("maps price/qty/product id/currency and skips blanks", () =>
     expect(lineItemToSubitemColumns({ unitPrice: "100", quantity: "2", productId: "9", currency: "USD", description: "" }))
       .toEqual({ numeric_mm53rsfd: "100", numeric_mm531345: "2", text_mm54hbvj: "9", text_mm538b8k: "USD" }));
+  it("maps discount + service date", () =>
+    expect(lineItemToSubitemColumns({ discount: "5", serviceDate: "2026-08-01" }))
+      .toEqual({ numeric_mm53pkyf: "5", date_mm53chbv: { date: "2026-08-01" } }));
 });

@@ -33,6 +33,7 @@ export function dealFormToColumnValues(f: DealForm): Record<string, unknown> {
 
 export interface LineItemForm {
   unitPrice?: string; quantity?: string; productId?: string; currency?: string; description?: string;
+  discount?: string; serviceDate?: string;
 }
 /** Line-item form -> subitem column_values (blanks omitted). */
 export function lineItemToSubitemColumns(li: LineItemForm): Record<string, unknown> {
@@ -42,5 +43,7 @@ export function lineItemToSubitemColumns(li: LineItemForm): Record<string, unkno
   if (li.productId) cv[SUB_COLS.productId.id] = li.productId;
   if (li.currency) cv[SUB_COLS.currency.id] = li.currency;
   if (li.description) cv[SUB_COLS.description.id] = { text: li.description };
+  if (li.discount) cv[SUB_COLS.discount.id] = li.discount;
+  if (li.serviceDate) cv[SUB_COLS.serviceDate.id] = { date: li.serviceDate };
   return cv;
 }
