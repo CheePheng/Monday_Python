@@ -4,8 +4,10 @@ import { dealFormToColumnValues, boardRelationValue, type DealForm } from "../li
 import { groupIdForStage, stageOptions } from "../lib/stage";
 import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL } from "../board-config";
 import {
-  createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeals, getCardsByIds,
+  createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, deleteItem,
 } from "../monday-client";
+import { archiveHubspotDeal } from "../worker-client";
+import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
 import AssociationPicker, { type Assoc } from "./AssociationPicker";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
@@ -39,12 +41,13 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   const [createdItemId, setCreatedItemId] = useState<string | null>(itemId);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [childErr, setChildErr] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (!isEdit || !board.meta) return;
     void (async () => {
-      const items = await getDeals();
-      const it = items.find(i => i.id === itemId);
+      const it = await getDeal(itemId!);
       if (!it) return;
       setName(it.name);
       setDealHubspotId(colText(it, DEAL_COLS.hubspotDealId.id) || null);
@@ -74,7 +77,22 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
     })();
   }, [isEdit, itemId, board.meta]);
 
-  const set = (p: Partial<DealForm>) => setForm(f => ({ ...f, ...p }));
+  const set = (p: Partial<DealForm>) => { setDirty(true); setForm(f => ({ ...f, ...p })); };
+  const invalid = validateDealForm(name, form);
+
+  function guardedClose() {
+    if (dirty && !confirm("Discard unsaved changes?")) return;
+    onClose();
+  }
+
+  async function del() {
+    if (!confirm("Delete this deal? This archives it in HubSpot.")) return;
+    try {
+      if (dealHubspotId) await archiveHubspotDeal(board.sessionToken, dealHubspotId);
+      await deleteItem(createdItemId!);
+      onSaved("Deal deleted");
+    } catch (e) { setErr("Delete failed: " + String(e).slice(0, 120)); }
+  }
 
   async function save() {
     setSaving(true); setErr(null);
@@ -103,26 +121,33 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="dc-backdrop" onClick={onClose}>
+    <div className="dc-backdrop" onClick={guardedClose}>
       <div className="dc-modal" onClick={e => e.stopPropagation()}>
         <div className="dc-modal-head">
           <h2>{isEdit ? "Edit deal" : "Create deal"}</h2>
-          <button className="dc-x" onClick={onClose} aria-label="Close">×</button>
+          <button className="dc-x" onClick={guardedClose} aria-label="Close">×</button>
         </div>
 
         <div className="dc-modal-body">
           <Field label="Deal name" required>
-            <input className="dc-field-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Acme — Q3 Renewal" />
+            <input className="dc-field-input" value={name} onChange={e => { setDirty(true); setName(e.target.value); }} placeholder="e.g. Acme — Q3 Renewal" />
           </Field>
+          {invalid.errors.name && <div className="dc-err">{invalid.errors.name}</div>}
 
           <div className="dc-grid">
             <Field label="Pipeline"><SelectStr options={board.options.pipeline} value={form.pipeline} onChange={v => set({ pipeline: v })} /></Field>
-            <Field label="Deal stage" required><SelectStr options={stages} value={form.stage} onChange={v => set({ stage: v })} placeholder="Select stage…" /></Field>
+            <Field label="Deal stage" required>
+              <SelectStr options={stages} value={form.stage} onChange={v => set({ stage: v })} placeholder="Select stage…" />
+              {invalid.errors.stage && <div className="dc-err">{invalid.errors.stage}</div>}
+            </Field>
             <Field label="Deal type"><SelectStr options={board.options.dealType} value={form.dealType} onChange={v => set({ dealType: v })} placeholder="—" /></Field>
           </div>
 
           <div className="dc-grid">
-            <Field label="Amount"><input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" /></Field>
+            <Field label="Amount">
+              <input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" />
+              {invalid.errors.amount && <div className="dc-err">{invalid.errors.amount}</div>}
+            </Field>
             <Field label="Currency"><SelectStr options={board.options.currency} value={form.currency} onChange={v => set({ currency: v })} /></Field>
             <Field label="Close date"><input className="dc-field-input" type="date" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} /></Field>
           </div>
@@ -138,24 +163,33 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
           </Field>
 
           <div className="dc-card">
-            <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts} onChange={setContacts} />
+            <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts}
+              onChange={next => { setDirty(true); setContacts(next); }} onError={setChildErr} />
           </div>
           <div className="dc-card">
-            <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies} onChange={setCompanies} />
+            <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies}
+              onChange={next => { setDirty(true); setCompanies(next); }} onError={setChildErr} />
           </div>
           <div className="dc-card">
-            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={setLineItems} />
+            <LineItemsEditor token={board.sessionToken} value={lineItems}
+              onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr}
+              onUseTotal={n => set({ amount: String(n) })} />
           </div>
           {isEdit && itemId && <div className="dc-card"><UpdatesPanel itemId={itemId} /></div>}
 
-          {err && <div className="dc-err">{err}</div>}
+          {(err || childErr) && <div className="dc-err">{err || childErr}</div>}
         </div>
 
         <div className="dc-modal-foot">
-          <button className="dc-btn" onClick={onClose}>Cancel</button>
-          <button className="dc-btn dc-btn-primary" disabled={saving} onClick={() => { if (!saving) void save(); }}>
-            {saving ? "Saving…" : isEdit ? "Save changes" : "Create deal"}
-          </button>
+          {isEdit && (
+            <button className="dc-btn dc-btn-danger" onClick={() => void del()}>Delete</button>
+          )}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <button className="dc-btn" onClick={guardedClose}>Cancel</button>
+            <button className="dc-btn dc-btn-primary" disabled={saving || !invalid.ok} onClick={() => { if (!saving) void save(); }}>
+              {saving ? "Saving…" : isEdit ? "Save changes" : "Create deal"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
