@@ -222,3 +222,38 @@ describe("Sales Users people column reverses to HubSpot sales_user (assign in mo
   it("buildCreateProperties uses the assigned person's owner id for a monday-created record", () =>
     expect(buildCreateProperties(pitem(P), rspec, rctx).sales_user).toBe("555"));
 });
+
+describe("Deal owner (person) reverses to hubspot_owner_id; Unassigned stays sales_user-driven", () => {
+  // monday user 42 -> rep@x.com -> HubSpot owner 555
+  const octx: Ctx = { labels: {}, ownersById: { "555": { name: "Rep", email: "rep@x.com" } },
+    mondayUsersByEmail: { "rep@x.com": "42" }, mondayEmailByUserId: { "42": "rep@x.com" },
+    ownerIdByEmail: { "rep@x.com": "555" }, portalId: 1 };
+  // Deal owner (person col) reverses; Sales Users (c_people) drives the Unassigned override.
+  const ospec: ObjectSpec = { ...spec,
+    groupBy: { prop: "dealstage", map: { appointmentscheduled: "gStage", closedwon: "g6" }, reverse: true, noSalesUserGroup: "gUnassigned" },
+    fields: [
+      { hs: "hubspot_owner_id", col: "c_person", type: "people", reverse: true },
+      { hs: "sales_user", col: "c_people", type: "people", reverse: true },
+    ] };
+  const P = [{ id: "42", kind: "person" }];
+  const oitem = (owner: typeof P, sales: typeof P) => item({ group: { id: "gStage" },
+    column_values: [{ id: "c_id", text: "9001" },
+      { id: "c_person", text: owner.length ? "Rep" : "", persons_and_teams: owner },
+      { id: "c_people", text: sales.length ? "Rep" : "", persons_and_teams: sales }] });
+  const oRec = (props: Record<string, string>) => ({ id: "9001",
+    properties: { dealname: "Acme", dealstage: "appointmentscheduled", ...props } });
+
+  it("setting Deal owner in monday reverses to hubspot_owner_id", () => {
+    const md = oitem(P, []);
+    expect(buildReversePatch(fieldDiffs(oRec({}), md, ospec, octx), md, ospec, octx))
+      .toMatchObject({ hubspot_owner_id: "555" });
+  });
+  it("Deal owner set but NO sales_user -> deal still routes to Unassigned (owner does not un-unassign)", () => {
+    const d = fieldDiffs(oRec({ hubspot_owner_id: "555" }), oitem(P, []), ospec, octx);
+    expect(d.find(x => x.kind === "group")?.hsText).toBe("gUnassigned");
+  });
+  it("sales_user present -> deal stays in its stage group even with an owner set", () => {
+    const d = fieldDiffs(oRec({ hubspot_owner_id: "555", sales_user: "555" }), oitem(P, P), ospec, octx);
+    expect(d.find(x => x.kind === "group")).toBeUndefined();
+  });
+});

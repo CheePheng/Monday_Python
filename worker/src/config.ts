@@ -108,7 +108,7 @@ export const DEALS: ObjectSpec = {
   // see them under restricted board permissions. Active once ALL_MEMBERS_TEAM_ID is filled in.
   unassignedShared: { col: DEAL_SHARED_COL, teamId: ALL_MEMBERS_TEAM_ID },
   fields: [
-    { hs: "hubspot_owner_id", col: "person", type: "people" },                                    // Deal Owner
+    { hs: "hubspot_owner_id", col: "person", type: "people", reverse: true },                     // Deal Owner (reverse to HubSpot; Unassigned stays sales_user-driven per routing.ts)
     { hs: "sales_user", col: "multiple_person_mm532m82", type: "people", reverse: true },           // Sales Users (assign in monday -> HubSpot sales_user)
     { hs: "amount", col: "numeric_mm531t6e", type: "numbers" },                                    // Amounts
     { hs: "deal_currency_code", col: "color_mm53vk99", type: "status" },                           // Currency
