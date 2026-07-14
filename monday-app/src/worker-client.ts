@@ -26,3 +26,6 @@ export async function deleteHubspotAssociation(
 ): Promise<void> {
   await call(token, "DELETE", "/app/association", { fromObject: "deals", fromId, toObject, toId });
 }
+export async function archiveHubspotDeal(token: string, hubspotDealId: string): Promise<void> {
+  await call(token, "DELETE", "/app/deal", { hubspotDealId });
+}
