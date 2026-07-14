@@ -61,6 +61,24 @@ export async function getDeals(): Promise<RawItem[]> {
   return items;
 }
 
+/** Fetch a single deal item (fast edit-open, avoids re-fetching every deal). */
+export async function getDeal(itemId: string): Promise<RawItem | null> {
+  const d: any = await api(`query ($i:[ID!]) { items(ids:$i) {
+    id name group { id } column_values { id text value ... on BoardRelationValue { linked_item_ids } } } }`, { i: [itemId] });
+  return d.items?.[0] ?? null;
+}
+
+/** Resolve monday item ids -> { id: name } (batched by 100) for showing linked company/contact names. */
+export async function getItemNames(itemIds: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (let i = 0; i < itemIds.length; i += 100) {
+    const chunk = itemIds.slice(i, i + 100);
+    const d: any = await api(`query ($ids:[ID!]) { items(ids:$ids) { id name } }`, { ids: chunk });
+    for (const it of d.items ?? []) out[String(it.id)] = it.name;
+  }
+  return out;
+}
+
 export async function getSubitems(parentItemId: string): Promise<RawItem[]> {
   const d: any = await api(`query ($i:[ID!]) { items(ids:$i) {
     subitems { id name column_values { id text } } } }`, { i: [parentItemId] });
@@ -138,6 +156,27 @@ export async function findOrCreateContact(hubspotId: string, name: string): Prom
 export async function findOrCreateCompany(hubspotId: string, name: string): Promise<string> {
   return (await findCardByHubspotId(COMPANY_BOARD, COMPANY_ID_COL, hubspotId))
     ?? await createOnBoard(COMPANY_BOARD, COMPANY_ID_COL, hubspotId, name);
+}
+
+/** Create a brand-new contact card (no HubSpot id) — the Worker's createFromMonday pushes it to HubSpot.
+ * Contact board primary column is First name (item name); the Worker splits "First Last". */
+export async function createContactCard(fields: { name: string; email?: string; phone?: string }): Promise<string> {
+  const cv: Record<string, unknown> = {};
+  if (fields.email) cv["text_mm4p2bvb"] = fields.email;          // Email column
+  if (fields.phone) cv["phone_mm4s31p3"] = { phone: fields.phone, countryShortName: "US" };
+  const d: any = await api(`mutation ($b:ID!, $n:String!, $c:JSON!) {
+    create_item(board_id:$b, item_name:$n, column_values:$c) { id } }`,
+    { b: CONTACT_BOARD, n: fields.name, c: JSON.stringify(cv) });
+  return String(d.create_item.id);
+}
+/** Create a brand-new company card. Company board primary column is the DOMAIN; company name lives in a
+ * separate text column. Item name = domain || name so the Worker reverses domain correctly. */
+export async function createCompanyCard(fields: { name: string; domain?: string }): Promise<string> {
+  const cv: Record<string, unknown> = { text_mm4scke9: fields.name }; // Company Name column
+  const d: any = await api(`mutation ($b:ID!, $n:String!, $c:JSON!) {
+    create_item(board_id:$b, item_name:$n, column_values:$c) { id } }`,
+    { b: COMPANY_BOARD, n: fields.domain || fields.name, c: JSON.stringify(cv) });
+  return String(d.create_item.id);
 }
 
 /** Resolve linked monday item ids to { itemId, name, hubspotId } — used to hydrate association chips in
