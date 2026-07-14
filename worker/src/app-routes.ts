@@ -25,3 +25,10 @@ export function parseAssociationBody(body: any): AssocReq {
   if (!numeric(fromId) || !numeric(toId)) return { ok: false, error: "fromId/toId must be numeric strings" };
   return { ok: true, fromObject, fromId, toObject, toId };
 }
+
+export interface DealReq { ok: boolean; hubspotDealId?: string; error?: string }
+export function parseDealBody(body: any): DealReq {
+  const hubspotDealId = body?.hubspotDealId;
+  if (!numeric(hubspotDealId)) return { ok: false, error: "hubspotDealId must be a numeric string" };
+  return { ok: true, hubspotDealId };
+}

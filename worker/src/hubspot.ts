@@ -155,6 +155,19 @@ export async function deleteLineItem(env: Env, lineItemId: string, opts: RunOpts
   return true;
 }
 
+/** Archive (soft-delete) a HubSpot deal by id. Idempotent; 404 -> already gone. */
+export async function archiveDeal(env: Env, dealId: string, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) { console.log(`DRY hubspot ARCHIVE deal ${dealId}`); return false; }
+  try {
+    await hs(env, "DELETE", `/crm/v3/objects/deals/${dealId}`, undefined, 3);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) { console.log(`hubspot ARCHIVE deal ${dealId}: already gone`); return true; }
+    throw e;
+  }
+  console.log(`hubspot ARCHIVE deal ${dealId}`);
+  return true;
+}
+
 // --- live search for the vibe app picker (/app/search) ---
 const SEARCH_PROPS: Record<string, string[]> = {
   contacts: ["firstname", "lastname", "email"],

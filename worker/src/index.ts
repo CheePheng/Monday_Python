@@ -1,9 +1,9 @@
 import type { Env, RunOpts } from "./types";
 import { runAll, runIncremental } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal } from "./hubspot";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody } from "./app-routes";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -110,6 +110,20 @@ export default {
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/association] ${a.fromId}->${a.toId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // DELETE /app/deal {hubspotDealId} — archive the HubSpot deal (removes it from both systems)
+      if (url.pathname === "/app/deal" && req.method === "DELETE") {
+        const body = await req.json().catch(() => ({}));
+        const d = parseDealBody(body);
+        if (!d.ok) return Response.json({ error: d.error }, { status: 400, headers: CORS });
+        try {
+          await archiveDeal(env, d.hubspotDealId!, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/deal] archive ${d.hubspotDealId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
         }
       }
