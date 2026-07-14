@@ -6,25 +6,39 @@ import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL } from "../board-co
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeals, getCardsByIds,
 } from "../monday-client";
-import { colText, linkedIds } from "../useBoard";
+import { colText, linkedIds, peopleIds } from "../useBoard";
 import AssociationPicker, { type Assoc } from "./AssociationPicker";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
+import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
 
 interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void }
 
+const pick = (arr: string[], re: RegExp) => arr.find(x => re.test(x)) ?? arr[0];
+const splitCsv = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
+
 export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   const isEdit = itemId != null;
+  const stages = board.meta ? stageOptions(board.meta.groups) : [];
+  const userOpts: Opt[] = board.users.map(u => ({ value: u.id, label: u.name || u.email || u.id }));
+  const vendorOpts: Opt[] = board.options.vendors.map(v => ({ value: v, label: v }));
+
   const [name, setName] = useState("");
-  const [form, setForm] = useState<DealForm>({ salesUserIds: [board.userId] });
+  const [form, setForm] = useState<DealForm>(() => isEdit ? { salesUserIds: [], vendors: [] } : {
+    pipeline: pick(board.options.pipeline, /sales pipeline/i),
+    currency: pick(board.options.currency, /usd|dollar/i),
+    stage: stages[0],
+    salesUserIds: board.userId ? [board.userId] : [],
+    dealOwnerId: board.userId || undefined,
+    vendors: [],
+  });
   const [contacts, setContacts] = useState<Assoc[]>([]);
   const [companies, setCompanies] = useState<Assoc[]>([]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [dealHubspotId, setDealHubspotId] = useState<string | null>(null);
-  const [createdItemId, setCreatedItemId] = useState<string | null>(itemId); // persist so retries never re-create the parent
+  const [createdItemId, setCreatedItemId] = useState<string | null>(itemId);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const stages = board.meta ? stageOptions(board.meta.groups) : [];
 
   useEffect(() => {
     if (!isEdit || !board.meta) return;
@@ -37,7 +51,11 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
       setForm({
         amount: colText(it, DEAL_COLS.amount.id), currency: colText(it, DEAL_COLS.currency.id),
         closeDate: colText(it, DEAL_COLS.closeDate.id), stage: colText(it, DEAL_COLS.stage.id),
+        pipeline: colText(it, DEAL_COLS.pipeline.id),
         dealType: colText(it, DEAL_COLS.dealType.id), priority: colText(it, DEAL_COLS.priority.id),
+        vendors: splitCsv(colText(it, DEAL_COLS.vendors.id)),
+        salesUserIds: peopleIds(it, DEAL_COLS.salesUsers.id),
+        dealOwnerId: peopleIds(it, DEAL_COLS.dealOwner.id)[0],
       });
       const [subs, contactCards, companyCards] = await Promise.all([
         getSubitems(itemId!),
@@ -55,6 +73,8 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
       })));
     })();
   }, [isEdit, itemId, board.meta]);
+
+  const set = (p: Partial<DealForm>) => setForm(f => ({ ...f, ...p }));
 
   async function save() {
     setSaving(true); setErr(null);
@@ -82,8 +102,6 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
     } finally { setSaving(false); }
   }
 
-  const set = (p: Partial<DealForm>) => setForm(f => ({ ...f, ...p }));
-
   return (
     <div className="dc-backdrop" onClick={onClose}>
       <div className="dc-modal" onClick={e => e.stopPropagation()}>
@@ -93,27 +111,31 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
         </div>
 
         <div className="dc-modal-body">
-          <div className="dc-field">
-            <label className="dc-field-label">Deal name</label>
+          <Field label="Deal name" required>
             <input className="dc-field-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Acme — Q3 Renewal" />
+          </Field>
+
+          <div className="dc-grid">
+            <Field label="Pipeline"><SelectStr options={board.options.pipeline} value={form.pipeline} onChange={v => set({ pipeline: v })} /></Field>
+            <Field label="Deal stage" required><SelectStr options={stages} value={form.stage} onChange={v => set({ stage: v })} placeholder="Select stage…" /></Field>
+            <Field label="Deal type"><SelectStr options={board.options.dealType} value={form.dealType} onChange={v => set({ dealType: v })} placeholder="—" /></Field>
           </div>
 
           <div className="dc-grid">
-            <div className="dc-field"><label className="dc-field-label">Amount</label>
-              <input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" /></div>
-            <div className="dc-field"><label className="dc-field-label">Currency</label>
-              <input className="dc-field-input" value={form.currency ?? ""} onChange={e => set({ currency: e.target.value })} placeholder="USD" /></div>
-            <div className="dc-field"><label className="dc-field-label">Close date</label>
-              <input className="dc-field-input" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} placeholder="YYYY-MM-DD" /></div>
+            <Field label="Amount"><input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" /></Field>
+            <Field label="Currency"><SelectStr options={board.options.currency} value={form.currency} onChange={v => set({ currency: v })} /></Field>
+            <Field label="Close date"><input className="dc-field-input" type="date" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} /></Field>
           </div>
 
-          <div className="dc-field">
-            <label className="dc-field-label">Stage</label>
-            <select className="dc-field-input" value={form.stage ?? ""} onChange={e => set({ stage: e.target.value })}>
-              <option value="">Select stage…</option>
-              {stages.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+          <div className="dc-grid">
+            <Field label="Priority"><SelectStr options={board.options.priority} value={form.priority} onChange={v => set({ priority: v })} placeholder="—" /></Field>
+            <Field label="Vendors"><ChipMulti options={vendorOpts} values={form.vendors ?? []} onChange={v => set({ vendors: v })} placeholder="Add vendor…" /></Field>
+            <Field label="Deal owner"><SelectOpt options={userOpts} value={form.dealOwnerId} onChange={v => set({ dealOwnerId: v })} placeholder="No owner" /></Field>
           </div>
+
+          <Field label="Sales Users">
+            <ChipMulti options={userOpts} values={form.salesUserIds ?? []} onChange={v => set({ salesUserIds: v })} placeholder="Add sales user…" />
+          </Field>
 
           <div className="dc-card">
             <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts} onChange={setContacts} />

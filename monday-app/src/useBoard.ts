@@ -1,18 +1,36 @@
 import { useEffect, useState } from "react";
 import { getContext, getBoardMeta, getUsers, getDeals, type AccountUser, type BoardMeta, type RawItem } from "./monday-client";
 import { validateBoardSchema } from "./lib/schema";
+import { columnLabels } from "./lib/labels";
 import { DEAL_COLS } from "./board-config";
 import type { DealRow } from "./lib/filter";
 
+export interface DealOptions { pipeline: string[]; dealType: string[]; priority: string[]; vendors: string[]; currency: string[] }
+const EMPTY_OPTIONS: DealOptions = { pipeline: [], dealType: [], priority: [], vendors: [], currency: [] };
+
+function optionsFrom(meta: BoardMeta): DealOptions {
+  const by = (id: string) => columnLabels(meta.columns.find(c => c.id === id)?.settings_str);
+  return {
+    pipeline: by(DEAL_COLS.pipeline.id), dealType: by(DEAL_COLS.dealType.id),
+    priority: by(DEAL_COLS.priority.id), vendors: by(DEAL_COLS.vendors.id), currency: by(DEAL_COLS.currency.id),
+  };
+}
+
 function colText(item: RawItem, colId: string): string { return item.column_values.find(c => c.id === colId)?.text ?? ""; }
 function linkedIds(item: RawItem, colId: string): string[] { return item.column_values.find(c => c.id === colId)?.linked_item_ids ?? []; }
+/** monday person ids in a people column (from its JSON value). Teams are excluded. */
+function peopleIds(item: RawItem, colId: string): string[] {
+  const cv = item.column_values.find(c => c.id === colId);
+  try {
+    return (JSON.parse(cv?.value ?? "{}").personsAndTeams ?? [])
+      .filter((p: any) => p.kind === "person").map((p: any) => String(p.id));
+  } catch { return []; }
+}
 
 function toRow(item: RawItem): DealRow {
-  const people = item.column_values.find(c => c.id === DEAL_COLS.salesUsers.id);
-  let salesUserIds: string[] = [];
-  try { salesUserIds = (JSON.parse(people?.value ?? "{}").personsAndTeams ?? []).map((p: any) => String(p.id)); } catch { /* empty */ }
   return {
-    id: item.id, name: item.name, stage: colText(item, DEAL_COLS.stage.id), salesUserIds,
+    id: item.id, name: item.name, stage: colText(item, DEAL_COLS.stage.id),
+    salesUserIds: peopleIds(item, DEAL_COLS.salesUsers.id),
     amount: colText(item, DEAL_COLS.amount.id), currency: colText(item, DEAL_COLS.currency.id),
     closeDate: colText(item, DEAL_COLS.closeDate.id),
     company: colText(item, DEAL_COLS.company.id), contact: colText(item, DEAL_COLS.contact.id),
@@ -21,13 +39,15 @@ function toRow(item: RawItem): DealRow {
 
 export interface BoardState {
   loading: boolean; error: string | null; schemaErrors: string[];
-  userId: string; sessionToken: string; users: AccountUser[]; meta: BoardMeta | null; rows: DealRow[];
+  userId: string; sessionToken: string; users: AccountUser[]; meta: BoardMeta | null;
+  options: DealOptions; rows: DealRow[];
   reload: () => Promise<void>;
 }
 
 export function useBoard(): BoardState {
   const [s, setS] = useState<Omit<BoardState, "reload">>({
-    loading: true, error: null, schemaErrors: [], userId: "", sessionToken: "", users: [], meta: null, rows: [],
+    loading: true, error: null, schemaErrors: [], userId: "", sessionToken: "", users: [], meta: null,
+    options: EMPTY_OPTIONS, rows: [],
   });
 
   async function load() {
@@ -40,7 +60,7 @@ export function useBoard(): BoardState {
       const [users, items] = await Promise.all([getUsers(), getDeals()]);
       setS({
         loading: false, error: null, schemaErrors: [], userId: ctx.userId, sessionToken: ctx.sessionToken,
-        users, meta, rows: items.map(toRow),
+        users, meta, options: optionsFrom(meta), rows: items.map(toRow),
       });
     } catch (e) {
       setS(p => ({ ...p, loading: false, error: String(e).slice(0, 200) }));
@@ -50,4 +70,4 @@ export function useBoard(): BoardState {
   return { ...s, reload: load };
 }
 
-export { colText, linkedIds };
+export { colText, linkedIds, peopleIds };

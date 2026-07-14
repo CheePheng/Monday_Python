@@ -10,8 +10,8 @@ export function boardRelationValue(itemIds: string[]): { item_ids: number[] } {
 }
 
 export interface DealForm {
-  amount?: string; currency?: string; closeDate?: string; stage?: string;
-  dealType?: string; priority?: string; vendors?: string[]; salesUserIds?: string[];
+  amount?: string; currency?: string; closeDate?: string; stage?: string; pipeline?: string;
+  dealType?: string; priority?: string; vendors?: string[]; salesUserIds?: string[]; dealOwnerId?: string;
 }
 
 /** Deal form -> monday column_values object (JSON-encode before sending). Empty fields are omitted so
@@ -22,10 +22,12 @@ export function dealFormToColumnValues(f: DealForm): Record<string, unknown> {
   if (f.currency) cv[DEAL_COLS.currency.id] = { label: f.currency };
   if (f.closeDate) cv[DEAL_COLS.closeDate.id] = { date: f.closeDate };
   if (f.stage) cv[DEAL_COLS.stage.id] = { label: f.stage };
+  if (f.pipeline) cv[DEAL_COLS.pipeline.id] = { label: f.pipeline };
   if (f.dealType) cv[DEAL_COLS.dealType.id] = { label: f.dealType };
   if (f.priority) cv[DEAL_COLS.priority.id] = { label: f.priority };
   if (f.vendors && f.vendors.length) cv[DEAL_COLS.vendors.id] = { labels: f.vendors };
   if (f.salesUserIds && f.salesUserIds.length) cv[DEAL_COLS.salesUsers.id] = peopleValue(f.salesUserIds);
+  if (f.dealOwnerId) cv[DEAL_COLS.dealOwner.id] = peopleValue([f.dealOwnerId]);
   return cv;
 }
 

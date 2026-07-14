@@ -22,12 +22,12 @@ export async function getContext(): Promise<Ctx> {
 }
 
 export interface BoardMeta {
-  columns: { id: string; type: string; title: string }[];
+  columns: { id: string; type: string; title: string; settings_str?: string }[];
   groups: { id: string; title: string }[];
 }
 export async function getBoardMeta(): Promise<BoardMeta> {
   const d = await api(`query ($b:[ID!]) { boards(ids:$b) {
-    columns { id type title } groups { id title } } }`, { b: [DEALS_BOARD] });
+    columns { id type title settings_str } groups { id title } } }`, { b: [DEALS_BOARD] });
   const board = d.boards[0];
   return { columns: board.columns, groups: board.groups };
 }
@@ -52,7 +52,7 @@ export async function getDeals(): Promise<RawItem[]> {
         items_page(limit:200, cursor:$cursor) {
           cursor
           items { id name group { id }
-            column_values { id text ... on BoardRelationValue { linked_item_ids } } }
+            column_values { id text value ... on BoardRelationValue { linked_item_ids } } }
         } } }`, { b: [DEALS_BOARD], cursor });
     const page = d.boards[0].items_page;
     items.push(...page.items);
