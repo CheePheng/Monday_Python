@@ -78,7 +78,7 @@ export function useBoard(): BoardState {
   useEffect(() => { void load(); }, []);
   useEffect(() => {
     let last = Date.now();
-    const onFocus = () => { if (Date.now() - last > 15000) { last = Date.now(); void load(); } };
+    const onFocus = () => { if (document.visibilityState === "visible" && Date.now() - last > 15000) { last = Date.now(); void load(); } };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
