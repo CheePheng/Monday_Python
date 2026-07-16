@@ -89,7 +89,7 @@ export default function AssociationPicker({ kind, token, dealHubspotId, value, o
     if (e.key === "ArrowDown") { e.preventDefault(); setActive(a => Math.min(a + 1, hits.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive(a => Math.max(a - 1, 0)); }
     else if (e.key === "Enter") { if (active >= 0 && hits[active]) { e.preventDefault(); void add(hits[active]); } }
-    else if (e.key === "Escape") { clear(); setText(""); }
+    else if (e.key === "Escape") { e.stopPropagation(); clear(); setText(""); } // don't bubble to the drawer's Esc-close
   }
 
   return (
