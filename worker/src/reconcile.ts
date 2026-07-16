@@ -8,6 +8,7 @@ export interface Diff {
   f?: FieldSpec;
   hsText: string;
   mdText: string;
+  backfill?: boolean;
 }
 
 /** monday first-person in a people column -> HubSpot owner id (via email), or "" if none/unmapped. */
@@ -38,7 +39,17 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
     }
     const hsText = expectedText(f, rec.properties[f.hs], ctx);
     if (hsText === null) continue; // phone: not diffable
-    if (hsText === "") continue;   // empty HubSpot value: don't fight monday (no clear, no loop)
+    if (hsText === "") {
+      // Empty HubSpot value: normally we don't fight monday (no clear, no loop). EXCEPTION — controlled
+      // backfill: an ALLOWLISTED reversible field on a DEAL whose card carries the matching HubSpot Deal ID
+      // may FILL the empty HubSpot value from a non-empty monday value. Never the reverse (an empty monday
+      // value never clears HubSpot), never for contacts/companies, never matched by name.
+      if (f.backfill && f.reverse && spec.object === "deals" && colText(item, spec.idCol) === rec.id) {
+        const md = colText(item, f.col);
+        if (md) out.push({ kind: "field", f, hsText: "", mdText: md, backfill: true });
+      }
+      continue;
+    }
     const mdText = colText(item, f.col);
     if (hsText !== mdText) out.push({ kind: "field", f, hsText, mdText });
   }

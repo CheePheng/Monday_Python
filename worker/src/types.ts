@@ -24,6 +24,7 @@ export interface FieldSpec {
   type: ColType;
   labels?: LabelDict;    // enum label dictionary (HubSpot internal value -> display label)
   reverse?: boolean;     // monday edits may be written back to HubSpot
+  backfill?: boolean;    // allowlisted: a non-empty monday value may FILL an EMPTY HubSpot value (deals only)
 }
 
 export type GroupBy =

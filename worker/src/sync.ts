@@ -96,7 +96,11 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   if (dir === "toHubspot") {
     const patch = buildReversePatch(diffs, existing, spec, ctx);
     if (Object.keys(patch).length > 0) {
+      const filled = diffs.filter(d => d.backfill && d.f && patch[d.f.hs] !== undefined);
       const newMod = await patchRecord(env, spec, rec.id, patch, opts);
+      // Audit trail for the controlled backfill (a failed patch throws and is logged by the caller).
+      for (const d of filled)
+        console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} field=${d.f!.hs} previous="" value="${patch[d.f!.hs]}" result=${newMod === null ? "dry-run" : "written"}`);
       await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: newMod ?? recModified }, opts);
       stats.toHubspot++; budget.left--;
       return;

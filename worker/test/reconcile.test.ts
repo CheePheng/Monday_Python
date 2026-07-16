@@ -314,3 +314,69 @@ describe("deal Amount / Currency / Close date reverse to HubSpot (real DEALS spe
       amount: "5000", deal_currency_code: "USD", closedate: "2026-07-31",
     }));
 });
+
+describe("controlled deals-only backfill of EMPTY HubSpot values (allowlist: amount, closedate)", () => {
+  const bctx: Ctx = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {},
+    ownerIdByEmail: {}, portalId: 1 };
+  // monday card carrying the matching HubSpot Deal ID (numeric_mm4nz332 = 9001).
+  const bItem = (over: Partial<{ id: string; amount: string; close: string; type: string }> = {}) => item({
+    name: "Acme", group: { id: "group_mm4nf6fw" },
+    column_values: [
+      { id: "numeric_mm4nz332", text: over.id ?? "9001" },
+      { id: "numeric_mm531t6e", text: over.amount ?? "5000" },
+      { id: "date_mm53ecz3", text: over.close ?? "2026-07-31" },
+      { id: "color_mm53cky8", text: over.type ?? "" },
+    ],
+  });
+  // HubSpot deal with EMPTY amount + closedate (the stranded-deal case).
+  const bRec = (props: Record<string, string> = {}) => ({
+    id: "9001",
+    properties: { dealname: "Acme", dealstage: "appointmentscheduled", sales_user: "555",
+      amount: "", closedate: "", ...props },
+  });
+  const byCol2 = (d: ReturnType<typeof fieldDiffs>, col: string) => d.find(x => x.f?.col === col);
+
+  it("fills an EMPTY HubSpot amount from monday (marked backfill)", () => {
+    const md = bItem();
+    const d = byCol2(fieldDiffs(bRec(), md, DEALS, bctx), "numeric_mm531t6e");
+    expect(d).toMatchObject({ hsText: "", mdText: "5000", backfill: true });
+    expect(buildReversePatch(fieldDiffs(bRec(), md, DEALS, bctx), md, DEALS, bctx).amount).toBe("5000");
+  });
+
+  it("fills an EMPTY HubSpot close date from monday", () => {
+    const md = bItem();
+    expect(buildReversePatch(fieldDiffs(bRec(), md, DEALS, bctx), md, DEALS, bctx).closedate).toBe("2026-07-31");
+  });
+
+  it("does NOT backfill a non-allowlisted field (dealtype stays empty in HubSpot)", () => {
+    const md = bItem({ type: "New Business" });
+    expect(byCol2(fieldDiffs(bRec({ dealtype: "" }), md, DEALS, bctx), "color_mm53cky8")).toBeUndefined();
+  });
+
+  it("does NOT backfill currency (reversible on edit, but not allowlisted)", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm53vk99", text: "USD" }] });
+    expect(byCol2(fieldDiffs(bRec({ deal_currency_code: "" }), md, DEALS, bctx), "color_mm53vk99")).toBeUndefined();
+  });
+
+  it("never clears HubSpot: an EMPTY monday value produces no diff", () => {
+    const md = bItem({ amount: "", close: "" });
+    expect(byCol2(fieldDiffs(bRec(), md, DEALS, bctx), "numeric_mm531t6e")).toBeUndefined();
+  });
+
+  it("requires a matching HubSpot Deal ID on the card (never match by name)", () => {
+    const md = bItem({ id: "8888" }); // card carries a DIFFERENT deal id
+    expect(byCol2(fieldDiffs(bRec(), md, DEALS, bctx), "numeric_mm531t6e")).toBeUndefined();
+  });
+
+  it("is idempotent: once HubSpot holds the value there is no diff", () =>
+    expect(byCol2(fieldDiffs(bRec({ amount: "5000.00" }), bItem(), DEALS, bctx), "numeric_mm531t6e")).toBeUndefined());
+
+  it("does NOT apply to contacts/companies even if a field were flagged", () => {
+    const contactish: ObjectSpec = { ...spec, object: "contacts", idCol: "c_id",
+      fields: [{ hs: "amount", col: "c_amt", type: "numbers", reverse: true, backfill: true }] };
+    const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_amt", text: "5000" }] });
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", amount: "" } }, md, contactish, ctx)
+      .find(x => x.f?.col === "c_amt")).toBeUndefined();
+  });
+});
