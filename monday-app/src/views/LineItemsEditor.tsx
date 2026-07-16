@@ -30,7 +30,12 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
   function patch(i: number, p: Partial<LineItem>) { onChange(value.map((li, j) => j === i ? { ...li, ...p } : li)); }
   async function remove(i: number) {
     const li = value[i];
-    if (li.subitemId) await deleteItem(li.subitemId);
+    // The monday subitem is the source of truth for the row: if it can't be deleted, surface the error and
+    // KEEP the row (removing it from the UI would falsely imply the line item is gone).
+    if (li.subitemId) {
+      try { await deleteItem(li.subitemId); }
+      catch (e) { onError?.("Couldn't remove the line item: " + String(e).slice(0, 120)); return; }
+    }
     if (li.lineItemId) {
       try { await deleteHubspotLineItem(token, li.lineItemId); }
       catch (e) { onError?.("Couldn't remove the line item in HubSpot: " + String(e).slice(0, 120)); }
