@@ -1,8 +1,8 @@
 import { WORKER_BASE } from "./board-config";
 
-async function call(token: string, method: string, path: string, body?: unknown): Promise<any> {
+async function call(token: string, method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<any> {
   const res = await fetch(WORKER_BASE + path, {
-    method,
+    method, signal,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -11,8 +11,8 @@ async function call(token: string, method: string, path: string, body?: unknown)
 }
 
 export interface Hit { id: string; name: string; secondary: string }
-export async function searchHubspot(token: string, type: "contacts" | "companies" | "products", q: string): Promise<Hit[]> {
-  const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q)}&limit=10`);
+export async function searchHubspot(token: string, type: "contacts" | "companies" | "products", q: string, signal?: AbortSignal): Promise<Hit[]> {
+  const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q)}&limit=10`, undefined, signal);
   return res.results ?? [];
 }
 export async function updateHubspotLineItem(token: string, lineItemId: string, properties: Record<string, string>): Promise<void> {
