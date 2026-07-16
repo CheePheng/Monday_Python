@@ -379,4 +379,11 @@ describe("controlled deals-only backfill of EMPTY HubSpot values (allowlist: amo
     expect(fieldDiffs({ id: "9001", properties: { dealname: "A", amount: "" } }, md, contactish, ctx)
       .find(x => x.f?.col === "c_amt")).toBeUndefined();
   });
+
+  // The invariant that matters most: a backfill diff makes fieldDiffs non-empty, so decideDirection can
+  // resolve toMonday (first encounter / HubSpot recently modified). The forward payload must then EXCLUDE
+  // the field rather than write HubSpot's EMPTY value over the monday one.
+  it("a backfill diff never clears the monday value when the direction resolves toMonday", () =>
+    expect(buildUpdatePayload(fieldDiffs(bRec(), bItem(), DEALS, bctx), bRec(), DEALS, bctx))
+      .not.toHaveProperty("numeric_mm531t6e"));
 });
