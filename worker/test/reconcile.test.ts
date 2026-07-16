@@ -4,6 +4,7 @@ import {
   reverseFieldValue,
 } from "../src/reconcile";
 import type { Ctx, MondayItem, ObjectSpec } from "../src/types";
+import { DEALS } from "../src/config";
 
 const ctx: Ctx = {
   labels: { dealtype: { existingbusiness: "Existing Business", newbusiness: "New Business" } },
@@ -256,4 +257,60 @@ describe("Deal owner (person) reverses to hubspot_owner_id; Unassigned stays sal
     const d = fieldDiffs(oRec({ hubspot_owner_id: "555", sales_user: "555" }), oitem(P, P), ospec, octx);
     expect(d.find(x => x.kind === "group")).toBeUndefined();
   });
+});
+
+describe("deal Amount / Currency / Close date reverse to HubSpot (real DEALS spec)", () => {
+  // Empty label dicts + no owners: keeps unrelated fields from producing noise. We assert only on the
+  // field under test, the same way the sales_user suite does.
+  const dctx: Ctx = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {},
+    ownerIdByEmail: {}, portalId: 1 };
+
+  // A deal card in its stage group with amount/currency/close-date columns filled.
+  const dItem = (cols: { amount?: string; currency?: string; close?: string }) => item({
+    name: "Acme", group: { id: "group_mm4nf6fw" },
+    column_values: [
+      { id: "numeric_mm4nz332", text: "9001" },
+      { id: "numeric_mm531t6e", text: cols.amount ?? "5000" },
+      { id: "color_mm53vk99", text: cols.currency ?? "USD" },
+      { id: "date_mm53ecz3", text: cols.close ?? "2026-07-31" },
+    ],
+  });
+  // HubSpot side: sales_user set so routing keeps it in the stage group (not Unassigned).
+  const dRec = (props: Record<string, string> = {}) => ({
+    id: "9001",
+    properties: {
+      dealname: "Acme", dealstage: "appointmentscheduled", sales_user: "555",
+      amount: "5000.00", deal_currency_code: "USD", closedate: "2026-07-31T00:00:00Z", ...props,
+    },
+  });
+  const byCol = (d: ReturnType<typeof fieldDiffs>, col: string) => d.find(x => x.f?.col === col);
+
+  it("no phantom diff: HubSpot 5000.00 vs monday 5000 (guards the reverse loop)", () =>
+    expect(byCol(fieldDiffs(dRec(), dItem({}), DEALS, dctx), "numeric_mm531t6e")).toBeUndefined());
+
+  it("no phantom diff: HubSpot ISO close date vs monday YYYY-MM-DD", () =>
+    expect(byCol(fieldDiffs(dRec(), dItem({}), DEALS, dctx), "date_mm53ecz3")).toBeUndefined());
+
+  it("an amount edited in monday reverses to HubSpot", () => {
+    const md = dItem({ amount: "7500" });
+    const patch = buildReversePatch(fieldDiffs(dRec(), md, DEALS, dctx), md, DEALS, dctx);
+    expect(patch.amount).toBe("7500");
+  });
+
+  it("a close date edited in monday reverses to HubSpot", () => {
+    const md = dItem({ close: "2026-08-15" });
+    const patch = buildReversePatch(fieldDiffs(dRec(), md, DEALS, dctx), md, DEALS, dctx);
+    expect(patch.closedate).toBe("2026-08-15");
+  });
+
+  it("a currency changed in monday reverses to HubSpot", () => {
+    const md = dItem({ currency: "CNY" });
+    const patch = buildReversePatch(fieldDiffs(dRec(), md, DEALS, dctx), md, DEALS, dctx);
+    expect(patch.deal_currency_code).toBe("CNY");
+  });
+
+  it("a deal created in monday sends amount, currency and close date to HubSpot", () =>
+    expect(buildCreateProperties(dItem({}), DEALS, dctx)).toMatchObject({
+      amount: "5000", deal_currency_code: "USD", closedate: "2026-07-31",
+    }));
 });
