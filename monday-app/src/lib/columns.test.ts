@@ -41,4 +41,10 @@ describe("lineItemToSubitemColumns", () => {
   it("maps discount + service date", () =>
     expect(lineItemToSubitemColumns({ discount: "5", serviceDate: "2026-08-01" }))
       .toEqual({ numeric_mm53pkyf: "5", date_mm53chbv: { date: "2026-08-01" } }));
+  it("amount mode writes the discount column only", () =>
+    expect(lineItemToSubitemColumns({ discount: "5", discountMode: "amount" }))
+      .toEqual({ numeric_mm53pkyf: "5" }));
+  it("percent mode writes the discount% column only (not the amount column)", () =>
+    expect(lineItemToSubitemColumns({ discount: "5", discountPct: "10", discountMode: "percent" }))
+      .toEqual({ numeric_mm5ax22v: "10" }));
 });

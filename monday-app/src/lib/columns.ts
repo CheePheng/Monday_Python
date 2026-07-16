@@ -33,9 +33,10 @@ export function dealFormToColumnValues(f: DealForm): Record<string, unknown> {
 
 export interface LineItemForm {
   unitPrice?: string; quantity?: string; productId?: string; currency?: string; description?: string;
-  discount?: string; serviceDate?: string;
+  discount?: string; discountMode?: "amount" | "percent"; discountPct?: string; serviceDate?: string;
 }
-/** Line-item form -> subitem column_values (blanks omitted). */
+/** Line-item form -> subitem column_values (blanks omitted). Writes only the ACTIVE discount column
+ * (amount or percent); clearing the inactive one on a mode switch is handled by the update path. */
 export function lineItemToSubitemColumns(li: LineItemForm): Record<string, unknown> {
   const cv: Record<string, unknown> = {};
   if (li.unitPrice) cv[SUB_COLS.unitPrice.id] = li.unitPrice;
@@ -43,7 +44,8 @@ export function lineItemToSubitemColumns(li: LineItemForm): Record<string, unkno
   if (li.productId) cv[SUB_COLS.productId.id] = li.productId;
   if (li.currency) cv[SUB_COLS.currency.id] = li.currency;
   if (li.description) cv[SUB_COLS.description.id] = { text: li.description };
-  if (li.discount) cv[SUB_COLS.discount.id] = li.discount;
+  if (li.discountMode === "percent") { if (li.discountPct) cv[SUB_COLS.discountPct.id] = li.discountPct; }
+  else if (li.discount) cv[SUB_COLS.discount.id] = li.discount;
   if (li.serviceDate) cv[SUB_COLS.serviceDate.id] = { date: li.serviceDate };
   return cv;
 }

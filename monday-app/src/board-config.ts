@@ -40,7 +40,8 @@ export const SUB_COLS = {
   productId:  { id: "text_mm54hbvj",       kind: "text" },      // HubSpot Product ID
   unitPrice:  { id: "numeric_mm53rsfd",    kind: "numeric" },
   quantity:   { id: "numeric_mm531345",    kind: "numeric" },
-  discount:   { id: "numeric_mm53pkyf",    kind: "numeric" },
+  discount:   { id: "numeric_mm53pkyf",    kind: "numeric" },   // per-unit discount amount (HubSpot discount)
+  discountPct:{ id: "numeric_mm5ax22v",    kind: "numeric" },   // discount % (HubSpot hs_discount_percentage)
   serviceDate:{ id: "date_mm53chbv",       kind: "date" },
   netPrice:   { id: "numeric_mm538yj9",    kind: "numeric" },
   currency:   { id: "text_mm538b8k",       kind: "text" },

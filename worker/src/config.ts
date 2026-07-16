@@ -73,7 +73,8 @@ export const LINE_ITEM_SUBITEMS: SubitemSpec = {
     { hs: "hs_pre_discount_amount", col: "numeric_mm53txgw", type: "numbers" },      // Amount (pre-discount total)
     { hs: "amount", col: "numeric_mm538yj9", type: "numbers" },                      // Net Price (HubSpot "Net price")
     { hs: "service_date", col: "date_mm53chbv", type: "date" },                      // Service Date
-    { hs: "discount", col: "numeric_mm53pkyf", type: "numbers" },                    // Unit Discount
+    { hs: "discount", col: "numeric_mm53pkyf", type: "numbers" },                    // Unit Discount (per-unit amount)
+    { hs: "hs_discount_percentage", col: "numeric_mm5ax22v", type: "numbers" },      // Discount % (alternative to per-unit discount)
     { hs: "hs_line_item_currency_code", col: "text_mm538b8k", type: "text" },        // Currency
     { hs: "description", col: "long_text_mm53a511", type: "long_text" },             // Description
   ],
