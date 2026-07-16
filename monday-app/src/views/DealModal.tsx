@@ -4,9 +4,8 @@ import { dealFormToColumnValues, boardRelationValue, type DealForm } from "../li
 import { groupIdForStage, stageOptions } from "../lib/stage";
 import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
-  createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, deleteItem, openLink,
+  createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
 } from "../monday-client";
-import { archiveHubspotDeal } from "../worker-client";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
 import AssociationPicker, { type Assoc } from "./AssociationPicker";
@@ -83,17 +82,6 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   function guardedClose() {
     if (dirty && !confirm("Discard unsaved changes?")) return;
     onClose();
-  }
-
-  async function del() {
-    if (!confirm("Delete this deal? This archives it in HubSpot.")) return;
-    try {
-      // Delete only in HubSpot; the Worker's deletion sync removes the monday card. Unsynced brand-new
-      // deal (no HubSpot id) -> remove the monday card directly since there's nothing to archive.
-      if (dealHubspotId) await archiveHubspotDeal(board.sessionToken, dealHubspotId);
-      else await deleteItem(createdItemId!);
-      onSaved(dealHubspotId ? "Archived in HubSpot — removing shortly" : "Deal deleted");
-    } catch (e) { setErr("Delete failed: " + String(e).slice(0, 120)); }
   }
 
   async function save() {
@@ -188,15 +176,10 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
         </div>
 
         <div className="dc-modal-foot">
-          {isEdit && (
-            <button className="dc-btn dc-btn-danger" onClick={() => void del()}>Delete</button>
-          )}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-            <button className="dc-btn" onClick={guardedClose}>Cancel</button>
-            <button className="dc-btn dc-btn-primary" disabled={saving || !invalid.ok} onClick={() => { if (!saving) void save(); }}>
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Create deal"}
-            </button>
-          </div>
+          <button className="dc-btn" onClick={guardedClose}>Cancel</button>
+          <button className="dc-btn dc-btn-primary" disabled={saving || !invalid.ok} onClick={() => { if (!saving) void save(); }}>
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Create deal"}
+          </button>
         </div>
       </div>
     </div>

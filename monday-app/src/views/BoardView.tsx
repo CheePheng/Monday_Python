@@ -6,8 +6,7 @@ import DealModal from "./DealModal";
 import { computeKpis } from "../lib/kpi";
 import { sortDeals, type SortKey } from "../lib/sort";
 import KanbanView from "./KanbanView";
-import { deleteItem, openLink } from "../monday-client";
-import { archiveHubspotDeal } from "../worker-client";
+import { openLink } from "../monday-client";
 import { hubspotDealUrl } from "../board-config";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
@@ -94,18 +93,6 @@ export default function BoardView() {
     setSort(s => ({ key, dir: s.key === key && s.dir === "asc" ? "desc" : "asc" }));
   }
 
-  async function del(r: DealRow) {
-    if (!confirm(`Delete "${r.name}"? This archives the deal in HubSpot.`)) return;
-    try {
-      // Delete only in HubSpot; the Worker's deletion sync removes the monday card. For an unsynced
-      // brand-new deal (no HubSpot id yet) there's nothing to archive, so remove the monday card directly.
-      if (r.hubspotId) await archiveHubspotDeal(board.sessionToken, r.hubspotId);
-      else await deleteItem(r.id);
-      setToast(r.hubspotId ? "Archived in HubSpot — removing shortly" : "Deal deleted");
-      await board.reload();
-    } catch (e) { setToast("Delete failed: " + String(e).slice(0, 120)); }
-  }
-
   if (board.loading)
     return <div className="dc-wrap"><div className="dc-loading"><div className="dc-spinner" />Loading deals…</div></div>;
   if (board.schemaErrors.length)
@@ -189,8 +176,7 @@ export default function BoardView() {
                       <td className={r.salesUserIds.length ? "" : "dc-mut"}>{r.salesUserIds.map(userName).join(", ") || "—"}</td>
                       <td className="r">
                         {r.hubspotId && <button className="dc-btn dc-btn-sm" title="Open in HubSpot" style={{ marginRight: 6 }} onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗ HubSpot</button>}
-                        <span className="dc-open dc-btn dc-btn-sm" style={{ marginRight: 6 }}>Open →</span>
-                        <button className="dc-btn dc-btn-sm" title="Delete" onClick={e => { e.stopPropagation(); void del(r); }}>🗑</button>
+                        <span className="dc-open dc-btn dc-btn-sm">Open →</span>
                       </td>
                     </tr>
                   ))}
