@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
@@ -73,6 +73,14 @@ export default function BoardView() {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "closeDate", dir: "asc" });
   const [view, setView] = useState<"table" | "board">("table");
 
+  // Guard a deal switch (row click / Create / Kanban open) when the open drawer has unsaved edits.
+  const drawerDirty = useRef(false);
+  function attemptOpen(id: string | null) {
+    if (editing !== undefined && drawerDirty.current && !window.confirm("Discard unsaved changes?")) return;
+    drawerDirty.current = false;
+    setEditing(id);
+  }
+
   const userName = (id: string) => board.users.find(u => u.id === id)?.name ?? id;
   const stages = useMemo(() => (board.meta ? stageOptions(board.meta.groups) : []), [board.meta]);
   const rows = useMemo(
@@ -111,7 +119,7 @@ export default function BoardView() {
         <h1 className="dc-title">Deals</h1>
         <span className="dc-sub">{rows.length} of {board.rows.length}</span>
         <div className="dc-spacer" />
-        <button className="dc-btn dc-btn-primary" onClick={() => setEditing(null)}>＋ Create deal</button>
+        <button className="dc-btn dc-btn-primary" onClick={() => attemptOpen(null)}>＋ Create deal</button>
       </div>
 
       <div className="dc-kpis">
@@ -142,7 +150,7 @@ export default function BoardView() {
       </div>
 
       {view === "board" ? (
-        <KanbanView board={board} rows={rows} onOpen={setEditing} onToast={setToast} />
+        <KanbanView board={board} rows={rows} onOpen={attemptOpen} onToast={setToast} />
       ) : (
         <div className="dc-panel">
           <div className="dc-table-scroll">
@@ -161,7 +169,7 @@ export default function BoardView() {
                 {rows.length === 0
                   ? <tr><td colSpan={8}><div className="dc-empty">No deals match your filters.</div></td></tr>
                   : rows.map((r: DealRow) => (
-                    <tr key={r.id} onClick={() => setEditing(r.id)}>
+                    <tr key={r.id} onClick={() => attemptOpen(r.id)}>
                       <td>
                         <div className="dc-deal">
                           <span className="dc-avatar" style={{ background: avatarFor(r.name) }}>{initials(r.name)}</span>
@@ -188,6 +196,7 @@ export default function BoardView() {
 
       {editing !== undefined && (
         <DealDrawer key={editing ?? "new"} itemId={editing} board={board}
+          onDirtyChange={d => { drawerDirty.current = d; }}
           onClose={() => setEditing(undefined)}
           onSaved={async (msg) => { setEditing(undefined); setToast(msg); await board.reload(); }} />
       )}

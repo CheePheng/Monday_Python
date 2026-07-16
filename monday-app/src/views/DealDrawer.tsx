@@ -14,12 +14,12 @@ import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
 import { syncDeal } from "../worker-client";
 
-interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void }
+interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void; onDirtyChange?: (dirty: boolean) => void }
 
 const pick = (arr: string[], re: RegExp) => arr.find(x => re.test(x)) ?? arr[0];
 const splitCsv = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
 
-export default function DealDrawer({ itemId, board, onClose, onSaved }: Props) {
+export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyChange }: Props) {
   const isEdit = itemId != null;
   const stages = board.meta ? stageOptions(board.meta.groups) : [];
   const userOpts: Opt[] = board.users.map(u => ({ value: u.id, label: u.name || u.email || u.id }));
@@ -100,6 +100,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [dirty]);
+
+  // Report dirty state up so the board can guard a deal switch (row click / Create) on unsaved edits.
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty]);
 
   async function save() {
     setSaving(true); setErr(null);
