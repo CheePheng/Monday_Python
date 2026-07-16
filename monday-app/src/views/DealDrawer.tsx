@@ -130,7 +130,6 @@ export default function DealDrawer({ itemId, board, onClose, onSaved }: Props) {
 
   return (
     <>
-      <div className="dc-drawer-catch" onClick={guardedClose} />
       <div className="dc-drawer" role="dialog" aria-label={isEdit ? "Edit deal" : "Create deal"}>
         <div className="dc-modal-head">
           <h2>{isEdit ? "Edit deal" : "Create deal"}</h2>

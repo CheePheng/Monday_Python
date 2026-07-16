@@ -226,3 +226,40 @@
 .dc-kcard[draggable="true"] { cursor: grab; }
 .dc-kcard[draggable="true"]:active { cursor: grabbing; }
 .dc-kcard-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; line-height: 1.25; }
+
+/* ---------- deal drawer ---------- */
+.dc-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 1001;
+  width: min(560px, 100%); background: var(--surface); border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
+  animation: dcslidein .22s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes dcslidein { from { transform: translateX(28px); opacity: .5; } to { transform: none; opacity: 1; } }
+.dc-drawer .dc-modal-head { border-bottom: 1px solid var(--border); flex: none; }
+.dc-drawer-body { flex: 1; overflow-y: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+.dc-drawer .dc-modal-foot { border-top: 1px solid var(--border); background: var(--surface-2); flex: none; }
+
+/* tab strip */
+.dc-tabs { display: flex; gap: 2px; padding: 0 22px; border-bottom: 1px solid var(--border); background: var(--surface); flex: none; overflow-x: auto; }
+.dc-tab {
+  border: none; background: transparent; color: var(--text-muted); font: inherit; font-weight: 600; font-size: 13.5px;
+  padding: 12px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+}
+.dc-tab:hover { color: var(--text); }
+.dc-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* small toggle-active (discount $/% + any dc-btn-sm used as a toggle) */
+.dc-btn-sm.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+
+/* quotation table */
+.dc-qt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.dc-qt th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted);
+  font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--border);
+}
+.dc-qt th.r, .dc-qt td.r { text-align: right; }
+.dc-qt td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dc-qt td:last-child, .dc-qt th:last-child { text-align: right; }
+.dc-qt .dc-field-input { padding: 6px 8px; }
+
+@media (max-width: 720px) { .dc-drawer { width: 100%; } }

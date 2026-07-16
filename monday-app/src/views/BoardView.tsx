@@ -187,7 +187,7 @@ export default function BoardView() {
       )}
 
       {editing !== undefined && (
-        <DealDrawer itemId={editing} board={board}
+        <DealDrawer key={editing ?? "new"} itemId={editing} board={board}
           onClose={() => setEditing(undefined)}
           onSaved={async (msg) => { setEditing(undefined); setToast(msg); await board.reload(); }} />
       )}
