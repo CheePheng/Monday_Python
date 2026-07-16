@@ -1,6 +1,11 @@
 // Single source of truth for board/column ids the app reads and writes. HubSpot ids are strings.
 export const WORKER_BASE = "https://hubspot-monday-sync.askada.workers.dev";
 
+// HubSpot portal (account) id — used to build deep links to a deal's HubSpot record.
+export const HUBSPOT_PORTAL_ID = "39939588";
+export const hubspotDealUrl = (dealId: string) =>
+  `https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/record/0-3/${dealId}`;
+
 export const DEALS_BOARD = "5029480547";
 export const SUBITEMS_BOARD = "5029480548";
 export const CONTACT_BOARD = "5029639630";

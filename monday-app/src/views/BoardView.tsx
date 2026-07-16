@@ -6,8 +6,9 @@ import DealModal from "./DealModal";
 import { computeKpis } from "../lib/kpi";
 import { sortDeals, type SortKey } from "../lib/sort";
 import KanbanView from "./KanbanView";
-import { deleteItem } from "../monday-client";
+import { deleteItem, openLink } from "../monday-client";
 import { archiveHubspotDeal } from "../worker-client";
+import { hubspotDealUrl } from "../board-config";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
 function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
@@ -67,15 +68,17 @@ export default function BoardView() {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("");
   const [mine, setMine] = useState(false);
+  const [salesUser, setSalesUser] = useState("");
   const [editing, setEditing] = useState<string | null | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "closeDate", dir: "asc" });
   const [view, setView] = useState<"table" | "board">("table");
 
+  const userName = (id: string) => board.users.find(u => u.id === id)?.name ?? id;
   const stages = useMemo(() => (board.meta ? stageOptions(board.meta.groups) : []), [board.meta]);
   const rows = useMemo(
-    () => sortDeals(filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId }), sort.key, sort.dir),
-    [board.rows, q, stage, mine, board.userId, sort]);
+    () => sortDeals(filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId, salesUserId: salesUser || undefined }), sort.key, sort.dir),
+    [board.rows, q, stage, mine, salesUser, board.userId, sort]);
 
   const kpi = useMemo(() => computeKpis(board.rows), [board.rows]);
   const pipeRest = kpi.pipeline.slice(1);
@@ -137,6 +140,10 @@ export default function BoardView() {
           <option value="">All stages</option>
           {stages.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select className="dc-select" value={salesUser} onChange={e => setSalesUser(e.target.value)}>
+          <option value="">All sales users</option>
+          {board.users.map(u => <option key={u.id} value={u.id}>{u.name || u.email || u.id}</option>)}
+        </select>
         <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (mine ? " on" : "")} onClick={() => setMine(m => !m)}>My deals</button>
         <div className="dc-spacer" />
         <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (view === "table" ? " on" : "")} onClick={() => setView("table")}>Table</button>
@@ -157,11 +164,12 @@ export default function BoardView() {
                 <th style={{ cursor: "pointer" }} onClick={() => toggleSort("closeDate")}>Close date{sortIndicator("closeDate")}</th>
                 <th style={{ cursor: "pointer" }} onClick={() => toggleSort("company")}>Company{sortIndicator("company")}</th>
                 <th style={{ cursor: "pointer" }} onClick={() => toggleSort("contact")}>Contact{sortIndicator("contact")}</th>
+                <th>Sales User</th>
                 <th></th>
               </tr></thead>
               <tbody>
                 {rows.length === 0
-                  ? <tr><td colSpan={7}><div className="dc-empty">No deals match your filters.</div></td></tr>
+                  ? <tr><td colSpan={8}><div className="dc-empty">No deals match your filters.</div></td></tr>
                   : rows.map((r: DealRow) => (
                     <tr key={r.id} onClick={() => setEditing(r.id)}>
                       <td>
@@ -175,7 +183,9 @@ export default function BoardView() {
                       <td className="dc-mut">{r.closeDate || "—"}</td>
                       <td className={r.company ? "" : "dc-mut"}>{r.company || "—"}</td>
                       <td className={r.contact ? "" : "dc-mut"}>{r.contact || "—"}</td>
+                      <td className={r.salesUserIds.length ? "" : "dc-mut"}>{r.salesUserIds.map(userName).join(", ") || "—"}</td>
                       <td className="r">
+                        {r.hubspotId && <button className="dc-btn dc-btn-sm" title="Open in HubSpot" style={{ marginRight: 6 }} onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗ HubSpot</button>}
                         <span className="dc-open dc-btn dc-btn-sm" style={{ marginRight: 6 }}>Open →</span>
                         <button className="dc-btn dc-btn-sm" title="Delete" onClick={e => { e.stopPropagation(); void del(r); }}>🗑</button>
                       </td>

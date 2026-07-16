@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import type { BoardState } from "../useBoard";
 import { dealFormToColumnValues, boardRelationValue, type DealForm } from "../lib/columns";
 import { groupIdForStage, stageOptions } from "../lib/stage";
-import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL } from "../board-config";
+import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
-  createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, deleteItem,
+  createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, deleteItem, openLink,
 } from "../monday-client";
 import { archiveHubspotDeal } from "../worker-client";
 import { validateDealForm } from "../lib/validate";
@@ -125,7 +125,12 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
       <div className="dc-modal" onClick={e => e.stopPropagation()}>
         <div className="dc-modal-head">
           <h2>{isEdit ? "Edit deal" : "Create deal"}</h2>
-          <button className="dc-x" onClick={guardedClose} aria-label="Close">×</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isEdit && dealHubspotId && (
+              <button className="dc-btn dc-btn-sm" onClick={() => openLink(hubspotDealUrl(dealHubspotId))}>↗ HubSpot</button>
+            )}
+            <button className="dc-x" onClick={guardedClose} aria-label="Close">×</button>
+          </div>
         </div>
 
         <div className="dc-modal-body">

@@ -26,4 +26,8 @@ describe("filterDeals", () => {
     ];
     expect(filterDeals(rs, { q: "acme" }).map(r => r.id)).toEqual(["1", "2"]);
   });
+  it("salesUserId filters to deals that include that user", () =>
+    expect(filterDeals(ROWS, { salesUserId: "333" }).map(r => r.id)).toEqual(["3"]));
+  it("salesUserId combines with other filters (AND)", () =>
+    expect(filterDeals(ROWS, { salesUserId: "111", stage: "Contract Sent" }).map(r => r.id)).toEqual(["1", "3"]));
 });
