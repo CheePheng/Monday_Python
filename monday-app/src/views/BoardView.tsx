@@ -97,9 +97,12 @@ export default function BoardView() {
   async function del(r: DealRow) {
     if (!confirm(`Delete "${r.name}"? This archives the deal in HubSpot.`)) return;
     try {
+      // Delete only in HubSpot; the Worker's deletion sync removes the monday card. For an unsynced
+      // brand-new deal (no HubSpot id yet) there's nothing to archive, so remove the monday card directly.
       if (r.hubspotId) await archiveHubspotDeal(board.sessionToken, r.hubspotId);
-      await deleteItem(r.id);
-      setToast("Deal deleted"); await board.reload();
+      else await deleteItem(r.id);
+      setToast(r.hubspotId ? "Archived in HubSpot — removing shortly" : "Deal deleted");
+      await board.reload();
     } catch (e) { setToast("Delete failed: " + String(e).slice(0, 120)); }
   }
 

@@ -88,9 +88,11 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   async function del() {
     if (!confirm("Delete this deal? This archives it in HubSpot.")) return;
     try {
+      // Delete only in HubSpot; the Worker's deletion sync removes the monday card. Unsynced brand-new
+      // deal (no HubSpot id) -> remove the monday card directly since there's nothing to archive.
       if (dealHubspotId) await archiveHubspotDeal(board.sessionToken, dealHubspotId);
-      await deleteItem(createdItemId!);
-      onSaved("Deal deleted");
+      else await deleteItem(createdItemId!);
+      onSaved(dealHubspotId ? "Archived in HubSpot — removing shortly" : "Deal deleted");
     } catch (e) { setErr("Delete failed: " + String(e).slice(0, 120)); }
   }
 
