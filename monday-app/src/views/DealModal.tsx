@@ -130,7 +130,6 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
           {invalid.errors.name && <div className="dc-err">{invalid.errors.name}</div>}
 
           <div className="dc-grid">
-            <Field label="Pipeline"><SelectStr options={board.options.pipeline} value={form.pipeline} onChange={v => set({ pipeline: v })} /></Field>
             <Field label="Deal stage" required>
               <SelectStr options={stages} value={form.stage} onChange={v => set({ stage: v })} placeholder="Select stage…" />
               {invalid.errors.stage && <div className="dc-err">{invalid.errors.stage}</div>}
