@@ -3,11 +3,12 @@ import { searchHubspot, updateHubspotLineItem, deleteHubspotLineItem, type Hit }
 import { lineItemToSubitemColumns } from "../lib/columns";
 import { createSubitem, updateSubitemColumns, deleteItem } from "../monday-client";
 import { lineTotal, lineItemsTotal } from "../lib/totals";
+import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 
 export interface LineItem {
   subitemId?: string; lineItemId?: string; // present once synced by the Worker
   productId?: string; name: string; unitPrice: string; quantity: string; currency?: string; description?: string;
-  discount?: string; serviceDate?: string;
+  discount?: string; discountMode?: "amount" | "percent"; discountPct?: string; serviceDate?: string;
 }
 interface Props {
   token: string; value: LineItem[]; onChange: (n: LineItem[]) => void;
@@ -15,21 +16,19 @@ interface Props {
 }
 
 export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal }: Props) {
-  const [q, setQ] = useState("");
-  const [hits, setHits] = useState<Hit[]>([]);
+  const [text, setText] = useState("");
+  const { hits, loading, query, clear } = useDebouncedSearch<Hit>(
+    (q, signal) => searchHubspot(token, "products", q, signal), 300);
 
-  async function search(text: string) {
-    setQ(text);
-    if (text.trim().length < 2) { setHits([]); return; }
-    try { setHits(await searchHubspot(token, "products", text)); } catch { setHits([]); onError?.("Product search unavailable"); }
-  }
   function addFromProduct(h: Hit) {
-    onChange([...value, { productId: h.id, name: h.name, unitPrice: h.secondary || "0", quantity: "1" }]);
-    setQ(""); setHits([]);
+    onChange([...value, { productId: h.id, name: h.name, unitPrice: h.secondary || "0", quantity: "1", discountMode: "amount" }]);
+    setText(""); clear();
   }
   function patch(i: number, p: Partial<LineItem>) { onChange(value.map((li, j) => j === i ? { ...li, ...p } : li)); }
   async function remove(i: number) {
     const li = value[i];
+    // Already synced to HubSpot: confirm before we delete it there too.
+    if (li.lineItemId && !confirm("Remove this line item? It will be deleted in HubSpot.")) return;
     // The monday subitem is the source of truth for the row: if it can't be deleted, surface the error and
     // KEEP the row (removing it from the UI would falsely imply the line item is gone).
     if (li.subitemId) {
@@ -43,24 +42,64 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
     onChange(value.filter((_, j) => j !== i));
   }
 
-  const total = lineItemsTotal(value);
+  const grand = lineItemsTotal(value);
+  const subtotal = value.reduce((s, li) => s + (Number(li.quantity) || 0) * (Number(li.unitPrice) || 0), 0);
+  const discountTotal = subtotal - grand;
 
   return (
     <div>
       <div className="dc-section-title">Line items</div>
-      {value.map((li, i) => (
-        <div key={li.subitemId ?? i} className="dc-li" style={{ flexWrap: "wrap" }}>
-          <span className="dc-li-name">{li.name}</span>
-          <input className="dc-field-input" aria-label="Quantity" placeholder="Qty" value={li.quantity} onChange={e => patch(i, { quantity: e.target.value })} />
-          <input className="dc-field-input" aria-label="Unit price" placeholder="Price" value={li.unitPrice} onChange={e => patch(i, { unitPrice: e.target.value })} />
-          <input className="dc-field-input" aria-label="Discount" placeholder="Disc" value={li.discount ?? ""} onChange={e => patch(i, { discount: e.target.value })} />
-          <input type="date" className="dc-field-input" aria-label="Service date" style={{ width: 132 }} value={li.serviceDate ?? ""} onChange={e => patch(i, { serviceDate: e.target.value })} />
-          <input className="dc-field-input" aria-label="Description" placeholder="Description" style={{ width: 160 }} value={li.description ?? ""} onChange={e => patch(i, { description: e.target.value })} />
-          <span style={{ marginLeft: "auto", minWidth: 64, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{lineTotal(li).toFixed(2)}</span>
-          <button className="dc-btn dc-btn-sm dc-btn-danger" onClick={() => void remove(i)}>Remove</button>
-        </div>
-      ))}
-      <input className="dc-field-input" style={{ marginTop: value.length ? 10 : 0 }} placeholder="Add product…" value={q} onChange={e => void search(e.target.value)} />
+      {value.length > 0 && (
+        <table className="dc-qt">
+          <thead>
+            <tr>
+              <th>Product</th><th>Qty</th><th>Unit price</th><th>Discount</th><th style={{ textAlign: "right" }}>Total</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {value.map((li, i) => {
+              const mode = li.discountMode ?? "amount";
+              return (
+                <tr key={li.subitemId ?? i}>
+                  <td>{li.name}</td>
+                  <td>
+                    <input className="dc-field-input" aria-label="Quantity" style={{ width: 56 }}
+                      value={li.quantity} onChange={e => patch(i, { quantity: e.target.value })} />
+                  </td>
+                  <td>
+                    <input className="dc-field-input" aria-label="Unit price" style={{ width: 76 }}
+                      value={li.unitPrice} onChange={e => patch(i, { unitPrice: e.target.value })} />
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <button type="button" className={"dc-btn dc-btn-sm" + (mode === "amount" ? " on" : "")}
+                        onClick={() => patch(i, { discountMode: "amount" })} aria-label="Discount as amount">$</button>
+                      <button type="button" className={"dc-btn dc-btn-sm" + (mode === "percent" ? " on" : "")}
+                        onClick={() => patch(i, { discountMode: "percent" })} aria-label="Discount as percent">%</button>
+                      {mode === "percent" ? (
+                        <input className="dc-field-input" aria-label="Discount percent" style={{ width: 60 }}
+                          value={li.discountPct ?? ""} onChange={e => patch(i, { discountPct: e.target.value })} />
+                      ) : (
+                        <input className="dc-field-input" aria-label="Discount amount" style={{ width: 60 }}
+                          value={li.discount ?? ""} onChange={e => patch(i, { discount: e.target.value })} />
+                      )}
+                    </div>
+                  </td>
+                  <td className="dc-money" style={{ textAlign: "right" }}>{lineTotal(li).toFixed(2)}</td>
+                  <td>
+                    <button type="button" className="dc-btn dc-btn-sm dc-btn-danger" onClick={() => void remove(i)} aria-label="Remove line item">✕</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: value.length ? 10 : 0 }}>
+        <input className="dc-field-input" style={{ flex: 1 }} placeholder="Add product…" value={text}
+          onChange={e => { setText(e.target.value); query(e.target.value); }} />
+        {loading && <div className="dc-spinner" style={{ width: 16, height: 16, borderWidth: 2, margin: 0 }} />}
+      </div>
       {hits.length > 0 && (
         <div className="dc-results">
           {hits.map(h => (
@@ -71,10 +110,14 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
         </div>
       )}
       {value.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>Total: {total.toFixed(2)}</span>
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+          <div className="dc-mut">Subtotal: {subtotal.toFixed(2)}</div>
+          <div className="dc-mut">Discount: −{discountTotal.toFixed(2)}</div>
+          <div style={{ fontWeight: 700 }}>Total: {grand.toFixed(2)}</div>
           {onUseTotal && (
-            <button type="button" className="dc-btn dc-btn-sm" onClick={() => onUseTotal(total)}>Use as deal amount</button>
+            <button type="button" className="dc-btn dc-btn-sm" style={{ marginTop: 8 }} onClick={() => onUseTotal(grand)}>
+              Use total as deal amount
+            </button>
           )}
         </div>
       )}
@@ -97,7 +140,9 @@ export async function persistLineItems(token: string, parentItemId: string, item
         price: li.unitPrice, quantity: li.quantity,
         ...(li.currency ? { hs_line_item_currency_code: li.currency } : {}),
         ...(li.description ? { description: li.description } : {}),
-        ...(li.discount ? { discount: li.discount } : {}),
+        ...(li.discountMode === "percent"
+          ? { hs_discount_percentage: li.discountPct ?? "", discount: "" }
+          : { discount: li.discount ?? "", hs_discount_percentage: "" }),
         ...(li.serviceDate ? { service_date: li.serviceDate } : {}),
       });
       out.push(li);
