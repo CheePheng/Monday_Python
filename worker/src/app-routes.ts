@@ -32,3 +32,10 @@ export function parseDealBody(body: any): DealReq {
   if (!numeric(hubspotDealId)) return { ok: false, error: "hubspotDealId must be a numeric string" };
   return { ok: true, hubspotDealId };
 }
+
+export interface SyncDealReq { ok: boolean; itemId?: string; error?: string }
+export function parseSyncDealBody(body: any): SyncDealReq {
+  const itemId = body?.itemId;
+  if (!numeric(itemId)) return { ok: false, error: "itemId must be a numeric string" };
+  return { ok: true, itemId };
+}

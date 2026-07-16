@@ -1,9 +1,10 @@
 import type { Env, RunOpts } from "./types";
-import { runAll, runIncremental } from "./sync";
+import { runAll, runIncremental, syncMondayItem } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal } from "./hubspot";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody } from "./app-routes";
+import { DEALS } from "./config";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,21 @@ export default {
         } catch (e) {
           console.log(`[app/deal] archive ${d.hubspotDealId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/sync-deal {itemId} — run the deal's reconcile NOW (fields+associations+line items -> HubSpot),
+      // the same path the monday webhook uses. Makes a drawer save instant instead of waiting on a webhook/cron.
+      if (url.pathname === "/app/sync-deal" && req.method === "POST") {
+        const body = await req.json().catch(() => ({}));
+        const s = parseSyncDealBody(body);
+        if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
+        try {
+          await syncMondayItem(env, DEALS.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/sync-deal] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
         }
       }
 
