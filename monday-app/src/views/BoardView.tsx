@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
-import DealModal from "./DealModal";
+import DealDrawer from "./DealDrawer";
 import { computeKpis } from "../lib/kpi";
 import { sortDeals, type SortKey } from "../lib/sort";
 import KanbanView from "./KanbanView";
@@ -187,7 +187,7 @@ export default function BoardView() {
       )}
 
       {editing !== undefined && (
-        <DealModal itemId={editing} board={board}
+        <DealDrawer itemId={editing} board={board}
           onClose={() => setEditing(undefined)}
           onSaved={async (msg) => { setEditing(undefined); setToast(msg); await board.reload(); }} />
       )}

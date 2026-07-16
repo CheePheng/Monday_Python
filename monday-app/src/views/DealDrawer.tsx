@@ -12,13 +12,14 @@ import AssociationPicker, { type Assoc } from "./AssociationPicker";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
+import { syncDeal } from "../worker-client";
 
 interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void }
 
 const pick = (arr: string[], re: RegExp) => arr.find(x => re.test(x)) ?? arr[0];
 const splitCsv = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
 
-export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
+export default function DealDrawer({ itemId, board, onClose, onSaved }: Props) {
   const isEdit = itemId != null;
   const stages = board.meta ? stageOptions(board.meta.groups) : [];
   const userOpts: Opt[] = board.users.map(u => ({ value: u.id, label: u.name || u.email || u.id }));
@@ -37,11 +38,20 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   const [companies, setCompanies] = useState<Assoc[]>([]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [dealHubspotId, setDealHubspotId] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState("");
   const [createdItemId, setCreatedItemId] = useState<string | null>(itemId);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [childErr, setChildErr] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+
+  const [tab, setTab] = useState<"overview" | "associations" | "lineItems" | "updates" | "sync">("overview");
+  const [advanced, setAdvanced] = useState(false);
+  const TABS: { id: typeof tab; label: string }[] = [
+    { id: "overview", label: "Overview" }, { id: "associations", label: "Associations" },
+    { id: "lineItems", label: "Line Items" },
+    ...(isEdit ? [{ id: "updates" as const, label: "Updates" }, { id: "sync" as const, label: "Sync" }] : []),
+  ];
 
   useEffect(() => {
     if (!isEdit || !board.meta) return;
@@ -50,6 +60,7 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
       if (!it) return;
       setName(it.name);
       setDealHubspotId(colText(it, DEAL_COLS.hubspotDealId.id) || null);
+      setSyncState(colText(it, "text_mm4xxyzx"));
       setForm({
         amount: colText(it, DEAL_COLS.amount.id), currency: colText(it, DEAL_COLS.currency.id),
         closeDate: colText(it, DEAL_COLS.closeDate.id), stage: colText(it, DEAL_COLS.stage.id),
@@ -84,6 +95,12 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
     onClose();
   }
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") guardedClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dirty]);
+
   async function save() {
     setSaving(true); setErr(null);
     try {
@@ -104,6 +121,7 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
       });
       const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
+      try { await syncDeal(board.sessionToken, parentId); } catch { /* webhook is the fallback; don't fail the save */ }
       onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
     } catch (e) {
       setErr(`Save failed at a step — press Save to retry (the deal is not duplicated). ${String(e).slice(0, 160)}`);
@@ -111,8 +129,9 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="dc-backdrop" onClick={guardedClose}>
-      <div className="dc-modal" onClick={e => e.stopPropagation()}>
+    <>
+      <div className="dc-drawer-catch" onClick={guardedClose} />
+      <div className="dc-drawer" role="dialog" aria-label={isEdit ? "Edit deal" : "Create deal"}>
         <div className="dc-modal-head">
           <h2>{isEdit ? "Edit deal" : "Create deal"}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -123,53 +142,79 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
           </div>
         </div>
 
-        <div className="dc-modal-body">
-          <Field label="Deal name" required>
-            <input className="dc-field-input" value={name} onChange={e => { setDirty(true); setName(e.target.value); }} placeholder="e.g. Acme — Q3 Renewal" />
-          </Field>
-          {invalid.errors.name && <div className="dc-err">{invalid.errors.name}</div>}
+        <div className="dc-tabs">
+          {TABS.map(t => (
+            <button key={t.id} className={"dc-tab" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)}>{t.label}</button>
+          ))}
+        </div>
 
-          <div className="dc-grid">
-            <Field label="Deal stage" required>
-              <SelectStr options={stages} value={form.stage} onChange={v => set({ stage: v })} placeholder="Select stage…" />
-              {invalid.errors.stage && <div className="dc-err">{invalid.errors.stage}</div>}
-            </Field>
-            <Field label="Deal type"><SelectStr options={board.options.dealType} value={form.dealType} onChange={v => set({ dealType: v })} placeholder="—" /></Field>
-          </div>
+        <div className="dc-drawer-body">
+          {tab === "overview" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <Field label="Deal name" required>
+                <input className="dc-field-input" value={name} onChange={e => { setDirty(true); setName(e.target.value); }} placeholder="e.g. Acme — Q3 Renewal" />
+              </Field>
+              {invalid.errors.name && <div className="dc-err">{invalid.errors.name}</div>}
 
-          <div className="dc-grid">
-            <Field label="Amount">
-              <input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" />
-              {invalid.errors.amount && <div className="dc-err">{invalid.errors.amount}</div>}
-            </Field>
-            <Field label="Currency"><SelectStr options={board.options.currency} value={form.currency} onChange={v => set({ currency: v })} /></Field>
-            <Field label="Close date"><input className="dc-field-input" type="date" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} /></Field>
-          </div>
+              <div className="dc-grid">
+                <Field label="Deal stage" required>
+                  <SelectStr options={stages} value={form.stage} onChange={v => set({ stage: v })} placeholder="Select stage…" />
+                  {invalid.errors.stage && <div className="dc-err">{invalid.errors.stage}</div>}
+                </Field>
+              </div>
 
-          <div className="dc-grid">
-            <Field label="Priority"><SelectStr options={board.options.priority} value={form.priority} onChange={v => set({ priority: v })} placeholder="—" /></Field>
-            <Field label="Vendors"><ChipMulti options={vendorOpts} values={form.vendors ?? []} onChange={v => set({ vendors: v })} placeholder="Add vendor…" /></Field>
-            <Field label="Deal owner"><SelectOpt options={userOpts} value={form.dealOwnerId} onChange={v => set({ dealOwnerId: v })} placeholder="No owner" /></Field>
-          </div>
+              <div className="dc-grid">
+                <Field label="Amount">
+                  <input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" />
+                  {invalid.errors.amount && <div className="dc-err">{invalid.errors.amount}</div>}
+                </Field>
+                <Field label="Currency"><SelectStr options={board.options.currency} value={form.currency} onChange={v => set({ currency: v })} /></Field>
+                <Field label="Close date"><input className="dc-field-input" type="date" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} /></Field>
+              </div>
 
-          <Field label="Sales Users">
-            <ChipMulti options={userOpts} values={form.salesUserIds ?? []} onChange={v => set({ salesUserIds: v })} placeholder="Add sales user…" />
-          </Field>
+              <Field label="Sales Users">
+                <ChipMulti options={userOpts} values={form.salesUserIds ?? []} onChange={v => set({ salesUserIds: v })} placeholder="Add sales user…" />
+              </Field>
 
-          <div className="dc-card">
-            <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts}
-              onChange={next => { setDirty(true); setContacts(next); }} onError={setChildErr} />
-          </div>
-          <div className="dc-card">
-            <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies}
-              onChange={next => { setDirty(true); setCompanies(next); }} onError={setChildErr} />
-          </div>
-          <div className="dc-card">
-            <LineItemsEditor token={board.sessionToken} value={lineItems}
-              onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr}
-              onUseTotal={n => set({ amount: String(n) })} />
-          </div>
-          {isEdit && itemId && <div className="dc-card"><UpdatesPanel itemId={itemId} /></div>}
+              <button type="button" className="dc-btn dc-btn-sm" onClick={() => setAdvanced(a => !a)}>
+                {advanced ? "Hide details" : "More details"}
+              </button>
+              {advanced && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="dc-grid">
+                    <Field label="Deal type"><SelectStr options={board.options.dealType} value={form.dealType} onChange={v => set({ dealType: v })} placeholder="—" /></Field>
+                    <Field label="Priority"><SelectStr options={board.options.priority} value={form.priority} onChange={v => set({ priority: v })} placeholder="—" /></Field>
+                  </div>
+                  <div className="dc-grid">
+                    <Field label="Vendors"><ChipMulti options={vendorOpts} values={form.vendors ?? []} onChange={v => set({ vendors: v })} placeholder="Add vendor…" /></Field>
+                    <Field label="Deal owner"><SelectOpt options={userOpts} value={form.dealOwnerId} onChange={v => set({ dealOwnerId: v })} placeholder="No owner" /></Field>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "associations" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts} onChange={next => { setDirty(true); setContacts(next); }} onError={setChildErr} />
+              <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} onError={setChildErr} />
+            </div>
+          )}
+
+          {tab === "lineItems" && (
+            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr} onUseTotal={n => set({ amount: String(n) })} />
+          )}
+
+          {tab === "updates" && isEdit && itemId && <UpdatesPanel itemId={itemId} />}
+
+          {tab === "sync" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="dc-section-title">Sync</div>
+              <div>HubSpot Deal ID: {dealHubspotId ? <b>{dealHubspotId}</b> : <span className="dc-mut">Pending — creating in HubSpot…</span>}</div>
+              <div className="dc-mut">Last synced: {syncState || "—"}</div>
+              {dealHubspotId && <div><button className="dc-btn dc-btn-sm" onClick={() => openLink(hubspotDealUrl(dealHubspotId))}>↗ Open in HubSpot</button></div>}
+            </div>
+          )}
 
           {(err || childErr) && <div className="dc-err">{err || childErr}</div>}
         </div>
@@ -181,6 +226,6 @@ export default function DealModal({ itemId, board, onClose, onSaved }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
