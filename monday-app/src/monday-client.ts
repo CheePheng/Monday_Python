@@ -75,8 +75,10 @@ export async function getDeals(): Promise<RawItem[]> {
 
 /** Fetch a single deal item (fast edit-open, avoids re-fetching every deal). */
 export async function getDeal(itemId: string): Promise<RawItem | null> {
+  // created_at MUST be selected: patchRow() rebuilds the row from this after a save, and without it the
+  // Created column would blank out on the edited row (getDeals, used by the initial load, has it too).
   const d: any = await api(`query ($i:[ID!]) { items(ids:$i) {
-    id name group { id } column_values { id text value ... on BoardRelationValue { linked_item_ids } } } }`, { i: [itemId] });
+    id name created_at group { id } column_values { id text value ... on BoardRelationValue { linked_item_ids } } } }`, { i: [itemId] });
   return d.items?.[0] ?? null;
 }
 
