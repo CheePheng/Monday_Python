@@ -5,7 +5,9 @@ import { groupIdForStage, stageOptions } from "../lib/stage";
 import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
+  findOrCreateContact, findOrCreateCompany, createContactCard, createCompanyCard,
 } from "../monday-client";
+import { deleteHubspotAssociation } from "../worker-client";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
 import AssociationPicker, { type Assoc } from "./AssociationPicker";
@@ -36,6 +38,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   });
   const [contacts, setContacts] = useState<Assoc[]>([]);
   const [companies, setCompanies] = useState<Assoc[]>([]);
+  // What was linked when the drawer opened — the baseline for working out what to unlink on Save.
+  const [origContacts, setOrigContacts] = useState<Assoc[]>([]);
+  const [origCompanies, setOrigCompanies] = useState<Assoc[]>([]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [dealHubspotId, setDealHubspotId] = useState<string | null>(null);
   const [syncState, setSyncState] = useState("");
@@ -75,8 +80,10 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         getCardsByIds(linkedIds(it, DEAL_COLS.contact.id), CONTACT_ID_COL),
         getCardsByIds(linkedIds(it, DEAL_COLS.company.id), COMPANY_ID_COL),
       ]);
-      setContacts(contactCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name })));
-      setCompanies(companyCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name })));
+      const cs = contactCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name }));
+      const cos = companyCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name }));
+      setContacts(cs); setOrigContacts(cs);
+      setCompanies(cos); setOrigCompanies(cos);
       // Hydrate EVERY field the save writes back. Anything left undefined here is sent to HubSpot as a
       // blank on the next save — that's how discounts were being wiped by simply opening and saving.
       setLineItems(subs.map((su): LineItem => {
@@ -117,6 +124,36 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   // Report dirty state up so the board can guard a deal switch (row click / Create) on unsaved edits.
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty]);
 
+  /** Create/find the monday card for each staged association. Rows that already have an itemId are left
+   * alone, so a retry can never create a second card for the same record. */
+  async function resolveAssocs(list: Assoc[], kind: "contacts" | "companies"): Promise<Assoc[]> {
+    const out: Assoc[] = [];
+    for (const a of list) {
+      if (a.itemId) { out.push(a); continue; }
+      const itemId = a.create
+        ? (a.create.kind === "contact"
+          ? await createContactCard({ name: a.create.name, email: a.create.email, phone: a.create.phone })
+          : await createCompanyCard({ name: a.create.name, domain: a.create.domain }))
+        : (kind === "contacts"
+          ? await findOrCreateContact(a.hubspotId, a.label)
+          : await findOrCreateCompany(a.hubspotId, a.label));
+      out.push({ ...a, itemId });
+    }
+    return out;
+  }
+
+  /** Unlink in HubSpot whatever was removed from the drawer since it opened. Best-effort: the board
+   * relation column is the source of truth for the link, so a failure here shouldn't fail the save. */
+  async function unlinkRemoved(orig: Assoc[], current: Assoc[], kind: "contacts" | "companies") {
+    if (!dealHubspotId) return;
+    for (const o of orig) {
+      if (!o.hubspotId || !o.itemId) continue;
+      if (current.some(c => c.itemId === o.itemId)) continue;
+      try { await deleteHubspotAssociation(board.sessionToken, kind, dealHubspotId, o.hubspotId); }
+      catch (e) { setChildErr("Couldn't unlink in HubSpot: " + String(e).slice(0, 120)); }
+    }
+  }
+
   async function save() {
     setSaving(true); setErr(null);
     try {
@@ -137,10 +174,17 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         const gid = form.stage ? groupIdForStage(form.stage, board.meta!.groups) : undefined;
         if (gid) await moveToGroup(parentId, gid);
       }
+      // Staged associations become real only now, at Save.
+      const rc = await resolveAssocs(contacts, "contacts");
+      const rco = await resolveAssocs(companies, "companies");
+      setContacts(rc); setCompanies(rco); // keep the ids so a retry reuses the cards
       await updateDealColumns(parentId, {
-        [DEAL_COLS.contact.id]: boardRelationValue(contacts.map(c => c.itemId)),
-        [DEAL_COLS.company.id]: boardRelationValue(companies.map(c => c.itemId)),
+        [DEAL_COLS.contact.id]: boardRelationValue(rc.map(c => c.itemId!)),
+        [DEAL_COLS.company.id]: boardRelationValue(rco.map(c => c.itemId!)),
       });
+      await unlinkRemoved(origContacts, rc, "contacts");
+      await unlinkRemoved(origCompanies, rco, "companies");
+      setOrigContacts(rc); setOrigCompanies(rco);
       const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
       try { await syncDeal(board.sessionToken, parentId); } catch { /* webhook is the fallback; don't fail the save */ }
@@ -217,8 +261,8 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
 
           {tab === "associations" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <AssociationPicker kind="contacts" token={board.sessionToken} dealHubspotId={dealHubspotId} value={contacts} onChange={next => { setDirty(true); setContacts(next); }} onError={setChildErr} />
-              <AssociationPicker kind="companies" token={board.sessionToken} dealHubspotId={dealHubspotId} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} onError={setChildErr} />
+              <AssociationPicker kind="contacts" token={board.sessionToken} value={contacts} onChange={next => { setDirty(true); setContacts(next); }} />
+              <AssociationPicker kind="companies" token={board.sessionToken} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} />
             </div>
           )}
 
