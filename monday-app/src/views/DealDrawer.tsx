@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { BoardState } from "../useBoard";
-import { dealFormToColumnValues, boardRelationValue, type DealForm } from "../lib/columns";
+import { dealFormToColumnValues, deliberateClears, boardRelationValue, type DealForm } from "../lib/columns";
 import { groupIdForStage, stageOptions } from "../lib/stage";
 import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
@@ -14,7 +14,7 @@ import AssociationPicker, { type Assoc } from "./AssociationPicker";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
-import { syncDeal, unassignDeal } from "../worker-client";
+import { syncDeal, clearDealFields } from "../worker-client";
 
 interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void; onDirtyChange?: (dirty: boolean) => void }
 
@@ -46,6 +46,10 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [syncState, setSyncState] = useState("");
   const [createdItemId, setCreatedItemId] = useState<string | null>(itemId);
   const [saving, setSaving] = useState(false);
+  // Nothing may be cleared from a form that didn't fully load: `loaded` gates Save, and `origForm` is
+  // the baseline that decides whether an empty box is a deliberate clear or was simply never filled.
+  const [loaded, setLoaded] = useState(!isEdit);
+  const [origForm, setOrigForm] = useState<DealForm | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [childErr, setChildErr] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -61,12 +65,13 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   useEffect(() => {
     if (!isEdit || !board.meta) return;
     void (async () => {
+      try {
       const it = await getDeal(itemId!);
-      if (!it) return;
+      if (!it) { setErr("Couldn't load this deal. Close and reopen it before saving."); return; }
       setName(it.name);
       setDealHubspotId(colText(it, DEAL_COLS.hubspotDealId.id) || null);
       setSyncState(colText(it, "text_mm4xxyzx"));
-      setForm({
+      const loadedForm: DealForm = {
         amount: colText(it, DEAL_COLS.amount.id), currency: colText(it, DEAL_COLS.currency.id),
         closeDate: colText(it, DEAL_COLS.closeDate.id), stage: colText(it, DEAL_COLS.stage.id),
         pipeline: colText(it, DEAL_COLS.pipeline.id),
@@ -74,7 +79,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         vendors: splitCsv(colText(it, DEAL_COLS.vendors.id)),
         salesUserIds: peopleIds(it, DEAL_COLS.salesUsers.id),
         dealOwnerId: peopleIds(it, DEAL_COLS.dealOwner.id)[0],
-      });
+      };
+      setForm(loadedForm);
+      setOrigForm(loadedForm); // baseline: what was actually on the deal when it opened
       const [subs, contactCards, companyCards] = await Promise.all([
         getSubitems(itemId!),
         getCardsByIds(linkedIds(it, DEAL_COLS.contact.id), CONTACT_ID_COL),
@@ -104,6 +111,12 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
           discountMode: discountPct ? "percent" : "amount",
         };
       }));
+      // Only now is the form a faithful copy of the deal. Save stays disabled until this point, so a
+      // half-loaded drawer can never blank a field or unlink an association it simply didn't fetch.
+      setLoaded(true);
+      } catch (e) {
+        setErr("Couldn't load this deal. Close and reopen it before saving. " + String(e).slice(0, 120));
+      }
     })();
   }, [isEdit, itemId, board.meta]);
 
@@ -157,6 +170,10 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   async function save() {
     setSaving(true); setErr(null);
     try {
+      // Only an edit can clear: a create has no prior value to remove, and origForm is the proof the
+      // deal actually loaded. Amount/Close date/Sales Users emptied by the rep are cleared on BOTH
+      // sides; every other field is still just omitted when empty.
+      const clears = origForm ? deliberateClears(origForm, form) : {};
       let parentId = createdItemId;
       if (!parentId) {
         const stage = form.stage ?? stages[0];
@@ -170,7 +187,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         // Also covers retrying a create whose later steps failed: the item already exists, so re-apply
         // the form to it rather than skipping (edits made before the retry would otherwise be lost).
         await renameDeal(parentId, name);
-        await updateDealColumns(parentId, dealFormToColumnValues(form));
+        await updateDealColumns(parentId, dealFormToColumnValues(form, clears));
         const gid = form.stage ? groupIdForStage(form.stage, board.meta!.groups) : undefined;
         if (gid) await moveToGroup(parentId, gid);
       }
@@ -187,10 +204,16 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       setOrigContacts(rc); setOrigCompanies(rco);
       const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
-      // Emptying Sales Users is the rep saying "unassign this deal". HubSpot's sales_user is what puts
-      // it in the Unassigned group, and the sync will never clear it from an empty column, so say so.
-      if (dealHubspotId && !(form.salesUserIds ?? []).length)
-        await unassignDeal(board.sessionToken, dealHubspotId);
+      // Push the rep's deliberate clears to HubSpot. The sync can never do this itself: an empty monday
+      // value is indistinguishable from "never set" (and for people columns means "heal from HubSpot"),
+      // so the intent has to travel with the action. Empties nothing unless the rep emptied it.
+      const clearProps = [
+        ...(clears.amount ? ["amount"] : []),
+        ...(clears.closeDate ? ["closedate"] : []),
+        ...(clears.salesUsers ? ["sales_user"] : []),
+      ];
+      if (dealHubspotId && clearProps.length)
+        await clearDealFields(board.sessionToken, dealHubspotId, clearProps);
       try { await syncDeal(board.sessionToken, parentId); } catch { /* webhook is the fallback; don't fail the save */ }
       onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
     } catch (e) {
@@ -290,7 +313,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
 
         <div className="dc-modal-foot">
           <button className="dc-btn" onClick={guardedClose}>Cancel</button>
-          <button className="dc-btn dc-btn-primary" disabled={saving || !invalid.ok} onClick={() => { if (!saving) void save(); }}>
+          <button className="dc-btn dc-btn-primary" disabled={saving || !invalid.ok || !loaded} onClick={() => { if (!saving) void save(); }}>
             {saving ? "Saving…" : isEdit ? "Save changes" : "Create deal"}
           </button>
         </div>

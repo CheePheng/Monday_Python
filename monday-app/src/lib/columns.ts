@@ -14,23 +14,43 @@ export interface DealForm {
   dealType?: string; priority?: string; vendors?: string[]; salesUserIds?: string[]; dealOwnerId?: string;
 }
 
+/** The fields a rep is allowed to deliberately clear. */
+export interface DealClears { amount?: boolean; closeDate?: boolean; salesUsers?: boolean }
+
+const blank = (v?: string) => !(v ?? "").trim();
+
+/** Which clearable fields the rep DELIBERATELY emptied: the value loaded with something in it, and the
+ * rep emptied the box. `orig` must be the form as it was hydrated from the item.
+ *
+ * A field that was already empty is never a clear. That matters: if monday is empty only because the
+ * sync hasn't filled it yet, treating it as a clear would wipe a real HubSpot value on the next save. */
+export function deliberateClears(orig: DealForm, now: DealForm): DealClears {
+  const emptied = (a?: string, b?: string) => !blank(a) && blank(b);
+  return {
+    amount: emptied(orig.amount, now.amount),
+    closeDate: emptied(orig.closeDate, now.closeDate),
+    salesUsers: (orig.salesUserIds?.length ?? 0) > 0 && (now.salesUserIds?.length ?? 0) === 0,
+  };
+}
+
 /** Deal form -> monday column_values object (JSON-encode before sending). Empty fields are omitted so
- * an edit never blanks an untouched column. Note: item name (dealname) and group are set separately. */
-export function dealFormToColumnValues(f: DealForm): Record<string, unknown> {
+ * an edit never blanks an untouched column — EXCEPT the fields in `clears`, which the rep deliberately
+ * emptied and which are written as null (null clears every monday column type).
+ * Note: item name (dealname) and group are set separately. */
+export function dealFormToColumnValues(f: DealForm, clears: DealClears = {}): Record<string, unknown> {
   const cv: Record<string, unknown> = {};
   if (f.amount) cv[DEAL_COLS.amount.id] = f.amount;
+  else if (clears.amount) cv[DEAL_COLS.amount.id] = null;
   if (f.currency) cv[DEAL_COLS.currency.id] = { label: f.currency };
   if (f.closeDate) cv[DEAL_COLS.closeDate.id] = { date: f.closeDate };
+  else if (clears.closeDate) cv[DEAL_COLS.closeDate.id] = null;
   if (f.stage) cv[DEAL_COLS.stage.id] = { label: f.stage };
   if (f.pipeline) cv[DEAL_COLS.pipeline.id] = { label: f.pipeline };
   if (f.dealType) cv[DEAL_COLS.dealType.id] = { label: f.dealType };
   if (f.priority) cv[DEAL_COLS.priority.id] = { label: f.priority };
   if (f.vendors && f.vendors.length) cv[DEAL_COLS.vendors.id] = { labels: f.vendors };
-  // Sales Users is the one clearable field: emptying it must actually empty the column, because that
-  // (plus clearing sales_user in HubSpot) is how a deal goes back to Unassigned. `null` clears every
-  // monday column type. Every other field is still omitted when empty, so an edit can't blank it.
-  if (f.salesUserIds !== undefined)
-    cv[DEAL_COLS.salesUsers.id] = f.salesUserIds.length ? peopleValue(f.salesUserIds) : null;
+  if (f.salesUserIds && f.salesUserIds.length) cv[DEAL_COLS.salesUsers.id] = peopleValue(f.salesUserIds);
+  else if (clears.salesUsers) cv[DEAL_COLS.salesUsers.id] = null;
   if (f.dealOwnerId) cv[DEAL_COLS.dealOwner.id] = peopleValue([f.dealOwnerId]);
   return cv;
 }

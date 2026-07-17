@@ -1,15 +1,32 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseUnassignDealBody,
+  parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody,
 } from "../src/app-routes";
 
-describe("parseUnassignDealBody", () => {
-  it("accepts a numeric hubspotDealId", () =>
-    expect(parseUnassignDealBody({ hubspotDealId: "9001" })).toEqual({ ok: true, hubspotDealId: "9001" }));
-  it("rejects missing / non-numeric", () => {
-    expect(parseUnassignDealBody({}).ok).toBe(false);
-    expect(parseUnassignDealBody({ hubspotDealId: "abc" }).ok).toBe(false);
+describe("parseClearDealBody", () => {
+  it("accepts the allowlisted properties", () =>
+    expect(parseClearDealBody({ hubspotDealId: "9001", fields: ["amount", "closedate", "sales_user"] }))
+      .toEqual({ ok: true, hubspotDealId: "9001", fields: ["amount", "closedate", "sales_user"] }));
+
+  // The allowlist is the safety boundary: this route is the ONE thing allowed to blank HubSpot, so it
+  // must never be talked into clearing anything else.
+  it("refuses a property that isn't clearable", () => {
+    expect(parseClearDealBody({ hubspotDealId: "9001", fields: ["dealname"] }).ok).toBe(false);
+    expect(parseClearDealBody({ hubspotDealId: "9001", fields: ["amount", "dealstage"] }).ok).toBe(false);
+    expect(parseClearDealBody({ hubspotDealId: "9001", fields: ["hubspot_owner_id"] }).ok).toBe(false);
   });
+  it("rejects a non-string field", () =>
+    expect(parseClearDealBody({ hubspotDealId: "9001", fields: [{ x: 1 }] }).ok).toBe(false));
+  it("rejects an empty or missing field list", () => {
+    expect(parseClearDealBody({ hubspotDealId: "9001", fields: [] }).ok).toBe(false);
+    expect(parseClearDealBody({ hubspotDealId: "9001" }).ok).toBe(false);
+  });
+  it("rejects missing / non-numeric hubspotDealId", () => {
+    expect(parseClearDealBody({ fields: ["amount"] }).ok).toBe(false);
+    expect(parseClearDealBody({ hubspotDealId: "abc", fields: ["amount"] }).ok).toBe(false);
+  });
+  it("dedupes", () =>
+    expect(parseClearDealBody({ hubspotDealId: "1", fields: ["amount", "amount"] }).fields).toEqual(["amount"]));
 });
 
 describe("parseLineItemBody", () => {

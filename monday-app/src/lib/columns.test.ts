@@ -1,22 +1,54 @@
 import { describe, it, expect } from "vitest";
 import {
-  dealFormToColumnValues, lineItemToSubitemColumns, lineItemHubspotProperties, boardRelationValue, peopleValue,
+  dealFormToColumnValues, deliberateClears, lineItemToSubitemColumns, lineItemHubspotProperties,
+  boardRelationValue, peopleValue,
 } from "./columns";
 
+describe("deliberateClears", () => {
+  const loaded = { amount: "5000", closeDate: "2026-07-01", salesUserIds: ["111"] };
+
+  it("reports a field the rep emptied", () =>
+    expect(deliberateClears(loaded, { amount: "", closeDate: "", salesUserIds: [] }))
+      .toEqual({ amount: true, closeDate: true, salesUsers: true }));
+
+  it("reports nothing when the values are untouched", () =>
+    expect(deliberateClears(loaded, loaded)).toEqual({ amount: false, closeDate: false, salesUsers: false }));
+
+  // The important one: monday can be empty simply because the sync hasn't filled it yet. Treating that
+  // as a clear would let an unrelated save wipe a real HubSpot value.
+  it("is NOT a clear when the field was already empty on load", () =>
+    expect(deliberateClears({ amount: "", closeDate: "", salesUserIds: [] }, { amount: "", closeDate: "", salesUserIds: [] }))
+      .toEqual({ amount: false, closeDate: false, salesUsers: false }));
+
+  it("treats whitespace-only as emptied", () =>
+    expect(deliberateClears(loaded, { ...loaded, amount: "   " }).amount).toBe(true));
+
+  it("is not a clear when the value merely changed", () =>
+    expect(deliberateClears(loaded, { ...loaded, amount: "6000" }).amount).toBe(false));
+});
+
 describe("dealFormToColumnValues — clearing", () => {
-  it("clears Sales Users when emptied (null clears every monday column type)", () =>
-    expect(dealFormToColumnValues({ salesUserIds: [] }))
-      .toEqual({ multiple_person_mm532m82: null }));
+  it("clears only what the rep deliberately emptied (null clears every monday column type)", () =>
+    expect(dealFormToColumnValues({}, { amount: true, closeDate: true, salesUsers: true }))
+      .toEqual({ numeric_mm531t6e: null, date_mm53ecz3: null, multiple_person_mm532m82: null }));
 
-  it("omits Sales Users entirely when the form doesn't manage it", () =>
-    expect(dealFormToColumnValues({})).toEqual({}));
+  // Without a clear flag an empty field is still omitted, so an edit can't blank an untouched column —
+  // and a form that never loaded (no clears computed) can't blank anything at all.
+  it("omits empty fields when nothing was deliberately cleared", () =>
+    expect(dealFormToColumnValues({ amount: "", closeDate: "", salesUserIds: [], vendors: [] })).toEqual({}));
 
-  // Only Sales Users is clearable; everything else keeps the never-blank-an-untouched-column rule,
-  // because the Worker refuses to clear HubSpot from an empty monday value.
-  it("does not blank the other fields when they're emptied", () => {
-    const cv = dealFormToColumnValues({ amount: "", closeDate: "", priority: "", dealType: "", vendors: [] });
-    expect(cv).toEqual({});
+  it("never clears a field outside the allowlist", () => {
+    const cv = dealFormToColumnValues({ priority: "", dealType: "", currency: "", vendors: [] },
+      { amount: true, closeDate: true, salesUsers: true });
+    expect(cv).not.toHaveProperty("color_mm532rej");
+    expect(cv).not.toHaveProperty("color_mm53cky8");
+    expect(cv).not.toHaveProperty("color_mm53vk99");
+    expect(cv).not.toHaveProperty("dropdown_mm4n4f7r");
   });
+
+  it("a value still present wins over a stale clear flag", () =>
+    expect(dealFormToColumnValues({ amount: "5000" }, { amount: true }))
+      .toEqual({ numeric_mm531t6e: "5000" }));
 });
 
 describe("lineItemHubspotProperties", () => {

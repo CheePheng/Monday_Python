@@ -32,8 +32,9 @@ export async function archiveHubspotDeal(token: string, hubspotDealId: string): 
 export async function syncDeal(token: string, itemId: string): Promise<void> {
   await call(token, "POST", "/app/sync-deal", { itemId });
 }
-/** Clear sales_user in HubSpot so the deal drops back to Unassigned. Carries the rep's explicit intent:
- * the sync can't infer it, since an empty monday people column means "heal from HubSpot". */
-export async function unassignDeal(token: string, hubspotDealId: string): Promise<void> {
-  await call(token, "POST", "/app/unassign-deal", { hubspotDealId });
+/** Blank allowlisted properties on one deal in HubSpot (amount | closedate | sales_user; the Worker
+ * enforces the list). Carries the rep's explicit intent, which the sync cannot infer: an empty monday
+ * value is indistinguishable from "never set", and for people columns means "heal from HubSpot". */
+export async function clearDealFields(token: string, hubspotDealId: string, fields: string[]): Promise<void> {
+  await call(token, "POST", "/app/clear-deal-fields", { hubspotDealId, fields });
 }

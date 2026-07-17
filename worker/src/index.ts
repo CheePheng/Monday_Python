@@ -3,7 +3,7 @@ import { runAll, runIncremental, syncMondayItem } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord } from "./hubspot";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseUnassignDealBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody } from "./app-routes";
 import { DEALS } from "./config";
 
 const CORS = {
@@ -131,19 +131,22 @@ export default {
 
       // POST /app/sync-deal {itemId} — run the deal's reconcile NOW (fields+associations+line items -> HubSpot),
       // the same path the monday webhook uses. Makes a drawer save instant instead of waiting on a webhook/cron.
-      // Clear sales_user in HubSpot so the deal drops back to Unassigned. The rep emptied the field and
-      // pressed Save — the app carries that intent; the reconciler's empty column means "heal from
-      // HubSpot" and could never express it.
-      if (url.pathname === "/app/unassign-deal" && req.method === "POST") {
+      // POST /app/clear-deal-fields {hubspotDealId, fields:[...]} — blank allowlisted deal properties.
+      // The rep emptied the field and pressed Save; the app carries that intent, because the reconciler
+      // can't infer it from state (an empty monday value means "never set" OR "just cleared", and for
+      // people columns it means "heal from HubSpot"). Every clear is logged.
+      if (url.pathname === "/app/clear-deal-fields" && req.method === "POST") {
         const body = await req.json().catch(() => ({}));
-        const s = parseUnassignDealBody(body);
-        if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
+        const c = parseClearDealBody(body);
+        if (!c.ok) return Response.json({ error: c.error }, { status: 400, headers: CORS });
         try {
-          await patchRecord(env, DEALS, s.hubspotDealId!, { sales_user: "" }, appWriteOpts(env));
+          const props = Object.fromEntries(c.fields!.map(f => [f, ""]));
+          console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} fields=${c.fields!.join(",")}`);
+          await patchRecord(env, DEALS, c.hubspotDealId!, props, appWriteOpts(env));
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
-          console.log(`[app/unassign-deal] deal=${s.hubspotDealId} error="${String(e).slice(0, 160)}"`);
-          return Response.json({ ok: false, error: "unassign-failed" }, { status: 502, headers: CORS });
+          console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "clear-failed" }, { status: 502, headers: CORS });
         }
       }
 

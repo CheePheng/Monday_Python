@@ -33,14 +33,21 @@ export function parseDealBody(body: any): DealReq {
   return { ok: true, hubspotDealId };
 }
 
-/** Unassign = clear sales_user on ONE deal. Deliberately not a generic "clear any field" route: the
- * reconciler must never clear HubSpot from an empty monday value (it can't tell "never assigned" from
- * "just cleared"), so this carries the rep's explicit intent instead, for exactly one property. */
-export interface UnassignDealReq { ok: boolean; hubspotDealId?: string; error?: string }
-export function parseUnassignDealBody(body: any): UnassignDealReq {
+/** The ONLY deal properties this API may blank, enforced server-side. The reconciler must never clear
+ * HubSpot from an empty monday value — it can't tell "never set" from "just cleared" — so clearing is
+ * an explicit act the rep takes in the app, carried here, and confined to this allowlist. */
+export const CLEARABLE_DEAL_PROPS = new Set(["amount", "closedate", "sales_user"]);
+
+export interface ClearDealReq { ok: boolean; hubspotDealId?: string; fields?: string[]; error?: string }
+export function parseClearDealBody(body: any): ClearDealReq {
   const hubspotDealId = body?.hubspotDealId;
   if (!numeric(hubspotDealId)) return { ok: false, error: "hubspotDealId must be a numeric string" };
-  return { ok: true, hubspotDealId };
+  const fields = body?.fields;
+  if (!Array.isArray(fields) || fields.length === 0)
+    return { ok: false, error: "fields must be a non-empty array" };
+  const bad = fields.filter(f => typeof f !== "string" || !CLEARABLE_DEAL_PROPS.has(f));
+  if (bad.length) return { ok: false, error: `not clearable: ${bad.map(String).join(",")}` };
+  return { ok: true, hubspotDealId, fields: [...new Set(fields as string[])] };
 }
 
 export interface SyncDealReq { ok: boolean; itemId?: string; error?: string }
