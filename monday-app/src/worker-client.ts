@@ -29,8 +29,9 @@ export async function deleteHubspotAssociation(
 export async function archiveHubspotDeal(token: string, hubspotDealId: string): Promise<void> {
   await call(token, "DELETE", "/app/deal", { hubspotDealId });
 }
-export async function syncDeal(token: string, itemId: string): Promise<void> {
-  await call(token, "POST", "/app/sync-deal", { itemId });
+export async function syncDeal(token: string, itemId: string): Promise<boolean> {
+  const res = await call(token, "POST", "/app/sync-deal", { itemId });
+  return res?.ok === true;
 }
 /** Blank allowlisted properties on one deal in HubSpot (amount | closedate | sales_user; the Worker
  * enforces the list). Carries the rep's explicit intent, which the sync cannot infer: an empty monday

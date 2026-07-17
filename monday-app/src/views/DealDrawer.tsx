@@ -14,9 +14,9 @@ import AssociationPicker, { type Assoc } from "./AssociationPicker";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
-import { syncDeal, clearDealFields } from "../worker-client";
+import type { SavedInfo } from "../lib/sync-status";
 
-interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void; onDirtyChange?: (dirty: boolean) => void }
+interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (info: SavedInfo) => void; onDirtyChange?: (dirty: boolean) => void }
 
 const pick = (arr: string[], re: RegExp) => arr.find(x => re.test(x)) ?? arr[0];
 const splitCsv = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
@@ -209,18 +209,15 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       setOrigContacts(rc); setOrigCompanies(rco);
       const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
-      // Push the rep's deliberate clears to HubSpot. The sync can never do this itself: an empty monday
-      // value is indistinguishable from "never set" (and for people columns means "heal from HubSpot"),
-      // so the intent has to travel with the action. Empties nothing unless the rep emptied it.
+      // HubSpot side (clears + reconcile) is deferred to the board's background finishSave, so the drawer
+      // can close the instant monday confirms. clearProps carries the rep's deliberate clears; the sync
+      // can never infer them (an empty monday value means "never set", and for people "heal from HubSpot").
       const clearProps = [
         ...(clears.amount ? ["amount"] : []),
         ...(clears.closeDate ? ["closedate"] : []),
         ...(clears.salesUsers ? ["sales_user"] : []),
       ];
-      if (dealHubspotId && clearProps.length)
-        await clearDealFields(board.sessionToken, dealHubspotId, clearProps);
-      try { await syncDeal(board.sessionToken, parentId); } catch { /* webhook is the fallback; don't fail the save */ }
-      onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
+      onSaved({ itemId: parentId, isEdit, clearProps });
     } catch (e) {
       setErr(`Save failed at a step — press Save to retry (the deal is not duplicated). ${String(e).slice(0, 400)}`);
     } finally { setSaving(false); savingRef.current = false; }
@@ -248,6 +245,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         <div className="dc-drawer-body">
           {tab === "overview" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="dc-section-title">Deal</div>
               <Field label="Deal name" required>
                 <input className="dc-field-input" value={name} onChange={e => { setDirty(true); setName(e.target.value); }} placeholder="e.g. Acme — Q3 Renewal" />
               </Field>
@@ -260,6 +258,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
                 </Field>
               </div>
 
+              <div className="dc-section-title">Value</div>
               <div className="dc-grid">
                 <Field label="Amount">
                   <input className="dc-field-input" value={form.amount ?? ""} onChange={e => set({ amount: e.target.value })} placeholder="0" />
@@ -269,6 +268,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
                 <Field label="Close date"><input className="dc-field-input" type="date" value={form.closeDate ?? ""} onChange={e => set({ closeDate: e.target.value })} /></Field>
               </div>
 
+              <div className="dc-section-title">People</div>
               <Field label="Sales Users">
                 <ChipMulti options={userOpts} values={form.salesUserIds ?? []} onChange={v => set({ salesUserIds: v })} placeholder="Add sales user…" />
               </Field>

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { getContext, getBoardMeta, getUsers, getDeals, getItemNames, type AccountUser, type BoardMeta, type RawItem } from "./monday-client";
+import { getContext, getBoardMeta, getUsers, getDeals, getDeal, getItemNames, type AccountUser, type BoardMeta, type RawItem } from "./monday-client";
 import { validateBoardSchema } from "./lib/schema";
 import { columnLabels } from "./lib/labels";
 import { DEAL_COLS } from "./board-config";
 import type { DealRow } from "./lib/filter";
+import { upsertRow } from "./lib/rows";
+import { syncDeal, clearDealFields } from "./worker-client";
+import { confirmSynced, type SyncStatus, type SavedInfo } from "./lib/sync-status";
 
 export interface DealOptions { pipeline: string[]; dealType: string[]; priority: string[]; vendors: string[]; currency: string[] }
 const EMPTY_OPTIONS: DealOptions = { pipeline: [], dealType: [], priority: [], vendors: [], currency: [] };
@@ -39,6 +42,13 @@ function toRow(item: RawItem): DealRow {
   };
 }
 
+/** Build a DealRow from a raw item, resolving its linked company/contact names from `names`.
+ * Shared by load() (all rows) and patchRow() (one row) so they can never drift. */
+function rawItemToRow(item: RawItem, names: Record<string, string>): DealRow {
+  const nameList = (col: string) => linkedIds(item, col).map(id => names[id]).filter(Boolean).join(", ");
+  return { ...toRow(item), company: nameList(DEAL_COLS.company.id), contact: nameList(DEAL_COLS.contact.id) };
+}
+
 export interface BoardState {
   loading: boolean; error: string | null; schemaErrors: string[];
   userId: string; sessionToken: string; users: AccountUser[]; meta: BoardMeta | null;
@@ -46,14 +56,23 @@ export interface BoardState {
   reload: () => Promise<void>;
   /** Suspend the background refresh (the drawer sets this while it's open). */
   setAutoRefreshPaused: (paused: boolean) => void;
+  /** Transient per-itemId sync status shown as a row badge (client-only). */
+  syncing: Record<string, SyncStatus>;
+  /** Refetch ONE deal and upsert it into rows (no loading flip). Returns the row, or null if gone. */
+  patchRow: (itemId: string) => Promise<DealRow | null>;
+  /** After a monday save: update the row, run the HubSpot sync in the background, set the badge status. */
+  finishSave: (info: SavedInfo) => Promise<void>;
 }
 
 export function useBoard(): BoardState {
-  const [s, setS] = useState<Omit<BoardState, "reload" | "setAutoRefreshPaused">>({
+  const [s, setS] = useState<Omit<BoardState, "reload" | "setAutoRefreshPaused" | "syncing" | "patchRow" | "finishSave">>({
     loading: true, error: null, schemaErrors: [], userId: "", sessionToken: "", users: [], meta: null,
     options: EMPTY_OPTIONS, rows: [],
   });
   const pausedRef = useRef(false);
+  const [syncing, setSyncing] = useState<Record<string, SyncStatus>>({});
+  const setStatus = (id: string, status: SyncStatus) => setSyncing(prev => ({ ...prev, [id]: status }));
+  const clearStatus = (id: string) => setSyncing(prev => { const n = { ...prev }; delete n[id]; return n; });
 
   // `silent` refreshes rows in place. Flipping `loading` unmounts the whole view (BoardView renders a
   // loading screen on it), which would throw away an open drawer's unsaved edits — never do that
@@ -72,9 +91,7 @@ export function useBoard(): BoardState {
         for (const id of linkedIds(it, DEAL_COLS.contact.id)) linkIds.add(id);
       }
       const names = await getItemNames([...linkIds]);
-      const nameList = (it: RawItem, col: string) => linkedIds(it, col).map(id => names[id]).filter(Boolean).join(", ");
-      const rows = items.map(it => ({ ...toRow(it),
-        company: nameList(it, DEAL_COLS.company.id), contact: nameList(it, DEAL_COLS.contact.id) }));
+      const rows = items.map(it => rawItemToRow(it, names));
       setS({
         loading: false, error: null, schemaErrors: [], userId: ctx.userId, sessionToken: ctx.sessionToken,
         users, meta, options: optionsFrom(meta), rows,
@@ -83,6 +100,38 @@ export function useBoard(): BoardState {
       setS(p => ({ ...p, loading: false, error: String(e).slice(0, 200) }));
     }
   }
+  // Refetch ONE deal and upsert it into rows — no `loading` flip, so the board never flashes.
+  async function patchRow(itemId: string): Promise<DealRow | null> {
+    const it = await getDeal(itemId);
+    if (!it) return null;
+    const linkIds = new Set<string>();
+    for (const id of linkedIds(it, DEAL_COLS.company.id)) linkIds.add(id);
+    for (const id of linkedIds(it, DEAL_COLS.contact.id)) linkIds.add(id);
+    const names = await getItemNames([...linkIds]);
+    const row = rawItemToRow(it, names);
+    setS(prev => ({ ...prev, rows: upsertRow(prev.rows, row) }));
+    return row;
+  }
+
+  // Background HubSpot sync for a just-saved deal. Updates the one row, then flips the badge to Synced
+  // ONLY when the Worker reported ok AND a HubSpot Deal ID is present. Failure -> "error" (Retry badge).
+  async function finishSave(info: SavedInfo) {
+    const { itemId, clearProps } = info;
+    setStatus(itemId, "syncing");
+    const row = await patchRow(itemId);            // show the new monday values immediately
+    try {
+      if (clearProps.length && row?.hubspotId)
+        await clearDealFields(s.sessionToken, row.hubspotId, clearProps);
+      const ok = await syncDeal(s.sessionToken, itemId);
+      const after = await patchRow(itemId);        // pick up HubSpot Deal ID + last-synced
+      const status = confirmSynced(ok, after?.hubspotId);
+      setStatus(itemId, status);
+      if (status === "synced") setTimeout(() => clearStatus(itemId), 4000);
+    } catch {
+      setStatus(itemId, "error");
+    }
+  }
+
   useEffect(() => { void load(); }, []);
   useEffect(() => {
     let last = Date.now();
@@ -97,7 +146,10 @@ export function useBoard(): BoardState {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
-  return { ...s, reload: load, setAutoRefreshPaused: (p: boolean) => { pausedRef.current = p; } };
+  return {
+    ...s, syncing, reload: load, patchRow, finishSave,
+    setAutoRefreshPaused: (p: boolean) => { pausedRef.current = p; },
+  };
 }
 
 export { colText, linkedIds, peopleIds };

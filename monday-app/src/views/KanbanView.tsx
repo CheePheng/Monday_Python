@@ -25,7 +25,7 @@ export default function KanbanView({ board, rows, onOpen, onToast }: {
     if (row.groupId === UNASSIGNED_GROUP || targetGroup === UNASSIGNED_GROUP) {
       onToast("Assign a Sales User first to move this deal out of Unassigned"); return;
     }
-    try { await moveToGroup(id, targetGroup); await board.reload(); }
+    try { await moveToGroup(id, targetGroup); await board.patchRow(id); }
     catch { onToast("Could not move the deal"); }
   }
 

@@ -74,7 +74,7 @@ export default function BoardView() {
   const [mine, setMine] = useState(false);
   const [salesUser, setSalesUser] = useState("");
   const [editing, setEditing] = useState<string | null | undefined>(undefined);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
   // Default: newest-created first, so a deal a rep just made is at the top.
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
   const [view, setView] = useState<"table" | "board">("table");
@@ -82,6 +82,13 @@ export default function BoardView() {
   // A background refresh remounts the board, so hold it off while the drawer is open — otherwise
   // returning to the tab mid-edit would silently discard the deal being written.
   useEffect(() => { board.setAutoRefreshPaused(editing !== undefined); }, [editing]);
+
+  // Success/info toasts auto-dismiss; error toasts persist until the user dismisses them.
+  useEffect(() => {
+    if (!toast || toast.type === "error") return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Guard a deal switch (row click / Create / Kanban open) when the open drawer has unsaved edits.
   const drawerDirty = useRef(false);
@@ -96,6 +103,7 @@ export default function BoardView() {
   const rows = useMemo(
     () => sortDeals(filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId, salesUserId: salesUser || undefined }), sort.key, sort.dir),
     [board.rows, q, stage, mine, salesUser, board.userId, sort]);
+  const filtersActive = !!(q || stage || mine || salesUser);
 
   const kpi = useMemo(() => computeKpis(board.rows), [board.rows]);
   const pipeRest = kpi.pipeline.slice(1);
@@ -112,7 +120,18 @@ export default function BoardView() {
   }
 
   if (board.loading)
-    return <div className="dc-wrap"><div className="dc-loading"><div className="dc-spinner" />Loading deals…</div></div>;
+    return (
+      <div className="dc-wrap">
+        <div className="dc-header"><h1 className="dc-title">Deals</h1></div>
+        <div className="dc-panel"><div className="dc-table-scroll">
+          <table className="dc-table"><tbody>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <tr key={i}><td colSpan={9}><div className="dc-skeleton" /></td></tr>
+            ))}
+          </tbody></table>
+        </div></div>
+      </div>
+    );
   if (board.schemaErrors.length)
     return (
       <div className="dc-wrap"><div className="dc-config">
@@ -160,7 +179,7 @@ export default function BoardView() {
       </div>
 
       {view === "board" ? (
-        <KanbanView board={board} rows={rows} onOpen={attemptOpen} onToast={setToast} />
+        <KanbanView board={board} rows={rows} onOpen={attemptOpen} onToast={(text) => setToast({ text, type: "info" })} />
       ) : (
         <div className="dc-panel">
           <div className="dc-table-scroll">
@@ -178,23 +197,38 @@ export default function BoardView() {
               </tr></thead>
               <tbody>
                 {rows.length === 0
-                  ? <tr><td colSpan={9}><div className="dc-empty">No deals match your filters.</div></td></tr>
+                  ? <tr><td colSpan={9}>
+                      {filtersActive
+                        ? <div className="dc-empty">No deals match your filters.</div>
+                        : <div className="dc-empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontSize: 15 }}>No deals yet.</span>
+                            <button className="dc-btn dc-btn-primary" onClick={() => attemptOpen(null)}>＋ Create your first deal</button>
+                          </div>}
+                    </td></tr>
                   : rows.map((r: DealRow) => (
                     <tr key={r.id} onClick={() => attemptOpen(r.id)}>
                       <td>
                         <div className="dc-deal">
                           <span className="dc-avatar" style={{ background: avatarFor(r.name) }}>{initials(r.name)}</span>
-                          <span className="dc-deal-name">{r.name}</span>
+                          <span className="dc-deal-name" title={r.name}>{r.name}</span>
                         </div>
                       </td>
                       <td><Badge stage={r.stage} /></td>
                       <td className="r"><span className="dc-money">{money(r.amount, r.currency)}</span></td>
                       <td className="dc-mut">{r.closeDate || "—"}</td>
-                      <td className={r.company ? "" : "dc-mut"}>{r.company || "—"}</td>
-                      <td className={r.contact ? "" : "dc-mut"}>{r.contact || "—"}</td>
+                      <td className={r.company ? "" : "dc-mut"} title={r.company || ""}>{r.company || "—"}</td>
+                      <td className={r.contact ? "" : "dc-mut"} title={r.contact || ""}>{r.contact || "—"}</td>
                       <td className={r.salesUserIds.length ? "" : "dc-mut"}>{r.salesUserIds.map(userName).join(", ") || "—"}</td>
                       <td className="dc-mut">{fmtCreated(r.createdAt)}</td>
                       <td className="r">
+                        {board.syncing[r.id] === "syncing" && <span className="dc-syncbadge syncing" style={{ marginRight: 6 }}>⟳ Syncing…</span>}
+                        {board.syncing[r.id] === "synced" && <span className="dc-syncbadge synced" style={{ marginRight: 6 }}>✓ Synced</span>}
+                        {board.syncing[r.id] === "error" && (
+                          <button className="dc-syncbadge error" style={{ marginRight: 6 }}
+                            onClick={e => { e.stopPropagation(); void board.finishSave({ itemId: r.id, isEdit: true, clearProps: [] }); }}>
+                            ⚠ Retry
+                          </button>
+                        )}
                         {r.hubspotId && <button className="dc-btn dc-btn-sm" title="Open in HubSpot" style={{ marginRight: 6 }} onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗ HubSpot</button>}
                         <span className="dc-open dc-btn dc-btn-sm">Open →</span>
                       </td>
@@ -210,9 +244,17 @@ export default function BoardView() {
         <DealDrawer key={editing ?? "new"} itemId={editing} board={board}
           onDirtyChange={d => { drawerDirty.current = d; }}
           onClose={() => setEditing(undefined)}
-          onSaved={async (msg) => { setEditing(undefined); setToast(msg); await board.reload(); }} />
+          onSaved={(info) => {
+            setEditing(undefined);
+            setToast({ text: "Saved to monday", type: "info" });
+            void board.finishSave(info);
+          }} />
       )}
-      {toast && <div className="dc-toast" onClick={() => setToast(null)}>✓ {toast}</div>}
+      {toast && (
+        <div className={"dc-toast dc-toast-" + toast.type} onClick={() => setToast(null)}>
+          {toast.type === "error" ? "⚠ " : toast.type === "info" ? "" : "✓ "}{toast.text}
+        </div>
+      )}
     </div>
   );
 }
