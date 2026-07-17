@@ -109,7 +109,11 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     try {
       let parentId = createdItemId;
       if (!parentId) {
-        const groupId = groupIdForStage(form.stage ?? stages[0], board.meta!.groups) ?? board.meta!.groups[0].id;
+        const stage = form.stage ?? stages[0];
+        // Don't fall back to groups[0] — that's "Unassigned Deals", so an unresolved stage would file
+        // the deal in the wrong group instead of telling anyone.
+        const groupId = groupIdForStage(stage, board.meta!.groups);
+        if (!groupId) throw new Error(`No group matches the stage "${stage}"`);
         parentId = await createDeal(groupId, name || "New Deal", dealFormToColumnValues(form));
         setCreatedItemId(parentId); // retries reuse this id, never create a second deal
       } else if (isEdit) {
