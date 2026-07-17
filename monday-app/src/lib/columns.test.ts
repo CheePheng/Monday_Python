@@ -3,6 +3,22 @@ import {
   dealFormToColumnValues, lineItemToSubitemColumns, lineItemHubspotProperties, boardRelationValue, peopleValue,
 } from "./columns";
 
+describe("dealFormToColumnValues — clearing", () => {
+  it("clears Sales Users when emptied (null clears every monday column type)", () =>
+    expect(dealFormToColumnValues({ salesUserIds: [] }))
+      .toEqual({ multiple_person_mm532m82: null }));
+
+  it("omits Sales Users entirely when the form doesn't manage it", () =>
+    expect(dealFormToColumnValues({})).toEqual({}));
+
+  // Only Sales Users is clearable; everything else keeps the never-blank-an-untouched-column rule,
+  // because the Worker refuses to clear HubSpot from an empty monday value.
+  it("does not blank the other fields when they're emptied", () => {
+    const cv = dealFormToColumnValues({ amount: "", closeDate: "", priority: "", dealType: "", vendors: [] });
+    expect(cv).toEqual({});
+  });
+});
+
 describe("lineItemHubspotProperties", () => {
   it("sends the percent discount and blanks the amount one", () =>
     expect(lineItemHubspotProperties({ unitPrice: "100", quantity: "2", discountMode: "percent", discountPct: "10" }))
@@ -50,8 +66,9 @@ describe("dealFormToColumnValues", () => {
       multiple_person_mm532m82: { personsAndTeams: [{ id: 111, kind: "person" }, { id: 222, kind: "person" }] },
     });
   });
+  // Sales Users is the deliberate exception — see "clearing" below.
   it("omits keys entirely when their value is empty/absent", () => {
-    const cv = dealFormToColumnValues({ amount: "", salesUserIds: [] });
+    const cv = dealFormToColumnValues({ amount: "", closeDate: "", currency: "" });
     expect(cv).toEqual({});
   });
 });

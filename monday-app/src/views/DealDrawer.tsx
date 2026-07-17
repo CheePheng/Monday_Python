@@ -14,7 +14,7 @@ import AssociationPicker, { type Assoc } from "./AssociationPicker";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
-import { syncDeal } from "../worker-client";
+import { syncDeal, unassignDeal } from "../worker-client";
 
 interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (msg: string) => void; onDirtyChange?: (dirty: boolean) => void }
 
@@ -187,6 +187,10 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       setOrigContacts(rc); setOrigCompanies(rco);
       const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
+      // Emptying Sales Users is the rep saying "unassign this deal". HubSpot's sales_user is what puts
+      // it in the Unassigned group, and the sync will never clear it from an empty column, so say so.
+      if (dealHubspotId && !(form.salesUserIds ?? []).length)
+        await unassignDeal(board.sessionToken, dealHubspotId);
       try { await syncDeal(board.sessionToken, parentId); } catch { /* webhook is the fallback; don't fail the save */ }
       onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
     } catch (e) {

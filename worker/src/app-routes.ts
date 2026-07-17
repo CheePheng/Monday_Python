@@ -33,6 +33,16 @@ export function parseDealBody(body: any): DealReq {
   return { ok: true, hubspotDealId };
 }
 
+/** Unassign = clear sales_user on ONE deal. Deliberately not a generic "clear any field" route: the
+ * reconciler must never clear HubSpot from an empty monday value (it can't tell "never assigned" from
+ * "just cleared"), so this carries the rep's explicit intent instead, for exactly one property. */
+export interface UnassignDealReq { ok: boolean; hubspotDealId?: string; error?: string }
+export function parseUnassignDealBody(body: any): UnassignDealReq {
+  const hubspotDealId = body?.hubspotDealId;
+  if (!numeric(hubspotDealId)) return { ok: false, error: "hubspotDealId must be a numeric string" };
+  return { ok: true, hubspotDealId };
+}
+
 export interface SyncDealReq { ok: boolean; itemId?: string; error?: string }
 export function parseSyncDealBody(body: any): SyncDealReq {
   const itemId = body?.itemId;

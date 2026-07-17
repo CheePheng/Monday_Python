@@ -32,3 +32,8 @@ export async function archiveHubspotDeal(token: string, hubspotDealId: string): 
 export async function syncDeal(token: string, itemId: string): Promise<void> {
   await call(token, "POST", "/app/sync-deal", { itemId });
 }
+/** Clear sales_user in HubSpot so the deal drops back to Unassigned. Carries the rep's explicit intent:
+ * the sync can't infer it, since an empty monday people column means "heal from HubSpot". */
+export async function unassignDeal(token: string, hubspotDealId: string): Promise<void> {
+  await call(token, "POST", "/app/unassign-deal", { hubspotDealId });
+}

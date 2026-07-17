@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody } from "../src/app-routes";
+import {
+  parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseUnassignDealBody,
+} from "../src/app-routes";
+
+describe("parseUnassignDealBody", () => {
+  it("accepts a numeric hubspotDealId", () =>
+    expect(parseUnassignDealBody({ hubspotDealId: "9001" })).toEqual({ ok: true, hubspotDealId: "9001" }));
+  it("rejects missing / non-numeric", () => {
+    expect(parseUnassignDealBody({}).ok).toBe(false);
+    expect(parseUnassignDealBody({ hubspotDealId: "abc" }).ok).toBe(false);
+  });
+});
 
 describe("parseLineItemBody", () => {
   it("update: requires lineItemId + non-empty properties", () =>

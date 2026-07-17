@@ -26,7 +26,11 @@ export function dealFormToColumnValues(f: DealForm): Record<string, unknown> {
   if (f.dealType) cv[DEAL_COLS.dealType.id] = { label: f.dealType };
   if (f.priority) cv[DEAL_COLS.priority.id] = { label: f.priority };
   if (f.vendors && f.vendors.length) cv[DEAL_COLS.vendors.id] = { labels: f.vendors };
-  if (f.salesUserIds && f.salesUserIds.length) cv[DEAL_COLS.salesUsers.id] = peopleValue(f.salesUserIds);
+  // Sales Users is the one clearable field: emptying it must actually empty the column, because that
+  // (plus clearing sales_user in HubSpot) is how a deal goes back to Unassigned. `null` clears every
+  // monday column type. Every other field is still omitted when empty, so an edit can't blank it.
+  if (f.salesUserIds !== undefined)
+    cv[DEAL_COLS.salesUsers.id] = f.salesUserIds.length ? peopleValue(f.salesUserIds) : null;
   if (f.dealOwnerId) cv[DEAL_COLS.dealOwner.id] = peopleValue([f.dealOwnerId]);
   return cv;
 }
