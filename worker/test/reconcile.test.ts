@@ -315,7 +315,7 @@ describe("deal Amount / Currency / Close date reverse to HubSpot (real DEALS spe
     }));
 });
 
-describe("controlled deals-only backfill of EMPTY HubSpot values (allowlist: amount, closedate)", () => {
+describe("controlled deals-only backfill of EMPTY HubSpot values (every reverse deal field)", () => {
   const bctx: Ctx = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {},
     ownerIdByEmail: {}, portalId: 1 };
   // monday card carrying the matching HubSpot Deal ID (numeric_mm4nz332 = 9001).
@@ -348,15 +348,37 @@ describe("controlled deals-only backfill of EMPTY HubSpot values (allowlist: amo
     expect(buildReversePatch(fieldDiffs(bRec(), md, DEALS, bctx), md, DEALS, bctx).closedate).toBe("2026-07-31");
   });
 
-  it("does NOT backfill a non-allowlisted field (dealtype stays empty in HubSpot)", () => {
+  it("fills an EMPTY HubSpot dealtype from monday (every reverse deal field backfills now)", () => {
     const md = bItem({ type: "New Business" });
-    expect(byCol2(fieldDiffs(bRec({ dealtype: "" }), md, DEALS, bctx), "color_mm53cky8")).toBeUndefined();
+    expect(byCol2(fieldDiffs(bRec({ dealtype: "" }), md, DEALS, bctx), "color_mm53cky8"))
+      .toMatchObject({ hsText: "", mdText: "New Business", backfill: true });
   });
 
-  it("does NOT backfill currency (reversible on edit, but not allowlisted)", () => {
+  it("fills an EMPTY HubSpot currency from monday", () => {
     const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
       { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm53vk99", text: "USD" }] });
-    expect(byCol2(fieldDiffs(bRec({ deal_currency_code: "" }), md, DEALS, bctx), "color_mm53vk99")).toBeUndefined();
+    expect(byCol2(fieldDiffs(bRec({ deal_currency_code: "" }), md, DEALS, bctx), "color_mm53vk99"))
+      .toMatchObject({ hsText: "", mdText: "USD", backfill: true });
+  });
+
+  it("fills an EMPTY HubSpot priority from monday", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm532rej", text: "High" }] });
+    expect(byCol2(fieldDiffs(bRec({ hs_priority: "" }), md, DEALS, bctx), "color_mm532rej"))
+      .toMatchObject({ hsText: "", mdText: "High", backfill: true });
+  });
+
+  it("fills EMPTY HubSpot vendors from monday", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "dropdown_mm4n4f7r", text: "37Docusign" }] });
+    expect(byCol2(fieldDiffs(bRec({ vendorschang_shang_lai_yuan: "" }), md, DEALS, bctx), "dropdown_mm4n4f7r"))
+      .toMatchObject({ hsText: "", mdText: "37Docusign", backfill: true });
+  });
+
+  it("still never backfills a NON-reverse field (pipeline is forward-only)", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm4ws6k", text: "Sales Pipeline" }] });
+    expect(byCol2(fieldDiffs(bRec({ pipeline: "" }), md, DEALS, bctx), "color_mm4ws6k")).toBeUndefined();
   });
 
   it("never clears HubSpot: an EMPTY monday value produces no diff", () => {

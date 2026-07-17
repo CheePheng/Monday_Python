@@ -112,13 +112,16 @@ export const DEALS: ObjectSpec = {
     { hs: "hubspot_owner_id", col: "person", type: "people", reverse: true },                     // Deal Owner (reverse to HubSpot; Unassigned stays sales_user-driven per routing.ts)
     { hs: "sales_user", col: "multiple_person_mm532m82", type: "people", reverse: true },           // Sales Users (assign in monday -> HubSpot sales_user)
     { hs: "amount", col: "numeric_mm531t6e", type: "numbers", reverse: true, backfill: true },     // Amounts (reverse + allowlisted backfill)
-    { hs: "deal_currency_code", col: "color_mm53vk99", type: "status", reverse: true },            // Currency
+    { hs: "deal_currency_code", col: "color_mm53vk99", type: "status", reverse: true, backfill: true },  // Currency
     { hs: "closedate", col: "date_mm53ecz3", type: "date", reverse: true, backfill: true },        // Close Date (reverse + allowlisted backfill)
     { hs: "dealstage", col: "color_mm53fh1r", type: "status", labels: "stage" },                   // Deal Stage
     { hs: "pipeline", col: "color_mm4ws6k", type: "status", labels: "pipeline" },                  // Deal Pipeline
-    { hs: "dealtype", col: "color_mm53cky8", type: "status", labels: "dealtype", reverse: true },  // Deal Type
-    { hs: "hs_priority", col: "color_mm532rej", type: "status", labels: "priority", reverse: true },             // Priority
-    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true }, // Vendors
+    // backfill:true on the reverse status/dropdown fields = a rep setting them FILLS an empty HubSpot
+    // value (deliberate edit), not just changes an existing one. Still never clears HubSpot from empty
+    // monday. Approved 2026-07-18 ("every reverse field") — extends the amount/closedate allowlist.
+    { hs: "dealtype", col: "color_mm53cky8", type: "status", labels: "dealtype", reverse: true, backfill: true },  // Deal Type
+    { hs: "hs_priority", col: "color_mm532rej", type: "status", labels: "priority", reverse: true, backfill: true },  // Priority
+    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true, backfill: true }, // Vendors
   ],
 };
 
