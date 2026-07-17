@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BoardState } from "../useBoard";
 import { dealFormToColumnValues, deliberateClears, boardRelationValue, type DealForm } from "../lib/columns";
 import { groupIdForStage, stageOptions } from "../lib/stage";
@@ -55,7 +55,6 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [dirty, setDirty] = useState(false);
 
   const [tab, setTab] = useState<"overview" | "associations" | "lineItems" | "updates" | "sync">("overview");
-  const [advanced, setAdvanced] = useState(false);
   const TABS: { id: typeof tab; label: string }[] = [
     { id: "overview", label: "Overview" }, { id: "associations", label: "Associations" },
     { id: "lineItems", label: "Line Items" },
@@ -167,7 +166,13 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     }
   }
 
+  // Synchronous re-entry lock. The `saving` STATE guard isn't enough: two fast clicks both run before
+  // React re-renders, both see saving=false and createdItemId=null, and both create a deal. A ref flips
+  // immediately, so the second click is a no-op.
+  const savingRef = useRef(false);
   async function save() {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true); setErr(null);
     try {
       // Only an edit can clear: a create has no prior value to remove, and origForm is the proof the
@@ -218,7 +223,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
     } catch (e) {
       setErr(`Save failed at a step — press Save to retry (the deal is not duplicated). ${String(e).slice(0, 400)}`);
-    } finally { setSaving(false); }
+    } finally { setSaving(false); savingRef.current = false; }
   }
 
   return (
@@ -268,21 +273,14 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
                 <ChipMulti options={userOpts} values={form.salesUserIds ?? []} onChange={v => set({ salesUserIds: v })} placeholder="Add sales user…" />
               </Field>
 
-              <button type="button" className="dc-btn dc-btn-sm" onClick={() => setAdvanced(a => !a)}>
-                {advanced ? "Hide details" : "More details"}
-              </button>
-              {advanced && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div className="dc-grid">
-                    <Field label="Deal type"><SelectStr options={board.options.dealType} value={form.dealType} onChange={v => set({ dealType: v })} placeholder="—" /></Field>
-                    <Field label="Priority"><SelectStr options={board.options.priority} value={form.priority} onChange={v => set({ priority: v })} placeholder="—" /></Field>
-                  </div>
-                  <div className="dc-grid">
-                    <Field label="Vendors"><ChipMulti options={vendorOpts} values={form.vendors ?? []} onChange={v => set({ vendors: v })} placeholder="Add vendor…" /></Field>
-                    <Field label="Deal owner"><SelectOpt options={userOpts} value={form.dealOwnerId} onChange={v => set({ dealOwnerId: v })} placeholder="No owner" /></Field>
-                  </div>
-                </div>
-              )}
+              <div className="dc-grid">
+                <Field label="Deal type"><SelectStr options={board.options.dealType} value={form.dealType} onChange={v => set({ dealType: v })} placeholder="—" /></Field>
+                <Field label="Priority"><SelectStr options={board.options.priority} value={form.priority} onChange={v => set({ priority: v })} placeholder="—" /></Field>
+              </div>
+              <div className="dc-grid">
+                <Field label="Vendors"><ChipMulti options={vendorOpts} values={form.vendors ?? []} onChange={v => set({ vendors: v })} placeholder="Add vendor…" /></Field>
+                <Field label="Deal owner"><SelectOpt options={userOpts} value={form.dealOwnerId} onChange={v => set({ dealOwnerId: v })} placeholder="No owner" /></Field>
+              </div>
             </div>
           )}
 

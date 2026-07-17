@@ -11,6 +11,11 @@ import { hubspotDealUrl } from "../board-config";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
 function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+function fmtCreated(iso?: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 function money(amount?: string, cur?: string): string {
   if (!amount) return "—";
   const n = Number(amount);
@@ -70,7 +75,8 @@ export default function BoardView() {
   const [salesUser, setSalesUser] = useState("");
   const [editing, setEditing] = useState<string | null | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
-  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "closeDate", dir: "asc" });
+  // Default: newest-created first, so a deal a rep just made is at the top.
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
   const [view, setView] = useState<"table" | "board">("table");
 
   // A background refresh remounts the board, so hold it off while the drawer is open — otherwise
@@ -167,11 +173,12 @@ export default function BoardView() {
                 <th style={{ cursor: "pointer" }} onClick={() => toggleSort("company")}>Company{sortIndicator("company")}</th>
                 <th style={{ cursor: "pointer" }} onClick={() => toggleSort("contact")}>Contact{sortIndicator("contact")}</th>
                 <th>Sales User</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("createdAt")}>Created{sortIndicator("createdAt")}</th>
                 <th></th>
               </tr></thead>
               <tbody>
                 {rows.length === 0
-                  ? <tr><td colSpan={8}><div className="dc-empty">No deals match your filters.</div></td></tr>
+                  ? <tr><td colSpan={9}><div className="dc-empty">No deals match your filters.</div></td></tr>
                   : rows.map((r: DealRow) => (
                     <tr key={r.id} onClick={() => attemptOpen(r.id)}>
                       <td>
@@ -186,6 +193,7 @@ export default function BoardView() {
                       <td className={r.company ? "" : "dc-mut"}>{r.company || "—"}</td>
                       <td className={r.contact ? "" : "dc-mut"}>{r.contact || "—"}</td>
                       <td className={r.salesUserIds.length ? "" : "dc-mut"}>{r.salesUserIds.map(userName).join(", ") || "—"}</td>
+                      <td className="dc-mut">{fmtCreated(r.createdAt)}</td>
                       <td className="r">
                         {r.hubspotId && <button className="dc-btn dc-btn-sm" title="Open in HubSpot" style={{ marginRight: 6 }} onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗ HubSpot</button>}
                         <span className="dc-open dc-btn dc-btn-sm">Open →</span>

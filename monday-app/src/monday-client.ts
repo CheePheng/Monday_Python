@@ -52,7 +52,7 @@ export async function getUsers(): Promise<AccountUser[]> {
 
 // Raw item shape the app reads (deals + their column values, incl. linked ids for relation columns).
 export interface RawItem {
-  id: string; name: string; group: { id: string };
+  id: string; name: string; group: { id: string }; created_at?: string;
   column_values: { id: string; text: string | null; value: string | null; linked_item_ids?: string[] }[];
 }
 export async function getDeals(): Promise<RawItem[]> {
@@ -63,7 +63,7 @@ export async function getDeals(): Promise<RawItem[]> {
       `query ($b:[ID!], $cursor:String) { boards(ids:$b) {
         items_page(limit:200, cursor:$cursor) {
           cursor
-          items { id name group { id }
+          items { id name created_at group { id }
             column_values { id text value ... on BoardRelationValue { linked_item_ids } } }
         } } }`, { b: [DEALS_BOARD], cursor });
     const page = d.boards[0].items_page;
