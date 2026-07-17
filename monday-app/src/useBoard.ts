@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getContext, getBoardMeta, getUsers, getDeals, getItemNames, type AccountUser, type BoardMeta, type RawItem } from "./monday-client";
 import { validateBoardSchema } from "./lib/schema";
 import { columnLabels } from "./lib/labels";
@@ -43,16 +43,22 @@ export interface BoardState {
   userId: string; sessionToken: string; users: AccountUser[]; meta: BoardMeta | null;
   options: DealOptions; rows: DealRow[];
   reload: () => Promise<void>;
+  /** Suspend the background refresh (the drawer sets this while it's open). */
+  setAutoRefreshPaused: (paused: boolean) => void;
 }
 
 export function useBoard(): BoardState {
-  const [s, setS] = useState<Omit<BoardState, "reload">>({
+  const [s, setS] = useState<Omit<BoardState, "reload" | "setAutoRefreshPaused">>({
     loading: true, error: null, schemaErrors: [], userId: "", sessionToken: "", users: [], meta: null,
     options: EMPTY_OPTIONS, rows: [],
   });
+  const pausedRef = useRef(false);
 
-  async function load() {
-    setS(p => ({ ...p, loading: true, error: null }));
+  // `silent` refreshes rows in place. Flipping `loading` unmounts the whole view (BoardView renders a
+  // loading screen on it), which would throw away an open drawer's unsaved edits — never do that
+  // for a refresh the user didn't ask for.
+  async function load(opts?: { silent?: boolean }) {
+    if (!opts?.silent) setS(p => ({ ...p, loading: true, error: null }));
     try {
       const ctx = await getContext();
       const meta = await getBoardMeta();
@@ -79,12 +85,18 @@ export function useBoard(): BoardState {
   useEffect(() => { void load(); }, []);
   useEffect(() => {
     let last = Date.now();
-    const onFocus = () => { if (document.visibilityState === "visible" && Date.now() - last > 15000) { last = Date.now(); void load(); } };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
-    return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
+    // visibilitychange only: window "focus" fires on almost any click inside the board-view iframe
+    // (and when a confirm() dialog closes), which made the board appear to refresh at random.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || pausedRef.current) return;
+      if (Date.now() - last < 15000) return;
+      last = Date.now();
+      void load({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
-  return { ...s, reload: load };
+  return { ...s, reload: load, setAutoRefreshPaused: (p: boolean) => { pausedRef.current = p; } };
 }
 
 export { colText, linkedIds, peopleIds };

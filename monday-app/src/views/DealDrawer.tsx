@@ -127,7 +127,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       try { await syncDeal(board.sessionToken, parentId); } catch { /* webhook is the fallback; don't fail the save */ }
       onSaved(isEdit ? "Deal updated" : "Deal created — syncing to HubSpot…");
     } catch (e) {
-      setErr(`Save failed at a step — press Save to retry (the deal is not duplicated). ${String(e).slice(0, 160)}`);
+      setErr(`Save failed at a step — press Save to retry (the deal is not duplicated). ${String(e).slice(0, 400)}`);
     } finally { setSaving(false); }
   }
 

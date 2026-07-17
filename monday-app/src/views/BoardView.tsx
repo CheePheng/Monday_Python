@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
@@ -72,6 +72,10 @@ export default function BoardView() {
   const [toast, setToast] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "closeDate", dir: "asc" });
   const [view, setView] = useState<"table" | "board">("table");
+
+  // A background refresh remounts the board, so hold it off while the drawer is open — otherwise
+  // returning to the tab mid-edit would silently discard the deal being written.
+  useEffect(() => { board.setAutoRefreshPaused(editing !== undefined); }, [editing]);
 
   // Guard a deal switch (row click / Create / Kanban open) when the open drawer has unsaved edits.
   const drawerDirty = useRef(false);

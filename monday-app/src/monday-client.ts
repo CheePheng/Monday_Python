@@ -3,13 +3,22 @@ import {
   DEALS_BOARD, SUBITEMS_BOARD, CONTACT_BOARD, COMPANY_BOARD,
   CONTACT_ID_COL, COMPANY_ID_COL,
 } from "./board-config";
+import { apiErrorDetail, apiErrorMessage } from "./lib/api-error";
 
 const monday = mondaySdk();
-monday.setApiVersion("2024-10");
+// Pin an API version monday actually still serves. "2024-10" was removed (its live list now starts at
+// 2025-04), and an unknown version silently falls back to an unspecified one — bump this deliberately.
+monday.setApiVersion("2026-07");
 
 async function api<T = any>(query: string, variables?: Record<string, unknown>): Promise<T> {
-  const res: any = await monday.api(query, { variables });
-  if (res.errors) throw new Error(JSON.stringify(res.errors));
+  let res: any;
+  try {
+    res = await monday.api(query, { variables });
+  } catch (e) {
+    // Seamless auth rejects with the host's summary only; the real GraphQL errors sit on e.data.
+    throw new Error(apiErrorMessage(e));
+  }
+  if (res.errors) throw new Error(apiErrorDetail(res) || JSON.stringify(res.errors));
   return res.data as T;
 }
 
