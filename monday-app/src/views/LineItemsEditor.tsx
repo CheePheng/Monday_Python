@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { searchHubspot, updateHubspotLineItem, deleteHubspotLineItem, type Hit } from "../worker-client";
-import { lineItemToSubitemColumns } from "../lib/columns";
+import { lineItemToSubitemColumns, lineItemHubspotProperties } from "../lib/columns";
 import { createSubitem, updateSubitemColumns, deleteItem } from "../monday-client";
 import { lineTotal, lineItemsTotal } from "../lib/totals";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
@@ -136,15 +136,7 @@ export async function persistLineItems(token: string, parentItemId: string, item
       out.push({ ...li, subitemId });
     } else {
       await updateSubitemColumns(li.subitemId, cols);
-      if (li.lineItemId) await updateHubspotLineItem(token, li.lineItemId, {
-        price: li.unitPrice, quantity: li.quantity,
-        ...(li.currency ? { hs_line_item_currency_code: li.currency } : {}),
-        ...(li.description ? { description: li.description } : {}),
-        ...(li.discountMode === "percent"
-          ? { hs_discount_percentage: li.discountPct ?? "", discount: "" }
-          : { discount: li.discount ?? "", hs_discount_percentage: "" }),
-        ...(li.serviceDate ? { service_date: li.serviceDate } : {}),
-      });
+      if (li.lineItemId) await updateHubspotLineItem(token, li.lineItemId, lineItemHubspotProperties(li));
       out.push(li);
     }
   }

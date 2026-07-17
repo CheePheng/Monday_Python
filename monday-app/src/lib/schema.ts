@@ -7,7 +7,7 @@ import { groupStageLabel } from "./stage";
 // date -> "date"; Connect Boards -> "board_relation"; text -> "text"; long text -> "long-text".
 const KIND_TO_MONDAY_TYPE: Record<string, string> = {
   numeric: "numbers", status: "status", dropdown: "dropdown", date: "date",
-  "multiple-person": "people", "board-relation": "board_relation", text: "text", "long-text": "long-text",
+  "multiple-person": "people", "board-relation": "board_relation", text: "text", "long-text": "long_text",
 };
 
 export interface SchemaResult { ok: boolean; errors: string[] }

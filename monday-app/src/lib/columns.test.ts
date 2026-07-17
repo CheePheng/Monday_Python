@@ -1,5 +1,37 @@
 import { describe, it, expect } from "vitest";
-import { dealFormToColumnValues, lineItemToSubitemColumns, boardRelationValue, peopleValue } from "./columns";
+import {
+  dealFormToColumnValues, lineItemToSubitemColumns, lineItemHubspotProperties, boardRelationValue, peopleValue,
+} from "./columns";
+
+describe("lineItemHubspotProperties", () => {
+  it("sends the percent discount and blanks the amount one", () =>
+    expect(lineItemHubspotProperties({ unitPrice: "100", quantity: "2", discountMode: "percent", discountPct: "10" }))
+      .toEqual({ price: "100", quantity: "2", hs_discount_percentage: "10", discount: "" }));
+
+  it("sends the amount discount and blanks the percent one", () =>
+    expect(lineItemHubspotProperties({ unitPrice: "100", quantity: "2", discountMode: "amount", discount: "5" }))
+      .toEqual({ price: "100", quantity: "2", discount: "5", hs_discount_percentage: "" }));
+
+  // Regression: a line item loaded from a subitem and saved untouched must keep its discount. This
+  // wiped every synced line item's discount in HubSpot when hydration didn't load the discount fields.
+  it("preserves a hydrated percent discount when nothing was edited", () => {
+    const hydrated = { unitPrice: "100", quantity: "1", discountMode: "percent" as const, discountPct: "15" };
+    expect(lineItemHubspotProperties(hydrated).hs_discount_percentage).toBe("15");
+  });
+
+  it("never sends a blank price or quantity (an empty box must not clear HubSpot)", () => {
+    const p = lineItemHubspotProperties({ unitPrice: "", quantity: "", discountMode: "amount" });
+    expect(p).not.toHaveProperty("price");
+    expect(p).not.toHaveProperty("quantity");
+  });
+
+  it("omits optional fields that aren't set, so they can't be blanked", () => {
+    const p = lineItemHubspotProperties({ unitPrice: "10", quantity: "1", discountMode: "amount" });
+    expect(p).not.toHaveProperty("description");
+    expect(p).not.toHaveProperty("hs_line_item_currency_code");
+    expect(p).not.toHaveProperty("service_date");
+  });
+});
 
 describe("dealFormToColumnValues", () => {
   it("encodes each column type and skips empty fields", () => {

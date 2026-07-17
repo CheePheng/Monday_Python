@@ -77,13 +77,26 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       ]);
       setContacts(contactCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name })));
       setCompanies(companyCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name })));
-      setLineItems(subs.map(su => ({
-        subitemId: su.id, name: su.name,
-        lineItemId: su.column_values.find(c => c.id === SUB_COLS.lineItemId.id)?.text || undefined,
-        productId: su.column_values.find(c => c.id === SUB_COLS.productId.id)?.text || undefined,
-        unitPrice: su.column_values.find(c => c.id === SUB_COLS.unitPrice.id)?.text || "",
-        quantity: su.column_values.find(c => c.id === SUB_COLS.quantity.id)?.text || "",
-      })));
+      // Hydrate EVERY field the save writes back. Anything left undefined here is sent to HubSpot as a
+      // blank on the next save — that's how discounts were being wiped by simply opening and saving.
+      setLineItems(subs.map((su): LineItem => {
+        const col = (id: string) => su.column_values.find(c => c.id === id)?.text || "";
+        const discount = col(SUB_COLS.discount.id);
+        const discountPct = col(SUB_COLS.discountPct.id);
+        return {
+          subitemId: su.id, name: su.name,
+          lineItemId: col(SUB_COLS.lineItemId.id) || undefined,
+          productId: col(SUB_COLS.productId.id) || undefined,
+          unitPrice: col(SUB_COLS.unitPrice.id),
+          quantity: col(SUB_COLS.quantity.id),
+          currency: col(SUB_COLS.currency.id) || undefined,
+          description: col(SUB_COLS.description.id) || undefined,
+          serviceDate: col(SUB_COLS.serviceDate.id) || undefined,
+          discount: discount || undefined,
+          discountPct: discountPct || undefined,
+          discountMode: discountPct ? "percent" : "amount",
+        };
+      }));
     })();
   }, [isEdit, itemId, board.meta]);
 
@@ -116,7 +129,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         if (!groupId) throw new Error(`No group matches the stage "${stage}"`);
         parentId = await createDeal(groupId, name || "New Deal", dealFormToColumnValues(form));
         setCreatedItemId(parentId); // retries reuse this id, never create a second deal
-      } else if (isEdit) {
+      } else {
+        // Also covers retrying a create whose later steps failed: the item already exists, so re-apply
+        // the form to it rather than skipping (edits made before the retry would otherwise be lost).
         await renameDeal(parentId, name);
         await updateDealColumns(parentId, dealFormToColumnValues(form));
         const gid = form.stage ? groupIdForStage(form.stage, board.meta!.groups) : undefined;

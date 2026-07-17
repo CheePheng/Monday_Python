@@ -35,6 +35,27 @@ export interface LineItemForm {
   unitPrice?: string; quantity?: string; productId?: string; currency?: string; description?: string;
   discount?: string; discountMode?: "amount" | "percent"; discountPct?: string; serviceDate?: string;
 }
+/** Line-item form -> HubSpot property patch for an already-synced line item.
+ *
+ * Two rules keep a save from destroying data in HubSpot (the CRM is the source of truth, and these
+ * subitem fields are forward-only — the Worker can never restore what we blank here):
+ *  - only the ACTIVE discount is sent; the other is blanked so switching $/% can't leave a stale value.
+ *    This means the caller MUST hydrate discount/discountPct/discountMode from the subitem, or an
+ *    untouched line item would report "no discount" and clear a real one.
+ *  - an empty price/quantity is omitted, never sent as "" — a blank box must not clear a real value. */
+export function lineItemHubspotProperties(li: LineItemForm): Record<string, string> {
+  return {
+    ...(li.unitPrice ? { price: li.unitPrice } : {}),
+    ...(li.quantity ? { quantity: li.quantity } : {}),
+    ...(li.currency ? { hs_line_item_currency_code: li.currency } : {}),
+    ...(li.description ? { description: li.description } : {}),
+    ...(li.discountMode === "percent"
+      ? { hs_discount_percentage: li.discountPct ?? "", discount: "" }
+      : { discount: li.discount ?? "", hs_discount_percentage: "" }),
+    ...(li.serviceDate ? { service_date: li.serviceDate } : {}),
+  };
+}
+
 /** Line-item form -> subitem column_values (blanks omitted). Writes only the ACTIVE discount column
  * (amount or percent); clearing the inactive one on a mode switch is handled by the update path. */
 export function lineItemToSubitemColumns(li: LineItemForm): Record<string, unknown> {
