@@ -75,14 +75,16 @@ export default {
         if (!["contacts", "companies", "products"].includes(type))
           return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: CORS });
         const q = url.searchParams.get("q") ?? "";
-        const limit = Number(url.searchParams.get("limit") ?? "10");
+        const limit = Number(url.searchParams.get("limit") ?? "20");
+        const SEARCH_HEADERS = { ...CORS, "Cache-Control": "no-store" };
         try {
-          const results = await searchObjects(env, type, q, Number.isFinite(limit) ? limit : 10);
-          return Response.json({ results }, { headers: CORS });
+          const { results, total } = await searchObjects(env, type, q, Number.isFinite(limit) ? limit : 20);
+          return Response.json({ results, total }, { headers: SEARCH_HEADERS });
         } catch (e) {
           const scope = /403|forbidden|scope/i.test(String(e));
           console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
-          return Response.json({ results: [], error: scope ? "scope" : "search-failed" }, { headers: CORS });
+          return Response.json({ results: [], total: 0, error: scope ? "scope" : "search-failed" },
+            { headers: SEARCH_HEADERS });
         }
       }
 

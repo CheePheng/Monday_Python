@@ -172,25 +172,30 @@ export async function archiveDeal(env: Env, dealId: string, opts: RunOpts): Prom
 const SEARCH_PROPS: Record<string, string[]> = {
   contacts: ["firstname", "lastname", "email"],
   companies: ["name", "domain"],
-  products: ["name", "price"],
+  products: ["name", "price", "hs_sku", "description"],
 };
 
-/** HubSpot result -> a compact { name, secondary } for the picker. Pure (unit-testable). */
-export function mapSearchResult(type: string, p: Record<string, any>): { name: string; secondary: string } {
+export interface SearchHit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
+
+/** HubSpot result -> a compact hit for the picker. Pure (unit-testable). */
+export function mapSearchResult(type: string, p: Record<string, any>): Omit<SearchHit, "id"> {
   if (type === "contacts") {
     const name = [p.firstname, p.lastname].filter(Boolean).join(" ").trim();
     return { name: name || p.email || "(no name)", secondary: p.email ?? "" };
   }
   if (type === "companies") return { name: p.name || "(no name)", secondary: p.domain ?? "" };
-  return { name: p.name || "(no name)", secondary: p.price != null ? String(p.price) : "" }; // products
+  // products
+  const price = p.price != null ? String(p.price) : "";
+  return { name: p.name || "(no name)", secondary: price, sku: p.hs_sku ?? "", price, description: p.description ?? "" };
 }
 
-/** Full-text search one HubSpot object type; returns up to `limit` (<=20) compact hits. */
+/** Full-text search one HubSpot object type; returns up to `limit` (<=20) hits plus the match total. */
 export async function searchObjects(env: Env, type: string, q: string, limit: number):
-    Promise<{ id: string; name: string; secondary: string }[]> {
+    Promise<{ results: SearchHit[]; total: number }> {
   const res = await hs(env, "POST", `/crm/v3/objects/${type}/search`,
     { query: q, properties: SEARCH_PROPS[type] ?? ["name"], limit: Math.min(Math.max(limit, 1), 20) }, 2);
-  return (res.results ?? []).map((r: any) => ({ id: String(r.id), ...mapSearchResult(type, r.properties ?? {}) }));
+  const results = (res.results ?? []).map((r: any) => ({ id: String(r.id), ...mapSearchResult(type, r.properties ?? {}) }));
+  return { results, total: Number(res.total ?? results.length) };
 }
 
 // note -> object default association type ids (HUBSPOT_DEFINED).
