@@ -52,12 +52,12 @@ export function useDebouncedSearch<T>(fetcher: (q: string, signal: AbortSignal) 
   }, [ms]);   // stable — the fetcher is read via a ref (see above)
 
   // Bumping seq invalidates any in-flight response so it can't land after a clear / sub-2-char reset.
-  function reset() { seq.current++; setHits([]); setTotal(0); setLoading(false); }
+  function reset() { seq.current++; setHits([]); setTotal(0); setLoading(false); setError(false); }
   function query(q: string) {
     if (q.trim().length < 2) { debounced.current?.cancel(); reset(); return; }
     debounced.current?.trigger(q);
   }
-  function clear() { debounced.current?.cancel(); reset(); setError(false); }
+  function clear() { debounced.current?.cancel(); reset(); }
 
   return { hits, total, loading, error, query, clear };
 }

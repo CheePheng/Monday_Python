@@ -172,27 +172,6 @@ export async function findOrCreateCompany(hubspotId: string, name: string): Prom
     ?? await createOnBoard(COMPANY_BOARD, COMPANY_ID_COL, hubspotId, name);
 }
 
-/** Create a brand-new contact card (no HubSpot id) — the Worker's createFromMonday pushes it to HubSpot.
- * Contact board primary column is First name (item name); the Worker splits "First Last". */
-export async function createContactCard(fields: { name: string; email?: string; phone?: string }): Promise<string> {
-  const cv: Record<string, unknown> = {};
-  if (fields.email) cv["text_mm4p2bvb"] = fields.email;          // Email column
-  if (fields.phone) cv["phone_mm4s31p3"] = { phone: fields.phone, countryShortName: "US" };
-  const d: any = await api(`mutation ($b:ID!, $n:String!, $c:JSON!) {
-    create_item(board_id:$b, item_name:$n, column_values:$c) { id } }`,
-    { b: CONTACT_BOARD, n: fields.name, c: JSON.stringify(cv) });
-  return String(d.create_item.id);
-}
-/** Create a brand-new company card. Company board primary column is the DOMAIN; company name lives in a
- * separate text column. Item name = domain || name so the Worker reverses domain correctly. */
-export async function createCompanyCard(fields: { name: string; domain?: string }): Promise<string> {
-  const cv: Record<string, unknown> = { text_mm4scke9: fields.name }; // Company Name column
-  const d: any = await api(`mutation ($b:ID!, $n:String!, $c:JSON!) {
-    create_item(board_id:$b, item_name:$n, column_values:$c) { id } }`,
-    { b: COMPANY_BOARD, n: fields.domain || fields.name, c: JSON.stringify(cv) });
-  return String(d.create_item.id);
-}
-
 /** Resolve linked monday item ids to { itemId, name, hubspotId } — used to hydrate association chips in
  * edit mode so existing links are shown (and removable). `idCol` is the board's HubSpot-id column. */
 export async function getCardsByIds(itemIds: string[], idCol: string):

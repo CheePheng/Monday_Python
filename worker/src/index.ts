@@ -73,7 +73,7 @@ export default {
       if (url.pathname === "/app/search" && req.method === "GET") {
         const type = url.searchParams.get("type") ?? "";
         if (!["contacts", "companies", "products"].includes(type))
-          return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: CORS });
+          return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: { ...CORS, "Cache-Control": "no-store" } });
         const q = url.searchParams.get("q") ?? "";
         const limit = Number(url.searchParams.get("limit") ?? "20");
         const SEARCH_HEADERS = { ...CORS, "Cache-Control": "no-store" };
