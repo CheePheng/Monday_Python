@@ -5,7 +5,7 @@ import { groupIdForStage, stageOptions } from "../lib/stage";
 import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
-  findOrCreateContact, findOrCreateCompany, createContactCard, createCompanyCard,
+  findOrCreateContact, findOrCreateCompany,
 } from "../monday-client";
 import { deleteHubspotAssociation } from "../worker-client";
 import { validateDealForm } from "../lib/validate";
@@ -142,13 +142,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     const out: Assoc[] = [];
     for (const a of list) {
       if (a.itemId) { out.push(a); continue; }
-      const itemId = a.create
-        ? (a.create.kind === "contact"
-          ? await createContactCard({ name: a.create.name, email: a.create.email, phone: a.create.phone })
-          : await createCompanyCard({ name: a.create.name, domain: a.create.domain }))
-        : (kind === "contacts"
-          ? await findOrCreateContact(a.hubspotId, a.label)
-          : await findOrCreateCompany(a.hubspotId, a.label));
+      const itemId = kind === "contacts"
+        ? await findOrCreateContact(a.hubspotId, a.label)
+        : await findOrCreateCompany(a.hubspotId, a.label);
       out.push({ ...a, itemId });
     }
     return out;
