@@ -113,6 +113,10 @@
 }
 .dc-input::placeholder, textarea::placeholder { color: var(--text-muted); }
 .dc-select { width: auto; min-width: 170px; cursor: pointer; }
+/* native date-picker calendar icon: the browser default is near-black and vanishes on the dark field */
+.dc-field-input::-webkit-calendar-picker-indicator { opacity: .7; cursor: pointer; }
+.dc-field-input:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+[data-theme="dark"] .dc-field-input::-webkit-calendar-picker-indicator { filter: invert(1) brightness(1.15); }
 
 /* ---------- table / cards ---------- */
 .dc-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
