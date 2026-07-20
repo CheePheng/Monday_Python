@@ -230,7 +230,7 @@ export default function BoardView() {
                               ⚠ Retry
                             </button>
                           )}
-                          {r.hubspotId && <button className="dc-btn dc-btn-icon" title="Open in HubSpot" onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗</button>}
+                          {r.hubspotId && <button className="dc-btn dc-btn-sm" title="Open in HubSpot" onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗ HubSpot</button>}
                         </div>
                       </td>
                     </tr>

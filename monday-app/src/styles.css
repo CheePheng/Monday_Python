@@ -141,10 +141,19 @@
 
 /* keep flexible text columns from pushing the actions column off the right edge */
 .dc-table td.dc-trunc { max-width: 168px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* compact, right-pinned actions cell (sync badge + a small HubSpot icon) so it never clips */
-.dc-table td.dc-actions { text-align: right; white-space: nowrap; padding-left: 8px; }
+/* Actions cell (sync badge + HubSpot button), PINNED to the right edge so it's always visible even
+   when the table is wider than the board view and scrolls horizontally. */
+.dc-table td.dc-actions {
+  text-align: right; white-space: nowrap; padding-left: 8px;
+  position: sticky; right: 0; z-index: 2; background: var(--surface);
+  box-shadow: -12px 0 12px -12px rgba(16, 22, 42, .28);
+}
+.dc-table thead th:last-child {
+  position: sticky; right: 0; z-index: 3; background: var(--surface-2);
+  box-shadow: -12px 0 12px -12px rgba(16, 22, 42, .28);
+}
+.dc-table tbody tr:hover td.dc-actions { background: var(--surface-hover); }
 .dc-actions-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-.dc-btn-icon { padding: 6px 9px; font-size: 14px; line-height: 1; }
 
 .dc-badge { display: inline-block; padding: 4px 11px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 
