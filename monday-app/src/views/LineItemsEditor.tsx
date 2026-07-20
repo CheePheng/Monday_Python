@@ -17,11 +17,11 @@ interface Props {
 
 export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal }: Props) {
   const [text, setText] = useState("");
-  const { hits, loading, query, clear } = useDebouncedSearch<Hit>(
+  const { hits, loading, error, query, clear } = useDebouncedSearch<Hit>(
     (q, signal) => searchHubspot(token, "products", q, signal), 300);
 
   function addFromProduct(h: Hit) {
-    onChange([...value, { productId: h.id, name: h.name, unitPrice: h.secondary || "0", quantity: "1", discountMode: "amount" }]);
+    onChange([...value, { productId: h.id, name: h.name, unitPrice: h.price || h.secondary || "0", quantity: "1", discountMode: "amount", description: h.description }]);
     setText(""); clear();
   }
   function patch(i: number, p: Partial<LineItem>) { onChange(value.map((li, j) => j === i ? { ...li, ...p } : li)); }
@@ -98,17 +98,30 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: value.length ? 10 : 0 }}>
         <input className="dc-field-input" style={{ flex: 1 }} placeholder="Add product…" value={text}
           onChange={e => { setText(e.target.value); query(e.target.value); }} />
-        {loading && <div className="dc-spinner" style={{ width: 16, height: 16, borderWidth: 2, margin: 0 }} />}
+        {loading && <span className="dc-mut" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>Searching…</span>}
+        {!loading && <button type="button" className="dc-btn dc-btn-sm" title="Refresh search" onClick={() => query(text)} disabled={text.trim().length < 2}>⟳</button>}
       </div>
+      {error && (
+        <div className="dc-err" style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Search failed</span>
+          <button type="button" className="dc-btn dc-btn-sm" onClick={() => query(text)}>Retry</button>
+        </div>
+      )}
       {hits.length > 0 && (
         <div className="dc-results">
           {hits.map(h => (
-            <div key={h.id} className="dc-result" onClick={() => addFromProduct(h)}>
-              <span>{h.name}</span><small>{h.secondary}</small>
+            <div key={h.id} className="dc-result" onClick={() => addFromProduct(h)} style={{ alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                <span style={{ fontWeight: 600 }}>{h.name}</span>
+                {(h.sku || h.description) && <small style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[h.sku && `SKU ${h.sku}`, h.description].filter(Boolean).join(" · ")}</small>}
+              </div>
+              <small className="dc-money" style={{ flexShrink: 0 }}>{h.price || h.secondary}</small>
             </div>
           ))}
         </div>
       )}
+      {!loading && !error && text.trim().length >= 2 && hits.length === 0 &&
+        <div className="dc-mut" style={{ marginTop: 6, fontSize: 12.5 }}>No products found.</div>}
       {value.length > 0 && (
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
           <div className="dc-mut">Subtotal: {subtotal.toFixed(2)}</div>
