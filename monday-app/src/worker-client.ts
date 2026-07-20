@@ -2,7 +2,7 @@ import { WORKER_BASE } from "./board-config";
 
 async function call(token: string, method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<any> {
   const res = await fetch(WORKER_BASE + path, {
-    method, signal,
+    method, signal, cache: "no-store",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -10,10 +10,12 @@ async function call(token: string, method: string, path: string, body?: unknown,
   return res.json();
 }
 
-export interface Hit { id: string; name: string; secondary: string }
-export async function searchHubspot(token: string, type: "contacts" | "companies" | "products", q: string, signal?: AbortSignal): Promise<Hit[]> {
-  const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q)}&limit=10`, undefined, signal);
-  return res.results ?? [];
+export interface Hit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
+export interface SearchResult { items: Hit[]; total: number }
+export async function searchHubspot(token: string, type: "contacts" | "companies" | "products", q: string, signal?: AbortSignal): Promise<SearchResult> {
+  const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q.trim())}&limit=20`, undefined, signal);
+  if (res?.error) throw new Error("search-" + res.error);           // surface HubSpot failure (scope/search-failed)
+  return { items: res.results ?? [], total: Number(res.total ?? (res.results?.length ?? 0)) };
 }
 export async function updateHubspotLineItem(token: string, lineItemId: string, properties: Record<string, string>): Promise<void> {
   await call(token, "POST", "/app/line-item", { lineItemId, properties });
