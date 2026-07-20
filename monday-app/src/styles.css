@@ -139,6 +139,13 @@
 .dc-open { opacity: 0; transition: opacity .13s; }
 .dc-table tbody tr:hover .dc-open { opacity: 1; }
 
+/* keep flexible text columns from pushing the actions column off the right edge */
+.dc-table td.dc-trunc { max-width: 168px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* compact, right-pinned actions cell (sync badge + a small HubSpot icon) so it never clips */
+.dc-table td.dc-actions { text-align: right; white-space: nowrap; padding-left: 8px; }
+.dc-actions-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.dc-btn-icon { padding: 6px 9px; font-size: 14px; line-height: 1; }
+
 .dc-badge { display: inline-block; padding: 4px 11px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 
 .dc-empty, .dc-loading { padding: 60px 24px; text-align: center; color: var(--text-muted); font-size: 15px; }

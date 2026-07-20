@@ -216,21 +216,22 @@ export default function BoardView() {
                       <td><Badge stage={r.stage} /></td>
                       <td className="r"><span className="dc-money">{money(r.amount, r.currency)}</span></td>
                       <td className="dc-mut">{r.closeDate || "—"}</td>
-                      <td className={r.company ? "" : "dc-mut"} title={r.company || ""}>{r.company || "—"}</td>
-                      <td className={r.contact ? "" : "dc-mut"} title={r.contact || ""}>{r.contact || "—"}</td>
-                      <td className={r.salesUserIds.length ? "" : "dc-mut"}>{r.salesUserIds.map(userName).join(", ") || "—"}</td>
-                      <td className="dc-mut">{fmtCreated(r.createdAt)}</td>
-                      <td className="r">
-                        {board.syncing[r.id] === "syncing" && <span className="dc-syncbadge syncing" style={{ marginRight: 6 }}>⟳ Syncing…</span>}
-                        {board.syncing[r.id] === "synced" && <span className="dc-syncbadge synced" style={{ marginRight: 6 }}>✓ Synced</span>}
-                        {board.syncing[r.id] === "error" && (
-                          <button className="dc-syncbadge error" style={{ marginRight: 6 }}
-                            onClick={e => { e.stopPropagation(); void board.finishSave({ itemId: r.id, isEdit: true, clearProps: [] }); }}>
-                            ⚠ Retry
-                          </button>
-                        )}
-                        {r.hubspotId && <button className="dc-btn dc-btn-sm" title="Open in HubSpot" style={{ marginRight: 6 }} onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗ HubSpot</button>}
-                        <span className="dc-open dc-btn dc-btn-sm">Open →</span>
+                      <td className={"dc-trunc " + (r.company ? "" : "dc-mut")} title={r.company || ""}>{r.company || "—"}</td>
+                      <td className={"dc-trunc " + (r.contact ? "" : "dc-mut")} title={r.contact || ""}>{r.contact || "—"}</td>
+                      <td className={"dc-trunc " + (r.salesUserIds.length ? "" : "dc-mut")}>{r.salesUserIds.map(userName).join(", ") || "—"}</td>
+                      <td className="dc-mut" style={{ whiteSpace: "nowrap" }}>{fmtCreated(r.createdAt)}</td>
+                      <td className="dc-actions">
+                        <div className="dc-actions-row">
+                          {board.syncing[r.id] === "syncing" && <span className="dc-syncbadge syncing">⟳ Syncing…</span>}
+                          {board.syncing[r.id] === "synced" && <span className="dc-syncbadge synced">✓ Synced</span>}
+                          {board.syncing[r.id] === "error" && (
+                            <button className="dc-syncbadge error"
+                              onClick={e => { e.stopPropagation(); void board.finishSave({ itemId: r.id, isEdit: true, clearProps: [] }); }}>
+                              ⚠ Retry
+                            </button>
+                          )}
+                          {r.hubspotId && <button className="dc-btn dc-btn-icon" title="Open in HubSpot" onClick={e => { e.stopPropagation(); openLink(hubspotDealUrl(r.hubspotId!)); }}>↗</button>}
+                        </div>
                       </td>
                     </tr>
                   ))}
