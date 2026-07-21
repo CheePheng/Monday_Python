@@ -1,10 +1,13 @@
 import type { Env, RunOpts } from "./types";
 import { runAll, runIncremental, syncMondayItem } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions } from "./hubspot";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody } from "./app-routes";
-import { DEALS } from "./config";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody } from "./app-routes";
+import { DEALS, LINE_ITEM_SUBITEMS } from "./config";
+import { getItem, setColumns } from "./monday";
+import { colText } from "./dedup";
+import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -88,9 +91,50 @@ export default {
         }
       }
 
-      // POST /app/line-item {lineItemId, properties}  |  DELETE /app/line-item {lineItemId}
+      // GET /app/line-item-schema — writable enum options for the manual line-item form (live).
+      if (url.pathname === "/app/line-item-schema" && req.method === "GET") {
+        try {
+          const schema = await getWritablePropOptions(env, LINE_ITEM_ENUM_PROPS);
+          return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/line-item-schema] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // POST /app/line-item — create (body has subitemId) OR update (body has lineItemId) | DELETE {lineItemId}
       if (url.pathname === "/app/line-item" && (req.method === "POST" || req.method === "DELETE")) {
-        const body = await req.json().catch(() => ({}));
+        const body: any = await req.json().catch(() => ({}));
+        if (req.method === "POST" && body?.subitemId !== undefined) {
+          const c = parseCreateLineItemBody(body);
+          if (!c.ok) return Response.json({ error: c.error }, { status: 400, headers: CORS });
+          try {
+            // 1) ensure the parent deal exists in HubSpot; resolve its id from the monday deal card.
+            let deal = await getItem(env, c.itemId!);
+            let dealId = deal ? colText(deal, DEALS.idCol) : "";
+            if (!dealId) {
+              await syncMondayItem(env, DEALS.boardId, c.itemId!, appWriteOpts(env), { left: 10 }); // createFromMonday
+              deal = await getItem(env, c.itemId!);
+              dealId = deal ? colText(deal, DEALS.idCol) : "";
+            }
+            if (!dealId) return Response.json({ ok: false, error: "deal-not-synced" }, { status: 409, headers: CORS });
+            // 2) optional Save-to-library -> create a product, link it.
+            const props = { ...c.properties! };
+            if (c.saveToLibrary && !props.hs_product_id) {
+              const pProps: Record<string, string> = {};
+              for (const [k, v] of Object.entries(props)) if (PRODUCT_COPY_PROPS.has(k)) pProps[k] = v;
+              const pid = await createProduct(env, pProps, appWriteOpts(env));
+              if (pid) props.hs_product_id = pid;
+            }
+            // 3) create the HubSpot line item (+ associate to the deal), 4) write the id back onto the subitem.
+            const lineItemId = await createLineItem(env, props, dealId, appWriteOpts(env));
+            if (lineItemId) await setColumns(env, LINE_ITEM_SUBITEMS.boardId, c.subitemId!, { [LINE_ITEM_SUBITEMS.idCol]: lineItemId }, appWriteOpts(env));
+            return Response.json({ ok: true, lineItemId, productId: props.hs_product_id }, { headers: CORS });
+          } catch (e) {
+            console.log(`[app/line-item] create subitem=${body?.subitemId} error="${String(e).slice(0, 160)}"`);
+            return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+          }
+        }
         const p = parseLineItemBody(req.method === "POST" ? "PATCH" : "DELETE", body);
         if (!p.ok) return Response.json({ error: p.error }, { status: 400, headers: CORS });
         try {
