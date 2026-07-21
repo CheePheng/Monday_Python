@@ -7,7 +7,8 @@ import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
   findOrCreateContact, findOrCreateCompany,
 } from "../monday-client";
-import { deleteHubspotAssociation } from "../worker-client";
+import { deleteHubspotAssociation, getDealLineItems } from "../worker-client";
+import { mergeLineItems } from "../lib/line-item-merge";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
 import AssociationPicker, { type Assoc } from "./AssociationPicker";
@@ -53,6 +54,21 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [err, setErr] = useState<string | null>(null);
   const [childErr, setChildErr] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+
+  const [liRefresh, setLiRefresh] = useState<{ at: number; loading: boolean; error: boolean }>({ at: 0, loading: false, error: false });
+  const liFetched = useRef(false);
+
+  async function refreshLineItems() {
+    if (!isEdit) return;
+    setLiRefresh(s => ({ ...s, loading: true, error: false }));
+    try {
+      const fresh = await getDealLineItems(board.sessionToken, itemId!);
+      setLineItems(cur => mergeLineItems(cur, fresh));
+      setLiRefresh({ at: Date.now(), loading: false, error: false });
+    } catch {
+      setLiRefresh(s => ({ ...s, loading: false, error: true }));
+    }
+  }
 
   const [tab, setTab] = useState<"overview" | "associations" | "lineItems" | "updates" | "sync">("overview");
   const TABS: { id: typeof tab; label: string }[] = [
@@ -135,6 +151,14 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
 
   // Report dirty state up so the board can guard a deal switch (row click / Create) on unsaved edits.
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty]);
+
+  // Fetch once when the Line Items tab first opens, so the drawer shows fresh HubSpot data rather than
+  // whatever was loaded (possibly stale) when the drawer itself opened.
+  useEffect(() => {
+    if (tab !== "lineItems" || !isEdit || liFetched.current) return;
+    liFetched.current = true;
+    void refreshLineItems();
+  }, [tab, isEdit]);
 
   /** Create/find the monday card for each staged association. Rows that already have an itemId are left
    * alone, so a retry can never create a second card for the same record. */
@@ -289,7 +313,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
           )}
 
           {tab === "lineItems" && (
-            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr} onUseTotal={n => set({ amount: String(n) })} currency={form.currency} />
+            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr} onUseTotal={n => set({ amount: String(n) })} currency={form.currency} refreshState={liRefresh} onRefresh={refreshLineItems} dirty={dirty} />
           )}
 
           {tab === "updates" && isEdit && itemId && <UpdatesPanel itemId={itemId} />}

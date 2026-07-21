@@ -19,9 +19,10 @@ export interface LineItem {
 interface Props {
   token: string; value: LineItem[]; onChange: (n: LineItem[]) => void;
   onError?: (msg: string) => void; onUseTotal?: (n: number) => void; currency?: string;
+  refreshState?: { at: number; loading: boolean; error: boolean }; onRefresh?: () => void; dirty?: boolean;
 }
 
-export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal, currency = "" }: Props) {
+export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal, currency = "", refreshState, onRefresh, dirty }: Props) {
   const [text, setText] = useState("");
   const [adding, setAdding] = useState(false);
   const [schema, setSchema] = useState<Record<string, EnumProp>>({});
@@ -79,6 +80,17 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
   return (
     <div>
       <div className="dc-section-title">Line items</div>
+      {onRefresh && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 12.5 }}>
+          <button type="button" className="dc-btn dc-btn-sm" disabled={refreshState?.loading}
+            onClick={() => { if (!dirty || confirm("Discard unsaved line-item changes and refresh from HubSpot?")) onRefresh(); }}>
+            {refreshState?.loading ? "Refreshing…" : "⟳ Refresh line items"}
+          </button>
+          {refreshState?.error
+            ? <span className="dc-mut" style={{ color: "var(--red)" }}>Couldn't refresh — showing last known (may be outdated)</span>
+            : refreshState?.at ? <span className="dc-mut">Updated {new Date(refreshState.at).toLocaleTimeString()}</span> : null}
+        </div>
+      )}
       {value.length > 0 && (
         <table className="dc-qt">
           <thead>
