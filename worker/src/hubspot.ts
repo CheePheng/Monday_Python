@@ -139,9 +139,9 @@ export async function createProduct(env: Env, properties: Record<string, string>
 
 /** For the manual line-item form: label + options for each enum line_item prop, read live from the
  * property schema so new portal options appear without a redeploy. */
-export async function getWritablePropOptions(env: Env, names: string[]):
+export async function getWritablePropOptions(env: Env, object: string, names: string[]):
     Promise<Record<string, { label: string; options: { value: string; label: string }[] }>> {
-  const res = await hs(env, "GET", "/crm/v3/properties/line_items", undefined, 2);
+  const res = await hs(env, "GET", `/crm/v3/properties/${object}`, undefined, 2);
   const byName: Record<string, any> = {};
   for (const p of (res.results ?? [])) byName[p.name] = p;
   const out: Record<string, { label: string; options: { value: string; label: string }[] }> = {};

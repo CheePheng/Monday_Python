@@ -9,6 +9,7 @@ import { DEALS, LINE_ITEM_SUBITEMS } from "./config";
 import { getItem, setColumns } from "./monday";
 import { colText } from "./dedup";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
+import { CONTACT_ENUM_PROPS, COMPANY_ENUM_PROPS } from "./contact-company-props";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -95,10 +96,32 @@ export default {
       // GET /app/line-item-schema — writable enum options for the manual line-item form (live).
       if (url.pathname === "/app/line-item-schema" && req.method === "GET") {
         try {
-          const schema = await getWritablePropOptions(env, LINE_ITEM_ENUM_PROPS);
+          const schema = await getWritablePropOptions(env, "line_items", LINE_ITEM_ENUM_PROPS);
           return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
         } catch (e) {
           console.log(`[app/line-item-schema] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // GET /app/contact-schema — live enum options for the Create Contact form.
+      if (url.pathname === "/app/contact-schema" && req.method === "GET") {
+        try {
+          const schema = await getWritablePropOptions(env, "contacts", CONTACT_ENUM_PROPS);
+          return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/contact-schema] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // GET /app/company-schema — live enum options for the Create Company form.
+      if (url.pathname === "/app/company-schema" && req.method === "GET") {
+        try {
+          const schema = await getWritablePropOptions(env, "companies", COMPANY_ENUM_PROPS);
+          return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/company-schema] error="${String(e).slice(0, 140)}"`);
           return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
         }
       }
