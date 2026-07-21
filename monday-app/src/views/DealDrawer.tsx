@@ -288,7 +288,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
           )}
 
           {tab === "lineItems" && (
-            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr} onUseTotal={n => set({ amount: String(n) })} />
+            <LineItemsEditor token={board.sessionToken} value={lineItems} onChange={next => { setDirty(true); setLineItems(next); }} onError={setChildErr} onUseTotal={n => set({ amount: String(n) })} currency={form.currency} />
           )}
 
           {tab === "updates" && isEdit && itemId && <UpdatesPanel itemId={itemId} />}

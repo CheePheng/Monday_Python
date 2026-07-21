@@ -1,24 +1,54 @@
 import { useState } from "react";
-import { searchHubspot, updateHubspotLineItem, deleteHubspotLineItem, type Hit } from "../worker-client";
+import {
+  searchHubspot, updateHubspotLineItem, deleteHubspotLineItem, getLineItemSchema, createHubspotLineItem,
+  type Hit, type EnumProp,
+} from "../worker-client";
 import { lineItemToSubitemColumns, lineItemHubspotProperties } from "../lib/columns";
 import { createSubitem, updateSubitemColumns, deleteItem } from "../monday-client";
 import { lineTotal, lineItemsTotal } from "../lib/totals";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
+import LineItemForm from "./LineItemForm";
+import type { LineItemFormValues } from "../lib/line-item-form";
 
 export interface LineItem {
   subitemId?: string; lineItemId?: string; // present once synced by the Worker
   productId?: string; name: string; unitPrice: string; quantity: string; currency?: string; description?: string;
   discount?: string; discountMode?: "amount" | "percent"; discountPct?: string; serviceDate?: string;
+  saveToLibrary?: boolean; props?: Record<string, string>;
 }
 interface Props {
   token: string; value: LineItem[]; onChange: (n: LineItem[]) => void;
-  onError?: (msg: string) => void; onUseTotal?: (n: number) => void;
+  onError?: (msg: string) => void; onUseTotal?: (n: number) => void; currency?: string;
 }
 
-export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal }: Props) {
+export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal, currency = "" }: Props) {
   const [text, setText] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [schema, setSchema] = useState<Record<string, EnumProp>>({});
   const { hits, loading, error, query, clear } = useDebouncedSearch<Hit>(
     (q, signal) => searchHubspot(token, "products", q, signal), 300);
+
+  async function openNewLineItem() {
+    setAdding(true);
+    try { setSchema(await getLineItemSchema(token)); } catch { /* form still usable without enum options */ }
+  }
+
+  // Build the full HubSpot property payload from the manual form values (Worker allowlists it).
+  function formToProps(v: LineItemFormValues): Record<string, string> {
+    const props: Record<string, string> = {};
+    for (const [k, val] of Object.entries(v)) { if (k === "discountMode" || val == null || val === "") continue; props[k] = String(val); }
+    if (v.discountMode === "percent") delete props.discount; else delete props.hs_discount_percentage;
+    if (currency) props.hs_line_item_currency_code = currency;
+    return props;
+  }
+  function addManual(v: LineItemFormValues, saveToLibrary: boolean) {
+    onChange([...value, {
+      name: v.name || "New line item", unitPrice: v.price ?? "0", quantity: v.quantity ?? "1",
+      discount: v.discount, discountPct: v.hs_discount_percentage, discountMode: v.discountMode ?? "percent",
+      serviceDate: v.service_date, description: v.description, currency, saveToLibrary, props: formToProps(v),
+    }]);
+    setAdding(false);
+  }
 
   function addFromProduct(h: Hit) {
     onChange([...value, { productId: h.id, name: h.name, unitPrice: h.price || h.secondary || "0", quantity: "1", discountMode: "amount", description: h.description }]);
@@ -122,6 +152,16 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
       )}
       {!loading && !error && text.trim().length >= 2 && hits.length === 0 &&
         <div className="dc-mut" style={{ marginTop: 6, fontSize: 12.5 }}>No products found.</div>}
+      {!adding && (
+        <button type="button" className="dc-btn dc-btn-sm" style={{ marginTop: 8 }} onClick={() => void openNewLineItem()}>
+          ＋ New line item
+        </button>
+      )}
+      {adding && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+          <LineItemForm schema={schema} currency={currency} onCancel={() => setAdding(false)} onAdd={addManual} />
+        </div>
+      )}
       {value.length > 0 && (
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
           <div className="dc-mut">Subtotal: {subtotal.toFixed(2)}</div>
@@ -146,10 +186,16 @@ export async function persistLineItems(token: string, parentItemId: string, item
     const cols = lineItemToSubitemColumns(li);
     if (!li.subitemId) {
       const subitemId = await createSubitem(parentItemId, li.name, cols);
-      out.push({ ...li, subitemId });
+      // Create the HubSpot line item now: the Worker ensures the deal exists, associates it, optionally
+      // saves it to the product library, and writes the Line Item ID back onto the subitem.
+      const properties = li.props ?? lineItemHubspotProperties(li);
+      const { lineItemId } = await createHubspotLineItem(token, {
+        itemId: parentItemId, subitemId, productId: li.productId, saveToLibrary: li.saveToLibrary, properties,
+      }).catch(() => ({ lineItemId: undefined as string | undefined }));
+      out.push({ ...li, subitemId, lineItemId });
     } else {
       await updateSubitemColumns(li.subitemId, cols);
-      if (li.lineItemId) await updateHubspotLineItem(token, li.lineItemId, lineItemHubspotProperties(li));
+      if (li.lineItemId) await updateHubspotLineItem(token, li.lineItemId, li.props ?? lineItemHubspotProperties(li));
       out.push(li);
     }
   }
