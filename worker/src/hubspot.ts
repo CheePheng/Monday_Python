@@ -127,6 +127,29 @@ export async function createLineItem(env: Env, properties: Record<string, string
   return res.id ? String(res.id) : null;
 }
 
+/** Create a HubSpot product (for "Save line item to the product library"). Returns the new product id. */
+export async function createProduct(env: Env, properties: Record<string, string>, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun || !opts.writeHubspot) { console.log(`DRY hubspot CREATE product: ${JSON.stringify(properties)}`); return null; }
+  const res = await hs(env, "POST", "/crm/v3/objects/products", { properties }, 1);
+  console.log(`hubspot CREATE product -> ${res.id}`);
+  return res.id ? String(res.id) : null;
+}
+
+/** For the manual line-item form: label + options for each enum line_item prop, read live from the
+ * property schema so new portal options appear without a redeploy. */
+export async function getWritablePropOptions(env: Env, names: string[]):
+    Promise<Record<string, { label: string; options: { value: string; label: string }[] }>> {
+  const res = await hs(env, "GET", "/crm/v3/properties/line_items", undefined, 2);
+  const byName: Record<string, any> = {};
+  for (const p of (res.results ?? [])) byName[p.name] = p;
+  const out: Record<string, { label: string; options: { value: string; label: string }[] }> = {};
+  for (const n of names) {
+    const p = byName[n];
+    if (p) out[n] = { label: p.label ?? n, options: (p.options ?? []).map((o: any) => ({ value: String(o.value), label: o.label })) };
+  }
+  return out;
+}
+
 /** Update an existing HubSpot line item by id (qty/price/etc.). retries=3 (PATCH is idempotent). */
 export async function patchLineItem(env: Env, lineItemId: string,
     properties: Record<string, string>, opts: RunOpts): Promise<boolean> {
