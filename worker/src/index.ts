@@ -1,7 +1,7 @@
 import type { Env, RunOpts } from "./types";
 import { runAll, runIncremental, syncMondayItem } from "./sync";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems } from "./hubspot";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS } from "./config";
@@ -99,6 +99,21 @@ export default {
         } catch (e) {
           console.log(`[app/line-item-schema] error="${String(e).slice(0, 140)}"`);
           return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // GET /app/deal-line-items?itemId=<monday parent> — the deal's CURRENT HubSpot line items (fresh-on-open).
+      if (url.pathname === "/app/deal-line-items" && req.method === "GET") {
+        const itemId = url.searchParams.get("itemId") ?? "";
+        if (!/^\d+$/.test(itemId)) return Response.json({ error: "itemId must be numeric" }, { status: 400, headers: CORS });
+        try {
+          const deal = await getItem(env, itemId);
+          const dealId = deal ? colText(deal, DEALS.idCol) : "";
+          const lineItems = dealId ? await getDealLineItems(env, dealId) : [];
+          return Response.json({ lineItems }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/deal-line-items] item=${itemId} error="${String(e).slice(0, 140)}"`);
+          return Response.json({ lineItems: [], error: "fetch-failed" }, { status: 502, headers: { ...CORS, "Cache-Control": "no-store" } });
         }
       }
 

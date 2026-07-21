@@ -1,4 +1,5 @@
 import type { Env, HsRecord, ObjectSpec, RunOpts } from "./types";
+import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
 
 const BASE = "https://api.hubapi.com";
 
@@ -248,6 +249,30 @@ export async function getRecordsByIds(env: Env, object: string, ids: string[], p
   const res = await hs(env, "POST", `/crm/v3/objects/${object}/batch/read`,
     { properties, inputs: ids.map(id => ({ id })) });
   return (res.results ?? []).map((r: any) => ({ id: String(r.id), properties: r.properties ?? {} }));
+}
+
+/** Fetch a deal's CURRENT HubSpot line items, mapped to the app editor's row shape (core fields + a full
+ * `props` bag of the writable extended fields for re-editing). Read-only. */
+export async function getDealLineItems(env: Env, dealId: string):
+    Promise<{ lineItemId: string; productId?: string; name: string; unitPrice: string; quantity: string;
+      currency?: string; description?: string; discount?: string; discountPct?: string;
+      discountMode: "amount" | "percent"; serviceDate?: string; props: Record<string, string> }[]> {
+  const ids = await getAssociatedIds(env, "deals", dealId, "line_items");
+  if (!ids.length) return [];
+  const recs = await getRecordsByIds(env, "line_items", ids, [...LINE_ITEM_WRITE_PROPS]);
+  return recs.map(r => {
+    const p = r.properties as Record<string, string>;
+    const props: Record<string, string> = {};
+    for (const k of LINE_ITEM_WRITE_PROPS) if (p[k] != null && p[k] !== "") props[k] = String(p[k]);
+    return {
+      lineItemId: String(r.id), productId: p.hs_product_id || undefined,
+      name: p.name ?? "", unitPrice: p.price ?? "", quantity: p.quantity ?? "1",
+      currency: p.hs_line_item_currency_code || undefined, description: p.description || undefined,
+      discount: p.discount || undefined, discountPct: p.hs_discount_percentage || undefined,
+      discountMode: p.hs_discount_percentage ? "percent" : "amount",
+      serviceDate: p.service_date || undefined, props,
+    };
+  });
 }
 
 /** Ids of records matching a spec that changed at/after `sinceMs`. Paginates (up to `maxPages` pages of
