@@ -34,8 +34,12 @@ export async function createHubspotLineItem(token: string, args: {
     itemId: args.itemId, subitemId: args.subitemId, saveToLibrary: args.saveToLibrary,
     properties: { ...args.properties, ...(args.productId ? { hs_product_id: args.productId } : {}) },
   });
-  if (res?.error) throw new Error("line-item-" + res.error);
   return { lineItemId: res.lineItemId, productId: res.productId };
+}
+/** Fetch the deal's current HubSpot line items (fresh from HubSpot), for merging into the editor's rows. */
+export async function getDealLineItems(token: string, itemId: string): Promise<import("./views/LineItemsEditor").LineItem[]> {
+  const res = await call(token, "GET", `/app/deal-line-items?itemId=${encodeURIComponent(itemId)}`);
+  return res?.lineItems ?? [];
 }
 export async function deleteHubspotLineItem(token: string, lineItemId: string): Promise<void> {
   await call(token, "DELETE", "/app/line-item", { lineItemId });

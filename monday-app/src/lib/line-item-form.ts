@@ -1,20 +1,20 @@
 export type LiFieldType = "text" | "textarea" | "number" | "date" | "enum" | "bool";
-export interface LiField { prop: string; label: string; type: LiFieldType; group: "detail" | "billing" | "adjust" | "price"; required?: boolean; enum?: boolean }
+export interface LiField { prop: string; label: string; type: LiFieldType; group: "detail" | "billing" | "adjust" | "price"; required?: boolean }
 
 export const LI_FIELDS: LiField[] = [
   { prop: "name", label: "Name", type: "text", group: "detail", required: true },
   { prop: "hs_sku", label: "SKU", type: "text", group: "detail" },
   { prop: "description", label: "Description", type: "textarea", group: "detail" },
-  { prop: "brand_isv", label: "Brand ISV", type: "enum", group: "detail", enum: true },
-  { prop: "family", label: "Family", type: "enum", group: "detail", enum: true },
-  { prop: "product_subcategory", label: "Product Subcategory", type: "enum", group: "detail", enum: true },
-  { prop: "is_active", label: "Is Active", type: "enum", group: "detail", enum: true },
+  { prop: "brand_isv", label: "Brand ISV", type: "enum", group: "detail" },
+  { prop: "family", label: "Family", type: "enum", group: "detail" },
+  { prop: "product_subcategory", label: "Product Subcategory", type: "enum", group: "detail" },
+  { prop: "is_active", label: "Is Active", type: "enum", group: "detail" },
   { prop: "note", label: "Note", type: "textarea", group: "detail" },
   { prop: "service_date", label: "Service Date", type: "date", group: "detail" },
-  { prop: "recurringbillingfrequency", label: "Billing frequency", type: "enum", group: "billing", enum: true },
+  { prop: "recurringbillingfrequency", label: "Billing frequency", type: "enum", group: "billing" },
   { prop: "hs_recurring_billing_start_date", label: "Billing start date", type: "date", group: "billing" },
-  { prop: "hs_tax_rate_group_id", label: "Tax rate", type: "enum", group: "adjust", enum: true },
-  { prop: "hs_pricing_model", label: "Pricing model", type: "enum", group: "price", required: true, enum: true },
+  { prop: "hs_tax_rate_group_id", label: "Tax rate", type: "enum", group: "adjust" },
+  { prop: "hs_pricing_model", label: "Pricing model", type: "enum", group: "price", required: true },
   { prop: "price", label: "Unit price", type: "number", group: "price", required: true },
   { prop: "quantity", label: "Quantity", type: "number", group: "price" },
   { prop: "hs_cost_of_goods_sold", label: "Unit cost", type: "number", group: "price" },
