@@ -15,7 +15,7 @@ export default function LineItemForm({ schema, currency, onCancel, onAdd }: Prop
   const [v, setV] = useState<LineItemFormValues>({ hs_pricing_model: "flat", quantity: "1", discountMode: "percent" });
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const set = (prop: string, val: string) => setV(s => ({ ...s, [prop]: val }));
-  const invalid = validateLineItemForm(v);
+  const validation = validateLineItemForm(v);
   const t = computeTotals(v);
 
   const field = (f: LiField) => {
@@ -34,7 +34,7 @@ export default function LineItemForm({ schema, currency, onCancel, onAdd }: Prop
           <input className="dc-field-input" type={f.type === "date" ? "date" : "text"} inputMode={f.type === "number" ? "decimal" : undefined}
             value={v[f.prop] ?? ""} onChange={e => set(f.prop, e.target.value)} />
         )}
-        {invalid.errors[f.prop] && <div className="dc-err">{invalid.errors[f.prop]}</div>}
+        {validation.errors[f.prop] && <div className="dc-err">{validation.errors[f.prop]}</div>}
       </div>
     );
   };
@@ -70,7 +70,7 @@ export default function LineItemForm({ schema, currency, onCancel, onAdd }: Prop
       </label>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <button type="button" className="dc-btn" onClick={onCancel}>Cancel</button>
-        <button type="button" className="dc-btn dc-btn-primary" disabled={!invalid.ok} onClick={() => onAdd(v, saveToLibrary)}>Add line item</button>
+        <button type="button" className="dc-btn dc-btn-primary" disabled={!validation.ok} onClick={() => onAdd(v, saveToLibrary)}>Add line item</button>
       </div>
     </div>
   );
