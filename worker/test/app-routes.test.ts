@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody,
+  parseCreateLineItemBody,
 } from "../src/app-routes";
 
 describe("parseClearDealBody", () => {
@@ -70,4 +71,17 @@ describe("parseSyncDealBody", () => {
     expect(parseSyncDealBody({}).ok).toBe(false);
     expect(parseSyncDealBody({ itemId: "abc" }).ok).toBe(false);
   });
+});
+
+describe("parseCreateLineItemBody", () => {
+  it("requires numeric itemId + subitemId and strips props to the allowlist", () =>
+    expect(parseCreateLineItemBody({ itemId: "1", subitemId: "2", saveToLibrary: true,
+      properties: { name: "X", price: "10", amount: "999" } }))
+      .toEqual({ ok: true, itemId: "1", subitemId: "2", saveToLibrary: true, properties: { name: "X", price: "10" } }));
+  it("rejects a non-numeric itemId/subitemId", () => {
+    expect(parseCreateLineItemBody({ itemId: "x", subitemId: "2", properties: { name: "X" } }).ok).toBe(false);
+    expect(parseCreateLineItemBody({ itemId: "1", subitemId: "x", properties: { name: "X" } }).ok).toBe(false);
+  });
+  it("requires a name (or hs_product_id) after allowlisting", () =>
+    expect(parseCreateLineItemBody({ itemId: "1", subitemId: "2", properties: { amount: "999" } }).ok).toBe(false));
 });

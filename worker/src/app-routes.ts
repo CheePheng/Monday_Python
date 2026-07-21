@@ -1,5 +1,7 @@
 // Pure request-body validation for the app's edit/remove endpoints. All ids are strings and must be
 // numeric (HubSpot ids). Kept separate from index.ts so it is unit-testable without a live request.
+import { pickWritableLineItemProps } from "./line-item-props";
+
 const numeric = (v: unknown): v is string => typeof v === "string" && /^\d+$/.test(v);
 const FROM_OK = new Set(["deals"]);
 const TO_OK = new Set(["contacts", "companies"]);
@@ -55,4 +57,18 @@ export function parseSyncDealBody(body: any): SyncDealReq {
   const itemId = body?.itemId;
   if (!numeric(itemId)) return { ok: false, error: "itemId must be a numeric string" };
   return { ok: true, itemId };
+}
+
+export interface CreateLineItemReq {
+  ok: boolean; itemId?: string; subitemId?: string; saveToLibrary?: boolean;
+  properties?: Record<string, string>; error?: string;
+}
+export function parseCreateLineItemBody(body: any): CreateLineItemReq {
+  const itemId = body?.itemId, subitemId = body?.subitemId;
+  if (!numeric(itemId)) return { ok: false, error: "itemId must be a numeric string" };
+  if (!numeric(subitemId)) return { ok: false, error: "subitemId must be a numeric string" };
+  const properties = pickWritableLineItemProps(body?.properties ?? {});
+  if (!properties.name && !properties.hs_product_id)
+    return { ok: false, error: "a line item needs a name or a product id" };
+  return { ok: true, itemId, subitemId, saveToLibrary: body?.saveToLibrary === true, properties };
 }
