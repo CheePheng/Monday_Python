@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody,
-  parseCreateLineItemBody,
+  parseCreateLineItemBody, parseContactBody, parseCompanyBody,
 } from "../src/app-routes";
 
 describe("parseClearDealBody", () => {
@@ -84,4 +84,38 @@ describe("parseCreateLineItemBody", () => {
   });
   it("requires a name (or hs_product_id) after allowlisting", () =>
     expect(parseCreateLineItemBody({ itemId: "1", subitemId: "2", properties: { amount: "999" } }).ok).toBe(false));
+});
+
+const KEY = "123e4567-e89b-42d3-a456-426614174000"; // a valid UUID, like crypto.randomUUID()
+
+describe("parseContactBody", () => {
+  it("requires a UUID key + a name and strips props to the contact allowlist", () =>
+    expect(parseContactBody({ idempotencyKey: KEY, properties: { firstname: "Ada", email: "a@x.com", bogus: "1" } }))
+      .toEqual({ ok: true, idempotencyKey: KEY, properties: { firstname: "Ada", email: "a@x.com" }, associateCompanyHubspotId: undefined }));
+  it("accepts an optional numeric associateCompanyHubspotId", () =>
+    expect(parseContactBody({ idempotencyKey: KEY, properties: { firstname: "Ada" }, associateCompanyHubspotId: "77" }).associateCompanyHubspotId)
+      .toBe("77"));
+  it("rejects a missing key and a malformed (non-UUID) key", () => {
+    expect(parseContactBody({ properties: { firstname: "Ada" } }).ok).toBe(false);
+    expect(parseContactBody({ idempotencyKey: "k1", properties: { firstname: "Ada" } }).ok).toBe(false);
+  });
+  it("rejects when no name survives the allowlist", () =>
+    expect(parseContactBody({ idempotencyKey: KEY, properties: { email: "a@x.com" } }).ok).toBe(false));
+  it("rejects a non-numeric associateCompanyHubspotId", () =>
+    expect(parseContactBody({ idempotencyKey: KEY, properties: { firstname: "Ada" }, associateCompanyHubspotId: "x" }).ok).toBe(false));
+});
+
+describe("parseCompanyBody", () => {
+  it("requires a UUID key + name-or-domain and strips props to the company allowlist", () =>
+    expect(parseCompanyBody({ idempotencyKey: KEY, properties: { name: "Acme", industry: "TECH", bogus: "1" } }))
+      .toEqual({ ok: true, idempotencyKey: KEY, properties: { name: "Acme", industry: "TECH" }, associateContactHubspotIds: [] }));
+  it("accepts optional numeric associateContactHubspotIds", () =>
+    expect(parseCompanyBody({ idempotencyKey: KEY, properties: { domain: "acme.com" }, associateContactHubspotIds: ["1", "2"] }).associateContactHubspotIds)
+      .toEqual(["1", "2"]));
+  it("rejects a malformed (non-UUID) key", () =>
+    expect(parseCompanyBody({ idempotencyKey: "k1", properties: { name: "Acme" } }).ok).toBe(false));
+  it("rejects when neither name nor domain survives", () =>
+    expect(parseCompanyBody({ idempotencyKey: KEY, properties: { city: "SG" } }).ok).toBe(false));
+  it("rejects a non-numeric id in associateContactHubspotIds", () =>
+    expect(parseCompanyBody({ idempotencyKey: KEY, properties: { name: "Acme" }, associateContactHubspotIds: ["1", "x"] }).ok).toBe(false));
 });

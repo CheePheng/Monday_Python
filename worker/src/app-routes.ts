@@ -1,6 +1,7 @@
 // Pure request-body validation for the app's edit/remove endpoints. All ids are strings and must be
 // numeric (HubSpot ids). Kept separate from index.ts so it is unit-testable without a live request.
 import { pickWritableLineItemProps } from "./line-item-props";
+import { pickWritableContactProps, pickWritableCompanyProps } from "./contact-company-props";
 
 const numeric = (v: unknown): v is string => typeof v === "string" && /^\d+$/.test(v);
 const FROM_OK = new Set(["deals"]);
@@ -71,4 +72,38 @@ export function parseCreateLineItemBody(body: any): CreateLineItemReq {
   if (!properties.name && !properties.hs_product_id)
     return { ok: false, error: "a line item needs a name or a product id" };
   return { ok: true, itemId, subitemId, saveToLibrary: body?.saveToLibrary === true, properties };
+}
+
+// The client generates the key once with crypto.randomUUID() and reuses it across retries. Validate the
+// shape (any UUID variant) so a short/garbage/accidentally-shared key can't be used as an idempotency id.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isKey = (v: unknown): v is string => typeof v === "string" && UUID_RE.test(v);
+
+export interface CreateContactReq {
+  ok: boolean; idempotencyKey?: string; properties?: Record<string, string>;
+  associateCompanyHubspotId?: string; error?: string;
+}
+export function parseContactBody(body: any): CreateContactReq {
+  if (!isKey(body?.idempotencyKey)) return { ok: false, error: "idempotencyKey must be a UUID" };
+  const properties = pickWritableContactProps(body?.properties ?? {});
+  if (!properties.firstname) return { ok: false, error: "a contact needs a name (firstname)" };
+  const assoc = body?.associateCompanyHubspotId;
+  if (assoc !== undefined && !numeric(assoc)) return { ok: false, error: "associateCompanyHubspotId must be numeric" };
+  return { ok: true, idempotencyKey: body.idempotencyKey, properties, associateCompanyHubspotId: assoc };
+}
+
+export interface CreateCompanyReq {
+  ok: boolean; idempotencyKey?: string; properties?: Record<string, string>;
+  associateContactHubspotIds?: string[]; error?: string;
+}
+export function parseCompanyBody(body: any): CreateCompanyReq {
+  if (!isKey(body?.idempotencyKey)) return { ok: false, error: "idempotencyKey must be a UUID" };
+  const properties = pickWritableCompanyProps(body?.properties ?? {});
+  if (!properties.name && !properties.domain) return { ok: false, error: "a company needs a name or domain" };
+  const ids = body?.associateContactHubspotIds;
+  if (ids !== undefined) {
+    if (!Array.isArray(ids) || ids.some((x: unknown) => !numeric(x)))
+      return { ok: false, error: "associateContactHubspotIds must be numeric strings" };
+  }
+  return { ok: true, idempotencyKey: body.idempotencyKey, properties, associateContactHubspotIds: ids ?? [] };
 }
