@@ -109,26 +109,43 @@ export default {
           const c = parseCreateLineItemBody(body);
           if (!c.ok) return Response.json({ error: c.error }, { status: 400, headers: CORS });
           try {
+            // Idempotency: reuse a Line Item ID / Product ID already stamped on this subitem by a prior
+            // attempt, so a retry can never create a duplicate HubSpot line item or product.
+            const sub = await getItem(env, c.subitemId!);
+            const existingLi = sub ? colText(sub, LINE_ITEM_SUBITEMS.idCol) : "";
+            if (existingLi) return Response.json({ ok: true, lineItemId: existingLi }, { headers: CORS });
+            const existingPid = sub && LINE_ITEM_SUBITEMS.productIdCol ? colText(sub, LINE_ITEM_SUBITEMS.productIdCol) : "";
             // 1) ensure the parent deal exists in HubSpot; resolve its id from the monday deal card.
             let deal = await getItem(env, c.itemId!);
             let dealId = deal ? colText(deal, DEALS.idCol) : "";
             if (!dealId) {
-              await syncMondayItem(env, DEALS.boardId, c.itemId!, appWriteOpts(env), { left: 10 }); // createFromMonday
+              await syncMondayItem(env, DEALS.boardId, c.itemId!, appWriteOpts(env), { left: 10 });
               deal = await getItem(env, c.itemId!);
               dealId = deal ? colText(deal, DEALS.idCol) : "";
             }
             if (!dealId) return Response.json({ ok: false, error: "deal-not-synced" }, { status: 409, headers: CORS });
-            // 2) optional Save-to-library -> create a product, link it.
+            // 2) Save-to-library -> create the product ONCE (reuse a prior attempt's), persist its id.
             const props = { ...c.properties! };
             if (c.saveToLibrary && !props.hs_product_id) {
-              const pProps: Record<string, string> = {};
-              for (const [k, v] of Object.entries(props)) if (PRODUCT_COPY_PROPS.has(k)) pProps[k] = v;
-              const pid = await createProduct(env, pProps, appWriteOpts(env));
-              if (pid) props.hs_product_id = pid;
+              if (existingPid) props.hs_product_id = existingPid;
+              else {
+                const pProps: Record<string, string> = {};
+                for (const [k, v] of Object.entries(props)) if (PRODUCT_COPY_PROPS.has(k)) pProps[k] = v;
+                const pid = await createProduct(env, pProps, appWriteOpts(env));
+                if (pid) {
+                  props.hs_product_id = pid;
+                  if (LINE_ITEM_SUBITEMS.productIdCol)
+                    try { await setColumns(env, LINE_ITEM_SUBITEMS.boardId, c.subitemId!, { [LINE_ITEM_SUBITEMS.productIdCol]: pid }, appWriteOpts(env)); } catch { /* best-effort */ }
+                }
+              }
             }
-            // 3) create the HubSpot line item (+ associate to the deal), 4) write the id back onto the subitem.
+            // 3) create the HubSpot line item (+ associate to the deal).
             const lineItemId = await createLineItem(env, props, dealId, appWriteOpts(env));
-            if (lineItemId) await setColumns(env, LINE_ITEM_SUBITEMS.boardId, c.subitemId!, { [LINE_ITEM_SUBITEMS.idCol]: lineItemId }, appWriteOpts(env));
+            // 4) write the Line Item ID back onto the subitem — BEST EFFORT: the line item already exists, so
+            //    never fail the request over a write-back; returning the id lets the app store it and skip a dup on retry.
+            if (lineItemId)
+              try { await setColumns(env, LINE_ITEM_SUBITEMS.boardId, c.subitemId!, { [LINE_ITEM_SUBITEMS.idCol]: lineItemId }, appWriteOpts(env)); }
+              catch (e) { console.log(`[app/line-item] create write-back subitem=${c.subitemId} error="${String(e).slice(0, 120)}"`); }
             return Response.json({ ok: true, lineItemId, productId: props.hs_product_id }, { headers: CORS });
           } catch (e) {
             console.log(`[app/line-item] create subitem=${body?.subitemId} error="${String(e).slice(0, 160)}"`);

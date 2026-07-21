@@ -203,8 +203,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       await unlinkRemoved(origContacts, rc, "contacts");
       await unlinkRemoved(origCompanies, rco, "companies");
       setOrigContacts(rc); setOrigCompanies(rco);
-      const persisted = await persistLineItems(board.sessionToken, parentId, lineItems);
+      const { items: persisted, error: liError } = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
+      if (liError) throw new Error(liError);   // keep the drawer open + surface it; retry reuses subitem ids
       // HubSpot side (clears + reconcile) is deferred to the board's background finishSave, so the drawer
       // can close the instant monday confirms. clearProps carries the rep's deliberate clears; the sync
       // can never infer them (an empty monday value means "never set", and for people "heal from HubSpot").

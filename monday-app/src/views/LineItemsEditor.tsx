@@ -51,7 +51,7 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
   }
 
   function addFromProduct(h: Hit) {
-    onChange([...value, { productId: h.id, name: h.name, unitPrice: h.price || h.secondary || "0", quantity: "1", discountMode: "amount", description: h.description }]);
+    onChange([...value, { productId: h.id, name: h.name, unitPrice: h.price || h.secondary || "0", quantity: "1", discountMode: "amount", description: h.description, currency }]);
     setText(""); clear();
   }
   function patch(i: number, p: Partial<LineItem>) { onChange(value.map((li, j) => j === i ? { ...li, ...p } : li)); }
@@ -179,25 +179,34 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
 }
 
 // Persist line items to monday + (for already-synced rows) HubSpot. Returns the updated list (with new
-// subitem ids). New rows are created as subitems; the Worker mirrors them to HubSpot on its next sync.
-export async function persistLineItems(token: string, parentItemId: string, items: LineItem[]): Promise<LineItem[]> {
+// subitem ids) plus an error message if any row's HubSpot step failed, so the caller can surface it and
+// let the rep retry (subitem ids are retained, so a retry never duplicates the subitem or the line item).
+export async function persistLineItems(token: string, parentItemId: string, items: LineItem[]): Promise<{ items: LineItem[]; error?: string }> {
   const out: LineItem[] = [];
+  let error: string | undefined;
   for (const li of items) {
     const cols = lineItemToSubitemColumns(li);
-    if (!li.subitemId) {
-      const subitemId = await createSubitem(parentItemId, li.name, cols);
-      // Create the HubSpot line item now: the Worker ensures the deal exists, associates it, optionally
-      // saves it to the product library, and writes the Line Item ID back onto the subitem.
-      const properties = li.props ?? lineItemHubspotProperties(li);
-      const { lineItemId } = await createHubspotLineItem(token, {
-        itemId: parentItemId, subitemId, productId: li.productId, saveToLibrary: li.saveToLibrary, properties,
-      }).catch(() => ({ lineItemId: undefined as string | undefined }));
-      out.push({ ...li, subitemId, lineItemId });
-    } else {
-      await updateSubitemColumns(li.subitemId, cols);
-      if (li.lineItemId) await updateHubspotLineItem(token, li.lineItemId, li.props ?? lineItemHubspotProperties(li));
+    if (li.lineItemId) {                                   // already synced -> update the same line item
+      if (li.subitemId) await updateSubitemColumns(li.subitemId, cols);
+      await updateHubspotLineItem(token, li.lineItemId, li.props ?? lineItemHubspotProperties(li));
       out.push(li);
+      continue;
+    }
+    // create (or retry a create whose HubSpot step failed): keep/create the subitem, then create the line
+    // item. Retaining subitemId on failure means a retry never duplicates the subitem, and the Worker
+    // dedups the line item by the id it stamped back.
+    const subitemId = li.subitemId ?? await createSubitem(parentItemId, li.name, cols);
+    if (li.subitemId) await updateSubitemColumns(subitemId, cols);
+    try {
+      const { lineItemId } = await createHubspotLineItem(token, {
+        itemId: parentItemId, subitemId, productId: li.productId, saveToLibrary: li.saveToLibrary,
+        properties: li.props ?? lineItemHubspotProperties(li),
+      });
+      out.push({ ...li, subitemId, lineItemId });
+    } catch {
+      out.push({ ...li, subitemId });                     // keep subitemId so the retry reuses it
+      error = "Some line items couldn't be saved to HubSpot — press Save to retry.";
     }
   }
-  return out;
+  return { items: out, error };
 }
