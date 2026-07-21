@@ -20,6 +20,23 @@ export async function searchHubspot(token: string, type: "contacts" | "companies
 export async function updateHubspotLineItem(token: string, lineItemId: string, properties: Record<string, string>): Promise<void> {
   await call(token, "POST", "/app/line-item", { lineItemId, properties });
 }
+export interface EnumProp { label: string; options: { value: string; label: string }[] }
+export async function getLineItemSchema(token: string): Promise<Record<string, EnumProp>> {
+  const res = await call(token, "GET", "/app/line-item-schema");
+  return res?.schema ?? {};
+}
+/** Create a HubSpot line item from a monday subitem via the Worker (which ensures the deal exists,
+ * associates it, optional Save-to-library, and writes the Line Item ID back onto the subitem). */
+export async function createHubspotLineItem(token: string, args: {
+  itemId: string; subitemId: string; productId?: string; saveToLibrary?: boolean; properties: Record<string, string>;
+}): Promise<{ lineItemId?: string; productId?: string }> {
+  const res = await call(token, "POST", "/app/line-item", {
+    itemId: args.itemId, subitemId: args.subitemId, saveToLibrary: args.saveToLibrary,
+    properties: { ...args.properties, ...(args.productId ? { hs_product_id: args.productId } : {}) },
+  });
+  if (res?.error) throw new Error("line-item-" + res.error);
+  return { lineItemId: res.lineItemId, productId: res.productId };
+}
 export async function deleteHubspotLineItem(token: string, lineItemId: string): Promise<void> {
   await call(token, "DELETE", "/app/line-item", { lineItemId });
 }
