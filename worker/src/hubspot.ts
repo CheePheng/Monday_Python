@@ -1,5 +1,6 @@
 import type { Env, HsRecord, ObjectSpec, RunOpts } from "./types";
 import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
+import { normalizeDomain } from "./normalize";
 
 const BASE = "https://api.hubapi.com";
 
@@ -335,6 +336,20 @@ export async function searchContactByEmail(env: Env, email: string):
   const res = await hs(env, "POST", "/crm/v3/objects/contacts/search", body);
   const hit = res.results?.[0];
   return hit ? { id: String(hit.id), modified: hit.properties?.lastmodifieddate ?? "" } : null;
+}
+
+/** Find a HubSpot company by exact normalized domain (for reuse-if-exists). Null if none/blank. */
+export async function searchCompanyByDomain(env: Env, domain: string):
+    Promise<{ id: string; modified: string } | null> {
+  const d = normalizeDomain(domain);
+  if (!d) return null;
+  const body = {
+    filterGroups: [{ filters: [{ propertyName: "domain", operator: "EQ", value: d }] }],
+    properties: ["hs_lastmodifieddate"], limit: 1,
+  };
+  const res = await hs(env, "POST", "/crm/v3/objects/companies/search", body);
+  const hit = res.results?.[0];
+  return hit ? { id: String(hit.id), modified: hit.properties?.hs_lastmodifieddate ?? "" } : null;
 }
 
 export async function getOwners(env: Env): Promise<Record<string, { name: string; email: string | null }>> {
