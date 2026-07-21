@@ -1,10 +1,11 @@
 import type { Env, RunOpts } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
-import { runAll, runIncremental, syncMondayItem } from "./sync";
+import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
+import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems } from "./hubspot";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS } from "./config";
 import { getItem, setColumns } from "./monday";
 import { colText } from "./dedup";
@@ -25,13 +26,13 @@ function appWriteOpts(env: Env): RunOpts {
 
 // Auth for /app/*: a valid monday session token (browser) OR X-Trigger-Secret (server-to-server).
 // The old static X-App-Secret path is retired (it was exposed in frontend prompt material).
-async function authApp(req: Request, env: Env): Promise<{ ok: boolean; reason: string }> {
+async function authApp(req: Request, env: Env): Promise<{ ok: boolean; reason: string; userId?: string; accountId?: string }> {
   const trigger = req.headers.get("x-trigger-secret");
   if (trigger && env.TRIGGER_SECRET && trigger === env.TRIGGER_SECRET) return { ok: true, reason: "trigger-secret" };
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!bearer) return { ok: false, reason: "no session token / trigger secret" };
   const v = await verifySessionToken(env.MONDAY_APP_SESSION_SECRET ?? "", bearer, env.MONDAY_ACCOUNT_ID, Date.now());
-  return { ok: v.ok, reason: v.reason };
+  return { ok: v.ok, reason: v.reason, userId: v.userId, accountId: v.accountId };
 }
 
 function optsFromEnv(env: Env): RunOpts {
@@ -73,6 +74,8 @@ export default {
         console.log(`[app] path=${url.pathname} action=rejected reason="${auth.reason}"`);
         return new Response("forbidden", { status: 403, headers: CORS });
       }
+      const actingUserId = auth.userId; // undefined under trigger-secret auth -> record created Unassigned
+      const actingAccountId = auth.accountId ?? env.MONDAY_ACCOUNT_ID ?? "acct"; // namespaces idempotency keys
 
       // GET /app/search?type=contacts|companies|products&q=&limit=
       if (url.pathname === "/app/search" && req.method === "GET") {
@@ -262,6 +265,52 @@ export default {
         } catch (e) {
           console.log(`[app/sync-deal] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/contact | /app/company — search-or-create a HubSpot Contact/Company, create the monday
+      // card with the HubSpot id in the initial mutation, apply owner, optional deal-free association.
+      // Idempotent via the CreateIdempotency Durable Object keyed by the client UUID.
+      if ((url.pathname === "/app/contact" || url.pathname === "/app/company") && req.method === "POST") {
+        const isContact = url.pathname === "/app/contact";
+        const body: any = await req.json().catch(() => ({}));
+        const parsed = isContact ? parseContactBody(body) : parseCompanyBody(body);
+        if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400, headers: CORS });
+
+        // Namespace the key by account + kind so a UUID can never collide across contact/company/line-item
+        // or across monday accounts (a Contact request must never read a Company's stored result).
+        const doName = `${actingAccountId}:${isContact ? "contact" : "company"}:${parsed.idempotencyKey!}`;
+        const stub = env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(doName));
+        const claim = await stub.claim(Date.now());
+        if (claim.status === "done") return Response.json(claim.result, { headers: CORS });
+        // "inflight" only happens under genuine concurrency (two requests, same key, in the same ~60s).
+        // The client generates one key per Create and holds a savingRef lock, so this is rare; sequential
+        // retries never hit it because every failure path below RELEASES the key (updatedAt=0).
+        if (claim.status === "inflight") return Response.json({ error: "in-progress" }, { status: 409, headers: CORS });
+
+        const ctx = await getCtxCached(env);
+        const props = parsed.properties!;
+        const input: CreateInput = isContact
+          ? { properties: props, sessionUserId: actingUserId,
+              dedup: props.email ? { kind: "email", value: props.email } : { kind: "none" },
+              associateCompany: (parsed as any).associateCompanyHubspotId }
+          : { properties: props, sessionUserId: actingUserId,
+              dedup: props.domain ? { kind: "domain", value: props.domain } : { kind: "none" },
+              associateContacts: (parsed as any).associateContactHubspotIds };
+        try {
+          const { result, error } = await createContactOrCompany(
+            env, isContact ? "contacts" : "companies", ctx, input, claim.result, appWriteOpts(env));
+          if (error) {
+            await stub.save(result, false, 0); // release + keep the partial: the next retry resumes, reusing any id already created
+            console.log(`[app/${isContact ? "contact" : "company"}] error="${error}"`);
+            return Response.json({ ...result, error: "create-failed" }, { status: 502, headers: CORS });
+          }
+          await stub.save(result, true, Date.now()); // mark done: this key now short-circuits to the stored result
+          return Response.json(result, { headers: CORS });
+        } catch (e) {
+          await stub.save(claim.result, false, 0); // release so the retry isn't blocked by a stuck inflight key
+          console.log(`[app/${isContact ? "contact" : "company"}] fatal="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "create-failed" }, { status: 502, headers: CORS });
         }
       }
 
