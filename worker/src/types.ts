@@ -1,4 +1,7 @@
+import type { CreateIdempotency } from "./create-idempotency-do";
+
 export interface Env {
+  CREATE_IDEMPOTENCY: DurableObjectNamespace<CreateIdempotency>;
   MONDAY_API_TOKEN: string;
   HUBSPOT_ACCESS_TOKEN: string;
   TRIGGER_SECRET: string;
