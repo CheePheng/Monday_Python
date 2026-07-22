@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { BoardState } from "../useBoard";
 import DrawerShell from "./DrawerShell";
 import CreateProgress from "./CreateProgress";
-import { Field, SelectStr } from "./FormFields";
-import { fieldsFor, validateRecordForm, recordFormToProperties, type RecordKind, type RecordFormValues, type RecordField } from "../lib/record-form";
+import RecordForm from "./RecordForm";
+import { validateRecordForm, recordFormToProperties, type RecordKind, type RecordFormValues } from "../lib/record-form";
 import { isComplete } from "../lib/create-progress";
 import { openLink, openItemCard } from "../monday-client";
 import {
@@ -14,17 +14,6 @@ import {
 interface Props { kind: RecordKind; board: BoardState; onClose: () => void; onCreated?: (r: CreateResult) => void; onDirtyChange?: (dirty: boolean) => void }
 
 const TITLE: Record<RecordKind, string> = { contact: "Create Contact", company: "Create Company" };
-
-/** Group the fields in declaration order, preserving first-seen group order. */
-function grouped(fields: RecordField[]): { group: string; fields: RecordField[] }[] {
-  const out: { group: string; fields: RecordField[] }[] = [];
-  for (const f of fields) {
-    let g = out.find(x => x.group === f.group);
-    if (!g) { g = { group: f.group, fields: [] }; out.push(g); }
-    g.fields.push(f);
-  }
-  return out;
-}
 
 export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyChange }: Props) {
   const [values, setValues] = useState<RecordFormValues>({});
@@ -39,7 +28,6 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
   const keyRef = useRef<string>(newIdempotencyKey());
   const savingRef = useRef(false); // synchronous double-submit lock
 
-  const groups = grouped(fieldsFor(kind));
   const v = validateRecordForm(kind, values);
 
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty]);
@@ -78,26 +66,6 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
     } finally { setInFlight(false); savingRef.current = false; }
   }
 
-  const field = (f: RecordField) => {
-    const opts = schema[f.prop]?.options ?? [];
-    return (
-      <Field key={f.prop} label={f.label} required={f.required}>
-        {f.type === "enum" ? (
-          <SelectStr options={opts.map(o => o.label)} value={optLabel(opts, values[f.prop])}
-            onChange={lbl => set(f.prop, optValue(opts, lbl))} placeholder="—" />
-        ) : f.type === "textarea" ? (
-          <textarea className="dc-field-input" rows={2} value={values[f.prop] ?? ""} onChange={e => set(f.prop, e.target.value)} />
-        ) : (
-          <input className="dc-field-input" type={f.type === "email" ? "email" : "text"}
-            inputMode={f.type === "number" ? "decimal" : undefined}
-            value={values[f.prop] ?? ""} onChange={e => set(f.prop, e.target.value)} />
-        )}
-        {v.errors[f.prop] && <div className="dc-err">{v.errors[f.prop]}</div>}
-        {!v.errors[f.prop] && v.warnings[f.prop] && <div className="dc-mut" style={{ marginTop: 4 }}>{v.warnings[f.prop]}</div>}
-      </Field>
-    );
-  };
-
   const footer = submitted ? (
     <button className="dc-btn dc-btn-primary" onClick={guardedClose}>{isComplete(result) ? "Done" : "Close"}</button>
   ) : (
@@ -112,14 +80,7 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
   return (
     <DrawerShell title={TITLE[kind]} ariaLabel={TITLE[kind]} onClose={guardedClose} footer={footer}>
       {!submitted ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {groups.map(g => (
-            <div key={g.group} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className="dc-section-title">{g.group}</div>
-              <div className="dc-grid">{g.fields.map(field)}</div>
-            </div>
-          ))}
-        </div>
+        <RecordForm kind={kind} values={values} schema={schema} validation={v} onChange={set} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <CreateProgress result={result} inFlight={inFlight}
@@ -132,12 +93,4 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
       )}
     </DrawerShell>
   );
-}
-
-// Enum columns store the HubSpot value but the picker shows labels; translate both ways via the schema.
-function optLabel(opts: EnumProp["options"], value?: string): string | undefined {
-  return opts.find(o => o.value === value)?.label ?? value;
-}
-function optValue(opts: EnumProp["options"], label?: string): string {
-  return opts.find(o => o.label === label)?.value ?? label ?? "";
 }
