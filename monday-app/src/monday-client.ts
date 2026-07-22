@@ -25,6 +25,9 @@ async function api<T = any>(query: string, variables?: Record<string, unknown>):
 /** Open an external URL in a new tab from inside the monday board-view iframe (reliable vs. target=_blank). */
 export function openLink(url: string): void { void monday.execute("openLinkInTab", { url }); }
 
+/** Open a monday item card (e.g. a just-created contact/company) from inside the board view. */
+export function openItemCard(itemId: string): void { void monday.execute("openItemCard", { itemId }); }
+
 export interface Ctx { userId: string; sessionToken: string }
 /** Read the board-view context (current user) + a fresh session token for Worker calls. */
 export async function getContext(): Promise<Ctx> {
