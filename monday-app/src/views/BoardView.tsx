@@ -107,7 +107,9 @@ export default function BoardView() {
   // Open a standalone create drawer; guard against discarding an open+dirty deal drawer first.
   function openCreate(kind: "contact" | "company") {
     if (editing !== undefined && drawerDirty.current && !window.confirm("Discard unsaved changes?")) return;
+    if (creating !== null && recordDirty.current && !window.confirm("Discard this new " + creating + "?")) return;
     drawerDirty.current = false;
+    recordDirty.current = false;
     setEditing(undefined);
     setCreating(kind);
   }

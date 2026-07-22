@@ -123,6 +123,7 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <CreateProgress result={result} inFlight={inFlight}
+            canRetry={submitted && !inFlight && !isComplete(result)}
             onRetry={() => void submit()}
             onOpenMonday={() => result?.mondayItemId && openItemCard(result.mondayItemId)}
             onOpenHubspot={() => result?.hubspotLink && openLink(result.hubspotLink)} />

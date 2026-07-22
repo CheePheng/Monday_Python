@@ -1,9 +1,10 @@
-import { progressSteps, isComplete, isFailed } from "../lib/create-progress";
+import { progressSteps, isComplete } from "../lib/create-progress";
 import type { CreateResult } from "../worker-client";
 
 interface Props {
   result: CreateResult | null;   // null while the create request is in flight
   inFlight: boolean;
+  canRetry: boolean;             // a failed result OR a thrown error (not in-flight, not completed)
   onRetry: () => void;
   onOpenMonday: () => void;
   onOpenHubspot: () => void;
@@ -17,7 +18,7 @@ function icon(status: "done" | "failed" | "pending", inFlight: boolean): string 
 
 /** Stepwise create progress. While in flight all steps read pending with a running hint; on the result
  * each step is done / failed. Failed => Retry (re-POST with the same idempotency key). Completed => links. */
-export default function CreateProgress({ result, inFlight, onRetry, onOpenMonday, onOpenHubspot }: Props) {
+export default function CreateProgress({ result, inFlight, canRetry, onRetry, onOpenMonday, onOpenHubspot }: Props) {
   const steps = progressSteps(result);
   return (
     <div className="dc-progress">
@@ -29,7 +30,7 @@ export default function CreateProgress({ result, inFlight, onRetry, onOpenMonday
       ))}
       {result?.existing && <div className="dc-mut" style={{ marginTop: 4 }}>Matched an existing record — reusing it (no duplicate created).</div>}
       {result?.unassigned && result.ownerMessage && <div className="dc-mut" style={{ marginTop: 4 }}>{result.ownerMessage}</div>}
-      {isFailed(result) && (
+      {canRetry && (
         <div style={{ marginTop: 10 }}>
           <button className="dc-btn dc-btn-sm" onClick={onRetry}>Retry</button>
         </div>
