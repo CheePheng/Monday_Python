@@ -89,10 +89,10 @@ async function postCreate(token: string, kind: "contact" | "company", body: unkn
   throw new Error((json && (json as any).error) || `create-${kind} failed (${res.status})`);
 }
 
-export function createContact(token: string, args: { idempotencyKey: string; properties: Record<string, string> }): Promise<CreateResult> {
+export function createContact(token: string, args: { idempotencyKey: string; properties: Record<string, string>; associateCompanyHubspotId?: string }): Promise<CreateResult> {
   return postCreate(token, "contact", args);
 }
-export function createCompany(token: string, args: { idempotencyKey: string; properties: Record<string, string> }): Promise<CreateResult> {
+export function createCompany(token: string, args: { idempotencyKey: string; properties: Record<string, string>; associateContactHubspotIds?: string[] }): Promise<CreateResult> {
   return postCreate(token, "company", args);
 }
 export async function getContactSchema(token: string): Promise<Record<string, EnumProp>> {
