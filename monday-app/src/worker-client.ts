@@ -62,3 +62,44 @@ export async function syncDeal(token: string, itemId: string): Promise<boolean> 
 export async function clearDealFields(token: string, hubspotDealId: string, fields: string[]): Promise<void> {
   await call(token, "POST", "/app/clear-deal-fields", { hubspotDealId, fields });
 }
+
+// --- v3.4: standalone Contact/Company creation (Phase A endpoints) ---
+
+/** Mirrors the Worker's CreateResult (worker/src/idempotency.ts). 200 => completed; 502 => failed + partial. */
+export interface CreateResult {
+  status: "in_progress" | "completed" | "failed";
+  failedStep?: "dedup" | "hubspot" | "monday" | "owner" | "associations";
+  hubspotId?: string; mondayItemId?: string; existing?: boolean;
+  unassigned?: boolean; ownerMessage?: string; hubspotLink?: string;
+  steps: { dedup: boolean; hubspot: boolean; monday: boolean; owner: boolean; associations: boolean };
+}
+
+/** One key per Create operation, reused across every retry so the Worker's Durable Object resumes. */
+export function newIdempotencyKey(): string { return crypto.randomUUID(); }
+
+async function postCreate(token: string, kind: "contact" | "company", body: unknown): Promise<CreateResult> {
+  const res = await fetch(WORKER_BASE + `/app/${kind}`, {
+    method: "POST", cache: "no-store",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => null);
+  // Completed (200) and failed-with-partial (502) both carry a CreateResult; anything else is a hard error.
+  if ((res.ok || res.status === 502) && json && typeof json === "object" && "status" in json) return json as CreateResult;
+  throw new Error((json && (json as any).error) || `create-${kind} failed (${res.status})`);
+}
+
+export function createContact(token: string, args: { idempotencyKey: string; properties: Record<string, string> }): Promise<CreateResult> {
+  return postCreate(token, "contact", args);
+}
+export function createCompany(token: string, args: { idempotencyKey: string; properties: Record<string, string> }): Promise<CreateResult> {
+  return postCreate(token, "company", args);
+}
+export async function getContactSchema(token: string): Promise<Record<string, EnumProp>> {
+  const res = await call(token, "GET", "/app/contact-schema");
+  return res?.schema ?? {};
+}
+export async function getCompanySchema(token: string): Promise<Record<string, EnumProp>> {
+  const res = await call(token, "GET", "/app/company-schema");
+  return res?.schema ?? {};
+}
