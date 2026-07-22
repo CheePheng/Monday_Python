@@ -288,18 +288,24 @@ export default {
         // retries never hit it because every failure path below RELEASES the key (updatedAt=0).
         if (claim.status === "inflight") return Response.json({ error: "in-progress" }, { status: 409, headers: CORS });
 
-        const ctx = await getCtxCached(env);
-        const props = parsed.properties!;
-        const input: CreateInput = isContact
-          ? { properties: props, sessionUserId: actingUserId,
-              dedup: props.email ? { kind: "email", value: props.email } : { kind: "none" },
-              associateCompany: (parsed as any).associateCompanyHubspotId }
-          : { properties: props, sessionUserId: actingUserId,
-              dedup: props.domain ? { kind: "domain", value: props.domain } : { kind: "none" },
-              associateContacts: (parsed as any).associateContactHubspotIds };
+        // Everything after the claim runs inside the try so ANY failure (including a cold getCtxCached,
+        // which fans out ~12 HubSpot/monday calls) RELEASES the key — otherwise the fresh `inflight` from
+        // claim() would strand it for 60s and return a CORS-less 500. `partial` carries the freshest result
+        // so even a failure AFTER the create still releases with the ids already produced (resume, no dup).
+        let partial = claim.result;
         try {
+          const ctx = await getCtxCached(env);
+          const props = parsed.properties!;
+          const input: CreateInput = isContact
+            ? { properties: props, sessionUserId: actingUserId,
+                dedup: props.email ? { kind: "email", value: props.email } : { kind: "none" },
+                associateCompany: (parsed as any).associateCompanyHubspotId }
+            : { properties: props, sessionUserId: actingUserId,
+                dedup: props.domain ? { kind: "domain", value: props.domain } : { kind: "none" },
+                associateContacts: (parsed as any).associateContactHubspotIds };
           const { result, error } = await createContactOrCompany(
             env, isContact ? "contacts" : "companies", ctx, input, claim.result, appWriteOpts(env));
+          partial = result;
           if (error) {
             await stub.save(result, false, 0); // release + keep the partial: the next retry resumes, reusing any id already created
             console.log(`[app/${isContact ? "contact" : "company"}] error="${error}"`);
@@ -308,7 +314,7 @@ export default {
           await stub.save(result, true, Date.now()); // mark done: this key now short-circuits to the stored result
           return Response.json(result, { headers: CORS });
         } catch (e) {
-          await stub.save(claim.result, false, 0); // release so the retry isn't blocked by a stuck inflight key
+          await stub.save(partial, false, 0); // release (with any partial) so the retry isn't blocked by a stuck inflight key
           console.log(`[app/${isContact ? "contact" : "company"}] fatal="${String(e).slice(0, 160)}"`);
           return Response.json({ error: "create-failed" }, { status: 502, headers: CORS });
         }
