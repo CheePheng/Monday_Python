@@ -7,11 +7,11 @@ import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
   findOrCreateContact, findOrCreateCompany,
 } from "../monday-client";
-import { deleteHubspotAssociation, getDealLineItems } from "../worker-client";
+import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, type EnumProp } from "../worker-client";
 import { mergeLineItems } from "../lib/line-item-merge";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
-import AssociationPicker from "./AssociationPicker";
+import AssociationSection from "./AssociationSection";
 import type { Assoc } from "../lib/assoc";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
@@ -55,6 +55,14 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [err, setErr] = useState<string | null>(null);
   const [childErr, setChildErr] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [contactSchema, setContactSchema] = useState<Record<string, EnumProp>>({});
+  const [companySchema, setCompanySchema] = useState<Record<string, EnumProp>>({});
+  useEffect(() => {
+    let alive = true;
+    getContactSchema(board.sessionToken).then(s => { if (alive) setContactSchema(s); }).catch(() => {});
+    getCompanySchema(board.sessionToken).then(s => { if (alive) setCompanySchema(s); }).catch(() => {});
+    return () => { alive = false; };
+  }, [board.sessionToken]);
 
   const [liRefresh, setLiRefresh] = useState<{ at: number; loading: boolean; error: boolean }>({ at: 0, loading: false, error: false });
   const liFetched = useRef(false);
@@ -167,6 +175,16 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     const out: Assoc[] = [];
     for (const a of list) {
       if (a.itemId) { out.push(a); continue; }
+      if (a.create) {
+        // Pending "+ New" record: create/reuse it in HubSpot + monday now (on deal Save), keyed so a retry
+        // resumes instead of duplicating. The record's monday card comes back from the Worker.
+        const r = kind === "contacts"
+          ? await createContact(board.sessionToken, { idempotencyKey: a.create.key, properties: a.create.properties })
+          : await createCompany(board.sessionToken, { idempotencyKey: a.create.key, properties: a.create.properties });
+        if (!r.hubspotId || !r.mondayItemId) throw new Error(`Couldn't create the new ${kind === "contacts" ? "contact" : "company"}`);
+        out.push({ label: a.label, hubspotId: r.hubspotId, itemId: r.mondayItemId });
+        continue;
+      }
       const itemId = kind === "contacts"
         ? await findOrCreateContact(a.hubspotId!, a.label)
         : await findOrCreateCompany(a.hubspotId!, a.label);
@@ -308,8 +326,8 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
 
           {tab === "associations" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <AssociationPicker kind="contacts" token={board.sessionToken} value={contacts} onChange={next => { setDirty(true); setContacts(next); }} />
-              <AssociationPicker kind="companies" token={board.sessionToken} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} />
+              <AssociationSection kind="contact" token={board.sessionToken} schema={contactSchema} value={contacts} onChange={next => { setDirty(true); setContacts(next); }} />
+              <AssociationSection kind="company" token={board.sessionToken} schema={companySchema} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} />
             </div>
           )}
 
