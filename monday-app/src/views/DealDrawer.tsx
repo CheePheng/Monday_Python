@@ -11,7 +11,8 @@ import { deleteHubspotAssociation, getDealLineItems } from "../worker-client";
 import { mergeLineItems } from "../lib/line-item-merge";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
-import AssociationPicker, { type Assoc } from "./AssociationPicker";
+import AssociationPicker from "./AssociationPicker";
+import type { Assoc } from "../lib/assoc";
 import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEditor";
 import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
@@ -167,8 +168,8 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     for (const a of list) {
       if (a.itemId) { out.push(a); continue; }
       const itemId = kind === "contacts"
-        ? await findOrCreateContact(a.hubspotId, a.label)
-        : await findOrCreateCompany(a.hubspotId, a.label);
+        ? await findOrCreateContact(a.hubspotId!, a.label)
+        : await findOrCreateCompany(a.hubspotId!, a.label);
       out.push({ ...a, itemId });
     }
     return out;

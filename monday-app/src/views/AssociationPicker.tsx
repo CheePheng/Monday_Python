@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { searchHubspot, type Hit } from "../worker-client";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 
-/** A staged link to an existing HubSpot contact/company (resolved to a monday card on Save). */
-export interface Assoc { hubspotId: string; itemId?: string; label: string }
+import type { Assoc } from "../lib/assoc";
+export type { Assoc };
 interface Props {
   kind: "contacts" | "companies"; token: string;
   value: Assoc[]; onChange: (next: Assoc[]) => void;
