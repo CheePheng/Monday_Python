@@ -3,6 +3,8 @@ import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
 import DealDrawer from "./DealDrawer";
+import RecordDrawer from "./RecordDrawer";
+import CreateMenu from "./CreateMenu";
 import { computeKpis } from "../lib/kpi";
 import { sortDeals, type SortKey } from "../lib/sort";
 import KanbanView from "./KanbanView";
@@ -74,6 +76,7 @@ export default function BoardView() {
   const [mine, setMine] = useState(false);
   const [salesUser, setSalesUser] = useState("");
   const [editing, setEditing] = useState<string | null | undefined>(undefined);
+  const [creating, setCreating] = useState<null | "contact" | "company">(null);
   const [toast, setToast] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
   // Default: newest-created first, so a deal a rep just made is at the top.
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -81,7 +84,7 @@ export default function BoardView() {
 
   // A background refresh remounts the board, so hold it off while the drawer is open — otherwise
   // returning to the tab mid-edit would silently discard the deal being written.
-  useEffect(() => { board.setAutoRefreshPaused(editing !== undefined); }, [editing]);
+  useEffect(() => { board.setAutoRefreshPaused(editing !== undefined || creating !== null); }, [editing, creating]);
 
   // Success/info toasts auto-dismiss; error toasts persist until the user dismisses them.
   useEffect(() => {
@@ -92,10 +95,21 @@ export default function BoardView() {
 
   // Guard a deal switch (row click / Create / Kanban open) when the open drawer has unsaved edits.
   const drawerDirty = useRef(false);
+  const recordDirty = useRef(false);
   function attemptOpen(id: string | null) {
     if (editing !== undefined && drawerDirty.current && !window.confirm("Discard unsaved changes?")) return;
+    if (creating !== null && recordDirty.current && !window.confirm("Discard this new " + creating + "?")) return;
     drawerDirty.current = false;
+    recordDirty.current = false;
+    setCreating(null);
     setEditing(id);
+  }
+  // Open a standalone create drawer; guard against discarding an open+dirty deal drawer first.
+  function openCreate(kind: "contact" | "company") {
+    if (editing !== undefined && drawerDirty.current && !window.confirm("Discard unsaved changes?")) return;
+    drawerDirty.current = false;
+    setEditing(undefined);
+    setCreating(kind);
   }
 
   const userName = (id: string) => board.users.find(u => u.id === id)?.name ?? id;
@@ -148,7 +162,7 @@ export default function BoardView() {
         <h1 className="dc-title">Deals</h1>
         <span className="dc-sub">{rows.length} of {board.rows.length}</span>
         <div className="dc-spacer" />
-        <button className="dc-btn dc-btn-primary" onClick={() => attemptOpen(null)}>＋ Create deal</button>
+        <CreateMenu onNewDeal={() => attemptOpen(null)} onNewContact={() => openCreate("contact")} onNewCompany={() => openCreate("company")} />
       </div>
 
       <div className="dc-kpis">
@@ -250,6 +264,12 @@ export default function BoardView() {
             setToast({ text: "Saved to monday", type: "info" });
             void board.finishSave(info);
           }} />
+      )}
+      {creating !== null && (
+        <RecordDrawer key={"create-" + creating} kind={creating} board={board}
+          onDirtyChange={d => { recordDirty.current = d; }}
+          onClose={() => { recordDirty.current = false; setCreating(null); }}
+          onCreated={(r) => setToast({ text: `${creating === "contact" ? "Contact" : "Company"} ${r.existing ? "matched" : "created"}`, type: "success" })} />
       )}
       {toast && (
         <div className={"dc-toast dc-toast-" + toast.type} onClick={() => setToast(null)}>
