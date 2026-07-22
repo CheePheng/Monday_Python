@@ -7,11 +7,12 @@ export type { Assoc };
 interface Props {
   kind: "contacts" | "companies"; token: string;
   value: Assoc[]; onChange: (next: Assoc[]) => void;
+  single?: boolean;   // keep at most one staged link
 }
 
 /** Picker for the deal's contact/company links: search the LIVE HubSpot CRM and stage a link. Creating new
  * contacts/companies is done elsewhere (removed here). Everything is staged; the drawer resolves cards on Save. */
-export default function AssociationPicker({ kind, token, value, onChange }: Props) {
+export default function AssociationPicker({ kind, token, value, onChange, single }: Props) {
   const [text, setText] = useState("");
   const [active, setActive] = useState(-1);
   const { hits, total, loading, error, query, clear } = useDebouncedSearch<Hit>(
@@ -21,7 +22,8 @@ export default function AssociationPicker({ kind, token, value, onChange }: Prop
 
   function add(hit: Hit) {
     if (value.some(v => v.hubspotId === hit.id)) return;
-    onChange([...value, { hubspotId: hit.id, label: hit.name }]);
+    const link = { hubspotId: hit.id, label: hit.name };
+    onChange(single ? [link] : [...value, link]);
     clear(); setText("");
   }
   function remove(a: Assoc) { onChange(value.filter(v => v !== a)); }
