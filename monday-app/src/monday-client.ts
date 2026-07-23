@@ -1,7 +1,6 @@
 import mondaySdk from "monday-sdk-js";
 import {
-  DEALS_BOARD, SUBITEMS_BOARD, CONTACT_BOARD, COMPANY_BOARD,
-  CONTACT_ID_COL, COMPANY_ID_COL,
+  DEALS_BOARD, SUBITEMS_BOARD,
 } from "./board-config";
 import { apiErrorDetail, apiErrorMessage } from "./lib/api-error";
 
@@ -147,33 +146,10 @@ export async function postUpdate(itemId: string, body: string): Promise<void> {
   await api(`mutation ($i:ID!, $b:String!) { create_update(item_id:$i, body:$b) { id } }`, { i: itemId, b: body });
 }
 
-/** Find a card by HubSpot id on a linked board, else create it (name only). Returns the monday item id.
- * Used for associations: the Worker fills the rest of the card on its next sync. */
-async function findCardByHubspotId(boardId: string, idCol: string, hubspotId: string): Promise<string | null> {
-  const d: any = await api(`query ($b:ID!, $col:String!, $val:String!) {
-    items_page_by_column_values(board_id:$b, limit:1,
-      columns: [{ column_id:$col, column_values:[$val] }]) { items { id } } }`,
-    { b: boardId, col: idCol, val: hubspotId });
-  const hit = d.items_page_by_column_values?.items?.[0];
-  return hit ? String(hit.id) : null;
-}
-async function createOnBoard(boardId: string, idCol: string, hubspotId: string, name: string): Promise<string> {
-  // Re-query right before create to shrink the two-users-same-record race; the Worker dedups the rest.
-  const existing = await findCardByHubspotId(boardId, idCol, hubspotId);
-  if (existing) return existing;
-  const d: any = await api(`mutation ($b:ID!, $n:String!, $c:JSON!) {
-    create_item(board_id:$b, item_name:$n, column_values:$c) { id } }`,
-    { b: boardId, n: name, c: JSON.stringify({ [idCol]: hubspotId }) });
-  return String(d.create_item.id);
-}
-export async function findOrCreateContact(hubspotId: string, name: string): Promise<string> {
-  return (await findCardByHubspotId(CONTACT_BOARD, CONTACT_ID_COL, hubspotId))
-    ?? await createOnBoard(CONTACT_BOARD, CONTACT_ID_COL, hubspotId, name);
-}
-export async function findOrCreateCompany(hubspotId: string, name: string): Promise<string> {
-  return (await findCardByHubspotId(COMPANY_BOARD, COMPANY_ID_COL, hubspotId))
-    ?? await createOnBoard(COMPANY_BOARD, COMPANY_ID_COL, hubspotId, name);
-}
+// NOTE: the browser must NOT create cards on the Contact/Company boards. It cannot see the Worker's
+// strongly-consistent card registry, so a client-side create raced the sync + association passes and
+// produced duplicate rows for one HubSpot record. Card resolution now goes through the Worker —
+// `ensureCard()` in worker-client.ts (POST /app/ensure-card). Do not reintroduce a create_item here.
 
 /** Resolve linked monday item ids to { itemId, name, hubspotId } — used to hydrate association chips in
  * edit mode so existing links are shown (and removable). `idCol` is the board's HubSpot-id column. */

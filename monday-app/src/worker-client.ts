@@ -77,6 +77,15 @@ export interface CreateResult {
 /** One key per Create operation, reused across every retry so the Worker's Durable Object resumes. */
 export function newIdempotencyKey(): string { return crypto.randomUUID(); }
 
+/** Resolve (or create) the monday card for an EXISTING HubSpot contact/company. This MUST go through the
+ * Worker: card creation is guarded by a strongly-consistent registry that the browser cannot see, and a
+ * client-side create raced the sync into duplicate rows on the Contact/Company boards. */
+export async function ensureCard(token: string, object: "contacts" | "companies", hubspotId: string): Promise<string> {
+  const res = await call(token, "POST", "/app/ensure-card", { object, hubspotId });
+  if (!res?.itemId) throw new Error(`Couldn't resolve the monday card for ${object} ${hubspotId}`);
+  return String(res.itemId);
+}
+
 async function postCreate(token: string, kind: "contact" | "company", body: unknown): Promise<CreateResult> {
   const res = await fetch(WORKER_BASE + `/app/${kind}`, {
     method: "POST", cache: "no-store",

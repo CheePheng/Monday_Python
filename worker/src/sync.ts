@@ -6,7 +6,8 @@ import {
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
-import { lookupCard, rememberCard } from "./card-registry";
+import { lookupCard, finishCard } from "./card-registry";
+import { ensureCardForRecord } from "./ensure-card";
 import { targetGroup } from "./routing";
 import {
   buildCreateProperties, buildReversePatch, buildUpdatePayload, decideDirection, fieldDiffs,
@@ -72,13 +73,11 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   const recModified = rec.properties[spec.modifiedProp] ?? "";
 
   if (!existing) {
-    const cv = buildColumnValues(rec, spec, ctx);
-    cv[spec.syncStateCol] = recModified;
-    const newId = await createItem(env, spec.boardId, group, itemName(rec, spec), cv, opts);
-    // Register it so another path (the app's create endpoint, or the association pass) can't create a
-    // second card for this record while monday's column search catches up.
-    if (newId) await rememberCard(env, spec.boardId, rec.id, newId);
-    stats.created++; budget.left--;
+    // Go through the shared reservation rather than creating directly: `existing` may be a stale miss (the
+    // id-column search is eventually consistent, and syncSpec's board snapshot can be minutes old), and a
+    // blind create here is what produced duplicate cards.
+    const r = await ensureCardForRecord(env, spec, ctx, rec, opts);
+    if (r.status === "created") { stats.created++; budget.left--; }
     return;
   }
 
@@ -164,7 +163,7 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
         { [spec.idCol]: created.id, [spec.syncStateCol]: created.modified, ...linkValue(spec, ctx, created.id) }, opts);
       // Register the pairing NOW: HubSpot's creation webhook arrives within seconds, before monday has
       // indexed the id we just stamped, and would otherwise create a second card for this record.
-      await rememberCard(env, spec.boardId, created.id, item.id);
+      await finishCard(env, spec.boardId, created.id, item.id);
     } catch (e) {
       console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
       throw new Error("WRITEBACK_FAILED");
@@ -328,7 +327,14 @@ async function runAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, ctx: C
     budget: Budget): Promise<void> {
   if (!spec.associations || budget.left <= 0) return;
   try {
-    const card = (await findItemByColumn(env, spec.boardId, spec.idCol, rec.id))[0];
+    // This runs right after a card may have just been created, so the eventually-consistent column search
+    // will usually MISS it — which silently left brand-new cards with no relation links and no line-item
+    // subitems until the next full reconcile. Fall back to the registry.
+    let card: MondayItem | undefined = (await findItemByColumn(env, spec.boardId, spec.idCol, rec.id))[0];
+    if (!card) {
+      const known = await lookupCard(env, spec.boardId, rec.id);
+      if (known) card = (await getItem(env, known)) ?? undefined;
+    }
     if (card) await syncAssociations(env, spec, rec, card, ctx, opts, budget);
   } catch (e) {
     console.log(`assoc error ${spec.object}/${rec.id}: ${String(e).slice(0, 200)}`);

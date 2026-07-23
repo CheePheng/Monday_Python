@@ -56,6 +56,13 @@ vi.mock("../src/monday", () => ({
   },
   findItemIdsByColumn: async (_e: any, _b: string, _c: string, values: string[]) =>
     Object.fromEntries(values.filter(v => H.targetItems.has(v)).map(v => [v, H.targetItems.get(v)])),
+  // ensureCardForRecord adopts a pre-existing card via the id-column search before creating one.
+  findItemByColumn: async (_e: any, _b: string, _c: string, value: string) =>
+    H.targetItems.has(value)
+      ? [{ id: H.targetItems.get(value), name: "", created_at: "", updated_at: "", group: { id: "" }, column_values: [] }]
+      : [],
+  getItem: async (_e: any, itemId: string) =>
+    ({ id: itemId, name: "", created_at: "", updated_at: "", group: { id: "" }, column_values: [] }),
   getItemsColumnText: async (_e: any, itemIds: string[], _c: string) =>
     Object.fromEntries(itemIds.map(id => [id, H.targetHsId.get(id) ?? ""])),
   getLinkedItemIds: async (_e: any, itemId: string, col: string) => H.links.get(`${itemId}:${col}`) ?? [],

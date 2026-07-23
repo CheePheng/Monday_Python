@@ -2,7 +2,7 @@ import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, Run
 import { createLineItem, getAssociatedIds, getRecordsByIds, propertiesForSpec, putAssociation } from "./hubspot";
 import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItemsColumnText, getLinkedItemIds, getSubitems, setColumns, updateItem } from "./monday";
 import { SPEC_BY_OBJECT } from "./config";
-import { lookupCard, rememberCard } from "./card-registry";
+import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { buildColumnValues, formatValue, itemName } from "./mapping";
 import { targetGroup } from "./routing";
 import { colText } from "./dedup";
@@ -151,20 +151,13 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
  * the target board's search filter (an associated company/contact links even without a sales_user). */
 async function ensureTargetCard(env: Env, target: ObjectSpec, hsId: string, ctx: Ctx,
     opts: RunOpts, budget: Budget): Promise<string | null> {
-  // The caller's findItemIdsByColumn lookup is eventually consistent, so it can miss a card another path
-  // created moments ago; the registry is strongly consistent and prevents a duplicate here.
-  const known = await lookupCard(env, target.boardId, hsId);
-  if (known) return known;
   const rec = (await getRecordsByIds(env, target.object, [hsId], propertiesForSpec(target)))[0];
   if (!rec) return null;
-  const group = targetGroup(rec, target);
-  if (!group) return null;
   if (opts.dryRun) { console.log(`DRY create-associated ${target.object}/${hsId}`); return null; }
-  const cv = buildColumnValues(rec, target, ctx);
-  cv[target.syncStateCol] = rec.properties[target.modifiedProp] ?? "";
-  const id = await createItem(env, target.boardId, group, itemName(rec, target), cv, opts); budget.left--;
-  if (id) await rememberCard(env, target.boardId, hsId, id);
-  console.log(`source=hubspot object=${target.object} id=${hsId} action=created-associated-card board=${target.boardId} item=${id}`);
+  // Shared reservation: the caller's findItemIdsByColumn lookup is eventually consistent, so it can miss a
+  // card another path created moments ago — creating here again is what produced duplicate cards.
+  const id = cardIdOf(await ensureCardForRecord(env, target, ctx, rec, opts)); budget.left--;
+  console.log(`source=hubspot object=${target.object} id=${hsId} action=ensured-associated-card board=${target.boardId} item=${id}`);
   return id;
 }
 

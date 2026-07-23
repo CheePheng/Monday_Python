@@ -3,10 +3,11 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec } from "./hubspot";
+import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
-import { DEALS, LINE_ITEM_SUBITEMS } from "./config";
+import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
 import { getItem, setColumns } from "./monday";
 import { colText } from "./dedup";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
@@ -265,6 +266,33 @@ export default {
         } catch (e) {
           console.log(`[app/sync-deal] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/ensure-card {object:"contacts"|"companies", hubspotId} — resolve (or create) the monday
+      // card for an EXISTING HubSpot record. The browser must never create these cards itself: it cannot
+      // see the strongly-consistent card registry, so a client-side create raced the sync/association pass
+      // and produced duplicate rows on the Contact/Company boards.
+      if (url.pathname === "/app/ensure-card" && req.method === "POST") {
+        const body: any = await req.json().catch(() => ({}));
+        const object = body?.object;
+        const hubspotId = String(body?.hubspotId ?? "");
+        if (object !== "contacts" && object !== "companies")
+          return Response.json({ error: "object must be contacts|companies" }, { status: 400, headers: CORS });
+        if (!/^\d+$/.test(hubspotId))
+          return Response.json({ error: "hubspotId must be a numeric string" }, { status: 400, headers: CORS });
+        try {
+          const spec = object === "contacts" ? CONTACTS_MYLA : COMPANIES_MYLA;
+          const ctx = await getCtxCached(env);
+          const rec = await getRecord(env, spec.object, hubspotId, propertiesForSpec(spec));
+          if (!rec) return Response.json({ error: "record-not-found" }, { status: 404, headers: CORS });
+          const itemId = cardIdOf(await ensureCardForRecord(env, spec, ctx, rec, appWriteOpts(env)));
+          // null = another path holds the reservation right now; the caller should retry shortly.
+          if (!itemId) return Response.json({ error: "card-pending" }, { status: 409, headers: CORS });
+          return Response.json({ itemId }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/ensure-card] ${object}/${hubspotId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "ensure-card-failed" }, { status: 502, headers: CORS });
         }
       }
 

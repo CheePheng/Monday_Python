@@ -1,12 +1,10 @@
 import type { Ctx, Env, HsRecord, ObjectSpec, RunOpts } from "./types";
 import { CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
 import { createRecord, searchContactByEmail, searchCompanyByDomain, putAssociation } from "./hubspot";
-import { getUserById, findItemByColumn, createItem } from "./monday";
-import { buildColumnValues, itemName } from "./mapping";
-import { targetGroup } from "./routing";
+import { getUserById } from "./monday";
 import { resolveActor, OWNER_UNASSIGNED_MESSAGE } from "./actor";
 import { normalizeDomain } from "./normalize";
-import { lookupCard, rememberCard } from "./card-registry";
+import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import type { CreateResult } from "./idempotency";
 
 export interface CreateInput {
@@ -19,26 +17,6 @@ export interface CreateInput {
 
 function hubspotLink(spec: ObjectSpec, ctx: Ctx, id: string): string {
   return `https://app.hubspot.com/contacts/${ctx.portalId}/record/${spec.objectTypeId}/${id}`;
-}
-
-/** Find (by HubSpot id) or create the monday card for a just-created/reused record, stamping the id in
- * the initial create mutation via buildColumnValues so the reverse-sync never re-creates it in HubSpot. */
-async function findOrCreateCard(env: Env, spec: ObjectSpec, ctx: Ctx, rec: HsRecord, opts: RunOpts): Promise<string | null> {
-  // Registry first: the id-column search is eventually consistent, so it can miss a card created moments
-  // ago by the sync or the association pass, and we'd create a duplicate.
-  const known = await lookupCard(env, spec.boardId, rec.id);
-  if (known) return known;
-  const existing = (await findItemByColumn(env, spec.boardId, spec.idCol, rec.id))[0];
-  if (existing) { await rememberCard(env, spec.boardId, rec.id, existing.id); return existing.id; }
-  const group = targetGroup(rec, spec);          // contacts -> New/topics, companies -> single group (never null)
-  if (!group) return null;
-  const cv = buildColumnValues(rec, spec, ctx);  // includes idCol + link + derived people columns
-  cv[spec.syncStateCol] = rec.properties[spec.modifiedProp] ?? "";
-  const itemId = await createItem(env, spec.boardId, group, itemName(rec, spec), cv, opts);
-  // Register immediately so the HubSpot creation webhook (which lands seconds from now) sees this card
-  // even though monday's column search hasn't indexed it yet.
-  if (itemId) await rememberCard(env, spec.boardId, rec.id, itemId);
-  return itemId;
 }
 
 /** Search-or-create a Contact/Company. Resumable: skips steps already recorded in `prior`. Never throws
@@ -97,7 +75,7 @@ export async function createContactOrCompany(
       step = "monday";
       const cardProps = result.existing ? { ...properties } : { ...properties, ...ownerProps };
       const rec: HsRecord = { id: result.hubspotId, properties: { ...cardProps, [spec.modifiedProp]: "" } };
-      const itemId = await findOrCreateCard(env, spec, ctx, rec, opts);
+      const itemId = cardIdOf(await ensureCardForRecord(env, spec, ctx, rec, opts));
       result.steps.monday = true;
       if (itemId) result.mondayItemId = itemId;
     }

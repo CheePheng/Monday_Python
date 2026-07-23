@@ -5,9 +5,8 @@ import { groupIdForStage, stageOptions } from "../lib/stage";
 import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
-  findOrCreateContact, findOrCreateCompany,
 } from "../monday-client";
-import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, type EnumProp } from "../worker-client";
+import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, ensureCard, type EnumProp } from "../worker-client";
 import { mergeLineItems } from "../lib/line-item-merge";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
@@ -190,9 +189,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         out.push({ label: a.label, hubspotId: r.hubspotId, itemId: r.mondayItemId });
         continue;
       }
-      const itemId = kind === "contacts"
-        ? await findOrCreateContact(a.hubspotId!, a.label)
-        : await findOrCreateCompany(a.hubspotId!, a.label);
+      // Server-side: card creation is guarded by a strongly-consistent registry the browser can't see.
+      // Creating the card here raced the sync/association pass and produced duplicate contact rows.
+      const itemId = await ensureCard(board.sessionToken, kind, a.hubspotId!);
       out.push({ ...a, itemId });
     }
     return out;
