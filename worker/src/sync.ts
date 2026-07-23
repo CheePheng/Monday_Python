@@ -6,7 +6,7 @@ import {
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
-import { lookupCard, finishCard } from "./card-registry";
+import { lookupCard, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem } from "./card-registry";
 import { ensureCardForRecord } from "./ensure-card";
 import { targetGroup } from "./routing";
 import {
@@ -17,7 +17,7 @@ import {
   setColumns, updateItem,
 } from "./monday";
 import {
-  createRecord, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord,
+  createRecord, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
   propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
@@ -141,20 +141,60 @@ async function maintainShared(env: Env, spec: ObjectSpec,
 /** monday card with no HubSpot id (added after go-live) -> create/adopt a HubSpot record. */
 async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     item: MondayItem, emailCol: string | undefined, stats: Stats): Promise<void> {
+  // Cross-isolate guard. monday fires create_pulse AND change_column_value for one new row; those land in
+  // different isolates where `coalesce` (per-isolate) can't see each other, so both used to reach here and
+  // each created its own HubSpot record — leaving one orphan that the sync then carded separately.
+  const claim = await claimHubspotForItem(env, spec.boardId, item.id);
+  if (claim.status === "creating") {
+    stats.skipped++;
+    console.log(`${spec.object} card ${item.id} create already in flight — skipping (would duplicate)`);
+    return;
+  }
+  if (claim.status === "have") {
+    // A previous attempt created the record but its id write-back failed. Re-stamp instead of creating again.
+    await setColumns(env, spec.boardId, item.id,
+      { [spec.idCol]: claim.itemId, ...linkValue(spec, ctx, claim.itemId) }, opts);
+    stats.adopted++; budget.left--;
+    console.log(`${spec.object} card ${item.id} re-stamped with ${claim.itemId} (earlier write-back had failed)`);
+    return;
+  }
+
   if (spec.object === "contacts") {
     const email = emailCol ? colText(item, emailCol) : "";
-    if (!email) { stats.skipped++; console.log(`contact card ${item.id} has no email — skip create`); return; }
+    if (!email) { stats.skipped++; await forgetHubspotForItem(env, spec.boardId, item.id); console.log(`contact card ${item.id} has no email — skip create`); return; }
     const adopt = await searchContactByEmail(env, email);
     if (adopt) { // link the card to the existing HubSpot contact instead of creating a duplicate
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
+      await finishHubspotForItem(env, spec.boardId, item.id, adopt.id);
+      stats.adopted++; budget.left--;
+      return;
+    }
+  }
+  if (spec.object === "companies") {
+    // Companies had NO dedup at all — every trigger created another company. The card's NAME is its domain
+    // (COMPANIES_MYLA.nameProps = ["domain"]), so adopt an existing company on the same normalized domain.
+    const adopt = await searchCompanyByDomain(env, item.name);
+    if (adopt) {
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
+      await finishHubspotForItem(env, spec.boardId, item.id, adopt.id);
       stats.adopted++; budget.left--;
       return;
     }
   }
   const props = buildCreateProperties(item, spec, ctx);
-  const created = await createRecord(env, spec, props, opts);
+  let created: { id: string; modified: string } | null;
+  try {
+    created = await createRecord(env, spec, props, opts);
+  } catch (e) {
+    await forgetHubspotForItem(env, spec.boardId, item.id); // release so a later pass may retry
+    throw e;
+  }
   if (created) {
+    // Record the pairing BEFORE the write-back: if the write-back fails, the next pass re-stamps from here
+    // instead of creating a second HubSpot record.
+    await finishHubspotForItem(env, spec.boardId, item.id, created.id);
     // The write-back is idempotent -> retries hard (setColumns retries=3). If it still fails, the
     // HubSpot record exists but the card has no id and would re-create next tick: log the orphan and
     // signal the caller to STOP creating this run so the failure can't cascade into duplicates.

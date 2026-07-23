@@ -58,13 +58,30 @@ export async function reverseAssociations(env: Env, spec: ObjectSpec, rec: HsRec
 // HubSpot COMPUTES these from price/quantity/discount — don't send them on a line-item create.
 const LI_CALCULATED = new Set(["amount", "hs_pre_discount_amount"]);
 
+/** How long to leave a brand-new id-less subitem alone, so the app's own /app/line-item create (which is
+ * idempotent and carries the full field set) wins instead of racing this pass into a duplicate. */
+const APP_CREATE_GRACE_MS = 90_000;
+
 /** REVERSE line-item pass (monday subitems -> HubSpot line items). id-keyed + additive: creates a HubSpot
  * line item only for a subitem with an EMPTY "HubSpot Line Item ID", then stamps the returned id back so
  * the forward pass treats it as synced (no duplicate). Never deletes. Requires crm.objects.line_items.write. */
 export async function reverseLineItems(env: Env, sub: SubitemSpec, parentItem: MondayItem,
     dealHubspotId: string, opts: RunOpts, budget: Budget): Promise<void> {
   const subitems = await getSubitems(env, parentItem.id);
-  const idless = subitems.filter(s => !colText(s, sub.idCol)); // no HubSpot Line Item ID yet
+  // The app creates the subitem FIRST and then calls POST /app/line-item to create the HubSpot line item
+  // and stamp its id back. Saving a deal also fires a monday column webhook that lands here in the middle
+  // of that — and creating one now yields TWO line items on the deal, doubling its total. Leave brand-new
+  // id-less subitems to the app; if it never finishes, a later pass (10-min backup / daily) picks them up.
+  const now = Date.now();
+  const idless = subitems.filter(s => {
+    if (colText(s, sub.idCol)) return false;                    // already has a HubSpot Line Item ID
+    const age = now - (Date.parse(s.created_at) || 0);
+    if (age < APP_CREATE_GRACE_MS) {
+      console.log(`source=monday reverse-line-item deal=${dealHubspotId} subitem=${s.id} action=deferred reason="created ${Math.round(age / 1000)}s ago; the app may still be creating its line item"`);
+      return false;
+    }
+    return true;
+  });
   if (!idless.length) return;
   // Dedup guard (webhook coalescing is per-isolate; two isolates could double-create): adopt an existing
   // same-name line item already on this deal instead of creating a second one.

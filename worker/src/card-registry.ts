@@ -44,3 +44,29 @@ export async function lookupCard(env: Env, boardId: string, hubspotId: string): 
     return null;
   }
 }
+
+// --- the mirror image: "has this monday row already been given a HubSpot record?" (createFromMonday) ---
+// Same Durable Object, separate key namespace. monday emits `create_pulse` AND `change_column_value` for
+// one new row; those land in different isolates, and `coalesce` is per-isolate — so without this guard
+// both reach createFromMonday and each creates its own HubSpot record.
+
+function itemStub(env: Env, boardId: string, itemId: string) {
+  return env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(`mdcreate:${boardId}:${itemId}`));
+}
+
+/** Reserve the right to create a HubSpot record for this monday row. */
+export async function claimHubspotForItem(env: Env, boardId: string, itemId: string): Promise<CardClaim> {
+  try { return await itemStub(env, boardId, itemId).claimCard(Date.now()); }
+  catch (e) {
+    console.log(`[md-create] claim board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`);
+    return { status: "proceed" }; // fail open
+  }
+}
+export async function finishHubspotForItem(env: Env, boardId: string, itemId: string, hubspotId: string): Promise<void> {
+  try { await itemStub(env, boardId, itemId).finishCard(hubspotId, Date.now()); }
+  catch (e) { console.log(`[md-create] finish board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`); }
+}
+export async function forgetHubspotForItem(env: Env, boardId: string, itemId: string): Promise<void> {
+  try { await itemStub(env, boardId, itemId).forgetCard(); }
+  catch (e) { console.log(`[md-create] forget board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`); }
+}

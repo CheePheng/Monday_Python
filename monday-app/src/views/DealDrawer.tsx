@@ -6,7 +6,7 @@ import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } f
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
 } from "../monday-client";
-import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, ensureCard, type EnumProp } from "../worker-client";
+import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, ensureCard, clearDealFields, type EnumProp } from "../worker-client";
 import { mergeLineItems } from "../lib/line-item-merge";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
@@ -222,6 +222,18 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       // deal actually loaded. Amount/Close date/Sales Users emptied by the rep are cleared on BOTH
       // sides; every other field is still just omitted when empty.
       const clears = origForm ? deliberateClears(origForm, form) : {};
+      const clearProps = [
+        ...(clears.amount ? ["amount"] : []),
+        ...(clears.closeDate ? ["closedate"] : []),
+        ...(clears.salesUsers ? ["sales_user"] : []),
+      ];
+      // Clear HubSpot FIRST. The monday column write below fires a webhook, and if HubSpot still held the
+      // old value the reconciler would read the now-empty monday field as "never set", restore it from
+      // HubSpot, and then backfill it straight back — silently undoing the clear on BOTH sides while the
+      // board still showed "✓ Synced". Clearing first means the webhook sees empty-vs-empty: nothing to do.
+      const clearedUpFront = clearProps.length > 0 && !!dealHubspotId;
+      if (clearedUpFront) await clearDealFields(board.sessionToken, dealHubspotId!, clearProps);
+
       let parentId = createdItemId;
       if (!parentId) {
         const stage = form.stage ?? stages[0];
@@ -253,15 +265,10 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       const { items: persisted, error: liError } = await persistLineItems(board.sessionToken, parentId, lineItems);
       setLineItems(persisted);
       if (liError) throw new Error(liError);   // keep the drawer open + surface it; retry reuses subitem ids
-      // HubSpot side (clears + reconcile) is deferred to the board's background finishSave, so the drawer
-      // can close the instant monday confirms. clearProps carries the rep's deliberate clears; the sync
-      // can never infer them (an empty monday value means "never set", and for people "heal from HubSpot").
-      const clearProps = [
-        ...(clears.amount ? ["amount"] : []),
-        ...(clears.closeDate ? ["closedate"] : []),
-        ...(clears.salesUsers ? ["sales_user"] : []),
-      ];
-      onSaved({ itemId: parentId, isEdit, clearProps });
+      // The HubSpot reconcile is deferred to the board's background finishSave so the drawer can close the
+      // instant monday confirms. Clears were already applied above when we had the deal's HubSpot id; only
+      // hand them to finishSave when we couldn't (a deal whose id hasn't landed yet), so we never clear twice.
+      onSaved({ itemId: parentId, isEdit, clearProps: clearedUpFront ? [] : clearProps });
     } catch (e) {
       setErr(`Save failed at a step — press Save to retry (the deal is not duplicated). ${String(e).slice(0, 400)}`);
     } finally { setSaving(false); savingRef.current = false; }
