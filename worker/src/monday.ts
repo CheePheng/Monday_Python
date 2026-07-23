@@ -163,6 +163,22 @@ export async function getUsersByEmail(env: Env): Promise<Record<string, string>>
 
 // --- writes: mutations use retries=1 so an ambiguous network failure can't double-apply ---
 
+/** Every column on a board: id, title, type. Used to reuse-or-create a column without ever guessing an id. */
+export async function listColumns(env: Env, boardId: string): Promise<{ id: string; title: string; type: string }[]> {
+  const data = await gql(env, `query ($b:[ID!]) { boards(ids:$b) { columns { id title type } } }`, { b: [boardId] });
+  return data.boards?.[0]?.columns ?? [];
+}
+
+/** Create a column and return its REAL id (never guess one). retries=1 — a create must not double-apply. */
+export async function createColumn(env: Env, boardId: string, title: string, columnType: string): Promise<string | null> {
+  const data = await gql(env,
+    `mutation ($b:ID!, $t:String!, $ct:ColumnType!) {
+       create_column(board_id:$b, title:$t, column_type:$ct) { id } }`,
+    { b: boardId, t: title, ct: columnType }, 1);
+  console.log(`created column '${title}' (${columnType}) on ${boardId} -> ${data.create_column?.id}`);
+  return data.create_column?.id ?? null;
+}
+
 export async function createItem(env: Env, boardId: string, groupId: string, name: string,
     cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
   if (opts.dryRun) { console.log(`DRY create '${name}' on ${boardId}/${groupId}`); return null; }

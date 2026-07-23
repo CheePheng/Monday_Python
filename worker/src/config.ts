@@ -122,6 +122,9 @@ export const DEALS: ObjectSpec = {
     { hs: "dealtype", col: "color_mm53cky8", type: "status", labels: "dealtype", reverse: true, backfill: true },  // Deal Type
     { hs: "hs_priority", col: "color_mm532rej", type: "status", labels: "priority", reverse: true, backfill: true },  // Priority
     { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true, backfill: true }, // Vendors
+    // One-way HubSpot -> monday (see the matching note on COMPANIES_MYLA). NO `reverse`, NO `backfill`.
+    // Column "Created date" on board 5029480547; value is the UTC calendar date.
+    { hs: "createdate", col: "date_mm5hsbzv", type: "date" },
   ],
 };
 
@@ -162,6 +165,11 @@ export const COMPANIES_MYLA: ObjectSpec = {
     { hs: "timezone", col: "text_mm4wp480", type: "text" },
     { hs: "description", col: "text_mm4wwtd0", type: "text", reverse: true },
     { hs: "linkedin_company_page", col: "text_mm4w6rzg", type: "text", reverse: true },
+    // One-way HubSpot -> monday. Deliberately NO `reverse` and NO `backfill`: createdate is HubSpot-owned
+    // and read-only, so it must never enter a reverse patch. The value is the UTC calendar date
+    // (formatValue's v.slice(0,10)) — same derivation as every other date column, so a record created
+    // 00:00-08:00 Malaysia time reads as the previous day. Column "Created date" on board 5029639440.
+    { hs: "createdate", col: "date_mm5hmk5v", type: "date" },
   ],
 };
 
