@@ -4,9 +4,11 @@ import { DEAL_COLS, SUB_COLS } from "../board-config";
 export function peopleValue(ids: string[]): { personsAndTeams: { id: number; kind: "person" }[] } {
   return { personsAndTeams: ids.filter(Boolean).map(id => ({ id: Number(id), kind: "person" as const })) };
 }
-/** monday Connect-Boards value from linked monday item ids. */
+/** monday Connect-Boards value from linked monday item ids. Deduped: a staged "+ New" record whose email
+ * or domain dedups onto an already-linked record resolves to the SAME card, which would otherwise send
+ * item_ids:[123,123]. */
 export function boardRelationValue(itemIds: string[]): { item_ids: number[] } {
-  return { item_ids: itemIds.filter(Boolean).map(id => Number(id)) };
+  return { item_ids: [...new Set(itemIds.filter(Boolean).map(id => Number(id)))] };
 }
 
 export interface DealForm {

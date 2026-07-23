@@ -57,12 +57,6 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [dirty, setDirty] = useState(false);
   const [contactSchema, setContactSchema] = useState<Record<string, EnumProp>>({});
   const [companySchema, setCompanySchema] = useState<Record<string, EnumProp>>({});
-  useEffect(() => {
-    let alive = true;
-    getContactSchema(board.sessionToken).then(s => { if (alive) setContactSchema(s); }).catch(() => {});
-    getCompanySchema(board.sessionToken).then(s => { if (alive) setCompanySchema(s); }).catch(() => {});
-    return () => { alive = false; };
-  }, [board.sessionToken]);
 
   const [liRefresh, setLiRefresh] = useState<{ at: number; loading: boolean; error: boolean }>({ at: 0, loading: false, error: false });
   const liFetched = useRef(false);
@@ -85,6 +79,17 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     { id: "lineItems", label: "Line Items" },
     ...(isEdit ? [{ id: "updates" as const, label: "Updates" }, { id: "sync" as const, label: "Sync" }] : []),
   ];
+
+  // Only fetch the contact/company property schemas when the Associations tab is actually opened — these
+  // are large, unfiltered HubSpot property reads, and most deal opens never need them. (worker-client
+  // memoizes them per page session, so switching tabs/deals doesn't refetch.)
+  useEffect(() => {
+    if (tab !== "associations") return;
+    let alive = true;
+    getContactSchema(board.sessionToken).then(s => { if (alive) setContactSchema(s); }).catch(() => {});
+    getCompanySchema(board.sessionToken).then(s => { if (alive) setCompanySchema(s); }).catch(() => {});
+    return () => { alive = false; };
+  }, [tab, board.sessionToken]);
 
   useEffect(() => {
     if (!isEdit || !board.meta) return;

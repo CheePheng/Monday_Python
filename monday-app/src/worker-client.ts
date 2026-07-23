@@ -95,11 +95,22 @@ export function createContact(token: string, args: { idempotencyKey: string; pro
 export function createCompany(token: string, args: { idempotencyKey: string; properties: Record<string, string>; associateContactHubspotIds?: string[] }): Promise<CreateResult> {
   return postCreate(token, "company", args);
 }
+// These are large, unfiltered HubSpot property reads whose options change ~never, so memoize them for the
+// page session. A failed/empty fetch is NOT cached, so a transient error can still recover on the next open.
+let contactSchemaCache: Record<string, EnumProp> | null = null;
+let companySchemaCache: Record<string, EnumProp> | null = null;
+
 export async function getContactSchema(token: string): Promise<Record<string, EnumProp>> {
+  if (contactSchemaCache) return contactSchemaCache;
   const res = await call(token, "GET", "/app/contact-schema");
-  return res?.schema ?? {};
+  const schema: Record<string, EnumProp> = res?.schema ?? {};
+  if (Object.keys(schema).length) contactSchemaCache = schema;
+  return schema;
 }
 export async function getCompanySchema(token: string): Promise<Record<string, EnumProp>> {
+  if (companySchemaCache) return companySchemaCache;
   const res = await call(token, "GET", "/app/company-schema");
-  return res?.schema ?? {};
+  const schema: Record<string, EnumProp> = res?.schema ?? {};
+  if (Object.keys(schema).length) companySchemaCache = schema;
+  return schema;
 }

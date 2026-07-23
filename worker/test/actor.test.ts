@@ -13,6 +13,6 @@ describe("resolveActor", () => {
     expect(resolveActor(ctx, "")).toEqual({ unassigned: true });
     expect(resolveActor(ctx, undefined)).toEqual({ unassigned: true });
   });
-  it("exposes the exact Unassigned message", () =>
-    expect(OWNER_UNASSIGNED_MESSAGE).toBe("No HubSpot owner mapping was found. Record created as Unassigned."));
+  it("exposes the exact Unassigned message, including the sync consequence", () =>
+    expect(OWNER_UNASSIGNED_MESSAGE).toBe("No HubSpot owner mapping was found. Record created as Unassigned — assign a Sales User to turn on two-way sync for it."));
 });

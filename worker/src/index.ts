@@ -281,7 +281,15 @@ export default {
         // or across monday accounts (a Contact request must never read a Company's stored result).
         const doName = `${actingAccountId}:${isContact ? "contact" : "company"}:${parsed.idempotencyKey!}`;
         const stub = env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(doName));
-        const claim = await stub.claim(Date.now());
+        let claim;
+        try {
+          claim = await stub.claim(Date.now());
+        } catch (e) {
+          // A Durable Object failure here would otherwise escape as a bare 500 with no CORS headers, which
+          // the browser surfaces as an opaque network error instead of a readable message.
+          console.log(`[app/${isContact ? "contact" : "company"}] claim-failed="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "create-unavailable" }, { status: 503, headers: CORS });
+        }
         if (claim.status === "done") return Response.json(claim.result, { headers: CORS });
         // "inflight" only happens under genuine concurrency (two requests, same key, in the same ~60s).
         // The client generates one key per Create and holds a savingRef lock, so this is rare; sequential

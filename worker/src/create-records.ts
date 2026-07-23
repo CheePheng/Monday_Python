@@ -67,7 +67,13 @@ export async function createContactOrCompany(
       } else {
         step = "hubspot";
         const created = await createRecord(env, spec, { ...properties, ...ownerProps }, opts);
-        if (!created) return { result };                                     // dry-run: nothing was written
+        if (!created) {
+          // Dry-run / writes disabled: nothing was written. Report it as a FAILURE so the key is released
+          // and the UI says so — otherwise the caller would store an "in_progress" result as done and the
+          // progress panel would sit there silently claiming nothing went wrong.
+          result.status = "failed"; result.failedStep = "hubspot";
+          return { result, error: "writes are disabled (DRY_RUN) — nothing was created" };
+        }
         result.hubspotId = created.id; result.existing = false;
         if ("unassigned" in owner) { result.unassigned = true; result.ownerMessage = OWNER_UNASSIGNED_MESSAGE; }
       }

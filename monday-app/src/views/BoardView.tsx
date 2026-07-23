@@ -77,6 +77,7 @@ export default function BoardView() {
   const [salesUser, setSalesUser] = useState("");
   const [editing, setEditing] = useState<string | null | undefined>(undefined);
   const [creating, setCreating] = useState<null | "contact" | "company">(null);
+  const [createSeq, setCreateSeq] = useState(0); // forces a fresh drawer when re-picking the same kind
   const [toast, setToast] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
   // Default: newest-created first, so a deal a rep just made is at the top.
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -112,6 +113,9 @@ export default function BoardView() {
     recordDirty.current = false;
     setEditing(undefined);
     setCreating(kind);
+    // Bump the drawer key so clicking "＋ New Contact" again while a finished contact drawer is still open
+    // remounts a fresh form — without this, setCreating(same kind) is a no-op and the button looks dead.
+    setCreateSeq(n => n + 1);
   }
 
   const userName = (id: string) => board.users.find(u => u.id === id)?.name ?? id;
@@ -268,7 +272,7 @@ export default function BoardView() {
           }} />
       )}
       {creating !== null && (
-        <RecordDrawer key={"create-" + creating} kind={creating} board={board}
+        <RecordDrawer key={`create-${creating}-${createSeq}`} kind={creating} board={board}
           onDirtyChange={d => { recordDirty.current = d; }}
           onClose={() => { recordDirty.current = false; setCreating(null); }}
           onCreated={(r) => setToast({ text: `${creating === "contact" ? "Contact" : "Company"} ${r.existing ? "matched" : "created"}`, type: "success" })} />
