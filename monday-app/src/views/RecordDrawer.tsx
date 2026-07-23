@@ -3,6 +3,8 @@ import type { BoardState } from "../useBoard";
 import DrawerShell from "./DrawerShell";
 import CreateProgress from "./CreateProgress";
 import RecordForm from "./RecordForm";
+import AssociationSection from "./AssociationSection";
+import type { Assoc } from "../lib/assoc";
 import { validateRecordForm, recordFormToProperties, type RecordKind, type RecordFormValues } from "../lib/record-form";
 import { isComplete } from "../lib/create-progress";
 import { openLink, openItemCard } from "../monday-client";
@@ -27,6 +29,9 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
   // One idempotency key per drawer instance -> every Retry resumes the same server-side create.
   const keyRef = useRef<string>(newIdempotencyKey());
   const savingRef = useRef(false); // synchronous double-submit lock
+  const nestedKind: RecordKind = kind === "contact" ? "company" : "contact";
+  const [assoc, setAssoc] = useState<Assoc[]>([]);
+  const [nestedSchema, setNestedSchema] = useState<Record<string, EnumProp>>({});
 
   const v = validateRecordForm(kind, values);
 
@@ -35,9 +40,11 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
   useEffect(() => {
     let alive = true;
     const load = kind === "contact" ? getContactSchema : getCompanySchema;
+    const loadNested = nestedKind === "contact" ? getContactSchema : getCompanySchema;
     load(board.sessionToken).then(s => { if (alive) setSchema(s); }).catch(() => { /* form still works without enum options */ });
+    loadNested(board.sessionToken).then(s => { if (alive) setNestedSchema(s); }).catch(() => {});
     return () => { alive = false; };
-  }, [kind, board.sessionToken]);
+  }, [kind, nestedKind, board.sessionToken]);
 
   const set = (prop: string, val: string) => { setDirty(true); setValues(s => ({ ...s, [prop]: val })); };
 
@@ -57,7 +64,22 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
     setSubmitted(true); setInFlight(true); setErr(null);
     try {
       const properties = recordFormToProperties(kind, values);
-      const args = { idempotencyKey: keyRef.current, properties };
+      // Resolve any linked/new related records to HubSpot ids first (a staged "+ New" is created here,
+      // keyed so a retry resumes). Then the main create carries the association ids.
+      const relatedIds: string[] = [];
+      for (const a of assoc) {
+        if (a.hubspotId) { relatedIds.push(a.hubspotId); continue; }
+        if (a.create) {
+          const rr = nestedKind === "contact"
+            ? await createContact(board.sessionToken, { idempotencyKey: a.create.key, properties: a.create.properties })
+            : await createCompany(board.sessionToken, { idempotencyKey: a.create.key, properties: a.create.properties });
+          if (!rr.hubspotId) throw new Error(`Couldn't create the linked ${nestedKind}`);
+          relatedIds.push(rr.hubspotId);
+        }
+      }
+      const args = kind === "contact"
+        ? { idempotencyKey: keyRef.current, properties, associateCompanyHubspotId: relatedIds[0] }
+        : { idempotencyKey: keyRef.current, properties, associateContactHubspotIds: relatedIds };
       const r = kind === "contact" ? await createContact(board.sessionToken, args) : await createCompany(board.sessionToken, args);
       setResult(r);
       if (r.status === "completed") { setDirty(false); onCreated?.(r); }
@@ -80,7 +102,14 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
   return (
     <DrawerShell title={TITLE[kind]} ariaLabel={TITLE[kind]} onClose={guardedClose} footer={footer}>
       {!submitted ? (
-        <RecordForm kind={kind} values={values} schema={schema} validation={v} onChange={set} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <RecordForm kind={kind} values={values} schema={schema} validation={v} onChange={set} />
+          <div>
+            <div className="dc-section-title">{kind === "contact" ? "Company (optional)" : "Contacts (optional)"}</div>
+            <AssociationSection kind={nestedKind} token={board.sessionToken} schema={nestedSchema}
+              value={assoc} onChange={next => { setDirty(true); setAssoc(next); }} single={kind === "contact"} />
+          </div>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <CreateProgress result={result} inFlight={inFlight}
