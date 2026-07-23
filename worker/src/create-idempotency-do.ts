@@ -26,5 +26,18 @@ export class CreateIdempotency extends DurableObject {
     // reclaimability; basing the alarm on 0 would schedule cleanup in 1970 and wipe the partial at once.
     await this.ctx.storage.setAlarm(Date.now() + RETENTION_MS);
   }
+  // --- monday card registry (separate instances, keyed `card:<boardId>:<hubspotId>`) ---
+  // monday's items_page_by_column_values (the HubSpot-ID column search) is EVENTUALLY CONSISTENT, so a card
+  // created seconds ago can be invisible to another creator. Several paths create a card for the same
+  // record (the app's create endpoint, the HubSpot->monday sync, the association pass), so a search miss
+  // used to let a second path create a DUPLICATE card. Each path records its card here and checks first.
+  async getCard(): Promise<string | null> {
+    return (await this.ctx.storage.get<string>("card")) ?? null;
+  }
+  async setCard(itemId: string, nowMs: number): Promise<void> {
+    await this.ctx.storage.put("card", itemId);
+    await this.ctx.storage.setAlarm(nowMs + RETENTION_MS);
+  }
+
   async alarm(): Promise<void> { await this.ctx.storage.deleteAll(); }
 }

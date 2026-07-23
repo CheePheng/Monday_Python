@@ -6,6 +6,7 @@ import {
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
+import { lookupCard, rememberCard } from "./card-registry";
 import { targetGroup } from "./routing";
 import {
   buildCreateProperties, buildReversePatch, buildUpdatePayload, decideDirection, fieldDiffs,
@@ -73,7 +74,10 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   if (!existing) {
     const cv = buildColumnValues(rec, spec, ctx);
     cv[spec.syncStateCol] = recModified;
-    await createItem(env, spec.boardId, group, itemName(rec, spec), cv, opts);
+    const newId = await createItem(env, spec.boardId, group, itemName(rec, spec), cv, opts);
+    // Register it so another path (the app's create endpoint, or the association pass) can't create a
+    // second card for this record while monday's column search catches up.
+    if (newId) await rememberCard(env, spec.boardId, rec.id, newId);
     stats.created++; budget.left--;
     return;
   }
@@ -158,6 +162,9 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
     try {
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: created.id, [spec.syncStateCol]: created.modified, ...linkValue(spec, ctx, created.id) }, opts);
+      // Register the pairing NOW: HubSpot's creation webhook arrives within seconds, before monday has
+      // indexed the id we just stamped, and would otherwise create a second card for this record.
+      await rememberCard(env, spec.boardId, created.id, item.id);
     } catch (e) {
       console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
       throw new Error("WRITEBACK_FAILED");
@@ -269,6 +276,16 @@ async function findLinkedDealItem(env: Env, dealId: string):
     const items = await findItemByColumn(env, spec.boardId, spec.idCol, dealId);
     if (items.length) return { spec, item: items[0] };
   }
+  // Same eventual-consistency guard as contacts/companies: a card whose HubSpot ID was stamped moments ago
+  // (createFromMonday) may not be indexed yet, and HubSpot's deal.creation webhook lands right about then —
+  // without this the reconcile would treat it as unlinked and create a SECOND deal card.
+  for (const spec of DEAL_SPECS) {
+    const known = await lookupCard(env, spec.boardId, dealId);
+    if (known) {
+      const item = await getItem(env, known);
+      if (item) { console.log(`deals/${dealId} card ${known} resolved via registry (column search not indexed yet)`); return { spec, item }; }
+    }
+  }
   return null;
 }
 
@@ -339,7 +356,17 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
   // Scope-check BEFORE the board lookup: contact/company webhooks fire portal-wide, so a non-Myla
   // record must cost only this one fetch (no extra monday subrequest) before we drop it.
   if (!recInScope(rec)) return wlog(spec.object, id, "skipped", 'reason="out of scope (sales_user/created-before-cutoff)"');
-  const existing = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  // The id-column search is eventually consistent. When the app's create endpoint has just made this
+  // record (and its card), HubSpot's creation webhook lands here within seconds — before monday has
+  // indexed the card — and creating again would produce a DUPLICATE card. Fall back to the registry.
+  let existing: MondayItem | undefined = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  if (!existing) {
+    const known = await lookupCard(env, spec.boardId, id);
+    if (known) {
+      existing = (await getItem(env, known)) ?? undefined;
+      if (existing) console.log(`${spec.object}/${id} card ${known} resolved via registry (column search not indexed yet)`);
+    }
+  }
   const stats = emptyStats();
   await reconcileRecord(env, spec, ctx, opts, budget, rec, existing, stats);
   await runAssociations(env, spec, rec, ctx, opts, budget);
