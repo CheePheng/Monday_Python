@@ -335,3 +335,49 @@
 .dc-progress-step.done .dc-progress-icon { background: var(--green-soft); color: var(--green); }
 .dc-progress-step.failed { color: var(--red); }
 .dc-progress-step.failed .dc-progress-icon { background: var(--red-soft); color: var(--red); }
+
+/* ---------- confirmation dialog (replaces window.confirm) ---------- */
+/* Above the drawer (1001) and its scrim (1000): a question about the drawer must sit on top of it. */
+.dc-confirm-scrim {
+  position: fixed; inset: 0; z-index: 1200; background: rgba(6, 9, 18, .5);
+  backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: dc-confirm-in .12s ease-out;
+}
+@keyframes dc-confirm-in { from { opacity: 0 } to { opacity: 1 } }
+.dc-confirm {
+  width: min(440px, 100%); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden;
+  animation: dc-confirm-pop .14s cubic-bezier(.2, .9, .3, 1.2);
+}
+@keyframes dc-confirm-pop { from { transform: scale(.96); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+/* The tone stripe + icon colour are the at-a-glance signal. */
+.dc-confirm { border-top: 3px solid var(--border-strong); }
+.dc-confirm-danger  { border-top-color: var(--red); }
+.dc-confirm-warning { border-top-color: var(--amber); }
+.dc-confirm-caution { border-top-color: var(--accent); }
+.dc-confirm-body { display: flex; gap: 14px; padding: 22px 24px 18px; }
+.dc-confirm-icon {
+  flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 17px; font-weight: 800; line-height: 1;
+}
+.dc-confirm-danger  .dc-confirm-icon { background: var(--red-soft);    color: var(--red); }
+.dc-confirm-warning .dc-confirm-icon { background: var(--amber-soft);  color: var(--amber); }
+.dc-confirm-caution .dc-confirm-icon { background: var(--accent-soft); color: var(--accent); }
+.dc-confirm-title { margin: 3px 0 0; font-size: 16.5px; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
+.dc-confirm-msg { margin: 7px 0 0; font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.dc-confirm-hints {
+  margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.dc-confirm-hints-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.dc-confirm-hints ul { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--text-2); }
+.dc-confirm-hints li { margin-top: 2px; }
+.dc-confirm-foot {
+  display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px;
+  border-top: 1px solid var(--border); background: var(--surface-2);
+}
+/* Solid tone buttons: the confirm action should read as the tone, not as a generic primary. */
+.dc-btn-danger-solid { border: none; color: #fff; background: var(--red); box-shadow: 0 6px 18px -6px var(--red); }
+.dc-btn-danger-solid:hover { filter: brightness(1.06); }
+.dc-btn-warning-solid { border: none; color: #fff; background: var(--amber); box-shadow: 0 6px 18px -6px var(--amber); }
+.dc-btn-warning-solid:hover { filter: brightness(1.06); }

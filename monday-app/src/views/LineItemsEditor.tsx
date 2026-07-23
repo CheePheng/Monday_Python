@@ -9,6 +9,7 @@ import { lineTotal, lineItemsTotal } from "../lib/totals";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 import LineItemForm from "./LineItemForm";
 import type { LineItemFormValues } from "../lib/line-item-form";
+import { useConfirm } from "../confirm";
 
 export interface LineItem {
   subitemId?: string; lineItemId?: string; // present once synced by the Worker
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function LineItemsEditor({ token, value, onChange, onError, onUseTotal, currency = "", refreshState, onRefresh, dirty }: Props) {
+  const confirm = useConfirm();   // shadows window.confirm on purpose (see BoardView)
   const [text, setText] = useState("");
   const [adding, setAdding] = useState(false);
   const [schema, setSchema] = useState<Record<string, EnumProp>>({});
@@ -59,7 +61,13 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
   async function remove(i: number) {
     const li = value[i];
     // Already synced to HubSpot: confirm before we delete it there too.
-    if (li.lineItemId && !confirm("Remove this line item? It will be deleted in HubSpot.")) return;
+    if (li.lineItemId && !(await confirm({
+      tone: "danger",
+      title: "Remove this line item?",
+      message: `“${li.name || "This line item"}” will also be deleted from the deal in HubSpot. This can't be undone from here.`,
+      confirmLabel: "Remove line item",
+      cancelLabel: "Keep it",
+    }))) return;
     // The monday subitem is the source of truth for the row: if it can't be deleted, surface the error and
     // KEEP the row (removing it from the UI would falsely imply the line item is gone).
     if (li.subitemId) {
@@ -83,7 +91,15 @@ export default function LineItemsEditor({ token, value, onChange, onError, onUse
       {onRefresh && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 12.5 }}>
           <button type="button" className="dc-btn dc-btn-sm" disabled={refreshState?.loading}
-            onClick={() => { if (!dirty || confirm("Discard unsaved line-item changes and refresh from HubSpot?")) onRefresh(); }}>
+            onClick={async () => {
+              if (dirty && !(await confirm({
+                title: "Discard unsaved line-item changes?",
+                message: "Refreshing pulls the current line items from HubSpot and replaces what you've edited here.",
+                confirmLabel: "Discard & refresh",
+                cancelLabel: "Keep editing",
+              }))) return;
+              onRefresh();
+            }}>
             {refreshState?.loading ? "Refreshing…" : "⟳ Refresh line items"}
           </button>
           {refreshState?.error

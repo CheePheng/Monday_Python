@@ -7,6 +7,8 @@ import AssociationSection from "./AssociationSection";
 import type { Assoc } from "../lib/assoc";
 import { validateRecordForm, recordFormToProperties, type RecordKind, type RecordFormValues } from "../lib/record-form";
 import { isComplete } from "../lib/create-progress";
+import { loadDuplicateHints } from "../lib/dup-hints";
+import { useConfirm } from "../confirm";
 import { openLink, openItemCard } from "../monday-client";
 import {
   createContact, createCompany, getContactSchema, getCompanySchema, newIdempotencyKey,
@@ -18,6 +20,7 @@ interface Props { kind: RecordKind; board: BoardState; onClose: () => void; onCr
 const TITLE: Record<RecordKind, string> = { contact: "Create Contact", company: "Create Company" };
 
 export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyChange }: Props) {
+  const confirm = useConfirm();   // shadows window.confirm on purpose (see BoardView)
   const [values, setValues] = useState<RecordFormValues>({});
   const [schema, setSchema] = useState<Record<string, EnumProp>>({});
   const [result, setResult] = useState<CreateResult | null>(null);
@@ -48,8 +51,13 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
 
   const set = (prop: string, val: string) => { setDirty(true); setValues(s => ({ ...s, [prop]: val })); };
 
-  function guardedClose() {
-    if (dirty && !isComplete(result) && !confirm("Discard this new " + kind + "?")) return;
+  async function guardedClose() {
+    if (dirty && !isComplete(result) && !(await confirm({
+      title: `Discard this new ${kind}?`,
+      message: `The ${kind} hasn't been created yet. Closing now discards what you've filled in.`,
+      confirmLabel: "Discard",
+      cancelLabel: "Keep editing",
+    }))) return;
     onClose();
   }
 
@@ -58,8 +66,15 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
     // Duplicate-risk gate (spec): with no email we can't detect an existing contact — require an explicit
     // confirm on the FIRST submit (a Retry is a resume, so skip it then). Companies don't need this: the
     // form already REQUIRES a domain unless "no website" is ticked, which is the same deliberate act.
-    if (kind === "contact" && !submitted && !values.email?.trim() && !window.confirm(
-      "No email — a duplicate can't be detected automatically. Create this contact anyway?")) return;
+    if (kind === "contact" && !submitted && !values.email?.trim() && !(await confirm({
+      tone: "caution",
+      title: "Create this contact without an email?",
+      message: "Email is how we detect an existing contact. Without it, this may create a second copy of someone already in HubSpot.",
+      confirmLabel: "Create anyway",
+      cancelLabel: "Add an email",
+      hintsLabel: "Similar names already in HubSpot",
+      loadHints: () => loadDuplicateHints(board.sessionToken, kind, values),
+    }))) return;
     savingRef.current = true;
     setSubmitted(true); setInFlight(true); setErr(null);
     try {

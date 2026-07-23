@@ -10,6 +10,7 @@ import { sortDeals, type SortKey } from "../lib/sort";
 import KanbanView from "./KanbanView";
 import { openLink } from "../monday-client";
 import { hubspotDealUrl } from "../board-config";
+import { useConfirm } from "../confirm";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
 function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
@@ -71,6 +72,8 @@ function Kpi({ label, value, foot, color }: { label: string; value: string; foot
 
 export default function BoardView() {
   const board = useBoard();
+  // Deliberately shadows the global window.confirm — a leftover native call would now fail to type-check.
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("");
   const [mine, setMine] = useState(false);
@@ -97,18 +100,33 @@ export default function BoardView() {
   // Guard a deal switch (row click / Create / Kanban open) when the open drawer has unsaved edits.
   const drawerDirty = useRef(false);
   const recordDirty = useRef(false);
-  function attemptOpen(id: string | null) {
-    if (editing !== undefined && drawerDirty.current && !window.confirm("Discard unsaved changes?")) return;
-    if (creating !== null && recordDirty.current && !window.confirm("Discard this new " + creating + "?")) return;
+  /** Whatever is open and dirty, ask before we replace it. False = the rep kept editing. */
+  async function mayLeaveOpenDrawer(): Promise<boolean> {
+    if (editing !== undefined && drawerDirty.current && !(await confirm({
+      title: "Discard unsaved changes?",
+      message: "This deal has edits that haven't been saved. Leaving now loses them.",
+      confirmLabel: "Discard changes",
+      cancelLabel: "Keep editing",
+    }))) return false;
+    if (creating !== null && recordDirty.current && !(await confirm({
+      title: `Discard this new ${creating}?`,
+      message: `The ${creating} hasn't been created yet. Leaving now discards what you've filled in.`,
+      confirmLabel: "Discard",
+      cancelLabel: "Keep editing",
+    }))) return false;
+    return true;
+  }
+
+  async function attemptOpen(id: string | null) {
+    if (!(await mayLeaveOpenDrawer())) return;
     drawerDirty.current = false;
     recordDirty.current = false;
     setCreating(null);
     setEditing(id);
   }
   // Open a standalone create drawer; guard against discarding an open+dirty deal drawer first.
-  function openCreate(kind: "contact" | "company") {
-    if (editing !== undefined && drawerDirty.current && !window.confirm("Discard unsaved changes?")) return;
-    if (creating !== null && recordDirty.current && !window.confirm("Discard this new " + creating + "?")) return;
+  async function openCreate(kind: "contact" | "company") {
+    if (!(await mayLeaveOpenDrawer())) return;
     drawerDirty.current = false;
     recordDirty.current = false;
     setEditing(undefined);

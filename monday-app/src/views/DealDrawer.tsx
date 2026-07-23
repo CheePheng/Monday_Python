@@ -16,6 +16,7 @@ import LineItemsEditor, { persistLineItems, type LineItem } from "./LineItemsEdi
 import UpdatesPanel from "./UpdatesPanel";
 import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
 import type { SavedInfo } from "../lib/sync-status";
+import { useConfirm } from "../confirm";
 
 interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (info: SavedInfo) => void; onDirtyChange?: (dirty: boolean) => void }
 
@@ -23,6 +24,7 @@ const pick = (arr: string[], re: RegExp) => arr.find(x => re.test(x)) ?? arr[0];
 const splitCsv = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
 
 export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyChange }: Props) {
+  const confirm = useConfirm();   // shadows window.confirm on purpose (see BoardView)
   const isEdit = itemId != null;
   const stages = board.meta ? stageOptions(board.meta.groups) : [];
   const userOpts: Opt[] = board.users.map(u => ({ value: u.id, label: u.name || u.email || u.id }));
@@ -151,8 +153,13 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const set = (p: Partial<DealForm>) => { setDirty(true); setForm(f => ({ ...f, ...p })); };
   const invalid = validateDealForm(name, form);
 
-  function guardedClose() {
-    if (dirty && !confirm("Discard unsaved changes?")) return;
+  async function guardedClose() {
+    if (dirty && !(await confirm({
+      title: "Discard unsaved changes?",
+      message: "This deal has edits that haven't been saved. Closing now loses them.",
+      confirmLabel: "Discard changes",
+      cancelLabel: "Keep editing",
+    }))) return;
     onClose();
   }
 

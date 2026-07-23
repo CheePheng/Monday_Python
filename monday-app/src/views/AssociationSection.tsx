@@ -4,6 +4,8 @@ import RecordForm from "./RecordForm";
 import { buildCreateAssoc, type Assoc } from "../lib/assoc";
 import { validateRecordForm, type RecordKind, type RecordFormValues } from "../lib/record-form";
 import { newIdempotencyKey, type EnumProp } from "../worker-client";
+import { loadDuplicateHints } from "../lib/dup-hints";
+import { useConfirm } from "../confirm";
 
 interface Props {
   kind: RecordKind;              // "contact" | "company" (the record being linked/created)
@@ -18,15 +20,24 @@ const PLURAL: Record<RecordKind, "contacts" | "companies"> = { contact: "contact
 
 /** Search + stage an existing record, or stage a brand-new one (created on the parent's Save). */
 export default function AssociationSection({ kind, token, schema, value, onChange, single }: Props) {
+  const confirm = useConfirm();   // shadows window.confirm on purpose (see BoardView)
   const [creating, setCreating] = useState(false);
   const [values, setValues] = useState<RecordFormValues>({});
   const v = validateRecordForm(kind, values);
 
-  function addNew() {
+  async function addNew() {
     if (!v.ok) return;
-    const dedupKey = kind === "contact" ? values.email : values.domain;
-    if (!dedupKey?.trim() && !window.confirm(
-      `No ${kind === "contact" ? "email" : "domain"} — a duplicate can't be detected automatically. Add this new ${kind} anyway?`)) return;
+    // Contacts only: a company without a domain is impossible here, because the form requires one unless
+    // "no website" is ticked — which is already the deliberate act this dialog would be asking for.
+    if (kind === "contact" && !values.email?.trim() && !(await confirm({
+      tone: "caution",
+      title: "Add this contact without an email?",
+      message: "Email is how we detect an existing contact. Without it, this may create a second copy of someone already in HubSpot.",
+      confirmLabel: "Add anyway",
+      cancelLabel: "Add an email",
+      hintsLabel: "Similar names already in HubSpot",
+      loadHints: () => loadDuplicateHints(token, kind, values),
+    }))) return;
     const staged = buildCreateAssoc(kind, values, newIdempotencyKey());
     onChange(single ? [staged] : [...value, staged]);
     setValues({}); setCreating(false);

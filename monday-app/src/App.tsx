@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import mondaySdk from "monday-sdk-js";
 import BoardView from "./views/BoardView";
+import { ConfirmProvider } from "./confirm";
 
 const monday = mondaySdk();
 
@@ -16,12 +17,14 @@ export default function App() {
 
   return (
     <div className="dc-root" data-theme={theme}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/board" element={<BoardView />} />
-          <Route path="*" element={<Navigate to="/board" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <ConfirmProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/board" element={<BoardView />} />
+            <Route path="*" element={<Navigate to="/board" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ConfirmProvider>
     </div>
   );
 }
