@@ -55,11 +55,11 @@ export default function RecordDrawer({ kind, board, onClose, onCreated, onDirtyC
 
   async function submit() {
     if (savingRef.current || !v.ok) return;
-    // Duplicate-risk gate (spec): with no dedup key (email/domain) we can't detect an existing record —
-    // require an explicit confirm on the FIRST submit (a Retry is a resume, so skip it then).
-    const dedupKey = kind === "contact" ? values.email : values.domain;
-    if (!submitted && !dedupKey?.trim() && !window.confirm(
-      `No ${kind === "contact" ? "email" : "domain"} — a duplicate can't be detected automatically. Create this ${kind} anyway?`)) return;
+    // Duplicate-risk gate (spec): with no email we can't detect an existing contact — require an explicit
+    // confirm on the FIRST submit (a Retry is a resume, so skip it then). Companies don't need this: the
+    // form already REQUIRES a domain unless "no website" is ticked, which is the same deliberate act.
+    if (kind === "contact" && !submitted && !values.email?.trim() && !window.confirm(
+      "No email — a duplicate can't be detected automatically. Create this contact anyway?")) return;
     savingRef.current = true;
     setSubmitted(true); setInFlight(true); setErr(null);
     try {

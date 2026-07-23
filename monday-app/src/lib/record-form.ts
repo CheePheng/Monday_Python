@@ -2,7 +2,11 @@
 // (worker/src/contact-company-props.ts). Owner / sales_user are NOT fields — the Worker sets them from
 // the acting rep (session token). Enum options are loaded live from /app/{contact,company}-schema.
 
-export type RecordFieldType = "text" | "textarea" | "email" | "number" | "enum";
+export type RecordFieldType = "text" | "textarea" | "email" | "number" | "enum" | "checkbox";
+
+/** Form-only flag (NOT a HubSpot property): "this company has no website". Domain is the ONLY
+ * de-duplication key a company has, so skipping it must be a deliberate act rather than an oversight. */
+export const NO_WEBSITE = "__noWebsite";
 export interface RecordField { prop: string; label: string; type: RecordFieldType; group: string; required?: boolean; recommended?: boolean }
 
 export const CONTACT_FIELDS: RecordField[] = [
@@ -20,6 +24,7 @@ export const CONTACT_FIELDS: RecordField[] = [
 export const COMPANY_FIELDS: RecordField[] = [
   { prop: "name", label: "Company name", type: "text", group: "Identity", required: true },
   { prop: "domain", label: "Domain", type: "text", group: "Identity", recommended: true },
+  { prop: NO_WEBSITE, label: "This company has no website", type: "checkbox", group: "Identity" },
   { prop: "industry", label: "Industry", type: "enum", group: "Identity" },
   { prop: "type", label: "Type", type: "enum", group: "Identity" },
   { prop: "partner_with", label: "Partner with", type: "enum", group: "Identity" },
@@ -46,7 +51,10 @@ export function validateRecordForm(kind: RecordKind, v: RecordFormValues):
   if (kind === "contact" && v.email?.trim() && !EMAIL_RE.test(v.email.trim())) errors.email = "Enter a valid email";
   // Duplicate-risk warnings: email (contact) / domain (company) are the dedup keys.
   if (kind === "contact" && !v.email?.trim()) warnings.email = "No email — duplicates can't be detected reliably. Double-check this isn't already in HubSpot.";
-  if (kind === "company" && !v.domain?.trim()) warnings.domain = "No domain — duplicates can't be detected reliably. Double-check this isn't already in HubSpot.";
+  // Domain is the ONLY de-duplication key a company has, so it is required unless the rep explicitly
+  // states there is no website. `.trim()` means a whitespace-only entry does not count as present.
+  if (kind === "company" && !v.domain?.trim() && v[NO_WEBSITE] !== "1")
+    errors.domain = "Enter a domain, or tick “This company has no website”";
   return { ok: Object.keys(errors).length === 0, errors, warnings };
 }
 
@@ -54,6 +62,9 @@ export function validateRecordForm(kind: RecordKind, v: RecordFormValues):
  * only fields that belong to this kind). */
 export function recordFormToProperties(kind: RecordKind, v: RecordFormValues): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const f of fieldsFor(kind)) { const t = v[f.prop]?.trim(); if (t) out[f.prop] = t; }
+  for (const f of fieldsFor(kind)) {
+    if (f.type === "checkbox") continue; // form-only flags (NO_WEBSITE) are never HubSpot properties
+    const t = v[f.prop]?.trim(); if (t) out[f.prop] = t;
+  }
   return out;
 }

@@ -1,5 +1,5 @@
 import { Field, SelectStr } from "./FormFields";
-import { fieldsFor, type RecordKind, type RecordFormValues, type RecordField } from "../lib/record-form";
+import { fieldsFor, NO_WEBSITE, type RecordKind, type RecordFormValues, type RecordField } from "../lib/record-form";
 import type { EnumProp } from "../worker-client";
 
 interface Props {
@@ -27,6 +27,18 @@ export default function RecordForm({ kind, values, schema, validation, onChange 
   const groups = grouped(fieldsFor(kind));
   const field = (f: RecordField) => {
     const opts = schema[f.prop]?.options ?? [];
+    // Form-only flag: sits on its own row (no Field chrome) and spans the grid so it reads as a statement
+    // about the field above it. Ticking it clears the domain, so the two can never disagree.
+    if (f.type === "checkbox") return (
+      <label key={f.prop} style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+        <input type="checkbox" checked={values[f.prop] === "1"}
+          onChange={e => {
+            onChange(f.prop, e.target.checked ? "1" : "");
+            if (e.target.checked && f.prop === NO_WEBSITE) onChange("domain", "");
+          }} />
+        {f.label}
+      </label>
+    );
     return (
       <Field key={f.prop} label={f.label} required={f.required}>
         {f.type === "enum" ? (
@@ -37,6 +49,7 @@ export default function RecordForm({ kind, values, schema, validation, onChange 
         ) : (
           <input className="dc-field-input" type={f.type === "email" ? "email" : "text"}
             inputMode={f.type === "number" ? "decimal" : undefined}
+            disabled={f.prop === "domain" && values[NO_WEBSITE] === "1"}
             value={values[f.prop] ?? ""} onChange={e => onChange(f.prop, e.target.value)} />
         )}
         {validation.errors[f.prop] && <div className="dc-err">{validation.errors[f.prop]}</div>}
