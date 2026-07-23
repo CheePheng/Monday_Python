@@ -3,13 +3,12 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, recentRecords } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
-import { lookupCard } from "./card-registry";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
-import { getItem, setColumns, getBoardItems, findItemByColumn, getLinkedItemIds, listColumns, createColumn } from "./monday";
+import { getItem, setColumns } from "./monday";
 import { colText } from "./dedup";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
 import { CONTACT_ENUM_PROPS, COMPANY_ENUM_PROPS } from "./contact-company-props";
@@ -358,90 +357,6 @@ export default {
       }
 
       return new Response("not found", { status: 404, headers: CORS });
-    }
-
-    // TEMPORARY read-only diagnostic (remove once the duplicate-card investigation is closed).
-    // GET /diag?secret=<DIAG_SECRET>&object=contacts|companies&q=<text>
-    // Reports the HubSpot records matching `q`, every board row with its HubSpot-ID column, and what the
-    // card registry believes — enough to tell "one record + two cards" from "two records" without guessing.
-    if (url.pathname === "/diag" && req.method === "GET") {
-      const provided = url.searchParams.get("secret") ?? "";
-      if (!env.DIAG_SECRET || provided !== env.DIAG_SECRET) return new Response("forbidden", { status: 403 });
-      const object = url.searchParams.get("object") === "companies" ? "companies" : "contacts";
-      const spec = object === "companies" ? COMPANIES_MYLA : CONTACTS_MYLA;
-      const q = url.searchParams.get("q") ?? "";
-      // &items=<id,id> — full detail on specific cards, for comparing suspected duplicates before anyone
-      // deletes one (which card is canonical, what each holds, what each is linked to).
-      const inspect = (url.searchParams.get("items") ?? "").split(",").map(s => s.trim()).filter(Boolean);
-      if (inspect.length) {
-        try {
-          const out: unknown[] = [];
-          for (const id of inspect) {
-            const it = await getItem(env, id);
-            if (!it) { out.push({ itemId: id, missing: true }); continue; }
-            const relCols = (spec.associations ?? []).map(a => a.relationCol).filter(Boolean) as string[];
-            const links: Record<string, string[]> = {};
-            for (const rc of relCols) links[rc] = await getLinkedItemIds(env, id, rc);
-            out.push({
-              itemId: it.id, name: it.name, created_at: it.created_at, updated_at: it.updated_at,
-              group: it.group?.id,
-              columns: it.column_values.filter(c => (c.text ?? "").trim() !== "").map(c => ({ id: c.id, text: c.text })),
-              relationLinks: links,
-            });
-          }
-          return Response.json({ object, boardId: spec.boardId, items: out });
-        } catch (e) {
-          return Response.json({ error: String(e).slice(0, 300) }, { status: 502 });
-        }
-      }
-      // &ensureCreatedDate=<boardId>  -> READ-ONLY: lists columns, reports any existing "created date".
-      // &ensureCreatedDate=<boardId>&create=1 -> only then may it create the column.
-      // Read-only by default on purpose: an over-eager title match would otherwise create a SECOND column
-      // on a board that already has a correct one. Reuse needs type === "date" AND a "created" title, so
-      // monday's own creation-log column (type "creation_log" — when the CARD was made) is never reused.
-      const ensureBoard = url.searchParams.get("ensureCreatedDate") ?? "";
-      if (ensureBoard) {
-        try {
-          const cols = await listColumns(env, ensureBoard);
-          const match = cols.find(c => c.type === "date" && /created/i.test(c.title));
-          if (match) return Response.json({ boardId: ensureBoard, action: "reuse-candidate", column: match, allColumns: cols });
-          if (url.searchParams.get("create") !== "1")
-            return Response.json({ boardId: ensureBoard, action: "would-create", title: "Created date", allColumns: cols });
-          const id = await createColumn(env, ensureBoard, "Created date", "date");
-          return Response.json({ boardId: ensureBoard, action: "created", column: { id, title: "Created date", type: "date" } });
-        } catch (e) {
-          return Response.json({ error: String(e).slice(0, 300) }, { status: 502 });
-        }
-      }
-      try {
-        const found = q ? await searchObjects(env, object, q, 20) : { results: [], total: 0 };
-        const items = await getBoardItems(env, spec.boardId);
-        const rows = items
-          .map(i => ({ itemId: i.id, name: i.name, created_at: i.created_at, hubspotId: colText(i, spec.idCol) }))
-          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-          .slice(0, 25);
-        const registry: Record<string, string | null> = {};
-        for (const h of found.results) registry[h.id] = await lookupCard(env, spec.boardId, h.id);
-        // Records created in the last N hours, with NO spec filter — shows Unassigned ones the sync hides.
-        const hours = Number(url.searchParams.get("recentHours") ?? "0");
-        const recent: unknown[] = [];
-        if (hours > 0) {
-          const since = Date.now() - hours * 3600_000;
-          const nameProps = object === "companies" ? ["name", "domain"] : ["firstname", "lastname", "email"];
-          for (const r of await recentRecords(env, object, since, [...nameProps, "createdate", "sales_user", "hubspot_owner_id"])) {
-            const card = await lookupCard(env, spec.boardId, r.id);
-            const onBoard = (await findItemByColumn(env, spec.boardId, spec.idCol, r.id)).map(i => i.id);
-            recent.push({ hubspotId: r.id, props: r.properties, registryCard: card, cardsOnBoard: onBoard });
-          }
-        }
-        return Response.json({
-          object, boardId: spec.boardId, idCol: spec.idCol,
-          hubspotMatches: found.results, hubspotTotal: found.total,
-          newestBoardRows: rows, cardRegistry: registry, recentlyCreated: recent,
-        });
-      } catch (e) {
-        return Response.json({ error: String(e).slice(0, 300) }, { status: 502 });
-      }
     }
 
     // Manual full reconcile: header `X-Trigger-Secret: <secret>`
