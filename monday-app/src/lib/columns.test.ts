@@ -27,6 +27,14 @@ describe("deliberateClears", () => {
     expect(deliberateClears(loaded, { ...loaded, amount: "6000" }).amount).toBe(false));
 });
 
+describe("dealFormToColumnValues — sales user", () => {
+  // HubSpot's deals.sales_user is a single-select, so the form emits a 0-or-1 array. Clearing and
+  // omission are covered below; this locks the positive case the single-select actually produces.
+  it("writes a single sales user to the people column", () =>
+    expect(dealFormToColumnValues({ salesUserIds: ["111"] }))
+      .toEqual({ multiple_person_mm532m82: peopleValue(["111"]) }));
+});
+
 describe("dealFormToColumnValues — clearing", () => {
   it("clears only what the rep deliberately emptied (null clears every monday column type)", () =>
     expect(dealFormToColumnValues({}, { amount: true, closeDate: true, salesUsers: true }))

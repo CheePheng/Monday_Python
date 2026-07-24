@@ -327,8 +327,12 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
               </div>
 
               <div className="dc-section-title">People</div>
-              <Field label="Sales Users">
-                <ChipMulti options={userOpts} values={form.salesUserIds ?? []} onChange={v => set({ salesUserIds: v })} placeholder="Add sales user…" />
+              {/* HubSpot's deals.sales_user is a single-select and the reverse-sync only ever sends the
+                  FIRST person, so a multi picker here promises what the sync cannot store. Kept as a
+                  0-or-1 array so dealFormToColumnValues / deliberateClears work unchanged. */}
+              <Field label="Sales User">
+                <SelectOpt options={userOpts} value={form.salesUserIds?.[0]}
+                  onChange={v => set({ salesUserIds: v ? [v] : [] })} placeholder="No sales user" />
               </Field>
 
               <div className="dc-grid">
