@@ -37,7 +37,11 @@ export async function createContactOrCompany(
     // Resolve owner once (deterministic; safe to recompute on a resumed call). No acting user (trigger-
     // secret auth) or no owner match -> Unassigned (never Myla). Owner is applied ONLY to records we
     // create, never to a deduped existing record.
-    const email = input.sessionUserId ? (await getUserById(env, input.sessionUserId))?.email : undefined;
+    // A transient monday error on the owner lookup must NOT fail the whole create — a missing owner is
+    // already a supported state (record created Unassigned). Degrade a thrown lookup into that same path.
+    let email: string | undefined;
+    try { email = input.sessionUserId ? (await getUserById(env, input.sessionUserId))?.email : undefined; }
+    catch (e) { console.log(`[create] owner lookup failed for user ${input.sessionUserId}: ${String(e).slice(0, 120)} — creating Unassigned`); }
     const owner = resolveActor(ctx, email);
     const ownerProps: Record<string, string> = "hubspotOwnerId" in owner
       ? { sales_user: owner.hubspotOwnerId, hubspot_owner_id: owner.hubspotOwnerId } : {};
