@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { specForDeal } from "../src/sync";
-import { extractDealIds, extractLineItemIds, extractObjectEvents, extractUpdate } from "../src/webhooks";
+import { extractDealIds, extractLineItemIds, extractObjectEvents, extractUpdate, ignoredColumns } from "../src/webhooks";
+import { DEALS, CONTACTS_MYLA, COMPANIES_MYLA } from "../src/config";
 
 const deal = (p: Record<string, string>) => ({ properties: p });
 const RECENT = "2026-08-01T00:00:00Z"; // after CREATED_AFTER_MS (2026-07-01)
@@ -143,4 +144,28 @@ describe("extractLineItemIds (line-item edits -> parent deal)", () => {
       { subscriptionType: "object.propertyChange", objectTypeId: "0-3", objectId: 5 },
       { subscriptionType: "object.deletion", objectTypeId: "0-3", objectId: 5 },
     ])).toEqual([{ type: "deal", id: "5" }, { type: "deal", id: "5", deleted: true }]));
+});
+
+describe("ignoredColumns", () => {
+  it("ignores our own bookkeeping columns", () => {
+    const s = ignoredColumns(DEALS);
+    expect(s.has(DEALS.syncStateCol)).toBe(true);
+    expect(s.has(DEALS.idCol)).toBe(true);
+  });
+
+  // Writing Created date across ~1,300 cards fires ~1,300 change_column_value webhooks. A one-way
+  // HubSpot->monday column has nothing to push back, so reconciling on it is pure waste.
+  it("ignores the one-way createdate column on every board", () => {
+    for (const spec of [DEALS, CONTACTS_MYLA, COMPANIES_MYLA]) {
+      const f = spec.fields.find(x => x.hs === "createdate")!;
+      expect(f, `${spec.object} must map createdate`).toBeTruthy();
+      expect(f.oneWay, `${spec.object} createdate must be marked one-way`).toBe(true);
+      expect(ignoredColumns(spec).has(f.col)).toBe(true);
+    }
+  });
+
+  it("does NOT ignore reversible fields - those must still reach HubSpot", () => {
+    const s = ignoredColumns(DEALS);
+    for (const f of DEALS.fields.filter(x => x.reverse)) expect(s.has(f.col)).toBe(false);
+  });
 });

@@ -124,7 +124,7 @@ export const DEALS: ObjectSpec = {
     { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true, backfill: true }, // Vendors
     // One-way HubSpot -> monday (see the matching note on COMPANIES_MYLA). NO `reverse`, NO `backfill`.
     // Column "Created date" on board 5029480547; value is the UTC calendar date.
-    { hs: "createdate", col: "date_mm5hsbzv", type: "date" },
+    { hs: "createdate", col: "date_mm5hsbzv", type: "date", oneWay: true },
   ],
 };
 
@@ -169,7 +169,7 @@ export const COMPANIES_MYLA: ObjectSpec = {
     // and read-only, so it must never enter a reverse patch. The value is the UTC calendar date
     // (formatValue's v.slice(0,10)) — same derivation as every other date column, so a record created
     // 00:00-08:00 Malaysia time reads as the previous day. Column "Created date" on board 5029639440.
-    { hs: "createdate", col: "date_mm5hmk5v", type: "date" },
+    { hs: "createdate", col: "date_mm5hmk5v", type: "date", oneWay: true },
   ],
 };
 
@@ -209,7 +209,7 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { hs: "phone", col: "phone_mm4s31p3", type: "phone" },
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
     { hs: "sales_user", col: "multiple_person_mm542gng", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
-    { hs: "createdate", col: "date_mm4s2bjd", type: "date" },
+    { hs: "createdate", col: "date_mm4s2bjd", type: "date", oneWay: true },
     { hs: "notes_last_updated", col: "date4", type: "date" },
     { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus", reverse: true }, // edit here -> writes back to HubSpot
     { hs: "leadsource", col: "dropdown_mm4sj3kw", type: "dropdown", labels: "contactSource" },

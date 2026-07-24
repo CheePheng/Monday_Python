@@ -5,6 +5,17 @@ import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 
+/** Columns whose monday-side change must NOT trigger a reconcile:
+ *  - our own bookkeeping (Sync State / HubSpot ID / Link) — echoes of our own writes;
+ *  - one-way HubSpot->monday fields (e.g. Created date) — a monday edit has nothing to push back, so
+ *    reconciling on it is pure waste. A bulk fill of such a column would otherwise storm the
+ *    reconciler with one full single-record sync per card. The daily sweep still heals manual edits. */
+export function ignoredColumns(spec: ObjectSpec): Set<string> {
+  const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol].filter(Boolean) as string[]);
+  for (const f of spec.fields) if (f.oneWay) out.add(f.col);
+  return out;
+}
+
 // Webhooks write for real when the Worker is live; a small per-webhook budget is plenty (1 record).
 function liveOpts(env: Env): RunOpts {
   const live = env.DRY_RUN === "false";
@@ -102,11 +113,10 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
       .catch(e => console.log(`[webhook] source=monday-update item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
     return new Response("ok");
   }
-  // LOOP GUARD: ignore changes we made to our own bookkeeping columns (Sync State / HubSpot ID /
-  // Link). Value columns still flow through, but value-diff will no-op an echo.
-  const bookkeeping = new Set([spec.syncStateCol, spec.idCol, spec.linkCol].filter(Boolean) as string[]);
-  if (columnId && bookkeeping.has(columnId)) { // any column-change event on a bookkeeping column
-    console.log(`[webhook] source=monday item=${itemId} type=${type} col=${columnId} action=ignored reason="own bookkeeping column"`);
+  // LOOP GUARD: value columns still flow through (value-diff no-ops an echo), but bookkeeping and
+  // one-way columns are dropped outright.
+  if (columnId && ignoredColumns(spec).has(columnId)) {
+    console.log(`[webhook] source=monday item=${itemId} type=${type} col=${columnId} action=ignored reason="bookkeeping/one-way column"`);
     return new Response("ok");
   }
 
