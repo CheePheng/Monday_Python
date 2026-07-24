@@ -5,6 +5,10 @@ export const WORKER_BASE = "https://hubspot-monday-sync.askada.workers.dev";
 export const HUBSPOT_PORTAL_ID = "39939588";
 export const hubspotDealUrl = (dealId: string) =>
   `https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/record/0-3/${dealId}`;
+// Deep link to a linked contact/company's HubSpot record (0-1 = contacts, 0-2 = companies; deals are 0-3).
+const HS_OBJ = { contacts: "0-1", companies: "0-2" } as const;
+export const hubspotRecordUrl = (kind: "contacts" | "companies", id: string) =>
+  `https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/record/${HS_OBJ[kind]}/${id}`;
 
 export const DEALS_BOARD = "5029480547";
 export const SUBITEMS_BOARD = "5029480548";
@@ -14,6 +18,10 @@ export const COMPANY_BOARD = "5029639440";
 export const UNASSIGNED_GROUP = "group_mm53yk6d";
 export const CONTACT_ID_COL = "numeric_mm4xw7rk"; // HubSpot id on the Contact board
 export const COMPANY_ID_COL = "numeric_mm4xkk3a"; // HubSpot id on the Company board
+// Fallback name-cascade sources (same column id on both boards): contact lastname / company name.
+export const LINK_NAME_COL_2 = "text_mm4scke9";
+// contact email (this column is 'city' on the company board — linkDisplayName never uses it for companies).
+export const LINK_NAME_COL_3 = "text_mm4p2bvb";
 
 export interface ColSpec { id: string; kind: string; boardId?: string }
 
