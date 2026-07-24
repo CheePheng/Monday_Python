@@ -2,7 +2,9 @@
 // (worker/src/contact-company-props.ts). Owner / sales_user are NOT fields — the Worker sets them from
 // the acting rep (session token). Enum options are loaded live from /app/{contact,company}-schema.
 
-export type RecordFieldType = "text" | "textarea" | "email" | "number" | "enum" | "checkbox";
+// "enum-multi": a HubSpot checkbox enumeration (many values). Stored in the form as a ";"-joined string
+// of internal option values — HubSpot's own separator — so it passes straight through to the create.
+export type RecordFieldType = "text" | "textarea" | "email" | "number" | "enum" | "enum-multi" | "checkbox";
 
 /** Form-only flag (NOT a HubSpot property): "this company has no website". Domain is the ONLY
  * de-duplication key a company has, so skipping it must be a deliberate act rather than an oversight. */
@@ -18,7 +20,7 @@ export const CONTACT_FIELDS: RecordField[] = [
   { prop: "company", label: "Company", type: "text", group: "Work" },
   { prop: "hs_lead_status", label: "Lead status", type: "enum", group: "Work" },
   { prop: "leadsource", label: "Lead source", type: "enum", group: "Work" },
-  { prop: "manufacturer__c", label: "Vendor", type: "enum", group: "Work" },
+  { prop: "manufacturer__c", label: "Vendor", type: "enum-multi", group: "Work" }, // HubSpot checkbox: many allowed
 ];
 
 export const COMPANY_FIELDS: RecordField[] = [

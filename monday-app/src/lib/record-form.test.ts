@@ -51,4 +51,11 @@ describe("recordFormToProperties", () => {
     expect(recordFormToProperties("contact", { firstname: " Ada ", email: "", jobtitle: "CTO", bogus: "x" }))
       .toEqual({ firstname: "Ada", jobtitle: "CTO" });
   });
+
+  // Vendor (manufacturer__c) is a HubSpot checkbox enum: many values, ";"-joined. The stored string
+  // passes straight through, which is exactly the format HubSpot's create expects.
+  it("passes a multi-value Vendor through as HubSpot's ;-separated string", () => {
+    expect(recordFormToProperties("contact", { firstname: "Ada", manufacturer__c: "1Tableau;3AWS" }))
+      .toEqual({ firstname: "Ada", manufacturer__c: "1Tableau;3AWS" });
+  });
 });

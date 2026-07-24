@@ -1,4 +1,4 @@
-import { Field, SelectStr } from "./FormFields";
+import { Field, SelectStr, ChipMulti } from "./FormFields";
 import { fieldsFor, NO_WEBSITE, type RecordKind, type RecordFormValues, type RecordField } from "../lib/record-form";
 import type { EnumProp } from "../worker-client";
 
@@ -41,7 +41,11 @@ export default function RecordForm({ kind, values, schema, validation, onChange 
     );
     return (
       <Field key={f.prop} label={f.label} required={f.required}>
-        {f.type === "enum" ? (
+        {f.type === "enum-multi" ? (
+          // ";"-joined internal values, matching HubSpot's checkbox format (see record-form.ts).
+          <ChipMulti options={opts} values={(values[f.prop] ?? "").split(";").filter(Boolean)}
+            onChange={arr => onChange(f.prop, arr.join(";"))} placeholder="Add…" />
+        ) : f.type === "enum" ? (
           <SelectStr options={opts.map(o => o.label)} value={optLabel(opts, values[f.prop])}
             onChange={lbl => onChange(f.prop, optValue(opts, lbl))} placeholder="—" />
         ) : f.type === "textarea" ? (
