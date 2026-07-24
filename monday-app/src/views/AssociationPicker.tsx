@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { searchHubspot, type Hit } from "../worker-client";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
+import { openLink } from "../monday-client";
+import { hubspotRecordUrl } from "../board-config";
 
 import type { Assoc } from "../lib/assoc";
 export type { Assoc };
@@ -42,6 +44,10 @@ export default function AssociationPicker({ kind, token, value, onChange, single
         <div className="dc-chips">
           {value.map((a, i) => (
             <span key={a.itemId || a.hubspotId || i} className="dc-chip">{a.label}
+              {a.hubspotId && (
+                <button type="button" className="dc-chip-link" title="Open in HubSpot" aria-label="Open in HubSpot"
+                  onClick={() => openLink(hubspotRecordUrl(kind, a.hubspotId!))}>↗</button>
+              )}
               <button onClick={() => remove(a)} aria-label="Remove">×</button>
             </span>
           ))}

@@ -201,6 +201,9 @@
 .dc-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 6px 5px 11px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; }
 .dc-chip button { background: rgba(0,0,0,.08); border: none; color: inherit; width: 17px; height: 17px; border-radius: 50%; cursor: pointer; font-size: 12px; line-height: 1; display: grid; place-items: center; }
 [data-theme="dark"] .dc-chip button { background: rgba(255,255,255,.14); }
+.dc-chip-link { background: transparent !important; font-size: 13px !important; text-decoration: none; }
+.dc-chip-link:hover { background: rgba(0,0,0,.10) !important; }
+[data-theme="dark"] .dc-chip-link:hover { background: rgba(255,255,255,.18) !important; }
 .dc-results { display: flex; flex-direction: column; margin-top: 4px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .dc-result { padding: 9px 12px; cursor: pointer; font-size: 13.5px; display: flex; justify-content: space-between; gap: 10px; }
 .dc-result:hover { background: var(--surface-hover); }
