@@ -84,12 +84,18 @@ export async function getDeal(itemId: string): Promise<RawItem | null> {
   return d.items?.[0] ?? null;
 }
 
-/** Resolve monday item ids -> { id: name } (batched by 100) for showing linked company/contact names. */
+// monday's `items(ids:)` returns only the FIRST 25 rows unless an explicit `limit` is passed. It is a
+// silent truncation — no error, no partial-result flag — so any ids query that can exceed 25 must pass a
+// limit >= its chunk size. This once left 444 of 608 linked deals showing "—" in the board's Company /
+// Contact columns while the drawer (which asks for one deal's 1-3 ids) looked fine.
+const ID_CHUNK = 100;
+
+/** Resolve monday item ids -> { id: name } (batched) for showing linked company/contact names. */
 export async function getItemNames(itemIds: string[]): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
-  for (let i = 0; i < itemIds.length; i += 100) {
-    const chunk = itemIds.slice(i, i + 100);
-    const d: any = await api(`query ($ids:[ID!]) { items(ids:$ids) { id name } }`, { ids: chunk });
+  for (let i = 0; i < itemIds.length; i += ID_CHUNK) {
+    const chunk = itemIds.slice(i, i + ID_CHUNK);
+    const d: any = await api(`query ($ids:[ID!]) { items(ids:$ids, limit:${ID_CHUNK}) { id name } }`, { ids: chunk });
     for (const it of d.items ?? []) out[String(it.id)] = it.name;
   }
   return out;
@@ -156,9 +162,13 @@ export async function postUpdate(itemId: string, body: string): Promise<void> {
 export async function getCardsByIds(itemIds: string[], idCol: string):
     Promise<{ itemId: string; name: string; hubspotId: string }[]> {
   if (!itemIds.length) return [];
-  const d: any = await api(`query ($ids:[ID!], $cols:[String!]) {
-    items(ids:$ids) { id name column_values(ids:$cols) { id text } } }`, { ids: itemIds, cols: [idCol] });
-  return (d.items ?? []).map((it: any) => ({
-    itemId: String(it.id), name: it.name, hubspotId: it.column_values?.[0]?.text ?? "",
-  }));
+  const out: { itemId: string; name: string; hubspotId: string }[] = [];
+  for (let i = 0; i < itemIds.length; i += ID_CHUNK) {   // same 25-row cap as getItemNames
+    const d: any = await api(`query ($ids:[ID!], $cols:[String!]) {
+      items(ids:$ids, limit:${ID_CHUNK}) { id name column_values(ids:$cols) { id text } } }`,
+      { ids: itemIds.slice(i, i + ID_CHUNK), cols: [idCol] });
+    for (const it of d.items ?? [])
+      out.push({ itemId: String(it.id), name: it.name, hubspotId: it.column_values?.[0]?.text ?? "" });
+  }
+  return out;
 }

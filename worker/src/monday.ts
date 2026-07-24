@@ -116,15 +116,21 @@ export async function findItemIdsByColumn(env: Env, boardId: string, columnId: s
 }
 
 /** Text of one column across several items -> { itemId: text }. Used to resolve linked cards to their
- * HubSpot id (for reversing a Connect-Boards link into a HubSpot association). */
+ * HubSpot id (for reversing a Connect-Boards link into a HubSpot association).
+ *
+ * NOTE: `items(ids:)` silently returns only the first 25 rows unless `limit` is passed — no error, no
+ * flag. Unbounded here (a record can link any number of cards), so it must chunk AND set the limit;
+ * without it, links past the 25th would never be reversed into HubSpot associations. */
 export async function getItemsColumnText(env: Env, itemIds: string[], columnId: string):
     Promise<Record<string, string>> {
   if (!itemIds.length) return {};
-  const data = await gql(env,
-    `query ($i:[ID!], $c:[String!]) { items(ids:$i) { id column_values(ids:$c) { text } } }`,
-    { i: itemIds, c: [columnId] });
   const out: Record<string, string> = {};
-  for (const it of data.items ?? []) out[String(it.id)] = (it.column_values?.[0]?.text ?? "").trim();
+  for (let i = 0; i < itemIds.length; i += 100) {
+    const data = await gql(env,
+      `query ($i:[ID!], $c:[String!]) { items(ids:$i, limit:100) { id column_values(ids:$c) { text } } }`,
+      { i: itemIds.slice(i, i + 100), c: [columnId] });
+    for (const it of data.items ?? []) out[String(it.id)] = (it.column_values?.[0]?.text ?? "").trim();
+  }
   return out;
 }
 
