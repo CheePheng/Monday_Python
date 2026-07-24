@@ -6,7 +6,13 @@ async function call(token: string, method: string, path: string, body?: unknown,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`worker ${method} ${path}: ${res.status}`);
+  if (!res.ok) {
+    // Surface the Worker's JSON {error} (e.g. "deal-not-synced") instead of a bare status code, so the
+    // app's error toast reads meaningfully. Body may be empty/HTML -> fall back to the status.
+    const detail = await res.json().catch(() => null);
+    const msg = detail && typeof detail.error === "string" ? `: ${detail.error}` : "";
+    throw new Error(`worker ${method} ${path}: ${res.status}${msg}`);
+  }
   return res.json();
 }
 
