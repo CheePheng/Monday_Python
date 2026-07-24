@@ -1,4 +1,6 @@
 import type { Env, HsRecord, ObjectSpec, RunOpts } from "./types";
+import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
+import { normalizeDomain } from "./normalize";
 
 const BASE = "https://api.hubapi.com";
 
@@ -26,7 +28,9 @@ async function hs(env: Env, method: string, path: string, body?: unknown, retrie
     if (!resp.ok) {                                    // other 4xx (and exhausted 5xx): throw now
       throw new Error(`hubspot ${method} ${path}: ${resp.status} ${(await resp.text()).slice(0, 300)}`);
     }
-    return resp.json();
+    if (resp.status === 204) return undefined;          // no-content (e.g. DELETE) -> nothing to parse
+    const text = await resp.text();
+    return text ? JSON.parse(text) : undefined;         // tolerate any other empty-body success
   }
 }
 
@@ -71,6 +75,205 @@ export async function getRecord(env: Env, object: string, id: string, properties
     if (/: 404 /.test(String(e))) return null; // deleted/archived
     throw e;
   }
+}
+
+/** Ids of records associated to `id` (HubSpot v4 associations). e.g. deal -> companies/contacts/line_items. */
+export async function getAssociatedIds(env: Env, fromObject: string, id: string, toObject: string): Promise<string[]> {
+  const res = await hs(env, "GET", `/crm/v4/objects/${fromObject}/${id}/associations/${toObject}?limit=100`, undefined, 3);
+  return (res.results ?? []).map((r: any) => String(r.toObjectId)).filter((x: string) => /^\d+$/.test(x));
+}
+
+/** Create a DEFAULT association (idempotent PUT) between two records — used to reverse a monday
+ * Connect-Boards link into a HubSpot association. Additive: callers never delete. */
+export async function putAssociation(env: Env, fromObject: string, fromId: string,
+    toObject: string, toId: string, opts: RunOpts): Promise<void> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+    return;
+  }
+  await hs(env, "PUT", `/crm/v4/objects/${fromObject}/${fromId}/associations/default/${toObject}/${toId}`, undefined, 3);
+  console.log(`hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+}
+
+/** Remove a DEFAULT association between two records (reverse of putAssociation). Idempotent; 404 -> gone. */
+export async function deleteAssociation(env: Env, fromObject: string, fromId: string,
+    toObject: string, toId: string, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot UNASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+    return false;
+  }
+  try {
+    await hs(env, "DELETE",
+      `/crm/v4/objects/${fromObject}/${fromId}/associations/${toObject}/${toId}`, undefined, 3);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) { console.log(`hubspot UNASSOC ${fromObject}/${fromId}: already gone`); return true; }
+    throw e;
+  }
+  console.log(`hubspot UNASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
+  return true;
+}
+
+/** Create a line item and associate it to a deal (line_item->deal default type = 20). Returns the new
+ * id. Requires crm.objects.line_items.write — throws 403 until the private app's scope is added. */
+export async function createLineItem(env: Env, properties: Record<string, string>, dealId: string,
+    opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot CREATE line_item on deal ${dealId}: ${JSON.stringify(properties)}`);
+    return null;
+  }
+  const res = await hs(env, "POST", "/crm/v3/objects/line_items", {
+    properties,
+    associations: [{ to: { id: dealId }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 20 }] }],
+  }, 1);
+  console.log(`hubspot CREATE line_item -> ${res.id} on deal ${dealId}`);
+  return res.id ? String(res.id) : null;
+}
+
+/** Create a HubSpot product (for "Save line item to the product library"). Returns the new product id. */
+export async function createProduct(env: Env, properties: Record<string, string>, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun || !opts.writeHubspot) { console.log(`DRY hubspot CREATE product: ${JSON.stringify(properties)}`); return null; }
+  const res = await hs(env, "POST", "/crm/v3/objects/products", { properties }, 1);
+  console.log(`hubspot CREATE product -> ${res.id}`);
+  return res.id ? String(res.id) : null;
+}
+
+/** For the manual line-item form: label + options for each enum line_item prop, read live from the
+ * property schema so new portal options appear without a redeploy. */
+export async function getWritablePropOptions(env: Env, object: string, names: string[]):
+    Promise<Record<string, { label: string; options: { value: string; label: string }[] }>> {
+  const res = await hs(env, "GET", `/crm/v3/properties/${object}`, undefined, 2);
+  const byName: Record<string, any> = {};
+  for (const p of (res.results ?? [])) byName[p.name] = p;
+  const out: Record<string, { label: string; options: { value: string; label: string }[] }> = {};
+  for (const n of names) {
+    const p = byName[n];
+    if (p) out[n] = { label: p.label ?? n, options: (p.options ?? []).map((o: any) => ({ value: String(o.value), label: o.label })) };
+  }
+  return out;
+}
+
+/** Update an existing HubSpot line item by id (qty/price/etc.). retries=3 (PATCH is idempotent). */
+export async function patchLineItem(env: Env, lineItemId: string,
+    properties: Record<string, string>, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot PATCH line_item ${lineItemId}: ${JSON.stringify(properties)}`);
+    return false;
+  }
+  await hs(env, "PATCH", `/crm/v3/objects/line_items/${lineItemId}`, { properties }, 3);
+  console.log(`hubspot PATCH line_item ${lineItemId}: ${Object.keys(properties).join(",")}`);
+  return true;
+}
+
+/** Delete a HubSpot line item by id (archive). retries=3 (DELETE is idempotent). 404 -> already gone. */
+export async function deleteLineItem(env: Env, lineItemId: string, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot DELETE line_item ${lineItemId}`);
+    return false;
+  }
+  try {
+    await hs(env, "DELETE", `/crm/v3/objects/line_items/${lineItemId}`, undefined, 3);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) { console.log(`hubspot DELETE line_item ${lineItemId}: already gone`); return true; }
+    throw e;
+  }
+  console.log(`hubspot DELETE line_item ${lineItemId}`);
+  return true;
+}
+
+/** Archive (soft-delete) a HubSpot deal by id. Idempotent; 404 -> already gone. */
+export async function archiveDeal(env: Env, dealId: string, opts: RunOpts): Promise<boolean> {
+  if (opts.dryRun || !opts.writeHubspot) { console.log(`DRY hubspot ARCHIVE deal ${dealId}`); return false; }
+  try {
+    await hs(env, "DELETE", `/crm/v3/objects/deals/${dealId}`, undefined, 3);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) { console.log(`hubspot ARCHIVE deal ${dealId}: already gone`); return true; }
+    throw e;
+  }
+  console.log(`hubspot ARCHIVE deal ${dealId}`);
+  return true;
+}
+
+// --- live search for the vibe app picker (/app/search) ---
+const SEARCH_PROPS: Record<string, string[]> = {
+  contacts: ["firstname", "lastname", "email"],
+  companies: ["name", "domain"],
+  products: ["name", "price", "hs_sku", "description"],
+};
+
+export interface SearchHit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
+
+/** HubSpot result -> a compact hit for the picker. Pure (unit-testable). */
+export function mapSearchResult(type: string, p: Record<string, any>): Omit<SearchHit, "id"> {
+  if (type === "contacts") {
+    const name = [p.firstname, p.lastname].filter(Boolean).join(" ").trim();
+    return { name: name || p.email || "(no name)", secondary: p.email ?? "" };
+  }
+  if (type === "companies") return { name: p.name || "(no name)", secondary: p.domain ?? "" };
+  // products
+  const price = p.price != null ? String(p.price) : "";
+  return { name: p.name || "(no name)", secondary: price, sku: p.hs_sku ?? "", price, description: p.description ?? "" };
+}
+
+/** Full-text search one HubSpot object type; returns up to `limit` (<=20) hits plus the match total. */
+export async function searchObjects(env: Env, type: string, q: string, limit: number):
+    Promise<{ results: SearchHit[]; total: number }> {
+  const res = await hs(env, "POST", `/crm/v3/objects/${type}/search`,
+    { query: q, properties: SEARCH_PROPS[type] ?? ["name"], limit: Math.min(Math.max(limit, 1), 20) }, 2);
+  const results = (res.results ?? []).map((r: any) => ({ id: String(r.id), ...mapSearchResult(type, r.properties ?? {}) }));
+  return { results, total: Number(res.total ?? results.length) };
+}
+
+// note -> object default association type ids (HUBSPOT_DEFINED).
+const NOTE_ASSOC: Record<string, number> = { deals: 214, contacts: 202, companies: 190 };
+
+/** Create a HubSpot note associated to a deal/contact/company — a monday Update mirrored to Activities. */
+export async function createNote(env: Env, body: string, tsMs: number, ownerId: string | undefined,
+    objectType: string, objectId: string, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot CREATE note on ${objectType}/${objectId}: ${body.slice(0, 80)}`);
+    return null;
+  }
+  const props: Record<string, string> = { hs_note_body: body, hs_timestamp: String(tsMs) };
+  if (ownerId) props["hubspot_owner_id"] = ownerId;
+  const res = await hs(env, "POST", "/crm/v3/objects/notes", {
+    properties: props,
+    associations: [{ to: { id: objectId },
+      types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: NOTE_ASSOC[objectType] ?? 214 }] }],
+  }, 1);
+  console.log(`hubspot CREATE note -> ${res.id} on ${objectType}/${objectId}`);
+  return res.id ? String(res.id) : null;
+}
+
+/** Batch-read records by id (names for association columns, or line-item fields). Empty ids -> []. */
+export async function getRecordsByIds(env: Env, object: string, ids: string[], properties: string[]): Promise<HsRecord[]> {
+  if (!ids.length) return [];
+  const res = await hs(env, "POST", `/crm/v3/objects/${object}/batch/read`,
+    { properties, inputs: ids.map(id => ({ id })) });
+  return (res.results ?? []).map((r: any) => ({ id: String(r.id), properties: r.properties ?? {} }));
+}
+
+/** Fetch a deal's CURRENT HubSpot line items, mapped to the app editor's row shape (core fields + a full
+ * `props` bag of the writable extended fields for re-editing). Read-only. */
+export async function getDealLineItems(env: Env, dealId: string):
+    Promise<{ lineItemId: string; productId?: string; name: string; unitPrice: string; quantity: string;
+      currency?: string; description?: string; discount?: string; discountPct?: string;
+      discountMode: "amount" | "percent"; serviceDate?: string; props: Record<string, string> }[]> {
+  const ids = await getAssociatedIds(env, "deals", dealId, "line_items");
+  if (!ids.length) return [];
+  const recs = await getRecordsByIds(env, "line_items", ids, [...LINE_ITEM_WRITE_PROPS]);
+  return recs.map(r => {
+    const p = r.properties as Record<string, string>;
+    const props: Record<string, string> = {};
+    for (const k of LINE_ITEM_WRITE_PROPS) if (p[k] != null && p[k] !== "") props[k] = String(p[k]);
+    return {
+      lineItemId: String(r.id), productId: p.hs_product_id || undefined,
+      name: p.name ?? "", unitPrice: p.price ?? "", quantity: p.quantity ?? "1",
+      currency: p.hs_line_item_currency_code || undefined, description: p.description || undefined,
+      discount: p.discount || undefined, discountPct: p.hs_discount_percentage || undefined,
+      discountMode: p.hs_discount_percentage ? "percent" : "amount",
+      serviceDate: p.service_date || undefined, props,
+    };
+  });
 }
 
 /** Ids of records matching a spec that changed at/after `sinceMs`. Paginates (up to `maxPages` pages of
@@ -133,6 +336,20 @@ export async function searchContactByEmail(env: Env, email: string):
   const res = await hs(env, "POST", "/crm/v3/objects/contacts/search", body);
   const hit = res.results?.[0];
   return hit ? { id: String(hit.id), modified: hit.properties?.lastmodifieddate ?? "" } : null;
+}
+
+/** Find a HubSpot company by exact normalized domain (for reuse-if-exists). Null if none/blank. */
+export async function searchCompanyByDomain(env: Env, domain: string):
+    Promise<{ id: string; modified: string } | null> {
+  const d = normalizeDomain(domain);
+  if (!d) return null;
+  const body = {
+    filterGroups: [{ filters: [{ propertyName: "domain", operator: "EQ", value: d }] }],
+    properties: ["hs_lastmodifieddate"], limit: 1,
+  };
+  const res = await hs(env, "POST", "/crm/v3/objects/companies/search", body);
+  const hit = res.results?.[0];
+  return hit ? { id: String(hit.id), modified: hit.properties?.hs_lastmodifieddate ?? "" } : null;
 }
 
 export async function getOwners(env: Env): Promise<Record<string, { name: string; email: string | null }>> {

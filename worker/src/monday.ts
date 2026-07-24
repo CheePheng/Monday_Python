@@ -44,11 +44,11 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
     const page: any = cursor
       ? (await gql(env,
           `query ($c:String!) { next_items_page(cursor:$c, limit:500) {
-             cursor items { id name created_at updated_at group { id } column_values { id text } } } }`,
+             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } } } } }`,
           { c: cursor })).next_items_page
       : (await gql(env,
           `query ($b:[ID!]) { boards(ids:$b) { items_page(limit:500) {
-             cursor items { id name created_at updated_at group { id } column_values { id text } } } } }`,
+             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } } } } } }`,
           { b: [boardId] })).boards[0].items_page;
     items.push(...page.items);
     cursor = page.cursor;
@@ -56,13 +56,32 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
   return items;
 }
 
-const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text }";
+const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } }";
 
 /** Fetch one item by id (webhook fast path). Null if it no longer exists. */
 export async function getItem(env: Env, itemId: string): Promise<MondayItem | null> {
   const items: any[] = (await gql(env, `query ($i:[ID!]) { items(ids:$i) { ${ITEM_FIELDS} } }`,
     { i: [itemId] })).items;
   return items[0] ?? null;
+}
+
+/** Subitems under a parent item (id, name, columns incl. the HubSpot Line Item ID column). */
+export async function getSubitems(env: Env, parentItemId: string): Promise<MondayItem[]> {
+  const data = await gql(env, `query ($i:[ID!]) { items(ids:$i) { subitems { ${ITEM_FIELDS} } } }`, { i: [parentItemId] });
+  return data.items?.[0]?.subitems ?? [];
+}
+
+/** Create a subitem under a parent. Returns the new subitem id (null in dry-run). retries=1 (a create). */
+export async function createSubitem(env: Env, parentItemId: string, name: string,
+    cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun) { console.log(`DRY create subitem '${name}' under ${parentItemId}`); return null; }
+  const data = await gql(env,
+    `mutation ($p:ID!, $n:String!, $c:JSON) {
+       create_subitem(parent_item_id:$p, item_name:$n, column_values:$c, create_labels_if_missing:true) { id } }`,
+    { p: parentItemId, n: name, c: JSON.stringify(cv) }, 1);
+  const sid = data.create_subitem?.id ?? null;
+  console.log(`created subitem ${sid} under ${parentItemId}`);
+  return sid;
 }
 
 /** Find items on a board whose column equals a value (used to locate a card by HubSpot Deal ID
@@ -77,6 +96,48 @@ export async function findItemByColumn(env: Env, boardId: string, columnId: stri
   return data.items_page_by_column_values?.items ?? [];
 }
 
+/** Map of HubSpot id -> monday card id on a board, for the given HubSpot ids (via the board's id column).
+ * Used to turn associated HubSpot ids into the monday cards to link, and to spot which are missing. */
+export async function findItemIdsByColumn(env: Env, boardId: string, columnId: string, values: string[]):
+    Promise<Record<string, string>> {
+  if (!values.length) return {};
+  const data = await gql(env,
+    `query ($b:ID!, $c:String!, $cl:[String!]!, $v:[String!]!) {
+       items_page_by_column_values(limit:100, board_id:$b,
+         columns:[{ column_id:$c, column_values:$v }]) {
+           items { id column_values(ids:$cl) { text } } } }`,
+    { b: boardId, c: columnId, cl: [columnId], v: values });
+  const out: Record<string, string> = {};
+  for (const it of data.items_page_by_column_values?.items ?? []) {
+    const t = (it.column_values?.[0]?.text ?? "").trim();
+    if (t) out[t] = String(it.id);
+  }
+  return out;
+}
+
+/** Text of one column across several items -> { itemId: text }. Used to resolve linked cards to their
+ * HubSpot id (for reversing a Connect-Boards link into a HubSpot association). */
+export async function getItemsColumnText(env: Env, itemIds: string[], columnId: string):
+    Promise<Record<string, string>> {
+  if (!itemIds.length) return {};
+  const data = await gql(env,
+    `query ($i:[ID!], $c:[String!]) { items(ids:$i) { id column_values(ids:$c) { text } } }`,
+    { i: itemIds, c: [columnId] });
+  const out: Record<string, string> = {};
+  for (const it of data.items ?? []) out[String(it.id)] = (it.column_values?.[0]?.text ?? "").trim();
+  return out;
+}
+
+/** The item ids currently linked in a board_relation ("Connect Boards") column on one item. */
+export async function getLinkedItemIds(env: Env, itemId: string, relationCol: string): Promise<string[]> {
+  const data = await gql(env,
+    `query ($i:[ID!], $c:[String!]) {
+       items(ids:$i) { column_values(ids:$c) { ... on BoardRelationValue { linked_item_ids } } } }`,
+    { i: [itemId], c: [relationCol] });
+  const cv = data.items?.[0]?.column_values?.[0];
+  return (cv?.linked_item_ids ?? []).map((x: any) => String(x));
+}
+
 // Mirrors a HubSpot deletion by hard-deleting the linked card. monday keeps deleted items in the board
 // recycle bin for ~30 days, so this is recoverable. Requires the API token's user to have item-delete
 // permission on the board (an admin/service account).
@@ -84,6 +145,13 @@ export async function deleteItem(env: Env, itemId: string, opts: RunOpts): Promi
   if (opts.dryRun) { console.log(`DRY delete item ${itemId}`); return; }
   await gql(env, `mutation ($i:ID!) { delete_item(item_id:$i) { id } }`, { i: itemId }, 1);
   console.log(`deleted item ${itemId}`);
+}
+
+/** One monday user's name + email (to attribute a monday Update -> HubSpot note). Null if not found. */
+export async function getUserById(env: Env, userId: string): Promise<{ name: string; email: string } | null> {
+  const users: any[] = (await gql(env, "query ($u:[ID!]) { users(ids:$u) { name email } }", { u: [userId] })).users;
+  const u = users?.[0];
+  return u ? { name: u.name ?? "", email: u.email ?? "" } : null;
 }
 
 export async function getUsersByEmail(env: Env): Promise<Record<string, string>> {
@@ -96,14 +164,15 @@ export async function getUsersByEmail(env: Env): Promise<Record<string, string>>
 // --- writes: mutations use retries=1 so an ambiguous network failure can't double-apply ---
 
 export async function createItem(env: Env, boardId: string, groupId: string, name: string,
-    cv: Record<string, unknown>, opts: RunOpts): Promise<void> {
-  if (opts.dryRun) { console.log(`DRY create '${name}' on ${boardId}/${groupId}`); return; }
-  await gql(env,
+    cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
+  if (opts.dryRun) { console.log(`DRY create '${name}' on ${boardId}/${groupId}`); return null; }
+  const data = await gql(env,
     `mutation ($b:ID!, $g:String!, $n:String!, $c:JSON) {
        create_item(board_id:$b, group_id:$g, item_name:$n, column_values:$c,
                    create_labels_if_missing:true) { id } }`,
     { b: boardId, g: groupId, n: name, c: JSON.stringify(cv) }, 1);
   console.log(`created '${name}' on ${boardId}/${groupId}`);
+  return data.create_item?.id ?? null;
 }
 
 export async function updateItem(env: Env, boardId: string, itemId: string, name: string,

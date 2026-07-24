@@ -1,10 +1,13 @@
-import type { Budget, Ctx, Env, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
+import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats } from "./types";
+import { reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
   ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
-  DEALS_MYLA, DEALS_UNASSIGNED, PORTAL_ID, SALES_USER_MYLA, SPEC_BY_BOARD,
+  DEALS, PORTAL_ID, SPEC_BY_BOARD,
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
+import { lookupCard, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem } from "./card-registry";
+import { ensureCardForRecord } from "./ensure-card";
 import { targetGroup } from "./routing";
 import {
   buildCreateProperties, buildReversePatch, buildUpdatePayload, decideDirection, fieldDiffs,
@@ -14,7 +17,7 @@ import {
   setColumns, updateItem,
 } from "./monday";
 import {
-  createRecord, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord,
+  createRecord, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
   propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
@@ -31,7 +34,7 @@ function linkValue(spec: ObjectSpec, ctx: Ctx, id: string): Record<string, unkno
 
 export async function buildCtx(env: Env): Promise<Ctx> {
   const [ownersById, mondayUsersByEmail, stage, dealtype, priority, vendor, leadStatus,
-         industry, companyType, contactSource, contactVendor] = await Promise.all([
+         industry, companyType, contactSource, contactVendor, partnerWith] = await Promise.all([
     getOwners(env),
     getUsersByEmail(env),
     getDealStageLabels(env),
@@ -43,15 +46,21 @@ export async function buildCtx(env: Env): Promise<Ctx> {
     getPropertyOptions(env, "companies", "type"),
     getPropertyOptions(env, "contacts", "leadsource"),
     getPropertyOptions(env, "contacts", "manufacturer__c"),
+    getPropertyOptions(env, "companies", "partner_with"),
   ]);
   // sales_user values are raw owner ids; label them with owner names.
   const salesUser: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.name) salesUser[id] = o.name;
+  // Reverse lookups for people-column reverse-sync: monday person id -> email -> HubSpot owner id.
+  const mondayEmailByUserId: Record<string, string> = {};
+  for (const [email, id] of Object.entries(mondayUsersByEmail)) mondayEmailByUserId[id] = email;
+  const ownerIdByEmail: Record<string, string> = {};
+  for (const [id, o] of Object.entries(ownersById)) if (o.email) ownerIdByEmail[o.email.toLowerCase()] = id;
   return {
     labels: { stage, dealtype, priority, vendor, leadStatus, industry, companyType,
-              contactSource, contactVendor, salesUser,
+              contactSource, contactVendor, salesUser, partnerWith,
               pipeline: { default: "Sales Pipeline" } },
-    ownersById, mondayUsersByEmail, portalId: PORTAL_ID,
+    ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, portalId: PORTAL_ID,
   };
 }
 
@@ -64,12 +73,15 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   const recModified = rec.properties[spec.modifiedProp] ?? "";
 
   if (!existing) {
-    const cv = buildColumnValues(rec, spec, ctx);
-    cv[spec.syncStateCol] = recModified;
-    await createItem(env, spec.boardId, group, itemName(rec, spec), cv, opts);
-    stats.created++; budget.left--;
+    // Go through the shared reservation rather than creating directly: `existing` may be a stale miss (the
+    // id-column search is eventually consistent, and syncSpec's board snapshot can be minutes old), and a
+    // blind create here is what produced duplicate cards.
+    const r = await ensureCardForRecord(env, spec, ctx, rec, opts);
+    if (r.status === "created") { stats.created++; budget.left--; }
     return;
   }
+
+  await maintainShared(env, spec, rec, existing, opts, budget); // toggle the Shared team on sales_user change
 
   const lastSynced = colText(existing, spec.syncStateCol);
   const diffs = fieldDiffs(rec, existing, spec, ctx);
@@ -87,7 +99,11 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   if (dir === "toHubspot") {
     const patch = buildReversePatch(diffs, existing, spec, ctx);
     if (Object.keys(patch).length > 0) {
+      const filled = diffs.filter(d => d.backfill && d.f && patch[d.f.hs] !== undefined);
       const newMod = await patchRecord(env, spec, rec.id, patch, opts);
+      // Audit trail for the controlled backfill (a failed patch throws and is logged by the caller).
+      for (const d of filled)
+        console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} field=${d.f!.hs} previous="" value="${patch[d.f!.hs]}" result=${newMod === null ? "dry-run" : "written"}`);
       await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: newMod ?? recModified }, opts);
       stats.toHubspot++; budget.left--;
       return;
@@ -104,29 +120,90 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   stats.toMonday++; budget.left--;
 }
 
+/** Keep the "Shared" people column holding the all-members team on records with NO sales_user (so
+ * Unassigned deals stay viewable by everyone under restricted board permissions), cleared once assigned.
+ * People columns aren't text-diffed, so this toggles explicitly on the empty/non-empty column state. */
+async function maintainShared(env: Env, spec: ObjectSpec,
+    rec: { properties: Record<string, string | null> }, item: MondayItem, opts: RunOpts,
+    budget: Budget): Promise<void> {
+  const us = spec.unassignedShared;
+  if (!us?.teamId || budget.left <= 0) return;
+  const wantTeam = !(rec.properties.sales_user ?? "").trim();
+  const hasTeam = colText(item, us.col).trim() !== "";
+  if (wantTeam === hasTeam) return; // already correct
+  const value = wantTeam
+    ? { personsAndTeams: [{ id: Number(us.teamId), kind: "team" }] }
+    : { personsAndTeams: [] };
+  await setColumns(env, spec.boardId, item.id, { [us.col]: value }, opts); budget.left--;
+  console.log(`${spec.object}/${(rec as any).id ?? ""} shared-column action=${wantTeam ? "set-team" : "cleared"}`);
+}
+
 /** monday card with no HubSpot id (added after go-live) -> create/adopt a HubSpot record. */
 async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     item: MondayItem, emailCol: string | undefined, stats: Stats): Promise<void> {
+  // Cross-isolate guard. monday fires create_pulse AND change_column_value for one new row; those land in
+  // different isolates where `coalesce` (per-isolate) can't see each other, so both used to reach here and
+  // each created its own HubSpot record — leaving one orphan that the sync then carded separately.
+  const claim = await claimHubspotForItem(env, spec.boardId, item.id);
+  if (claim.status === "creating") {
+    stats.skipped++;
+    console.log(`${spec.object} card ${item.id} create already in flight — skipping (would duplicate)`);
+    return;
+  }
+  if (claim.status === "have") {
+    // A previous attempt created the record but its id write-back failed. Re-stamp instead of creating again.
+    await setColumns(env, spec.boardId, item.id,
+      { [spec.idCol]: claim.itemId, ...linkValue(spec, ctx, claim.itemId) }, opts);
+    stats.adopted++; budget.left--;
+    console.log(`${spec.object} card ${item.id} re-stamped with ${claim.itemId} (earlier write-back had failed)`);
+    return;
+  }
+
   if (spec.object === "contacts") {
     const email = emailCol ? colText(item, emailCol) : "";
-    if (!email) { stats.skipped++; console.log(`contact card ${item.id} has no email — skip create`); return; }
+    if (!email) { stats.skipped++; await forgetHubspotForItem(env, spec.boardId, item.id); console.log(`contact card ${item.id} has no email — skip create`); return; }
     const adopt = await searchContactByEmail(env, email);
     if (adopt) { // link the card to the existing HubSpot contact instead of creating a duplicate
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
+      await finishHubspotForItem(env, spec.boardId, item.id, adopt.id);
+      stats.adopted++; budget.left--;
+      return;
+    }
+  }
+  if (spec.object === "companies") {
+    // Companies had NO dedup at all — every trigger created another company. The card's NAME is its domain
+    // (COMPANIES_MYLA.nameProps = ["domain"]), so adopt an existing company on the same normalized domain.
+    const adopt = await searchCompanyByDomain(env, item.name);
+    if (adopt) {
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
+      await finishHubspotForItem(env, spec.boardId, item.id, adopt.id);
       stats.adopted++; budget.left--;
       return;
     }
   }
   const props = buildCreateProperties(item, spec, ctx);
-  const created = await createRecord(env, spec, props, opts);
+  let created: { id: string; modified: string } | null;
+  try {
+    created = await createRecord(env, spec, props, opts);
+  } catch (e) {
+    await forgetHubspotForItem(env, spec.boardId, item.id); // release so a later pass may retry
+    throw e;
+  }
   if (created) {
+    // Record the pairing BEFORE the write-back: if the write-back fails, the next pass re-stamps from here
+    // instead of creating a second HubSpot record.
+    await finishHubspotForItem(env, spec.boardId, item.id, created.id);
     // The write-back is idempotent -> retries hard (setColumns retries=3). If it still fails, the
     // HubSpot record exists but the card has no id and would re-create next tick: log the orphan and
     // signal the caller to STOP creating this run so the failure can't cascade into duplicates.
     try {
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: created.id, [spec.syncStateCol]: created.modified, ...linkValue(spec, ctx, created.id) }, opts);
+      // Register the pairing NOW: HubSpot's creation webhook arrives within seconds, before monday has
+      // indexed the id we just stamped, and would otherwise create a second card for this record.
+      await finishCard(env, spec.boardId, created.id, item.id);
     } catch (e) {
       console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
       throw new Error("WRITEBACK_FAILED");
@@ -148,6 +225,12 @@ export async function syncSpec(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
     } catch (e) {
       stats.errors++;
       console.log(`error ${spec.object}/${rec.id}: ${String(e).slice(0, 300)}`);
+    }
+    // Backup reconcile of associations/line-items — uses the already-fetched card (no extra read).
+    const assocCard = byId[String(rec.id)];
+    if (spec.associations && assocCard && budget.left > 0) {
+      try { await syncAssociations(env, spec, rec, assocCard, ctx, opts, budget); }
+      catch (e) { console.log(`assoc error ${spec.object}/${rec.id}: ${String(e).slice(0, 200)}`); }
     }
   }
 
@@ -220,13 +303,9 @@ function actionOf(s: Stats): string {
 
 /** Which deal board a HubSpot deal belongs to (or null if out of scope). */
 export function specForDeal(deal: { properties: Record<string, string | null> }): ObjectSpec | null {
-  const p = deal.properties;
-  if (p.pipeline !== "default") return null;                                  // only the Sales Pipeline
-  const su = p.sales_user;
-  if (su && su === SALES_USER_MYLA) return DEALS_MYLA;                          // Myla: ALL dates (backfilled)
-  const isNew = (Date.parse(p.createdate ?? "") || 0) >= CREATED_AFTER_MS;
-  if (!su && isNew) return DEALS_UNASSIGNED;                                    // Unassigned stays new-only
-  return null;                                                                 // another owner / old unassigned
+  // One shared board: any Sales-Pipeline deal (all sales users, all dates). A deal with no sales_user
+  // still routes here — it just lands in the Unassigned group (see targetGroup / noSalesUserGroup).
+  return deal.properties.pipeline === "default" ? DEALS : null;
 }
 
 /** Duplicate prevention: search every deal board for an existing card with this HubSpot Deal ID. */
@@ -236,13 +315,23 @@ async function findLinkedDealItem(env: Env, dealId: string):
     const items = await findItemByColumn(env, spec.boardId, spec.idCol, dealId);
     if (items.length) return { spec, item: items[0] };
   }
+  // Same eventual-consistency guard as contacts/companies: a card whose HubSpot ID was stamped moments ago
+  // (createFromMonday) may not be indexed yet, and HubSpot's deal.creation webhook lands right about then —
+  // without this the reconcile would treat it as unlinked and create a SECOND deal card.
+  for (const spec of DEAL_SPECS) {
+    const known = await lookupCard(env, spec.boardId, dealId);
+    if (known) {
+      const item = await getItem(env, known);
+      if (item) { console.log(`deals/${dealId} card ${known} resolved via registry (column search not indexed yet)`); return { spec, item }; }
+    }
+  }
   return null;
 }
 
 /** HubSpot deal changed -> reconcile the one matching monday card (create / update / move). */
 export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, budget: Budget): Promise<string> {
   const ctx = await getCtxCached(env);
-  const deal = await getRecord(env, "deals", dealId, propertiesForSpec(DEALS_MYLA));
+  const deal = await getRecord(env, "deals", dealId, propertiesForSpec(DEALS));
   if (!deal) return wlog("hubspot", dealId, "skipped", 'reason="deal not found (deleted/archived)"');
   const target = specForDeal(deal);
   const linked = await findLinkedDealItem(env, dealId); // dedup across all deal boards
@@ -251,12 +340,14 @@ export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, b
   if (linked) {
     if (target && target.boardId === linked.spec.boardId) {
       await reconcileRecord(env, linked.spec, ctx, opts, budget, deal, linked.item, stats); // update-in-place, never duplicate
+      await runAssociations(env, linked.spec, deal, ctx, opts, budget);
       return wlog("hubspot", dealId, actionOf(stats), `board=${linked.spec.boardId} item=${linked.item.id}`);
     }
     // reassigned to a different board (or left scope): remove the old card, recreate on the new board
     await deleteItem(env, linked.item.id, opts); budget.left--;
     if (target) {
       await reconcileRecord(env, target, ctx, opts, budget, deal, undefined, stats);
+      await runAssociations(env, target, deal, ctx, opts, budget);
       return wlog("hubspot", dealId, "moved", `from=${linked.spec.boardId} to=${target.boardId}`);
     }
     return wlog("hubspot", dealId, "removed", `reason="deal left mapped boards" was=${linked.spec.boardId}`);
@@ -264,15 +355,38 @@ export async function syncHubspotDeal(env: Env, dealId: string, opts: RunOpts, b
 
   if (target) {
     await reconcileRecord(env, target, ctx, opts, budget, deal, undefined, stats); // no card anywhere -> create one
+    await runAssociations(env, target, deal, ctx, opts, budget);
     return wlog("hubspot", dealId, actionOf(stats), `board=${target.boardId}`);
   }
   return wlog("hubspot", dealId, "skipped", 'reason="deal not in scope (pipeline/owner/created-before-cutoff)"');
 }
 
-/** True when a contact/company is in Myla's sync scope (sales_user = Myla AND created >= cutoff).
- * Mirrors the CONTACTS_MYLA / COMPANIES_MYLA search filters for the single-record webhook path. */
+/** After a HubSpot->monday reconcile, refresh the record's associations onto its (now-existing) card.
+ * One-directional + guarded so association failures (e.g. line_items 403) never break the main sync. */
+async function runAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, ctx: Ctx, opts: RunOpts,
+    budget: Budget): Promise<void> {
+  if (!spec.associations || budget.left <= 0) return;
+  try {
+    // This runs right after a card may have just been created, so the eventually-consistent column search
+    // will usually MISS it — which silently left brand-new cards with no relation links and no line-item
+    // subitems until the next full reconcile. Fall back to the registry.
+    let card: MondayItem | undefined = (await findItemByColumn(env, spec.boardId, spec.idCol, rec.id))[0];
+    if (!card) {
+      const known = await lookupCard(env, spec.boardId, rec.id);
+      if (known) card = (await getItem(env, known)) ?? undefined;
+    }
+    if (card) await syncAssociations(env, spec, rec, card, ctx, opts, budget);
+  } catch (e) {
+    console.log(`assoc error ${spec.object}/${rec.id}: ${String(e).slice(0, 200)}`);
+  }
+}
+
+/** True when a contact/company is in the board's own sync scope (ANY sales_user AND created >= cutoff).
+ * Mirrors the CONTACTS_MYLA / COMPANIES_MYLA search filters (sales_user HAS_PROPERTY + createdate) for
+ * the single-record webhook path. NB: associated records that fall outside this are still created on
+ * demand by the association pass (ensureTargetCard) so their deal/contact/company links resolve. */
 function recInScope(rec: { properties: Record<string, string | null> }): boolean {
-  if (rec.properties.sales_user !== SALES_USER_MYLA) return false;
+  if (!(rec.properties.sales_user ?? "").trim()) return false;
   return (Date.parse(rec.properties.createdate ?? "") || 0) >= CREATED_AFTER_MS;
 }
 
@@ -288,9 +402,20 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
   // Scope-check BEFORE the board lookup: contact/company webhooks fire portal-wide, so a non-Myla
   // record must cost only this one fetch (no extra monday subrequest) before we drop it.
   if (!recInScope(rec)) return wlog(spec.object, id, "skipped", 'reason="out of scope (sales_user/created-before-cutoff)"');
-  const existing = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  // The id-column search is eventually consistent. When the app's create endpoint has just made this
+  // record (and its card), HubSpot's creation webhook lands here within seconds — before monday has
+  // indexed the card — and creating again would produce a DUPLICATE card. Fall back to the registry.
+  let existing: MondayItem | undefined = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  if (!existing) {
+    const known = await lookupCard(env, spec.boardId, id);
+    if (known) {
+      existing = (await getItem(env, known)) ?? undefined;
+      if (existing) console.log(`${spec.object}/${id} card ${known} resolved via registry (column search not indexed yet)`);
+    }
+  }
   const stats = emptyStats();
   await reconcileRecord(env, spec, ctx, opts, budget, rec, existing, stats);
+  await runAssociations(env, spec, rec, ctx, opts, budget);
   return wlog(spec.object, id, actionOf(stats), `board=${spec.boardId}`);
 }
 
@@ -366,6 +491,12 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
     const deal = await getRecord(env, spec.object, dealId, propertiesForSpec(spec));
     if (!deal) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${dealId} not in HubSpot"`);
     await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats);
+    // Reverse Connect-Boards links -> HubSpot associations (monday-edit path only; additive/set-only).
+    if (budget.left > 0) await reverseAssociations(env, spec, deal, item, opts, budget);
+    // Reverse monday subitems -> HubSpot line items (id-keyed; only when the write scope is enabled).
+    const liSub = spec.associations?.find(a => a.subitems)?.subitems;
+    if (env.LINE_ITEM_WRITE === "true" && liSub && budget.left > 0)
+      await reverseLineItems(env, liSub, item, deal.id, opts, budget);
     return wlog("monday", itemId, actionOf(stats), `board=${boardId} deal=${dealId}`);
   }
 

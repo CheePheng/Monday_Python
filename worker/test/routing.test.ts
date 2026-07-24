@@ -30,6 +30,35 @@ describe("targetGroup", () => {
     expect(targetGroup({ id: "1", properties: { hs_lead_status: "OPEN" } }, withFallback)).toBe("gOpen"));
 });
 
+const withNoOwner: ObjectSpec = {
+  ...grouped,
+  groupBy: { prop: "dealstage", map: { closedwon: "g6" }, reverse: true, noSalesUserGroup: "gUnassigned" },
+};
+
+describe("targetGroup noSalesUserGroup", () => {
+  it("a deal with no sales_user routes to the unassigned group", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "closedwon", sales_user: "" } }, withNoOwner)).toBe("gUnassigned"));
+  it("a deal WITH a sales_user still uses its stage group", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "closedwon", sales_user: "555" } }, withNoOwner)).toBe("g6"));
+});
+
+// The sales_user routing business rule. Routing uses ONLY the HubSpot sales_user property — never the
+// monday "Sales Users" avatar column (which is a display column and can be blank even when assigned).
+const MYLA = "1739141284";
+const dealsRule: ObjectSpec = {
+  ...grouped,
+  groupBy: { prop: "dealstage", map: { appointmentscheduled: "gStage", closedwon: "g6" },
+             reverse: true, noSalesUserGroup: "gUnassigned" },
+};
+describe("sales_user routing rule (HubSpot property, not the avatar)", () => {
+  it("sales_user = Myla -> its Deal Stage group", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "appointmentscheduled", sales_user: MYLA } }, dealsRule)).toBe("gStage"));
+  it("sales_user empty -> Unassigned group (same board)", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "appointmentscheduled", sales_user: "" } }, dealsRule)).toBe("gUnassigned"));
+  it("sales_user missing entirely -> Unassigned group", () =>
+    expect(targetGroup({ id: "1", properties: { dealstage: "appointmentscheduled" } }, dealsRule)).toBe("gUnassigned"));
+});
+
 describe("reverseGroup", () => {
   it("maps a monday group id back to the HubSpot value", () =>
     expect(reverseGroup(grouped, "g6")).toBe("closedwon"));

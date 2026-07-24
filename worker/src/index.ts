@@ -1,6 +1,40 @@
 import type { Env, RunOpts } from "./types";
-import { runAll, runIncremental } from "./sync";
+export { CreateIdempotency } from "./create-idempotency-do";
+import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
+import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec } from "./hubspot";
+import { ensureCardForRecord, cardIdOf } from "./ensure-card";
+import { verifySessionToken } from "./session";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
+import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
+import { getItem, setColumns } from "./monday";
+import { colText } from "./dedup";
+import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
+import { CONTACT_ENUM_PROPS, COMPANY_ENUM_PROPS } from "./contact-company-props";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, X-Trigger-Secret, Content-Type",
+};
+
+// Writes for real when the Worker is live (mirrors optsFromEnv but with a small per-request budget).
+function appWriteOpts(env: Env): RunOpts {
+  const live = env.DRY_RUN === "false";
+  return { dryRun: !live, writeHubspot: live, maxWrites: 5 };
+}
+
+// Auth for /app/*: a valid monday session token (browser) OR X-Trigger-Secret (server-to-server).
+// The old static X-App-Secret path is retired (it was exposed in frontend prompt material).
+async function authApp(req: Request, env: Env): Promise<{ ok: boolean; reason: string; userId?: string; accountId?: string }> {
+  const trigger = req.headers.get("x-trigger-secret");
+  if (trigger && env.TRIGGER_SECRET && trigger === env.TRIGGER_SECRET) return { ok: true, reason: "trigger-secret" };
+  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!bearer) return { ok: false, reason: "no session token / trigger secret" };
+  const v = await verifySessionToken(env.MONDAY_APP_SESSION_SECRET ?? "", bearer, env.MONDAY_ACCOUNT_ID, Date.now());
+  return { ok: v.ok, reason: v.reason, userId: v.userId, accountId: v.accountId };
+}
 
 function optsFromEnv(env: Env): RunOpts {
   const live = env.DRY_RUN === "false";
@@ -32,6 +66,298 @@ export default {
     // Near-instant fast paths (no secret header — guarded by the challenge/signature inside).
     if (url.pathname === "/webhooks/monday") return handleMonday(req, env, ectx);
     if (url.pathname === "/webhooks/hubspot") return handleHubspot(req, env, ectx);
+
+    // App API (browser Board View app, cross-origin). Auth: monday session token or X-Trigger-Secret.
+    if (url.pathname.startsWith("/app/")) {
+      if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+      const auth = await authApp(req, env);
+      if (!auth.ok) {
+        console.log(`[app] path=${url.pathname} action=rejected reason="${auth.reason}"`);
+        return new Response("forbidden", { status: 403, headers: CORS });
+      }
+      const actingUserId = auth.userId; // undefined under trigger-secret auth -> record created Unassigned
+      const actingAccountId = auth.accountId ?? env.MONDAY_ACCOUNT_ID ?? "acct"; // namespaces idempotency keys
+
+      // GET /app/search?type=contacts|companies|products&q=&limit=
+      if (url.pathname === "/app/search" && req.method === "GET") {
+        const type = url.searchParams.get("type") ?? "";
+        if (!["contacts", "companies", "products"].includes(type))
+          return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: { ...CORS, "Cache-Control": "no-store" } });
+        const q = url.searchParams.get("q") ?? "";
+        const limit = Number(url.searchParams.get("limit") ?? "20");
+        const SEARCH_HEADERS = { ...CORS, "Cache-Control": "no-store" };
+        try {
+          const { results, total } = await searchObjects(env, type, q, Number.isFinite(limit) ? limit : 20);
+          return Response.json({ results, total }, { headers: SEARCH_HEADERS });
+        } catch (e) {
+          const scope = /403|forbidden|scope/i.test(String(e));
+          console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
+          return Response.json({ results: [], total: 0, error: scope ? "scope" : "search-failed" },
+            { headers: SEARCH_HEADERS });
+        }
+      }
+
+      // GET /app/line-item-schema — writable enum options for the manual line-item form (live).
+      if (url.pathname === "/app/line-item-schema" && req.method === "GET") {
+        try {
+          const schema = await getWritablePropOptions(env, "line_items", LINE_ITEM_ENUM_PROPS);
+          return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/line-item-schema] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // GET /app/contact-schema — live enum options for the Create Contact form.
+      if (url.pathname === "/app/contact-schema" && req.method === "GET") {
+        try {
+          const schema = await getWritablePropOptions(env, "contacts", CONTACT_ENUM_PROPS);
+          return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/contact-schema] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // GET /app/company-schema — live enum options for the Create Company form.
+      if (url.pathname === "/app/company-schema" && req.method === "GET") {
+        try {
+          const schema = await getWritablePropOptions(env, "companies", COMPANY_ENUM_PROPS);
+          return Response.json({ schema }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/company-schema] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ schema: {}, error: "schema-failed" }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // GET /app/deal-line-items?itemId=<monday parent> — the deal's CURRENT HubSpot line items (fresh-on-open).
+      if (url.pathname === "/app/deal-line-items" && req.method === "GET") {
+        const itemId = url.searchParams.get("itemId") ?? "";
+        if (!/^\d+$/.test(itemId)) return Response.json({ error: "itemId must be numeric" }, { status: 400, headers: CORS });
+        try {
+          const deal = await getItem(env, itemId);
+          const dealId = deal ? colText(deal, DEALS.idCol) : "";
+          const lineItems = dealId ? await getDealLineItems(env, dealId) : [];
+          return Response.json({ lineItems }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/deal-line-items] item=${itemId} error="${String(e).slice(0, 140)}"`);
+          return Response.json({ lineItems: [], error: "fetch-failed" }, { status: 502, headers: { ...CORS, "Cache-Control": "no-store" } });
+        }
+      }
+
+      // POST /app/line-item — create (body has subitemId) OR update (body has lineItemId) | DELETE {lineItemId}
+      if (url.pathname === "/app/line-item" && (req.method === "POST" || req.method === "DELETE")) {
+        const body: any = await req.json().catch(() => ({}));
+        if (req.method === "POST" && body?.subitemId !== undefined) {
+          const c = parseCreateLineItemBody(body);
+          if (!c.ok) return Response.json({ error: c.error }, { status: 400, headers: CORS });
+          try {
+            // Idempotency: reuse a Line Item ID / Product ID already stamped on this subitem by a prior
+            // attempt, so a retry can never create a duplicate HubSpot line item or product.
+            const sub = await getItem(env, c.subitemId!);
+            const existingLi = sub ? colText(sub, LINE_ITEM_SUBITEMS.idCol) : "";
+            if (existingLi) return Response.json({ ok: true, lineItemId: existingLi }, { headers: CORS });
+            const existingPid = sub && LINE_ITEM_SUBITEMS.productIdCol ? colText(sub, LINE_ITEM_SUBITEMS.productIdCol) : "";
+            // 1) ensure the parent deal exists in HubSpot; resolve its id from the monday deal card.
+            let deal = await getItem(env, c.itemId!);
+            let dealId = deal ? colText(deal, DEALS.idCol) : "";
+            if (!dealId) {
+              await syncMondayItem(env, DEALS.boardId, c.itemId!, appWriteOpts(env), { left: 10 });
+              deal = await getItem(env, c.itemId!);
+              dealId = deal ? colText(deal, DEALS.idCol) : "";
+            }
+            if (!dealId) return Response.json({ ok: false, error: "deal-not-synced" }, { status: 409, headers: CORS });
+            // 2) Save-to-library -> create the product ONCE (reuse a prior attempt's), persist its id.
+            const props = { ...c.properties! };
+            if (c.saveToLibrary && !props.hs_product_id) {
+              if (existingPid) props.hs_product_id = existingPid;
+              else {
+                const pProps: Record<string, string> = {};
+                for (const [k, v] of Object.entries(props)) if (PRODUCT_COPY_PROPS.has(k)) pProps[k] = v;
+                const pid = await createProduct(env, pProps, appWriteOpts(env));
+                if (pid) {
+                  props.hs_product_id = pid;
+                  if (LINE_ITEM_SUBITEMS.productIdCol)
+                    try { await setColumns(env, LINE_ITEM_SUBITEMS.boardId, c.subitemId!, { [LINE_ITEM_SUBITEMS.productIdCol]: pid }, appWriteOpts(env)); } catch { /* best-effort */ }
+                }
+              }
+            }
+            // 3) create the HubSpot line item (+ associate to the deal).
+            const lineItemId = await createLineItem(env, props, dealId, appWriteOpts(env));
+            // 4) write the Line Item ID back onto the subitem — BEST EFFORT: the line item already exists, so
+            //    never fail the request over a write-back; returning the id lets the app store it and skip a dup on retry.
+            if (lineItemId)
+              try { await setColumns(env, LINE_ITEM_SUBITEMS.boardId, c.subitemId!, { [LINE_ITEM_SUBITEMS.idCol]: lineItemId }, appWriteOpts(env)); }
+              catch (e) { console.log(`[app/line-item] create write-back subitem=${c.subitemId} error="${String(e).slice(0, 120)}"`); }
+            return Response.json({ ok: true, lineItemId, productId: props.hs_product_id }, { headers: CORS });
+          } catch (e) {
+            console.log(`[app/line-item] create subitem=${body?.subitemId} error="${String(e).slice(0, 160)}"`);
+            return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+          }
+        }
+        const p = parseLineItemBody(req.method === "POST" ? "PATCH" : "DELETE", body);
+        if (!p.ok) return Response.json({ error: p.error }, { status: 400, headers: CORS });
+        try {
+          if (req.method === "POST") await patchLineItem(env, p.lineItemId!, p.properties!, appWriteOpts(env));
+          else await deleteLineItem(env, p.lineItemId!, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/line-item] ${req.method} ${p.lineItemId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // DELETE /app/association {fromObject, fromId, toObject, toId}
+      if (url.pathname === "/app/association" && req.method === "DELETE") {
+        const body = await req.json().catch(() => ({}));
+        const a = parseAssociationBody(body);
+        if (!a.ok) return Response.json({ error: a.error }, { status: 400, headers: CORS });
+        try {
+          await deleteAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/association] ${a.fromId}->${a.toId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // DELETE /app/deal {hubspotDealId} — archive the HubSpot deal (removes it from both systems)
+      if (url.pathname === "/app/deal" && req.method === "DELETE") {
+        const body = await req.json().catch(() => ({}));
+        const d = parseDealBody(body);
+        if (!d.ok) return Response.json({ error: d.error }, { status: 400, headers: CORS });
+        try {
+          await archiveDeal(env, d.hubspotDealId!, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/deal] archive ${d.hubspotDealId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/sync-deal {itemId} — run the deal's reconcile NOW (fields+associations+line items -> HubSpot),
+      // the same path the monday webhook uses. Makes a drawer save instant instead of waiting on a webhook/cron.
+      // POST /app/clear-deal-fields {hubspotDealId, fields:[...]} — blank allowlisted deal properties.
+      // The rep emptied the field and pressed Save; the app carries that intent, because the reconciler
+      // can't infer it from state (an empty monday value means "never set" OR "just cleared", and for
+      // people columns it means "heal from HubSpot"). Every clear is logged.
+      if (url.pathname === "/app/clear-deal-fields" && req.method === "POST") {
+        const body = await req.json().catch(() => ({}));
+        const c = parseClearDealBody(body);
+        if (!c.ok) return Response.json({ error: c.error }, { status: 400, headers: CORS });
+        try {
+          const props = Object.fromEntries(c.fields!.map(f => [f, ""]));
+          console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} fields=${c.fields!.join(",")}`);
+          await patchRecord(env, DEALS, c.hubspotDealId!, props, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "clear-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      if (url.pathname === "/app/sync-deal" && req.method === "POST") {
+        const body = await req.json().catch(() => ({}));
+        const s = parseSyncDealBody(body);
+        if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
+        try {
+          await syncMondayItem(env, DEALS.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/sync-deal] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/ensure-card {object:"contacts"|"companies", hubspotId} — resolve (or create) the monday
+      // card for an EXISTING HubSpot record. The browser must never create these cards itself: it cannot
+      // see the strongly-consistent card registry, so a client-side create raced the sync/association pass
+      // and produced duplicate rows on the Contact/Company boards.
+      if (url.pathname === "/app/ensure-card" && req.method === "POST") {
+        const body: any = await req.json().catch(() => ({}));
+        const object = body?.object;
+        const hubspotId = String(body?.hubspotId ?? "");
+        if (object !== "contacts" && object !== "companies")
+          return Response.json({ error: "object must be contacts|companies" }, { status: 400, headers: CORS });
+        if (!/^\d+$/.test(hubspotId))
+          return Response.json({ error: "hubspotId must be a numeric string" }, { status: 400, headers: CORS });
+        try {
+          const spec = object === "contacts" ? CONTACTS_MYLA : COMPANIES_MYLA;
+          const ctx = await getCtxCached(env);
+          const rec = await getRecord(env, spec.object, hubspotId, propertiesForSpec(spec));
+          if (!rec) return Response.json({ error: "record-not-found" }, { status: 404, headers: CORS });
+          const itemId = cardIdOf(await ensureCardForRecord(env, spec, ctx, rec, appWriteOpts(env)));
+          // null = another path holds the reservation right now; the caller should retry shortly.
+          if (!itemId) return Response.json({ error: "card-pending" }, { status: 409, headers: CORS });
+          return Response.json({ itemId }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/ensure-card] ${object}/${hubspotId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "ensure-card-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/contact | /app/company — search-or-create a HubSpot Contact/Company, create the monday
+      // card with the HubSpot id in the initial mutation, apply owner, optional deal-free association.
+      // Idempotent via the CreateIdempotency Durable Object keyed by the client UUID.
+      if ((url.pathname === "/app/contact" || url.pathname === "/app/company") && req.method === "POST") {
+        const isContact = url.pathname === "/app/contact";
+        const body: any = await req.json().catch(() => ({}));
+        const parsed = isContact ? parseContactBody(body) : parseCompanyBody(body);
+        if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400, headers: CORS });
+
+        // Namespace the key by account + kind so a UUID can never collide across contact/company/line-item
+        // or across monday accounts (a Contact request must never read a Company's stored result).
+        const doName = `${actingAccountId}:${isContact ? "contact" : "company"}:${parsed.idempotencyKey!}`;
+        const stub = env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(doName));
+        let claim;
+        try {
+          claim = await stub.claim(Date.now());
+        } catch (e) {
+          // A Durable Object failure here would otherwise escape as a bare 500 with no CORS headers, which
+          // the browser surfaces as an opaque network error instead of a readable message.
+          console.log(`[app/${isContact ? "contact" : "company"}] claim-failed="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "create-unavailable" }, { status: 503, headers: CORS });
+        }
+        if (claim.status === "done") return Response.json(claim.result, { headers: CORS });
+        // "inflight" only happens under genuine concurrency (two requests, same key, in the same ~60s).
+        // The client generates one key per Create and holds a savingRef lock, so this is rare; sequential
+        // retries never hit it because every failure path below RELEASES the key (updatedAt=0).
+        if (claim.status === "inflight") return Response.json({ error: "in-progress" }, { status: 409, headers: CORS });
+
+        // Everything after the claim runs inside the try so ANY failure (including a cold getCtxCached,
+        // which fans out ~12 HubSpot/monday calls) RELEASES the key — otherwise the fresh `inflight` from
+        // claim() would strand it for 60s and return a CORS-less 500. `partial` carries the freshest result
+        // so even a failure AFTER the create still releases with the ids already produced (resume, no dup).
+        let partial = claim.result;
+        try {
+          const ctx = await getCtxCached(env);
+          const props = parsed.properties!;
+          const input: CreateInput = isContact
+            ? { properties: props, sessionUserId: actingUserId,
+                dedup: props.email ? { kind: "email", value: props.email } : { kind: "none" },
+                associateCompany: (parsed as any).associateCompanyHubspotId }
+            : { properties: props, sessionUserId: actingUserId,
+                dedup: props.domain ? { kind: "domain", value: props.domain } : { kind: "none" },
+                associateContacts: (parsed as any).associateContactHubspotIds };
+          const { result, error } = await createContactOrCompany(
+            env, isContact ? "contacts" : "companies", ctx, input, claim.result, appWriteOpts(env));
+          partial = result;
+          if (error) {
+            await stub.save(result, false, 0); // release + keep the partial: the next retry resumes, reusing any id already created
+            console.log(`[app/${isContact ? "contact" : "company"}] error="${error}"`);
+            return Response.json({ ...result, error: "create-failed" }, { status: 502, headers: CORS });
+          }
+          await stub.save(result, true, Date.now()); // mark done: this key now short-circuits to the stored result
+          return Response.json(result, { headers: CORS });
+        } catch (e) {
+          await stub.save(partial, false, 0); // release (with any partial) so the retry isn't blocked by a stuck inflight key
+          console.log(`[app/${isContact ? "contact" : "company"}] fatal="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "create-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      return new Response("not found", { status: 404, headers: CORS });
+    }
 
     // Manual full reconcile: header `X-Trigger-Secret: <secret>`
     //   /run?object=deals|companies|contacts&mode=dry|live&maxWrites=300

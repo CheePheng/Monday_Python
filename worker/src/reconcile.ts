@@ -8,14 +8,48 @@ export interface Diff {
   f?: FieldSpec;
   hsText: string;
   mdText: string;
+  backfill?: boolean;
+}
+
+/** monday first-person in a people column -> HubSpot owner id (via email), or "" if none/unmapped. */
+function firstPersonOwnerId(item: MondayItem, col: string, ctx: Ctx): string {
+  const cv = item.column_values.find(c => c.id === col);
+  const pid = cv?.persons_and_teams?.find(p => p.kind === "person")?.id;
+  if (!pid) return "";
+  const email = ctx.mondayEmailByUserId[String(pid)];
+  return email ? (ctx.ownerIdByEmail[email.toLowerCase()] ?? "") : "";
 }
 
 export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx): Diff[] {
   const out: Diff[] = [];
   for (const f of spec.fields) {
+    if (f.type === "people") {
+      // People columns aren't text-diffable by name. Empty column -> forward-fill from HubSpot (heal, e.g.
+      // the "Sales Users" column on existing cards). Filled + reversible -> reverse by comparing the monday
+      // person's OWNER ID to HubSpot's value (id compare, so a matching owner yields no diff -> no loop).
+      if (!colText(item, f.col)) {
+        if (formatValue(f, rec.properties[f.hs], ctx))
+          out.push({ kind: "field", f, hsText: "(person)", mdText: "" });
+      } else if (f.reverse) {
+        const wantOwner = firstPersonOwnerId(item, f.col, ctx);
+        const hsOwner = (rec.properties[f.hs] ?? "").trim();
+        if (wantOwner && wantOwner !== hsOwner) out.push({ kind: "field", f, hsText: hsOwner, mdText: wantOwner });
+      }
+      continue;
+    }
     const hsText = expectedText(f, rec.properties[f.hs], ctx);
-    if (hsText === null) continue; // people/phone: not diffable
-    if (hsText === "") continue;   // empty HubSpot value: don't fight monday (no clear, no loop)
+    if (hsText === null) continue; // phone: not diffable
+    if (hsText === "") {
+      // Empty HubSpot value: normally we don't fight monday (no clear, no loop). EXCEPTION — controlled
+      // backfill: an ALLOWLISTED reversible field on a DEAL whose card carries the matching HubSpot Deal ID
+      // may FILL the empty HubSpot value from a non-empty monday value. Never the reverse (an empty monday
+      // value never clears HubSpot), never for contacts/companies, never matched by name.
+      if (f.backfill && f.reverse && spec.object === "deals" && colText(item, spec.idCol) === rec.id) {
+        const md = colText(item, f.col);
+        if (md) out.push({ kind: "field", f, hsText: "", mdText: md, backfill: true });
+      }
+      continue;
+    }
     const mdText = colText(item, f.col);
     if (hsText !== mdText) out.push({ kind: "field", f, hsText, mdText });
   }
@@ -50,6 +84,7 @@ function invert(dictionary: Record<string, string>): Record<string, string> {
 export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): string {
   const text = mdText.trim();
   if (!text) return "";
+  if (f.type === "people") return text; // the people diff's mdText already holds the HubSpot owner id
   const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : {};
   if (f.type === "dropdown") {
     if (rev[text] !== undefined) return rev[text]; // whole-label match first (labels with commas)
@@ -107,7 +142,9 @@ export function buildCreateProperties(item: MondayItem, spec: ObjectSpec, ctx: C
   if (spec.nameReverse && item.name.trim()) props[spec.nameReverse] = item.name.trim();
   for (const f of spec.fields) {
     if (!f.reverse) continue;
-    const v = reverseFieldValue(f, colText(item, f.col), ctx);
+    // people: derive the HubSpot owner id from the assigned monday person (not the display-name text).
+    const v = f.type === "people" ? firstPersonOwnerId(item, f.col, ctx)
+                                  : reverseFieldValue(f, colText(item, f.col), ctx);
     if (v) props[f.hs] = v;
   }
   // Contacts: item name is "First Last"; derive first/last for HubSpot if not already set.

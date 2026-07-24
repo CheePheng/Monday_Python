@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { COMPANIES_MYLA, CONTACTS_MYLA, DEALS_MYLA, SALES_USER_MYLA } from "../src/config";
+import { COMPANIES_MYLA, CONTACTS_MYLA, DEALS, SALES_USER_MYLA } from "../src/config";
 
 // ---------------------------------------------------------------------------
 // In-memory fakes for the monday + HubSpot API layers so we can drive the REAL
@@ -112,9 +112,9 @@ vi.mock("../src/hubspot", () => ({
 import { deleteHubspotObject, syncHubspotDeal, syncHubspotObject, syncMondayItem } from "../src/sync";
 import { extractDealIds } from "../src/webhooks";
 
-const BOARD = DEALS_MYLA.boardId;      // 5029480547
-const ID_COL = DEALS_MYLA.idCol;       // numeric_mm4nz332
-const SYNC_COL = DEALS_MYLA.syncStateCol;
+const BOARD = DEALS.boardId;      // 5029480547
+const ID_COL = DEALS.idCol;       // numeric_mm4nz332
+const SYNC_COL = DEALS.syncStateCol;
 const GROUP = "group_mm4nf6fw";        // appointmentscheduled group on Myla's Deals board
 const RECENT = "2026-08-01T00:00:00.000Z";
 const env: any = { DRY_RUN: "false", MONDAY_API_TOKEN: "x", HUBSPOT_ACCESS_TOKEN: "x", TRIGGER_SECRET: "x" };
@@ -262,12 +262,19 @@ describe("contacts & companies sync via webhook the same way as deals", () => {
     expect(H.counts.createItem).toBe(1);
   });
 
-  it("a contact not owned by Myla is skipped (out of scope, keyed on HubSpot Record ID)", async () => {
-    putRecord("70099", { firstname: "Not", lastname: "Myla", sales_user: "999",
+  it("a contact with NO sales_user is skipped (out of scope; all-sales-users filter needs a sales_user)", async () => {
+    putRecord("70099", { firstname: "No", lastname: "SalesUser", sales_user: "",
       createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
     const r = await syncHubspotObject(env, "contact", "70099", opts, budget());
     expect(H.counts.createItem).toBe(0);
     expect(r).toContain("out of scope");
+  });
+
+  it("a contact owned by ANY sales user (not just Myla) is now in scope and creates a card", async () => {
+    putRecord("70098", { firstname: "Other", lastname: "Rep", sales_user: "431181649",
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    await syncHubspotObject(env, "contact", "70098", opts, budget());
+    expect(H.counts.createItem).toBe(1);
   });
 
   it("HubSpot company.creation creates a monday company item (linked by HubSpot id)", async () => {

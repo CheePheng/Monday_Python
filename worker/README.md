@@ -19,14 +19,21 @@ behaviour is identical whether an update arrives instantly or via the backup swe
 
 ## What it does
 
-It reconciles four boards (config in `src/config.ts`):
+It reconciles three boards (config in `src/config.ts`):
 
 | Board | HubSpot object | Grouped by | Scope |
 |---|---|---|---|
-| Myla Mestiola Deals `5029480547` | deals (sales_user = Myla) | deal stage | **all dates** (full history) |
-| Unassigned Deals `5029479220` | deals with **no** sales_user | one group | created ≥ 2026-07-01 |
+| Deals `5029480547` (shared) | deals in the Sales Pipeline — **ALL sales users** | deal stage (no `sales_user` → **Unassigned Deals** group) | all dates |
 | Myla Company Follow Up `5029639440` | companies (sales_user = Myla) | one group | created ≥ 2026-07-01 |
 | Myla Contact Follow Up `5029639630` | contacts (sales_user = Myla) | lead status (empty → **New**) | created ≥ 2026-07-01 |
+
+**Deals — one shared board for all sales users:** every Sales-Pipeline deal (any owner) syncs to
+`5029480547`; per-user visibility is done with monday permissions/filters. Field mapping: `hubspot_owner_id`
+→ **Deal Owner** (person), `sales_user` → **Sales Users** (person), plus `amount` (Amounts), `deal_currency_code`
+(Currency status), `closedate` (Close Date), `dealstage`/`pipeline`/`dealtype` (status columns) — the new
+fields are HubSpot-authoritative. Deals with no `sales_user` land in the **Unassigned Deals** group. The old
+per-owner `Unassigned`/`Rick …` deal boards are retired. (People columns like Deal Owner/Sales Users
+back-fill an *empty* column on any reconcile but don't fight a filled one.)
 
 **Two-way, last-edit-wins:** for each linked record it compares fields; whichever side changed since the
 last sync wins (tracked in a hidden **Sync State** column per board). Direction is immune to the sync's
@@ -42,6 +49,20 @@ truth), the Worker **deletes** the linked monday card (`object.deletion` webhook
 Requires the `MONDAY_API_TOKEN` user to have **item-delete permission** on the boards (an admin/service
 account — salespeople have delete disabled). It **never touches HubSpot** (deleting a monday card does
 nothing to HubSpot). No linked card ⇒ no-op.
+
+**Associations & line items (HubSpot → monday only):** a one-directional pass (`src/associations.ts`)
+reflects HubSpot associations onto monday after the field reconcile — **never** writing HubSpot, keyed on
+Record ID / Line Item ID (never names):
+- **Deal** → `Associated Company`, `Associated Contact` (text, comma-joined names); **line items → subitems**
+  on board `5029480548` (`HubSpot Line Item ID`, `Unit Price`, `Quantity`, `Amount`, `Net Price`,
+  `Service Date`, `Unit Discount`, `Description`) + parent `Line Items Summary` / `Count` / `Total Value`.
+  Subitems dedup by the Line Item ID column: update existing, create new, **delete** ones removed in HubSpot.
+- **Company** → `Associated Contact`. **Contact** → `Associated Company`, `Associated Deal`.
+- **Refresh:** runs on the object's normal webhook + the backup reconcile. HubSpot association-change events
+  aren't used, so an association/line-item change that doesn't also change a field syncs on the next backup
+  tick (≤10 min). **Line items require `crm.objects.line_items.read`** on the Private App (Worker reads) and
+  the webhook app (`app-hsmeta.json`); association reads need no extra scope. Association text/subitems are
+  never pushed back to HubSpot.
 
 **Item-name mapping (primary column):** the monday item name maps to a single HubSpot property, reverse-
 synced, so editing the primary column writes back: **contacts** primary = `firstname` (Last Name is its own
