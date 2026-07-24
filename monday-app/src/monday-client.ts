@@ -1,8 +1,9 @@
 import mondaySdk from "monday-sdk-js";
 import {
-  DEALS_BOARD, SUBITEMS_BOARD,
+  DEALS_BOARD, SUBITEMS_BOARD, LINK_NAME_COL_2, LINK_NAME_COL_3,
 } from "./board-config";
 import { apiErrorDetail, apiErrorMessage } from "./lib/api-error";
+import { linkDisplayName } from "./lib/link-name";
 
 const monday = mondaySdk();
 // Pin an API version monday actually still serves. "2024-10" was removed (its live list now starts at
@@ -90,13 +91,19 @@ export async function getDeal(itemId: string): Promise<RawItem | null> {
 // Contact columns while the drawer (which asks for one deal's 1-3 ids) looked fine.
 const ID_CHUNK = 100;
 
-/** Resolve monday item ids -> { id: name } (batched) for showing linked company/contact names. */
+/** Resolve monday item ids -> { id: displayName } for showing linked company/contact names. Applies the
+ * fallback cascade (firstname->lastname->email / domain->name) so an empty primary field never shows the
+ * raw `contacts <id>` fallback. */
 export async function getItemNames(itemIds: string[]): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (let i = 0; i < itemIds.length; i += ID_CHUNK) {
     const chunk = itemIds.slice(i, i + ID_CHUNK);
-    const d: any = await api(`query ($ids:[ID!]) { items(ids:$ids, limit:${ID_CHUNK}) { id name } }`, { ids: chunk });
-    for (const it of d.items ?? []) out[String(it.id)] = it.name;
+    const d: any = await api(`query ($ids:[ID!]) { items(ids:$ids, limit:${ID_CHUNK}) {
+      id name column_values(ids:["${LINK_NAME_COL_2}","${LINK_NAME_COL_3}"]) { id text } } }`, { ids: chunk });
+    for (const it of d.items ?? []) {
+      const col = (id: string) => it.column_values?.find((c: any) => c.id === id)?.text ?? "";
+      out[String(it.id)] = linkDisplayName(it.name, col(LINK_NAME_COL_2), col(LINK_NAME_COL_3));
+    }
   }
   return out;
 }
@@ -166,9 +173,15 @@ export async function getCardsByIds(itemIds: string[], idCol: string):
   for (let i = 0; i < itemIds.length; i += ID_CHUNK) {   // same 25-row cap as getItemNames
     const d: any = await api(`query ($ids:[ID!], $cols:[String!]) {
       items(ids:$ids, limit:${ID_CHUNK}) { id name column_values(ids:$cols) { id text } } }`,
-      { ids: itemIds.slice(i, i + ID_CHUNK), cols: [idCol] });
-    for (const it of d.items ?? [])
-      out.push({ itemId: String(it.id), name: it.name, hubspotId: it.column_values?.[0]?.text ?? "" });
+      { ids: itemIds.slice(i, i + ID_CHUNK), cols: [idCol, LINK_NAME_COL_2, LINK_NAME_COL_3] });
+    for (const it of d.items ?? []) {
+      const col = (id: string) => it.column_values?.find((c: any) => c.id === id)?.text ?? "";
+      out.push({
+        itemId: String(it.id),
+        name: linkDisplayName(it.name, col(LINK_NAME_COL_2), col(LINK_NAME_COL_3)),
+        hubspotId: col(idCol),
+      });
+    }
   }
   return out;
 }
