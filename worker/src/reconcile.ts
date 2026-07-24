@@ -87,11 +87,21 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
   if (f.type === "people") return text; // the people diff's mdText already holds the HubSpot owner id
   const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : {};
   if (f.type === "dropdown") {
-    if (rev[text] !== undefined) return rev[text]; // whole-label match first (labels with commas)
-    // Multi-select: map each label; DROP labels not in the dictionary rather than passing them raw
-    // (a raw monday label is not a valid HubSpot enum value -> 400 that would retry every tick).
-    return text.split(",").map(s => s.trim()).filter(Boolean)
-      .map(s => rev[s]).filter((v): v is string => v !== undefined).join(";");
+    if (rev[text] !== undefined) return rev[text]; // whole-label match first (single value)
+    // Multi-select: monday joins labels with ", ", and a label can itself contain a comma, so don't
+    // blindly split on ",". Greedily consume the longest known label at a comma/end boundary; an unknown
+    // label stops the scan (a raw monday label is not a valid HubSpot enum value -> 400 every tick).
+    const labels = Object.keys(rev).filter(Boolean).sort((a, b) => b.length - a.length);
+    const out: string[] = [];
+    let rest = text;
+    while (rest) {
+      rest = rest.replace(/^\s*,\s*/, "");
+      const hit = labels.find(l => rest.startsWith(l) && (rest.length === l.length || rest[l.length] === ","));
+      if (!hit) break;
+      out.push(rev[hit]);
+      rest = rest.slice(hit.length);
+    }
+    return out.join(";");
   }
   return rev[text] ?? text;
 }

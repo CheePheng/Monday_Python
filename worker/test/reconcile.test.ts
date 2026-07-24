@@ -3,7 +3,7 @@ import {
   fieldDiffs, decideDirection, buildReversePatch, buildUpdatePayload, buildCreateProperties,
   reverseFieldValue,
 } from "../src/reconcile";
-import type { Ctx, MondayItem, ObjectSpec } from "../src/types";
+import type { Ctx, MondayItem, ObjectSpec, FieldSpec } from "../src/types";
 import { DEALS } from "../src/config";
 
 const ctx: Ctx = {
@@ -72,6 +72,28 @@ describe("reverseFieldValue", () => {
     expect(reverseFieldValue(spec.fields[0], "New Business", ctx)).toBe("newbusiness"));
   it("empty stays empty", () =>
     expect(reverseFieldValue(spec.fields[0], "  ", ctx)).toBe(""));
+});
+
+describe("reverseFieldValue — multi-select dropdown (F3)", () => {
+  // "industry" is used because FieldSpec.labels / Ctx.labels keys must be members of the LabelDict union
+  // (see worker/src/types.ts) — an arbitrary string like "ind" would fail tsc.
+  const mCtx: Ctx = {
+    labels: { industry: { glass: "Glass, Ceramics & Concrete", mfg: "Manufacturing", aws: "AWS" } },
+    ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1,
+  };
+  const dd: FieldSpec = { hs: "industry", col: "c_ind", type: "dropdown", labels: "industry", reverse: true };
+
+  it("single value (whole-label match, unchanged)", () =>
+    expect(reverseFieldValue(dd, "Glass, Ceramics & Concrete", mCtx)).toBe("glass"));
+
+  it("comma-free multi value stays identical to the old split", () =>
+    expect(reverseFieldValue(dd, "AWS, Manufacturing", mCtx)).toBe("aws;mfg"));
+
+  it("multi value where one label CONTAINS a comma", () =>
+    expect(reverseFieldValue(dd, "Glass, Ceramics & Concrete, Manufacturing", mCtx)).toBe("glass;mfg"));
+
+  it("drops an unknown label rather than passing it raw", () =>
+    expect(reverseFieldValue(dd, "AWS, Nope", mCtx)).toBe("aws"));
 });
 
 describe("buildReversePatch", () => {
