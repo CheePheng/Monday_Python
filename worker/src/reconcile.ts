@@ -147,11 +147,15 @@ export function buildCreateProperties(item: MondayItem, spec: ObjectSpec, ctx: C
                                   : reverseFieldValue(f, colText(item, f.col), ctx);
     if (v) props[f.hs] = v;
   }
-  // Contacts: item name is "First Last"; derive first/last for HubSpot if not already set.
+  // Contacts: the item name is the First Name column. If a rep typed a FULL name there and left the
+  // separate Last Name column empty, split it so HubSpot gets a clean first/last instead of the whole
+  // name as firstname. When Last Name is filled, the columns are authoritative — don't second-guess them.
   if (spec.object === "contacts") {
     const parts = item.name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length && !props["firstname"]) props["firstname"] = parts[0];
-    if (parts.length > 1 && !props["lastname"]) props["lastname"] = parts.slice(1).join(" ");
+    if (parts.length > 1 && !props["lastname"]) {
+      props["firstname"] = parts[0];
+      props["lastname"] = parts.slice(1).join(" ");
+    }
   }
   return props;
 }

@@ -117,6 +117,30 @@ describe("buildCreateProperties", () => {
   });
 });
 
+describe("buildCreateProperties — contact name split (F1)", () => {
+  const contactSpec: ObjectSpec = {
+    object: "contacts", objectTypeId: "0-1", searchFilters: [], modifiedProp: "lastmodifieddate",
+    nameProps: ["firstname"], nameReverse: "firstname", boardId: "CB", idCol: "cc_id", syncStateCol: "cc_sync",
+    groupBy: { singleGroup: "g" }, createFromMonday: true, createDefaults: {},
+    fields: [{ hs: "lastname", col: "cc_last", type: "text", reverse: true }],
+  };
+  const cItem = (name: string, last = ""): MondayItem => ({
+    id: "i1", name, created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z",
+    group: { id: "g" }, column_values: [{ id: "cc_last", text: last }],
+  });
+
+  it("single-word name -> firstname only", () =>
+    expect(buildCreateProperties(cItem("John"), contactSpec, ctx)).toEqual({ firstname: "John" }));
+
+  it("full name + empty Last Name column -> split into first + last", () =>
+    expect(buildCreateProperties(cItem("John Smith"), contactSpec, ctx))
+      .toEqual({ firstname: "John", lastname: "Smith" }));
+
+  it("Last Name column is authoritative -> item name stays the firstname", () =>
+    expect(buildCreateProperties(cItem("Mary Anne", "Smith"), contactSpec, ctx))
+      .toEqual({ firstname: "Mary Anne", lastname: "Smith" }));
+});
+
 describe("sales_user group moves (routing by HubSpot sales_user; existing item moved by Deal ID, never duplicated)", () => {
   // A deals-style spec: group by stage, no-sales_user -> Unassigned; Sales Users is a (display) people column.
   const dealsRule: ObjectSpec = {
