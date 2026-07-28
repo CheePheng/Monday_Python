@@ -21,7 +21,14 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
       const uid = email ? ctx.mondayUsersByEmail[email] : undefined;
       return uid ? { personsAndTeams: [{ id: Number(uid), kind: "person" }] } : null;
     }
-    case "phone": return { phone: v.replace(/[^\d+]/g, ""), countryShortName: "SG" };
+    case "phone": {
+      const digits = v.replace(/[^\d]/g, "");
+      if (!digits) return null;
+      // International (leading +): keep the + so monday reads the country from the code.
+      // Local (no +): raw digits, NO country — the contacts are multi-country and HubSpot's own country
+      // detection is unreliable, so any forced country would mis-flag the number.
+      return v.trim().startsWith("+") ? { phone: "+" + digits } : { phone: digits };
+    }
   }
 }
 

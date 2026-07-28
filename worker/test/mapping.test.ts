@@ -34,6 +34,12 @@ describe("formatValue", () => {
     expect(formatValue(f({}), null, ctx)).toBeNull();
     expect(formatValue(f({}), "", ctx)).toBeNull();
   });
+  it("phone: international + is kept, no forced country", () =>
+    expect(formatValue(f({ type: "phone" }), "+60 12-345 6789", ctx)).toEqual({ phone: "+60123456789" }));
+  it("phone: local number -> raw digits, no country", () =>
+    expect(formatValue(f({ type: "phone" }), "012-345 6789", ctx)).toEqual({ phone: "0123456789" }));
+  it("phone: strips formatting from an international number", () =>
+    expect(formatValue(f({ type: "phone" }), "+1 (555) 123-4567", ctx)).toEqual({ phone: "+15551234567" }));
 });
 
 const spec: ObjectSpec = {
