@@ -6,8 +6,9 @@ import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } f
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
 } from "../monday-client";
-import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, ensureCard, clearDealFields, type EnumProp } from "../worker-client";
+import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, ensureCard, clearDealFields, getRecordAssociations, type EnumProp } from "../worker-client";
 import { mergeLineItems } from "../lib/line-item-merge";
+import { mergeAssociatedCompanies } from "../lib/auto-associate";
 import { validateDealForm } from "../lib/validate";
 import { colText, linkedIds, peopleIds } from "../useBoard";
 import AssociationSection from "./AssociationSection";
@@ -41,6 +42,9 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   });
   const [contacts, setContacts] = useState<Assoc[]>([]);
   const [companies, setCompanies] = useState<Assoc[]>([]);
+  // Contacts whose companies we've already auto-linked — seeded with the deal's existing contacts on load
+  // so opening a saved deal doesn't suddenly pull companies in. Only NEW picks trigger a fetch.
+  const resolvedContactsRef = useRef<Set<string>>(new Set());
   // What was linked when the drawer opened — the baseline for working out what to unlink on Save.
   const [origContacts, setOrigContacts] = useState<Assoc[]>([]);
   const [origCompanies, setOrigCompanies] = useState<Assoc[]>([]);
@@ -120,6 +124,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
       const cs = contactCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name }));
       const cos = companyCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name }));
       setContacts(cs); setOrigContacts(cs);
+      resolvedContactsRef.current = new Set(cs.map(c => c.hubspotId).filter((x): x is string => !!x));
       setCompanies(cos); setOrigCompanies(cos);
       // Hydrate EVERY field the save writes back. Anything left undefined here is sent to HubSpot as a
       // blank on the next save — that's how discounts were being wiped by simply opening and saving.
@@ -179,6 +184,21 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     liFetched.current = true;
     void refreshLineItems();
   }, [tab, isEdit]);
+
+  /** Contact section change handler: stage the picked contacts, and auto-add each newly-picked contact's
+   * company/companies. Deduped and never removing, so a company the rep removed stays removed. */
+  async function onContactsChange(next: Assoc[]) {
+    setDirty(true);
+    setContacts(next);
+    for (const c of next) {
+      if (!c.hubspotId || resolvedContactsRef.current.has(c.hubspotId)) continue;
+      resolvedContactsRef.current.add(c.hubspotId);
+      try {
+        const assoc = await getRecordAssociations(board.sessionToken, "contacts", c.hubspotId, "companies");
+        if (assoc.length) setCompanies(prev => mergeAssociatedCompanies(prev, assoc));
+      } catch { /* fail soft — auto-link is a convenience, never block the form */ }
+    }
+  }
 
   /** Create/find the monday card for each staged association. Rows that already have an itemId are left
    * alone, so a retry can never create a second card for the same record. */
@@ -348,7 +368,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
 
           {tab === "associations" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <AssociationSection kind="contact" token={board.sessionToken} schema={contactSchema} value={contacts} onChange={next => { setDirty(true); setContacts(next); }} />
+              <AssociationSection kind="contact" token={board.sessionToken} schema={contactSchema} value={contacts} onChange={onContactsChange} />
               <AssociationSection kind="company" token={board.sessionToken} schema={companySchema} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} />
             </div>
           )}

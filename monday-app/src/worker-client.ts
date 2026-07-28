@@ -18,6 +18,14 @@ async function call(token: string, method: string, path: string, body?: unknown,
 
 export interface Hit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
 export interface SearchResult { items: Hit[]; total: number }
+
+/** A record's linked records in HubSpot (e.g. a contact's companies), for auto-staging in the deal form. */
+export async function getRecordAssociations(token: string, type: "contacts" | "companies", id: string, to: "contacts" | "companies"):
+    Promise<{ hubspotId: string; name: string }[]> {
+  const res = await call(token, "GET", `/app/associations?type=${type}&id=${encodeURIComponent(id)}&to=${to}`);
+  return res?.results ?? [];
+}
+
 export async function searchHubspot(token: string, type: "contacts" | "companies" | "products", q: string, signal?: AbortSignal): Promise<SearchResult> {
   const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q.trim())}&limit=20`, undefined, signal);
   if (res?.error) throw new Error("search-" + res.error);           // surface HubSpot failure (scope/search-failed)
