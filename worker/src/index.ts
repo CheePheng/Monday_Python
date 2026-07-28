@@ -3,7 +3,7 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
@@ -94,6 +94,31 @@ export default {
           console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
           return Response.json({ results: [], total: 0, error: scope ? "scope" : "search-failed" },
             { headers: SEARCH_HEADERS });
+        }
+      }
+
+      // GET /app/associations?type=contacts&id=<hsId>&to=companies -> [{ hubspotId, name }]. Read-only,
+      // fails soft so a lookup hiccup never blocks the form (used to auto-link a picked contact's company).
+      if (url.pathname === "/app/associations" && req.method === "GET") {
+        const type = url.searchParams.get("type") ?? "", to = url.searchParams.get("to") ?? "";
+        const id = url.searchParams.get("id") ?? "";
+        const OBJ = new Set(["contacts", "companies", "deals"]);
+        if (!OBJ.has(type) || !OBJ.has(to) || !/^\d+$/.test(id))
+          return Response.json({ error: "type/to must be a CRM object; id must be numeric" }, { status: 400, headers: CORS });
+        try {
+          const ids = await getAssociatedIds(env, type, id, to);
+          const recs = ids.length ? await getRecordsByIds(env, to, ids, ["name", "domain", "firstname", "lastname", "email"]) : [];
+          const results = recs.map(r => {
+            const p = r.properties;
+            const name = to === "companies" ? (p.name || p.domain || "").trim()
+                       : to === "contacts" ? ([p.firstname, p.lastname].filter(Boolean).join(" ").trim() || (p.email ?? ""))
+                       : "";
+            return { hubspotId: r.id, name };
+          });
+          return Response.json({ results }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/associations] type=${type} to=${to} error="${String(e).slice(0, 140)}"`);
+          return Response.json({ results: [] }, { headers: CORS });
         }
       }
 
