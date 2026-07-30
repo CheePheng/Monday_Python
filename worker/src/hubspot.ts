@@ -59,6 +59,19 @@ export async function searchAll(env: Env, spec: ObjectSpec): Promise<HsRecord[]>
   return results;
 }
 
+/** Plain list pagination (NOT search) — the only way past search's 10,000-result ceiling. Used by the
+ * one-time all-companies import to walk every record. */
+export async function listPage(env: Env, object: string, after: string | undefined, properties: string[], limit = 100):
+    Promise<{ records: HsRecord[]; next?: string }> {
+  const qs = new URLSearchParams({ limit: String(limit), archived: "false", properties: properties.join(",") });
+  if (after) qs.set("after", after);
+  const page = await hs(env, "GET", `/crm/v3/objects/${object}?${qs.toString()}`);
+  return {
+    records: (page.results ?? []).map((r: any) => ({ id: String(r.id), properties: r.properties ?? {} })),
+    next: page.paging?.next?.after,
+  };
+}
+
 export function propertiesForSpec(spec: ObjectSpec): string[] {
   return propertiesFor(spec);
 }
