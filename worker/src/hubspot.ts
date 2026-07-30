@@ -285,7 +285,7 @@ export async function searchModifiedIds(env: Env, spec: ObjectSpec, sinceMs: num
   let pages = 0;
   do {
     const body: Record<string, unknown> = {
-      filterGroups: [{ filters: [...spec.searchFilters,
+      filterGroups: [{ filters: [...(spec.includeAll ? [] : spec.searchFilters),
         { propertyName: spec.modifiedProp, operator: "GTE", value: sinceMs }] }],
       sorts: [{ propertyName: spec.modifiedProp, direction: "DESCENDING" }],
       properties: ["hs_object_id"], limit: 100,

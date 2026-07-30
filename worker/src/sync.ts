@@ -259,6 +259,7 @@ export async function runAll(env: Env, opts: RunOpts, only?: string): Promise<Re
   const budget: Budget = { left: opts.maxWrites };
   const out: Record<string, Stats> = {};
   for (const spec of ALL_SPECS) {
+    if (spec.skipFullReconcile) continue;   // e.g. companies: 25k can't be search-swept; incremental+webhooks cover it
     if (only && spec.object !== only) continue;
     const key = `${spec.object}:${spec.boardId}`;
     try {
