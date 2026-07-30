@@ -1,4 +1,4 @@
-import type { Env, RunOpts } from "./types";
+import type { Env, RunOpts, Budget } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
@@ -8,7 +8,8 @@ import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
-import { getItem, setColumns } from "./monday";
+import { getItem, setColumns, findItemByColumn } from "./monday";
+import { syncAssociations } from "./associations";
 import { colText } from "./dedup";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
 import { CONTACT_ENUM_PROPS, COMPANY_ENUM_PROPS } from "./contact-company-props";
@@ -408,13 +409,32 @@ export default {
       const provided = req.headers.get("x-trigger-secret") ?? "";
       if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
         return new Response("forbidden", { status: 403 });
-      if ((url.searchParams.get("object") ?? "") !== "companies")
-        return Response.json({ error: "only object=companies supported" }, { status: 400 });
+      const object = url.searchParams.get("object") ?? "";
+      if (!["companies", "company-associations"].includes(object))
+        return Response.json({ error: "object must be companies|company-associations" }, { status: 400 });
       const after = url.searchParams.get("after") || undefined;
-      const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "40"), 1), 100);
-      const conc = Math.min(Math.max(Number(url.searchParams.get("conc") ?? "5"), 1), 10);
       const ctx = await getCtxCached(env);
       const opts = optsFromEnv(env);
+
+      // Phase 2: per company, run the association pass — creates each linked contact's card (deduped) and
+      // writes the company->contact link. Heavier per record than the card import, so small pages.
+      if (object === "company-associations") {
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "5"), 1), 30);
+        const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
+        let linked = 0, missing = 0;
+        for (const rec of records) {
+          const card = (await findItemByColumn(env, COMPANIES_MYLA.boardId, COMPANIES_MYLA.idCol, rec.id))[0];
+          if (!card) { missing++; continue; }
+          const budget: Budget = { left: 60 };
+          try { await syncAssociations(env, COMPANIES_MYLA, rec, card, ctx, opts, budget); linked++; }
+          catch (e) { console.log(`[import assoc] company=${rec.id} error="${String(e).slice(0, 140)}"`); }
+        }
+        return Response.json({ processed: records.length, linked, missing, after: next ?? null, done: !next });
+      }
+
+      // Phase 1: card import (object === "companies").
+      const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "40"), 1), 100);
+      const conc = Math.min(Math.max(Number(url.searchParams.get("conc") ?? "5"), 1), 10);
       const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
       let created = 0, existing = 0;
       // Bounded concurrency: each company's ensureCardForRecord is independent (its own DO instance), so a
