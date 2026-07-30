@@ -3,7 +3,7 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
@@ -399,6 +399,27 @@ export default {
       };
       const stats = await runAll(env, opts, url.searchParams.get("object") ?? undefined);
       return Response.json({ mode, maxWrites: opts.maxWrites, stats });
+    }
+
+    // One-time bulk import of ALL companies: `X-Trigger-Secret` header.
+    //   /import?object=companies&after=<cursor>  — one list-API page per call; upsert each card via the
+    // real (deduped) path. NO association pass (Phase 1 = cards only). Driven page-by-page by a script.
+    if (url.pathname === "/import" && req.method === "GET") {
+      const provided = req.headers.get("x-trigger-secret") ?? "";
+      if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
+        return new Response("forbidden", { status: 403 });
+      if ((url.searchParams.get("object") ?? "") !== "companies")
+        return Response.json({ error: "only object=companies supported" }, { status: 400 });
+      const after = url.searchParams.get("after") || undefined;
+      const ctx = await getCtxCached(env);
+      const opts = optsFromEnv(env);
+      const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), 100);
+      let created = 0, existing = 0;
+      for (const rec of records) {
+        const r = await ensureCardForRecord(env, COMPANIES_MYLA, ctx, rec, opts);
+        if (r.status === "created") created++; else if (r.status === "existing") existing++;
+      }
+      return Response.json({ processed: records.length, created, existing, after: next ?? null, done: !next });
     }
 
     return new Response("not found", { status: 404 });
