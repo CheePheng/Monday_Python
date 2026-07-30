@@ -297,9 +297,15 @@ export async function searchModifiedIds(env: Env, spec: ObjectSpec, sinceMs: num
   let after: string | undefined;
   let pages = 0;
   do {
+    // OR'd scope groups, each AND'd with the modified-date filter (HubSpot: groups OR, filters-in-group AND).
+    const mod = { propertyName: spec.modifiedProp, operator: "GTE" as const, value: sinceMs };
+    const groups: Record<string, unknown>[][] = spec.includeAll
+      ? [[mod]]
+      : [[...spec.searchFilters, mod],
+         ...(spec.scopeAlsoLinkedProp
+           ? [[{ propertyName: spec.scopeAlsoLinkedProp, operator: "HAS_PROPERTY" as const }, mod]] : [])];
     const body: Record<string, unknown> = {
-      filterGroups: [{ filters: [...(spec.includeAll ? [] : spec.searchFilters),
-        { propertyName: spec.modifiedProp, operator: "GTE", value: sinceMs }] }],
+      filterGroups: groups.map(filters => ({ filters })),
       sorts: [{ propertyName: spec.modifiedProp, direction: "DESCENDING" }],
       properties: ["hs_object_id"], limit: 100,
       ...(after ? { after } : {}),

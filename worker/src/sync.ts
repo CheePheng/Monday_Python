@@ -388,6 +388,7 @@ async function runAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, ctx: C
  * demand by the association pass (ensureTargetCard) so their deal/contact/company links resolve. */
 export function recInScope(spec: ObjectSpec, rec: { properties: Record<string, string | null> }): boolean {
   if (spec.includeAll) return true;
+  if (spec.scopeAlsoLinkedProp && (rec.properties[spec.scopeAlsoLinkedProp] ?? "").toString().trim()) return true;
   if (!(rec.properties.sales_user ?? "").trim()) return false;
   return (Date.parse(rec.properties.createdate ?? "") || 0) >= CREATED_AFTER_MS;
 }
@@ -398,7 +399,8 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
     budget: Budget): Promise<string> {
   const ctx = await getCtxCached(env);
   // Always fetch sales_user + createdate so we can scope-check even when they aren't mapped fields.
-  const props = [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])];
+  const props = [...new Set([...propertiesForSpec(spec), "sales_user", "createdate",
+    ...(spec.scopeAlsoLinkedProp ? [spec.scopeAlsoLinkedProp] : [])])];
   const rec = await getRecord(env, spec.object, id, props);
   if (!rec) return wlog(spec.object, id, "skipped", 'reason="record not found (deleted/archived)"');
   // Scope-check BEFORE the board lookup: contact/company webhooks fire portal-wide, so a non-Myla

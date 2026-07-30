@@ -15,4 +15,8 @@ describe("recInScope", () => {
     expect(recInScope(CONTACTS_MYLA, rec({ sales_user: "1", createdate: NEW }))).toBe(true));
   it("contacts: sales_user but created before the cutoff is out of scope", () =>
     expect(recInScope(CONTACTS_MYLA, rec({ sales_user: "1", createdate: OLD }))).toBe(false));
+  it("contacts: company-linked (associatedcompanyid) is in scope even with no sales_user", () =>
+    expect(recInScope(CONTACTS_MYLA, rec({ associatedcompanyid: "5", createdate: OLD }))).toBe(true));
+  it("contacts: neither sales_user nor a company is out of scope", () =>
+    expect(recInScope(CONTACTS_MYLA, rec({ createdate: NEW }))).toBe(false));
 });

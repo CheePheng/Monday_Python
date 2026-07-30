@@ -200,6 +200,10 @@ export const CONTACTS_MYLA: ObjectSpec = {
   // Status" column (the reversible field below); the group then moves to match on the next sync. If the
   // group also reverse-wrote hs_lead_status it would fight the column edit and oscillate ("Open" -> "New").
   groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: false, fallbackGroup: "topics" },
+  // Union scope: keep sales_user-owned contacts AND include company-linked ones (Phase 2 associations).
+  // Too large for the search-based full sweep, so served by the incremental + webhooks + the association run.
+  scopeAlsoLinkedProp: "associatedcompanyid",
+  skipFullReconcile: true,
   associations: [
     { toObject: "companies", nameProps: ["name"], relationCol: CONTACT_REL_COMPANY },
     { toObject: "deals", nameProps: ["dealname"], relationCol: CONTACT_REL_DEAL },
