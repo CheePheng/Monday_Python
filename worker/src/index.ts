@@ -411,13 +411,18 @@ export default {
       if ((url.searchParams.get("object") ?? "") !== "companies")
         return Response.json({ error: "only object=companies supported" }, { status: 400 });
       const after = url.searchParams.get("after") || undefined;
+      const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "40"), 1), 100);
+      const conc = Math.min(Math.max(Number(url.searchParams.get("conc") ?? "5"), 1), 10);
       const ctx = await getCtxCached(env);
       const opts = optsFromEnv(env);
-      const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), 100);
+      const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
       let created = 0, existing = 0;
-      for (const rec of records) {
-        const r = await ensureCardForRecord(env, COMPANIES_MYLA, ctx, rec, opts);
-        if (r.status === "created") created++; else if (r.status === "existing") existing++;
+      // Bounded concurrency: each company's ensureCardForRecord is independent (its own DO instance), so a
+      // few in parallel cut the per-request latency without overrunning monday's rate limit.
+      for (let i = 0; i < records.length; i += conc) {
+        const results = await Promise.all(records.slice(i, i + conc).map(rec =>
+          ensureCardForRecord(env, COMPANIES_MYLA, ctx, rec, opts).catch(() => ({ status: "error" as const }))));
+        for (const r of results) { if (r.status === "created") created++; else if (r.status === "existing") existing++; }
       }
       return Response.json({ processed: records.length, created, existing, after: next ?? null, done: !next });
     }
