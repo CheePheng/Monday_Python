@@ -54,6 +54,8 @@ export interface ObjectSpec {
   linkCol?: string;
   groupBy: GroupBy;
   fields: FieldSpec[];
+  includeAll?: boolean;        // sync EVERY record (ignore the sales_user/createdate scope gate)
+  skipFullReconcile?: boolean; // exclude from the 03:00 full sweep (too large / search-capped)
   // monday -> HubSpot record creation (new cards). false for system-populated boards (Unassigned).
   createFromMonday: boolean;
   // fixed HubSpot properties stamped on records created from monday (pipeline, owner, sales_user...).

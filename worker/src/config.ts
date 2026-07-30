@@ -146,6 +146,11 @@ export const COMPANIES_MYLA: ObjectSpec = {
   syncStateCol: "text_mm4xrhjt",
   linkCol: "link_mm4pvn78",
   groupBy: { singleGroup: "group_mm4s3z7e" },
+  // Sync ALL HubSpot companies (not just sales_user-owned/recent). Too large for the search-based full
+  // sweep (25k > search's 10k cap), so it's excluded from that and served by the incremental + webhooks +
+  // a one-time list-API import. Contacts/deals are unaffected (they set neither flag).
+  includeAll: true,
+  skipFullReconcile: true,
   associations: [
     { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: COMPANY_REL_CONTACT },
   ],

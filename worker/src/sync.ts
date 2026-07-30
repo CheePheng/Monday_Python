@@ -385,7 +385,8 @@ async function runAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, ctx: C
  * Mirrors the CONTACTS_MYLA / COMPANIES_MYLA search filters (sales_user HAS_PROPERTY + createdate) for
  * the single-record webhook path. NB: associated records that fall outside this are still created on
  * demand by the association pass (ensureTargetCard) so their deal/contact/company links resolve. */
-function recInScope(rec: { properties: Record<string, string | null> }): boolean {
+export function recInScope(spec: ObjectSpec, rec: { properties: Record<string, string | null> }): boolean {
+  if (spec.includeAll) return true;
   if (!(rec.properties.sales_user ?? "").trim()) return false;
   return (Date.parse(rec.properties.createdate ?? "") || 0) >= CREATED_AFTER_MS;
 }
@@ -401,7 +402,7 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
   if (!rec) return wlog(spec.object, id, "skipped", 'reason="record not found (deleted/archived)"');
   // Scope-check BEFORE the board lookup: contact/company webhooks fire portal-wide, so a non-Myla
   // record must cost only this one fetch (no extra monday subrequest) before we drop it.
-  if (!recInScope(rec)) return wlog(spec.object, id, "skipped", 'reason="out of scope (sales_user/created-before-cutoff)"');
+  if (!recInScope(spec, rec)) return wlog(spec.object, id, "skipped", 'reason="out of scope (sales_user/created-before-cutoff)"');
   // The id-column search is eventually consistent. When the app's create endpoint has just made this
   // record (and its card), HubSpot's creation webhook lands here within seconds — before monday has
   // indexed the card — and creating again would produce a DUPLICATE card. Fall back to the registry.
