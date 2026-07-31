@@ -3,7 +3,7 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, mapAssocRecord } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, mapAssocRecord, mapOwners } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
@@ -103,16 +103,33 @@ export default {
         const q = url.searchParams.get("q") ?? "";
         const after = url.searchParams.get("after") || undefined;
         const limit = Number(url.searchParams.get("limit") ?? "25");
+        const numP = (k: string) => { const v = Number(url.searchParams.get(k)); return Number.isFinite(v) && v > 0 ? v : undefined; };
+        const ownerId = url.searchParams.get("ownerId") || undefined;
+        const created = { gte: numP("createdGte"), lte: numP("createdLte") };
+        const activity = { gte: numP("activityGte"), lte: numP("activityLte") };
         const H = { ...CORS, "Cache-Control": "no-store" };
         try {
           const ctx = await getCtxCached(env);
           const { items, after: next } = await listCompanies(
-            env, { q, after, limit: Number.isFinite(limit) ? limit : 25 }, ctx.ownersById, ctx.labels);
+            env, { q, after, limit: Number.isFinite(limit) ? limit : 25, ownerId, created, activity },
+            ctx.ownersById, ctx.labels);
           return Response.json({ results: items, after: next }, { headers: H });
         } catch (e) {
           const scope = /403|forbidden|scope/i.test(String(e));
           console.log(`[app/companies] error="${String(e).slice(0, 140)}"`);
           return Response.json({ results: [], after: null, error: scope ? "scope" : "companies-failed" }, { headers: H });
+        }
+      }
+
+      // GET /app/owners — HubSpot owners for the Company-owner filter dropdown.
+      if (url.pathname === "/app/owners" && req.method === "GET") {
+        const H = { ...CORS, "Cache-Control": "no-store" };
+        try {
+          const ctx = await getCtxCached(env);
+          return Response.json({ owners: mapOwners(ctx.ownersById) }, { headers: H });
+        } catch (e) {
+          console.log(`[app/owners] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ owners: [] }, { headers: H });
         }
       }
 
