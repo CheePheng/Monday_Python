@@ -103,7 +103,7 @@ export default {
         const q = url.searchParams.get("q") ?? "";
         const after = url.searchParams.get("after") || undefined;
         const limit = Number(url.searchParams.get("limit") ?? "25");
-        const numP = (k: string) => { const v = Number(url.searchParams.get(k)); return Number.isFinite(v) && v > 0 ? v : undefined; };
+        const numP = (k: string) => { const s = url.searchParams.get(k); if (!s) return undefined; const v = Number(s); return Number.isFinite(v) ? v : undefined; };
         const ownerId = url.searchParams.get("ownerId") || undefined;
         const created = { gte: numP("createdGte"), lte: numP("createdLte") };
         const activity = { gte: numP("activityGte"), lte: numP("activityLte") };

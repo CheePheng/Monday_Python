@@ -72,6 +72,7 @@ export default function CompaniesView() {
   // Debounced reload on query change (immediate for the initial/cleared box, which also fetches the token).
   // Load-more calls load() directly.
   useEffect(() => {
+    setAfter(null);   // a query/filter change resets pagination now, so a stale "Load more" cursor can't fire mid-debounce
     const t = setTimeout(() => { void load(q); }, q ? 300 : 0);
     return () => clearTimeout(t);
   }, [q, ownerId, createdF, activityF]);

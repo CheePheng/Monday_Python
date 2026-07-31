@@ -50,6 +50,8 @@ describe("filterDeals createdRange", () => {
     expect(filterDeals(rows, { createdRange: { gte: 0 } }).map(r => r.id)).toEqual(["1", "2"]));
   it("no createdRange leaves rows untouched (all 3)", () =>
     expect(filterDeals(rows, {}).length).toBe(3));
+  it("an empty range (no bounds) is inactive — keeps all rows incl. missing createdAt", () =>
+    expect(filterDeals(rows, { createdRange: {} }).length).toBe(3));
   it("composes with other filters (AND)", () =>
     expect(filterDeals(rows, { q: "D2", createdRange: { gte: ms("2026-07-15T00:00:00Z") } }).map(r => r.id)).toEqual(["2"]));
 });

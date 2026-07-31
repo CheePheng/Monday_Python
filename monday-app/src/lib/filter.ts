@@ -18,7 +18,7 @@ export function filterDeals(rows: DealRow[], f: DealFilter): DealRow[] {
     if (f.stage && r.stage !== f.stage) return false;
     if (f.mine && f.myUserId && !r.salesUserIds.includes(f.myUserId)) return false;
     if (f.salesUserId && !r.salesUserIds.includes(f.salesUserId)) return false;
-    if (f.createdRange) {
+    if (f.createdRange && (f.createdRange.gte != null || f.createdRange.lte != null)) {
       const t = Date.parse(r.createdAt ?? "");
       if (!Number.isFinite(t)) return false;                       // no/invalid date -> excluded when filtering
       if (f.createdRange.gte != null && t < f.createdRange.gte) return false;
