@@ -450,9 +450,17 @@ export default {
       // Phase 2: per company, run the association pass — creates each linked contact's card (deduped) and
       // writes the company->contact link. Heavier per record than the card import, so small pages.
       if (object === "company-associations") {
-        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "10"), 1), 30);
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "10"), 1), 60);
         const conc = Math.min(Math.max(Number(url.searchParams.get("conc") ?? "5"), 1), 10);
-        const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
+        // Shard "i/N": process only companies whose id % N === i. All N walkers page the SAME list (cursor
+        // advances by the full page, `scanned`), but each processes a disjoint 1/N — so N parallel walkers,
+        // each a separate Worker invocation with its own connection budget, multiply throughput past the
+        // per-invocation concurrency ceiling. No shard (N=1) processes everything (backward compatible).
+        let shardI = 0, shardN = 1;
+        const shard = url.searchParams.get("shard");
+        if (shard && /^\d+\/\d+$/.test(shard)) { const [i, n] = shard.split("/").map(Number); if (n >= 1 && i >= 0 && i < n) { shardI = i; shardN = n; } }
+        const { records: page, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
+        const records = shardN > 1 ? page.filter(r => Number(r.id) % shardN === shardI) : page;
         let linked = 0, missing = 0, errors = 0;
         // Bounded concurrency: each company's association pass is independent and I/O-bound (HubSpot reads +
         // monday card/relation writes), so a few in parallel overlap the network waits and multiply
@@ -468,7 +476,7 @@ export default {
           }));
           for (const r of results) { if (r === "linked") linked++; else if (r === "missing") missing++; else errors++; }
         }
-        return Response.json({ processed: records.length, linked, missing, errors, after: next ?? null, done: !next });
+        return Response.json({ processed: records.length, scanned: page.length, linked, missing, errors, after: next ?? null, done: !next });
       }
 
       // Phase 1: card import (object === "companies").
