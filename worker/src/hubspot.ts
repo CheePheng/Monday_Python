@@ -289,6 +289,20 @@ export function mapCompanyResult(
   };
 }
 
+/** Live company list/search for /app/companies. Returns mapped hits + the next-page cursor (or null). */
+export async function listCompanies(
+  env: Env,
+  args: { q?: string; after?: string; limit?: number },
+  ownersById: Record<string, { name: string; email: string | null }>,
+  labels: Partial<Record<string, Record<string, string>>>,
+): Promise<{ items: CompanyHit[]; after: string | null }> {
+  const res = await hs(env, "POST", "/crm/v3/objects/companies/search", companySearchBody(args), 2);
+  const items = (res.results ?? []).map((r: any) => ({
+    hubspotId: String(r.id), ...mapCompanyResult(r.properties ?? {}, ownersById, labels),
+  }));
+  return { items, after: res.paging?.next?.after ?? null };
+}
+
 // note -> object default association type ids (HUBSPOT_DEFINED).
 const NOTE_ASSOC: Record<string, number> = { deals: 214, contacts: 202, companies: 190 };
 

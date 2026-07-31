@@ -3,7 +3,7 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
@@ -95,6 +95,24 @@ export default {
           console.log(`[app/search] type=${type} error="${String(e).slice(0, 140)}"`);
           return Response.json({ results: [], total: 0, error: scope ? "scope" : "search-failed" },
             { headers: SEARCH_HEADERS });
+        }
+      }
+
+      // GET /app/companies?q=&after=&limit= — live company directory (newest-created first), paginated.
+      if (url.pathname === "/app/companies" && req.method === "GET") {
+        const q = url.searchParams.get("q") ?? "";
+        const after = url.searchParams.get("after") || undefined;
+        const limit = Number(url.searchParams.get("limit") ?? "25");
+        const H = { ...CORS, "Cache-Control": "no-store" };
+        try {
+          const ctx = await getCtxCached(env);
+          const { items, after: next } = await listCompanies(
+            env, { q, after, limit: Number.isFinite(limit) ? limit : 25 }, ctx.ownersById, ctx.labels);
+          return Response.json({ results: items, after: next }, { headers: H });
+        } catch (e) {
+          const scope = /403|forbidden|scope/i.test(String(e));
+          console.log(`[app/companies] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ results: [], after: null, error: scope ? "scope" : "companies-failed" }, { headers: H });
         }
       }
 

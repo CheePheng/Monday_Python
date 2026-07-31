@@ -53,3 +53,28 @@ describe("mapCompanyResult", () => {
       .toMatchObject({ ownerName: "", salesUser: "", industry: "", type: "", partnerWith: "" });
   });
 });
+
+import { afterEach, vi } from "vitest";
+import { listCompanies } from "../src/hubspot";
+import type { Env } from "../src/types";
+
+describe("listCompanies", () => {
+  const env = { HUBSPOT_ACCESS_TOKEN: "t" } as Env;
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("maps results (id + fields) and returns the next cursor", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      results: [{ id: "5", properties: { name: "Acme", domain: "acme.com", hubspot_owner_id: "77" } }],
+      paging: { next: { after: "25" } },
+    }), { status: 200 })));
+    const out = await listCompanies(env, { q: "acme" }, { "77": { name: "Jane", email: null } }, {});
+    expect(out.after).toBe("25");
+    expect(out.items[0]).toMatchObject({ hubspotId: "5", name: "Acme", domain: "acme.com", ownerName: "Jane" });
+  });
+
+  it("returns after=null when there is no next page", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 })));
+    const out = await listCompanies(env, {}, {}, {});
+    expect(out).toEqual({ items: [], after: null });
+  });
+});
