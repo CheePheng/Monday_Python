@@ -14,6 +14,8 @@ import { hubspotDealUrl } from "../board-config";
 import { useConfirm } from "../confirm";
 import { buildDealSeed, type NewDealSeed } from "../lib/companies";
 import type { Assoc } from "../lib/assoc";
+import DateRangeFilter, { type DateFilterValue } from "./DateRangeFilter";
+import { dateRange } from "../lib/date-range";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
 function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
@@ -87,6 +89,7 @@ export default function BoardView({ board }: { board: BoardState }) {
   // Default: newest-created first, so a deal a rep just made is at the top.
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
   const [view, setView] = useState<"table" | "board">("table");
+  const [createdFilter, setCreatedFilter] = useState<DateFilterValue>({ preset: "" });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -156,10 +159,13 @@ export default function BoardView({ board }: { board: BoardState }) {
 
   const userName = (id: string) => board.users.find(u => u.id === id)?.name ?? id;
   const stages = useMemo(() => (board.meta ? stageOptions(board.meta.groups) : []), [board.meta]);
-  const rows = useMemo(
-    () => sortDeals(filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId, salesUserId: salesUser || undefined }), sort.key, sort.dir),
-    [board.rows, q, stage, mine, salesUser, board.userId, sort]);
-  const filtersActive = !!(q || stage || mine || salesUser);
+  const rows = useMemo(() => {
+    const createdRange = createdFilter.preset ? dateRange(createdFilter.preset, Date.now(), createdFilter.custom) : undefined;
+    return sortDeals(
+      filterDeals(board.rows, { q, stage: stage || undefined, mine, myUserId: board.userId, salesUserId: salesUser || undefined, createdRange }),
+      sort.key, sort.dir);
+  }, [board.rows, q, stage, mine, salesUser, board.userId, sort, createdFilter]);
+  const filtersActive = !!(q || stage || mine || salesUser || createdFilter.preset);
 
   const kpi = useMemo(() => computeKpis(board.rows), [board.rows]);
   const pipeRest = kpi.pipeline.slice(1);
@@ -227,6 +233,7 @@ export default function BoardView({ board }: { board: BoardState }) {
           <option value="">All sales users</option>
           {board.users.map(u => <option key={u.id} value={u.id}>{u.name || u.email || u.id}</option>)}
         </select>
+        <DateRangeFilter label="Created" value={createdFilter} onChange={setCreatedFilter} />
         <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (mine ? " on" : "")} onClick={() => setMine(m => !m)}>My deals</button>
         <div className="dc-spacer" />
         <button className={"dc-btn dc-btn-ghost dc-btn-sm" + (view === "table" ? " on" : "")} onClick={() => setView("table")}>Table</button>
