@@ -404,3 +404,7 @@
 .dc-contact-info { display: flex; flex-direction: column; min-width: 0; }
 .dc-contact-name { font-weight: 600; font-size: 14px; }
 .dc-contact-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.dc-datefilter { display: inline-flex; align-items: center; gap: 6px; }
+.dc-daterange-custom { display: inline-flex; align-items: center; gap: 6px; }
+.dc-daterange-custom .dc-input { width: 140px; }

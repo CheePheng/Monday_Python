@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getContext } from "../monday-client";
-import { listCompanies, type Company } from "../worker-client";
+import { listCompanies, getOwners, type Company } from "../worker-client";
 import { orDash, fmtCompanyDate, type NewDealSeed } from "../lib/companies";
 import CompanyDrawer from "./CompanyDrawer";
+import { dateRange } from "../lib/date-range";
+import DateRangeFilter, { type DateFilterValue } from "./DateRangeFilter";
 
 const AVATAR = ["#4b6ef5", "#7b5cff", "#e8952a", "#10b26b", "#2b90d9", "#e14a63", "#0ea5a5", "#d9488c"];
 function avatarFor(name: string) {
@@ -30,6 +32,14 @@ export default function CompaniesView() {
   const [error, setError] = useState(false);
   const [open, setOpen] = useState<Company | null>(null);
   const seq = useRef(0);
+  const [owners, setOwners] = useState<{ id: string; name: string }[]>([]);
+  const [ownerId, setOwnerId] = useState("");
+  const [createdF, setCreatedF] = useState<DateFilterValue>({ preset: "" });
+  const [activityF, setActivityF] = useState<DateFilterValue>({ preset: "" });
+  // Refs so the debounced load() and "Load more" always read the latest filters (same pattern as tokenRef).
+  const ownerRef = useRef(""); ownerRef.current = ownerId;
+  const createdRef = useRef<DateFilterValue>({ preset: "" }); createdRef.current = createdF;
+  const activityRef = useRef<DateFilterValue>({ preset: "" }); activityRef.current = activityF;
 
   // `cursor` present -> append (Load more); absent -> replace (new query / initial). A monotonic seq id
   // drops any stale response so a fast typer never sees out-of-order results. The session token is fetched
@@ -43,7 +53,10 @@ export default function CompaniesView() {
       catch { if (mySeq === seq.current) { setError(true); setLoading(false); } return; }
     }
     try {
-      const r = await listCompanies(t, { q: query, after: cursor, limit: 25 });
+      const now = Date.now();
+      const created = createdRef.current.preset ? dateRange(createdRef.current.preset, now, createdRef.current.custom) : undefined;
+      const activity = activityRef.current.preset ? dateRange(activityRef.current.preset, now, activityRef.current.custom) : undefined;
+      const r = await listCompanies(t, { q: query, after: cursor, limit: 25, ownerId: ownerRef.current || undefined, created, activity });
       if (mySeq !== seq.current) return;
       if (r.error) { setError(true); return; }
       setItems(prev => cursor ? [...prev, ...r.items] : r.items);
@@ -61,7 +74,9 @@ export default function CompaniesView() {
   useEffect(() => {
     const t = setTimeout(() => { void load(q); }, q ? 300 : 0);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [q, ownerId, createdF, activityF]);
+
+  useEffect(() => { if (token) getOwners(token).then(setOwners).catch(() => {}); }, [token]);
 
   function onCreateDeal(seed: NewDealSeed) {
     navigate("/board", { state: { newDeal: seed } });
@@ -81,6 +96,12 @@ export default function CompaniesView() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
           <input className="dc-input" placeholder="Search companies by name or domain" value={q} onChange={e => setQ(e.target.value)} />
         </div>
+        <select className="dc-select" value={ownerId} onChange={e => setOwnerId(e.target.value)}>
+          <option value="">All owners</option>
+          {owners.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
+        <DateRangeFilter label="Created" value={createdF} onChange={setCreatedF} />
+        <DateRangeFilter label="Last activity" value={activityF} onChange={setActivityF} />
       </div>
 
       <div className="dc-panel">
