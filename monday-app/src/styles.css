@@ -384,3 +384,23 @@
 .dc-btn-danger-solid:hover { filter: brightness(1.06); }
 .dc-btn-warning-solid { border: none; color: #fff; background: var(--amber); box-shadow: 0 6px 18px -6px var(--amber); }
 .dc-btn-warning-solid:hover { filter: brightness(1.06); }
+
+/* --- Companies tab --- */
+.dc-topnav { display: flex; gap: 4px; padding: 8px 20px 0; border-bottom: 1px solid var(--border); }
+.dc-topnav-tab { padding: 8px 14px; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 14px;
+  color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.dc-topnav-tab:hover { color: var(--text); }
+.dc-topnav-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+.dc-drawer-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.dc-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+.dc-detail-label { font-size: 12px; color: var(--text-muted); }
+.dc-detail-value { font-size: 14px; word-break: break-word; }
+.dc-detail-desc { font-size: 14px; color: var(--text); white-space: pre-wrap; margin: 4px 0 0; }
+
+.dc-contact-list { display: flex; flex-direction: column; gap: 8px; }
+.dc-contact-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.dc-contact-info { display: flex; flex-direction: column; min-width: 0; }
+.dc-contact-name { font-weight: 600; font-size: 14px; }
+.dc-contact-actions { display: flex; gap: 6px; flex-shrink: 0; }
