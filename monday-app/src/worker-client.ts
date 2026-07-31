@@ -1,4 +1,5 @@
 import { WORKER_BASE } from "./board-config";
+import type { DateRange } from "./lib/date-range";
 
 async function call(token: string, method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<any> {
   const res = await fetch(WORKER_BASE + path, {
@@ -28,14 +29,31 @@ export interface CompanyContact { hubspotId: string; name: string; email: string
 
 /** Live company directory (newest-created first); `after` pages, `q` searches name+domain. Fails soft:
  * a Worker error comes back as { error } (HTTP 200), surfaced to the caller. */
-export async function listCompanies(token: string, args: { q?: string; after?: string; limit?: number }):
-    Promise<{ items: Company[]; after: string | null; error?: string }> {
+export async function listCompanies(token: string, args: {
+  q?: string; after?: string; limit?: number;
+  ownerId?: string; created?: DateRange; activity?: DateRange;
+}): Promise<{ items: Company[]; after: string | null; error?: string }> {
   const p = new URLSearchParams();
   if (args.q?.trim()) p.set("q", args.q.trim());
   if (args.after) p.set("after", args.after);
   p.set("limit", String(args.limit ?? 25));
+  if (args.ownerId) p.set("ownerId", args.ownerId);
+  if (args.created?.gte != null) p.set("createdGte", String(args.created.gte));
+  if (args.created?.lte != null) p.set("createdLte", String(args.created.lte));
+  if (args.activity?.gte != null) p.set("activityGte", String(args.activity.gte));
+  if (args.activity?.lte != null) p.set("activityLte", String(args.activity.lte));
   const res = await call(token, "GET", `/app/companies?${p.toString()}`);
   return { items: res.results ?? [], after: res.after ?? null, error: res.error };
+}
+
+// Owners change ~never; memoize for the page session (a failed/empty fetch is not cached).
+let ownersCache: { id: string; name: string }[] | null = null;
+export async function getOwners(token: string): Promise<{ id: string; name: string }[]> {
+  if (ownersCache) return ownersCache;
+  const res = await call(token, "GET", "/app/owners");
+  const owners: { id: string; name: string }[] = res?.owners ?? [];
+  if (owners.length) ownersCache = owners;
+  return owners;
 }
 
 /** A company's linked HubSpot contacts (name/email/title), for the CompanyDrawer. */
