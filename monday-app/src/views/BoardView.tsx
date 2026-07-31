@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useBoard } from "../useBoard";
+import type { BoardState } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
 import DealDrawer from "./DealDrawer";
@@ -73,8 +73,7 @@ function Kpi({ label, value, foot, color }: { label: string; value: string; foot
   );
 }
 
-export default function BoardView() {
-  const board = useBoard();
+export default function BoardView({ board }: { board: BoardState }) {
   // Deliberately shadows the global window.confirm — a leftover native call would now fail to type-check.
   const confirm = useConfirm();
   const [q, setQ] = useState("");

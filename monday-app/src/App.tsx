@@ -4,11 +4,13 @@ import mondaySdk from "monday-sdk-js";
 import BoardView from "./views/BoardView";
 import CompaniesView from "./views/CompaniesView";
 import { ConfirmProvider } from "./confirm";
+import { useBoard } from "./useBoard";
 
 const monday = mondaySdk();
 
 export default function App() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const board = useBoard();   // lifted here so the deals data survives tab switches (App never unmounts)
 
   useEffect(() => {
     const apply = (t?: string) => setTheme(t === "dark" || t === "black" ? "dark" : "light");
@@ -25,7 +27,7 @@ export default function App() {
             <NavLink to="/companies" className={({ isActive }) => "dc-topnav-tab" + (isActive ? " on" : "")}>Companies</NavLink>
           </nav>
           <Routes>
-            <Route path="/board" element={<BoardView />} />
+            <Route path="/board" element={<BoardView board={board} />} />
             <Route path="/companies" element={<CompaniesView />} />
             <Route path="*" element={<Navigate to="/board" replace />} />
           </Routes>
