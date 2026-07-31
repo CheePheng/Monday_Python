@@ -19,6 +19,31 @@ async function call(token: string, method: string, path: string, body?: unknown,
 export interface Hit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
 export interface SearchResult { items: Hit[]; total: number }
 
+export interface Company {
+  hubspotId: string; name: string; domain: string; industry: string; type: string;
+  partnerWith: string; city: string; state: string; employees: string; revenue: string;
+  linkedin: string; description: string; createdate: string; ownerName: string; salesUser: string;
+}
+export interface CompanyContact { hubspotId: string; name: string; email: string; title: string }
+
+/** Live company directory (newest-created first); `after` pages, `q` searches name+domain. Fails soft:
+ * a Worker error comes back as { error } (HTTP 200), surfaced to the caller. */
+export async function listCompanies(token: string, args: { q?: string; after?: string; limit?: number }):
+    Promise<{ items: Company[]; after: string | null; error?: string }> {
+  const p = new URLSearchParams();
+  if (args.q?.trim()) p.set("q", args.q.trim());
+  if (args.after) p.set("after", args.after);
+  p.set("limit", String(args.limit ?? 25));
+  const res = await call(token, "GET", `/app/companies?${p.toString()}`);
+  return { items: res.results ?? [], after: res.after ?? null, error: res.error };
+}
+
+/** A company's linked HubSpot contacts (name/email/title), for the CompanyDrawer. */
+export async function getCompanyContacts(token: string, companyHubspotId: string): Promise<CompanyContact[]> {
+  const res = await call(token, "GET", `/app/associations?type=companies&id=${encodeURIComponent(companyHubspotId)}&to=contacts`);
+  return res?.results ?? [];
+}
+
 /** A record's linked records in HubSpot (e.g. a contact's companies), for auto-staging in the deal form. */
 export async function getRecordAssociations(token: string, type: "contacts" | "companies", id: string, to: "contacts" | "companies"):
     Promise<{ hubspotId: string; name: string }[]> {
