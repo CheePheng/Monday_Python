@@ -78,3 +78,20 @@ describe("listCompanies", () => {
     expect(out).toEqual({ items: [], after: null });
   });
 });
+
+import { mapAssocRecord } from "../src/hubspot";
+
+describe("mapAssocRecord", () => {
+  it("company -> {hubspotId, name} (name||domain)", () => {
+    expect(mapAssocRecord("companies", { id: "9", properties: { domain: "acme.com" } }))
+      .toEqual({ hubspotId: "9", name: "acme.com" });
+  });
+  it("contact -> {hubspotId, name, email, title}", () => {
+    expect(mapAssocRecord("contacts", { id: "3", properties: { firstname: "Jo", lastname: "Lee", email: "jo@x.com", jobtitle: "CTO" } }))
+      .toEqual({ hubspotId: "3", name: "Jo Lee", email: "jo@x.com", title: "CTO" });
+  });
+  it("contact with no name falls back to email; missing title/email -> ''", () => {
+    expect(mapAssocRecord("contacts", { id: "4", properties: { email: "a@b.co" } }))
+      .toEqual({ hubspotId: "4", name: "a@b.co", email: "a@b.co", title: "" });
+  });
+});

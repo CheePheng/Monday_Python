@@ -303,6 +303,20 @@ export async function listCompanies(
   return { items, after: res.paging?.next?.after ?? null };
 }
 
+/** Map an associated record for /app/associations. companies -> {hubspotId,name}; contacts also carry
+ * email + jobtitle. Pure/testable. */
+export function mapAssocRecord(
+  to: string, rec: { id: string; properties: Record<string, string | null> },
+): { hubspotId: string; name: string; email?: string; title?: string } {
+  const p = rec.properties;
+  if (to === "companies") return { hubspotId: rec.id, name: (p.name || p.domain || "").trim() };
+  if (to === "contacts") {
+    const name = [p.firstname, p.lastname].filter(Boolean).join(" ").trim() || (p.email ?? "");
+    return { hubspotId: rec.id, name, email: p.email ?? "", title: p.jobtitle ?? "" };
+  }
+  return { hubspotId: rec.id, name: "" };
+}
+
 // note -> object default association type ids (HUBSPOT_DEFINED).
 const NOTE_ASSOC: Record<string, number> = { deals: 214, contacts: 202, companies: 190 };
 

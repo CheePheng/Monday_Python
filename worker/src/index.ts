@@ -3,7 +3,7 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, mapAssocRecord } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
@@ -126,14 +126,8 @@ export default {
           return Response.json({ error: "type/to must be a CRM object; id must be numeric" }, { status: 400, headers: CORS });
         try {
           const ids = await getAssociatedIds(env, type, id, to);
-          const recs = ids.length ? await getRecordsByIds(env, to, ids, ["name", "domain", "firstname", "lastname", "email"]) : [];
-          const results = recs.map(r => {
-            const p = r.properties;
-            const name = to === "companies" ? (p.name || p.domain || "").trim()
-                       : to === "contacts" ? ([p.firstname, p.lastname].filter(Boolean).join(" ").trim() || (p.email ?? ""))
-                       : "";
-            return { hubspotId: r.id, name };
-          });
+          const recs = ids.length ? await getRecordsByIds(env, to, ids, ["name", "domain", "firstname", "lastname", "email", "jobtitle"]) : [];
+          const results = recs.map(r => mapAssocRecord(to, r));
           return Response.json({ results }, { headers: CORS });
         } catch (e) {
           console.log(`[app/associations] type=${type} to=${to} error="${String(e).slice(0, 140)}"`);
