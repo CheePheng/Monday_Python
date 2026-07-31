@@ -147,12 +147,31 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   const target = SPEC_BY_OBJECT[a.toObject];
   if (!target) return; // no monday board for this object (e.g. line_items)
   const existing = ids.length ? await findItemIdsByColumn(env, target.boardId, target.idCol, ids) : {};
-  const want: string[] = [];
-  for (const hsId of ids) {
-    let cardId: string | null = existing[hsId] ?? null;
-    if (!cardId && budget.left > 0) cardId = await ensureTargetCard(env, target, hsId, ctx, opts, budget);
-    if (cardId) want.push(cardId);
+  const cardByHsId: Record<string, string> = { ...existing };
+  // Resolve every associated id to a monday card, creating on-demand for uncarded ones. A contact-heavy
+  // company (up to 100 associated contacts) would otherwise serialize 100 single-record fetches + creates,
+  // so BATCH the record fetch (one call) and create the cards with bounded concurrency. Each card is
+  // independent and idempotency-guarded by its own Durable Object (ensureCardForRecord), so parallel
+  // creates can't duplicate; the budget is a soft cap so a small concurrent overshoot is harmless.
+  const uncarded = ids.filter(hsId => !cardByHsId[hsId]);
+  if (uncarded.length && !opts.dryRun && budget.left > 0) {
+    const recById: Record<string, HsRecord> = {};
+    for (const r of await getRecordsByIds(env, target.object, uncarded, propertiesForSpec(target))) recById[r.id] = r;
+    const CARD_CONC = 5;
+    for (let i = 0; i < uncarded.length && budget.left > 0; i += CARD_CONC) {
+      await Promise.all(uncarded.slice(i, i + CARD_CONC).map(async hsId => {
+        if (budget.left <= 0 || cardByHsId[hsId]) return;
+        const rec = recById[hsId];
+        if (!rec) return;
+        const id = cardIdOf(await ensureCardForRecord(env, target, ctx, rec, opts)); budget.left--;
+        if (id) {
+          cardByHsId[hsId] = id;
+          console.log(`source=hubspot object=${target.object} id=${hsId} action=ensured-associated-card board=${target.boardId} item=${id}`);
+        }
+      }));
+    }
   }
+  const want = ids.map(hsId => cardByHsId[hsId]).filter((x): x is string => !!x);
   const current = await getLinkedItemIds(env, item.id, a.relationCol!);
   if (sameSet(current, want)) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} count=${want.length} action=skipped`);
@@ -161,21 +180,6 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   if (opts.dryRun) { console.log(`DRY relation ${spec.object}/${item.id} ${a.toObject}=[${want.join(",")}]`); return; }
   await setColumns(env, spec.boardId, item.id, { [a.relationCol!]: { item_ids: want.map(Number) } }, opts); budget.left--;
   console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} board=${spec.boardId} item=${item.id} linked=${want.length} action=updated-relation`);
-}
-
-/** Create a monday card on demand for an associated record that isn't on its board yet, so the link can
- * resolve. Card only (fields + group + sync-state) — NOT its own associations, to avoid cascades. Bypasses
- * the target board's search filter (an associated company/contact links even without a sales_user). */
-async function ensureTargetCard(env: Env, target: ObjectSpec, hsId: string, ctx: Ctx,
-    opts: RunOpts, budget: Budget): Promise<string | null> {
-  const rec = (await getRecordsByIds(env, target.object, [hsId], propertiesForSpec(target)))[0];
-  if (!rec) return null;
-  if (opts.dryRun) { console.log(`DRY create-associated ${target.object}/${hsId}`); return null; }
-  // Shared reservation: the caller's findItemIdsByColumn lookup is eventually consistent, so it can miss a
-  // card another path created moments ago — creating here again is what produced duplicate cards.
-  const id = cardIdOf(await ensureCardForRecord(env, target, ctx, rec, opts)); budget.left--;
-  console.log(`source=hubspot object=${target.object} id=${hsId} action=ensured-associated-card board=${target.boardId} item=${id}`);
-  return id;
 }
 
 /** deal line items -> monday SUBITEMS under the deal card. Create/update by HubSpot Line Item ID,
