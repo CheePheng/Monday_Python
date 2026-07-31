@@ -419,17 +419,25 @@ export default {
       // Phase 2: per company, run the association pass — creates each linked contact's card (deduped) and
       // writes the company->contact link. Heavier per record than the card import, so small pages.
       if (object === "company-associations") {
-        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "5"), 1), 30);
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "10"), 1), 30);
+        const conc = Math.min(Math.max(Number(url.searchParams.get("conc") ?? "5"), 1), 10);
         const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
-        let linked = 0, missing = 0;
-        for (const rec of records) {
-          const card = (await findItemByColumn(env, COMPANIES_MYLA.boardId, COMPANIES_MYLA.idCol, rec.id))[0];
-          if (!card) { missing++; continue; }
-          const budget: Budget = { left: 60 };
-          try { await syncAssociations(env, COMPANIES_MYLA, rec, card, ctx, opts, budget); linked++; }
-          catch (e) { console.log(`[import assoc] company=${rec.id} error="${String(e).slice(0, 140)}"`); }
+        let linked = 0, missing = 0, errors = 0;
+        // Bounded concurrency: each company's association pass is independent and I/O-bound (HubSpot reads +
+        // monday card/relation writes), so a few in parallel overlap the network waits and multiply
+        // throughput. It does NOT raise the per-request subrequest count for a given page (same companies,
+        // same work — just overlapped), so it stays well under the Worker limit. Mirrors the Phase 1 import.
+        for (let i = 0; i < records.length; i += conc) {
+          const results = await Promise.all(records.slice(i, i + conc).map(async rec => {
+            const card = (await findItemByColumn(env, COMPANIES_MYLA.boardId, COMPANIES_MYLA.idCol, rec.id))[0];
+            if (!card) return "missing" as const;
+            const budget: Budget = { left: 60 };
+            try { await syncAssociations(env, COMPANIES_MYLA, rec, card, ctx, opts, budget); return "linked" as const; }
+            catch (e) { console.log(`[import assoc] company=${rec.id} error="${String(e).slice(0, 140)}"`); return "error" as const; }
+          }));
+          for (const r of results) { if (r === "linked") linked++; else if (r === "missing") missing++; else errors++; }
         }
-        return Response.json({ processed: records.length, linked, missing, after: next ?? null, done: !next });
+        return Response.json({ processed: records.length, linked, missing, errors, after: next ?? null, done: !next });
       }
 
       // Phase 1: card import (object === "companies").
