@@ -44,7 +44,12 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [companies, setCompanies] = useState<Assoc[]>(() => (!isEdit && initialAssoc?.companies) ? initialAssoc.companies : []);
   // Contacts whose companies we've already auto-linked — seeded with the deal's existing contacts on load
   // so opening a saved deal doesn't suddenly pull companies in. Only NEW picks trigger a fetch.
-  const resolvedContactsRef = useRef<Set<string>>(new Set());
+  // Seed with the create-time initialAssoc contacts (a "＋ Deal from company/contact" seed) so the first
+  // touch of the Associations tab doesn't treat a seeded contact as newly-picked and auto-pull its OTHER
+  // companies. Edit mode reseeds this from the loaded deal's contacts below.
+  const resolvedContactsRef = useRef<Set<string>>(new Set(
+    (!isEdit && initialAssoc?.contacts ? initialAssoc.contacts : [])
+      .map(c => c.hubspotId).filter((x): x is string => !!x)));
   // What was linked when the drawer opened — the baseline for working out what to unlink on Save.
   const [origContacts, setOrigContacts] = useState<Assoc[]>([]);
   const [origCompanies, setOrigCompanies] = useState<Assoc[]>([]);

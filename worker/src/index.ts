@@ -131,7 +131,9 @@ export default {
           return Response.json({ results }, { headers: CORS });
         } catch (e) {
           console.log(`[app/associations] type=${type} to=${to} error="${String(e).slice(0, 140)}"`);
-          return Response.json({ results: [] }, { headers: CORS });
+          // Additive `error`: the deal-form auto-associate consumer ignores it (reads results ?? []), while
+          // getCompanyContacts throws on it so the CompanyDrawer shows Retry instead of "No linked contacts".
+          return Response.json({ results: [], error: "assoc-failed" }, { headers: CORS });
         }
       }
 

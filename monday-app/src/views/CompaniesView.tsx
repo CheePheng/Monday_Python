@@ -22,6 +22,7 @@ function initials(name: string): string {
 export default function CompaniesView() {
   const navigate = useNavigate();
   const [token, setToken] = useState("");
+  const tokenRef = useRef("");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Company[]>([]);
   const [after, setAfter] = useState<string | null>(null);
@@ -30,33 +31,37 @@ export default function CompaniesView() {
   const [open, setOpen] = useState<Company | null>(null);
   const seq = useRef(0);
 
-  useEffect(() => { getContext().then(c => setToken(c.sessionToken)).catch(() => setError(true)); }, []);
-
   // `cursor` present -> append (Load more); absent -> replace (new query / initial). A monotonic seq id
-  // drops any stale response so a fast typer never sees out-of-order results.
+  // drops any stale response so a fast typer never sees out-of-order results. The session token is fetched
+  // lazily here (and cleared on a 403), so Retry recovers a token that failed on mount or expired mid-session.
   async function load(query: string, cursor?: string) {
-    if (!token) return;
     const mySeq = ++seq.current;
     setLoading(true); setError(false);
+    let t = tokenRef.current;
+    if (!t) {
+      try { t = (await getContext()).sessionToken; tokenRef.current = t; setToken(t); }
+      catch { if (mySeq === seq.current) { setError(true); setLoading(false); } return; }
+    }
     try {
-      const r = await listCompanies(token, { q: query, after: cursor, limit: 25 });
+      const r = await listCompanies(t, { q: query, after: cursor, limit: 25 });
       if (mySeq !== seq.current) return;
       if (r.error) { setError(true); return; }
       setItems(prev => cursor ? [...prev, ...r.items] : r.items);
       setAfter(r.after);
-    } catch {
+    } catch (e) {
+      if (String(e).includes(": 403")) { tokenRef.current = ""; setToken(""); } // expired -> Retry re-fetches
       if (mySeq === seq.current) setError(true);
     } finally {
       if (mySeq === seq.current) setLoading(false);
     }
   }
 
-  // Debounced reload on query change (immediate for the initial/cleared box). Load-more calls load() directly.
+  // Debounced reload on query change (immediate for the initial/cleared box, which also fetches the token).
+  // Load-more calls load() directly.
   useEffect(() => {
-    if (!token) return;
     const t = setTimeout(() => { void load(q); }, q ? 300 : 0);
     return () => clearTimeout(t);
-  }, [q, token]);
+  }, [q]);
 
   function onCreateDeal(seed: NewDealSeed) {
     navigate("/board", { state: { newDeal: seed } });
@@ -113,9 +118,10 @@ export default function CompaniesView() {
           </table>
         </div>
         {after && !showEmpty && (
-          <div style={{ display: "flex", justifyContent: "center", padding: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: 12 }}>
+            {error && items.length > 0 && <span className="dc-mut" style={{ fontSize: 13 }}>Couldn't load more.</span>}
             <button className="dc-btn dc-btn-ghost dc-btn-sm" disabled={loading} onClick={() => void load(q, after)}>
-              {loading ? "Loading…" : "Load more"}
+              {loading ? "Loading…" : (error && items.length > 0) ? "Retry" : "Load more"}
             </button>
           </div>
         )}

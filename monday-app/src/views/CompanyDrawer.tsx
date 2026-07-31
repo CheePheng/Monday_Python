@@ -43,6 +43,10 @@ export default function CompanyDrawer({ company, token, onClose, onCreateDeal }:
 
   const count = contacts ? (contacts.length === 100 ? "100+" : String(contacts.length)) : "";
   const location = [company.city, company.state].filter(Boolean).join(", ");
+  // HubSpot's linkedin_company_page may lack a scheme across 25k records; ensure a valid absolute URL.
+  const linkedinUrl = company.linkedin
+    ? (/^https?:\/\//i.test(company.linkedin) ? company.linkedin : `https://${company.linkedin}`)
+    : "";
 
   return (
     <DrawerShell title={title} ariaLabel={`Company ${title}`} onClose={onClose}>
@@ -65,7 +69,7 @@ export default function CompanyDrawer({ company, token, onClose, onCreateDeal }:
         <Detail label="Sales user" value={orDash(company.salesUser)} />
         <Detail label="Created" value={fmtCompanyDate(company.createdate)} />
         <Detail label="LinkedIn" value={company.linkedin
-          ? <a href={company.linkedin} onClick={e => { e.preventDefault(); openLink(company.linkedin); }}>{company.linkedin}</a>
+          ? <a href={linkedinUrl} onClick={e => { e.preventDefault(); openLink(linkedinUrl); }}>{company.linkedin}</a>
           : "—"} />
       </div>
       {company.description && (

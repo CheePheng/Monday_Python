@@ -41,6 +41,7 @@ export async function listCompanies(token: string, args: { q?: string; after?: s
 /** A company's linked HubSpot contacts (name/email/title), for the CompanyDrawer. */
 export async function getCompanyContacts(token: string, companyHubspotId: string): Promise<CompanyContact[]> {
   const res = await call(token, "GET", `/app/associations?type=companies&id=${encodeURIComponent(companyHubspotId)}&to=contacts`);
+  if (res?.error) throw new Error("assoc-" + res.error);   // real HubSpot failure -> CompanyDrawer shows Retry, not "no contacts"
   return res?.results ?? [];
 }
 
