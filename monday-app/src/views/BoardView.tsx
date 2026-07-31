@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useBoard } from "../useBoard";
 import { filterDeals, type DealRow } from "../lib/filter";
 import { stageOptions } from "../lib/stage";
@@ -11,6 +12,8 @@ import KanbanView from "./KanbanView";
 import { openLink } from "../monday-client";
 import { hubspotDealUrl } from "../board-config";
 import { useConfirm } from "../confirm";
+import { buildDealSeed, type NewDealSeed } from "../lib/companies";
+import type { Assoc } from "../lib/assoc";
 
 const CUR_SYMBOL: Record<string, string> = { USD: "$", CNY: "¥", RMB: "¥", EUR: "€", GBP: "£", HKD: "HK$", JPY: "¥", AUD: "A$", SGD: "S$" };
 function fmt(n: number): string { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
@@ -86,6 +89,21 @@ export default function BoardView() {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
   const [view, setView] = useState<"table" | "board">("table");
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [dealSeed, setDealSeed] = useState<{ contacts?: Assoc[]; companies?: Assoc[] } | undefined>(undefined);
+
+  // A "Create deal from company/contact" click on the Companies tab navigates here with a seed. Open a
+  // pre-linked create drawer, then clear the router state so back/refresh doesn't reopen it.
+  useEffect(() => {
+    const nd = (location.state as { newDeal?: NewDealSeed } | null)?.newDeal;
+    if (!nd) return;
+    setDealSeed(buildDealSeed(nd));
+    setCreating(null);
+    setEditing(null);
+    navigate(".", { replace: true, state: {} });
+  }, [location.state]);
+
   // A background refresh remounts the board, so hold it off while the drawer is open — otherwise
   // returning to the tab mid-edit would silently discard the deal being written.
   useEffect(() => { board.setAutoRefreshPaused(editing !== undefined || creating !== null); }, [editing, creating]);
@@ -121,6 +139,7 @@ export default function BoardView() {
     if (!(await mayLeaveOpenDrawer())) return;
     drawerDirty.current = false;
     recordDirty.current = false;
+    setDealSeed(undefined);
     setCreating(null);
     setEditing(id);
   }
@@ -281,10 +300,12 @@ export default function BoardView() {
 
       {editing !== undefined && (
         <DealDrawer key={editing ?? "new"} itemId={editing} board={board}
+          initialAssoc={editing === null ? dealSeed : undefined}
           onDirtyChange={d => { drawerDirty.current = d; }}
-          onClose={() => setEditing(undefined)}
+          onClose={() => { setEditing(undefined); setDealSeed(undefined); }}
           onSaved={(info) => {
             setEditing(undefined);
+            setDealSeed(undefined);
             setToast({ text: "Saved to monday", type: "info" });
             void board.finishSave(info);
           }} />

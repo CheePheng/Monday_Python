@@ -19,12 +19,12 @@ import { Field, SelectStr, SelectOpt, ChipMulti, type Opt } from "./FormFields";
 import type { SavedInfo } from "../lib/sync-status";
 import { useConfirm } from "../confirm";
 
-interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (info: SavedInfo) => void; onDirtyChange?: (dirty: boolean) => void }
+interface Props { itemId: string | null; board: BoardState; onClose: () => void; onSaved: (info: SavedInfo) => void; onDirtyChange?: (dirty: boolean) => void; initialAssoc?: { contacts?: Assoc[]; companies?: Assoc[] } }
 
 const pick = (arr: string[], re: RegExp) => arr.find(x => re.test(x)) ?? arr[0];
 const splitCsv = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
 
-export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyChange }: Props) {
+export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyChange, initialAssoc }: Props) {
   const confirm = useConfirm();   // shadows window.confirm on purpose (see BoardView)
   const isEdit = itemId != null;
   const stages = board.meta ? stageOptions(board.meta.groups) : [];
@@ -40,8 +40,8 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     dealOwnerId: board.userId || undefined,
     vendors: [],
   });
-  const [contacts, setContacts] = useState<Assoc[]>([]);
-  const [companies, setCompanies] = useState<Assoc[]>([]);
+  const [contacts, setContacts] = useState<Assoc[]>(() => (!isEdit && initialAssoc?.contacts) ? initialAssoc.contacts : []);
+  const [companies, setCompanies] = useState<Assoc[]>(() => (!isEdit && initialAssoc?.companies) ? initialAssoc.companies : []);
   // Contacts whose companies we've already auto-linked — seeded with the deal's existing contacts on load
   // so opening a saved deal doesn't suddenly pull companies in. Only NEW picks trigger a fetch.
   const resolvedContactsRef = useRef<Set<string>>(new Set());
@@ -59,7 +59,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   const [origForm, setOrigForm] = useState<DealForm | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [childErr, setChildErr] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState<boolean>(() => !isEdit && !!(initialAssoc?.contacts?.length || initialAssoc?.companies?.length));
   const [contactSchema, setContactSchema] = useState<Record<string, EnumProp>>({});
   const [companySchema, setCompanySchema] = useState<Record<string, EnumProp>>({});
 
