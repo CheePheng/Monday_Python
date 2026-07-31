@@ -236,6 +236,59 @@ export async function searchObjects(env: Env, type: string, q: string, limit: nu
   return { results, total: Number(res.total ?? results.length) };
 }
 
+// --- /app/companies directory (live HubSpot company list + search) ---
+export const COMPANY_LIST_PROPS = [
+  "name", "domain", "industry", "type", "partner_with", "city", "state",
+  "numberofemployees", "annualrevenue", "linkedin_company_page", "description",
+  "createdate", "hubspot_owner_id", "sales_user",
+];
+
+export interface CompanyHit {
+  hubspotId: string; name: string; domain: string; industry: string; type: string;
+  partnerWith: string; city: string; state: string; employees: string; revenue: string;
+  linkedin: string; description: string; createdate: string; ownerName: string; salesUser: string;
+}
+
+/** Build the HubSpot company search body. Pure/testable. Newest-created first; a query does full-text
+ * (name+domain); an empty query uses a createdate HAS_PROPERTY filter (every company has one) so the
+ * search is always valid rather than relying on a fully-empty body. */
+export function companySearchBody(args: { q?: string; after?: string; limit?: number }): Record<string, unknown> {
+  const limit = Math.min(Math.max(args.limit ?? 25, 1), 50);
+  const body: Record<string, unknown> = {
+    sorts: [{ propertyName: "createdate", direction: "DESCENDING" }],
+    properties: COMPANY_LIST_PROPS,
+    limit,
+  };
+  const query = (args.q ?? "").trim();
+  if (query) body.query = query;
+  else body.filterGroups = [{ filters: [{ propertyName: "createdate", operator: "HAS_PROPERTY" }] }];
+  if (args.after) body.after = args.after;
+  return body;
+}
+
+/** Map one HubSpot company result's properties to a CompanyHit (minus id). Pure/testable. `labels` is
+ * ctx.labels; the enum fields (industry/type/partner_with/sales_user) resolve to display labels, falling
+ * back to the raw value if unmapped. */
+export function mapCompanyResult(
+  p: Record<string, any>,
+  ownersById: Record<string, { name: string; email: string | null }>,
+  labels: Partial<Record<string, Record<string, string>>>,
+): Omit<CompanyHit, "hubspotId"> {
+  const lab = (dict: string, v: string) => (v ? (labels?.[dict]?.[v] ?? v) : "");
+  return {
+    name: p.name ?? "", domain: p.domain ?? "",
+    industry: lab("industry", p.industry ?? ""),
+    type: lab("companyType", p.type ?? ""),
+    partnerWith: lab("partnerWith", p.partner_with ?? ""),
+    city: p.city ?? "", state: p.state ?? "",
+    employees: p.numberofemployees ?? "", revenue: p.annualrevenue ?? "",
+    linkedin: p.linkedin_company_page ?? "", description: p.description ?? "",
+    createdate: p.createdate ?? "",
+    ownerName: p.hubspot_owner_id ? (ownersById[p.hubspot_owner_id]?.name ?? "") : "",
+    salesUser: lab("salesUser", p.sales_user ?? ""),
+  };
+}
+
 // note -> object default association type ids (HUBSPOT_DEFINED).
 const NOTE_ASSOC: Record<string, number> = { deals: 214, contacts: 202, companies: 190 };
 
