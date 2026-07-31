@@ -95,3 +95,41 @@ describe("mapAssocRecord", () => {
       .toEqual({ hubspotId: "4", name: "a@b.co", email: "a@b.co", title: "" });
   });
 });
+
+import { mapOwners } from "../src/hubspot";
+
+describe("companySearchBody filters", () => {
+  it("owner + created + activity all go in ONE and'd filter group", () => {
+    const b = companySearchBody({ ownerId: "77", created: { gte: 100, lte: 200 }, activity: { gte: 300 } }) as any;
+    expect(b.filterGroups).toHaveLength(1);
+    expect(b.filterGroups[0].filters).toEqual([
+      { propertyName: "hubspot_owner_id", operator: "EQ", value: "77" },
+      { propertyName: "createdate", operator: "GTE", value: 100 },
+      { propertyName: "createdate", operator: "LTE", value: 200 },
+      { propertyName: "notes_last_updated", operator: "GTE", value: 300 },
+    ]);
+    expect(b.query).toBeUndefined();
+  });
+  it("query + filters keeps BOTH query and filterGroups", () => {
+    const b = companySearchBody({ q: "acme", ownerId: "77" }) as any;
+    expect(b.query).toBe("acme");
+    expect(b.filterGroups[0].filters).toEqual([{ propertyName: "hubspot_owner_id", operator: "EQ", value: "77" }]);
+  });
+  it("no query, no filters -> createdate HAS_PROPERTY default", () => {
+    const b = companySearchBody({}) as any;
+    expect(b.filterGroups).toEqual([{ filters: [{ propertyName: "createdate", operator: "HAS_PROPERTY" }] }]);
+    expect(b.query).toBeUndefined();
+  });
+  it("query only -> query, no filterGroups", () => {
+    const b = companySearchBody({ q: "acme" }) as any;
+    expect(b.query).toBe("acme");
+    expect(b.filterGroups).toBeUndefined();
+  });
+});
+
+describe("mapOwners", () => {
+  it("maps ownersById -> sorted [{id,name}], skipping blank names", () => {
+    expect(mapOwners({ "3": { name: "Zoe", email: null }, "1": { name: "Ann", email: null }, "2": { name: "", email: null } }))
+      .toEqual([{ id: "1", name: "Ann" }, { id: "3", name: "Zoe" }]);
+  });
+});

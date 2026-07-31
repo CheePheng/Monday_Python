@@ -249,21 +249,41 @@ export interface CompanyHit {
   linkedin: string; description: string; createdate: string; ownerName: string; salesUser: string;
 }
 
-/** Build the HubSpot company search body. Pure/testable. Newest-created first; a query does full-text
- * (name+domain); an empty query uses a createdate HAS_PROPERTY filter (every company has one) so the
- * search is always valid rather than relying on a fully-empty body. */
-export function companySearchBody(args: { q?: string; after?: string; limit?: number }): Record<string, unknown> {
+export interface CompanyFilters {
+  ownerId?: string;
+  created?: { gte?: number; lte?: number };
+  activity?: { gte?: number; lte?: number };
+}
+
+/** Build the HubSpot company search body. Pure/testable. Newest-created first. Owner/date filters go in a
+ * single AND'd filter group; a full-text query (when present) is sent alongside and ANDs with it. */
+export function companySearchBody(args: { q?: string; after?: string; limit?: number } & CompanyFilters): Record<string, unknown> {
   const limit = Math.min(Math.max(args.limit ?? 25, 1), 50);
   const body: Record<string, unknown> = {
     sorts: [{ propertyName: "createdate", direction: "DESCENDING" }],
     properties: COMPANY_LIST_PROPS,
     limit,
   };
+  const filters: Record<string, unknown>[] = [];
+  if (args.ownerId) filters.push({ propertyName: "hubspot_owner_id", operator: "EQ", value: args.ownerId });
+  if (args.created?.gte != null) filters.push({ propertyName: "createdate", operator: "GTE", value: args.created.gte });
+  if (args.created?.lte != null) filters.push({ propertyName: "createdate", operator: "LTE", value: args.created.lte });
+  if (args.activity?.gte != null) filters.push({ propertyName: "notes_last_updated", operator: "GTE", value: args.activity.gte });
+  if (args.activity?.lte != null) filters.push({ propertyName: "notes_last_updated", operator: "LTE", value: args.activity.lte });
   const query = (args.q ?? "").trim();
   if (query) body.query = query;
-  else body.filterGroups = [{ filters: [{ propertyName: "createdate", operator: "HAS_PROPERTY" }] }];
+  if (filters.length) body.filterGroups = [{ filters }];
+  else if (!query) body.filterGroups = [{ filters: [{ propertyName: "createdate", operator: "HAS_PROPERTY" }] }];
   if (args.after) body.after = args.after;
   return body;
+}
+
+/** HubSpot owners -> sorted [{id,name}] for the Company-owner filter dropdown. Pure/testable. */
+export function mapOwners(ownersById: Record<string, { name: string; email: string | null }>): { id: string; name: string }[] {
+  return Object.entries(ownersById)
+    .filter(([, o]) => o.name?.trim())
+    .map(([id, o]) => ({ id, name: o.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Map one HubSpot company result's properties to a CompanyHit (minus id). Pure/testable. `labels` is
@@ -292,7 +312,7 @@ export function mapCompanyResult(
 /** Live company list/search for /app/companies. Returns mapped hits + the next-page cursor (or null). */
 export async function listCompanies(
   env: Env,
-  args: { q?: string; after?: string; limit?: number },
+  args: { q?: string; after?: string; limit?: number } & CompanyFilters,
   ownersById: Record<string, { name: string; email: string | null }>,
   labels: Partial<Record<string, Record<string, string>>>,
 ): Promise<{ items: CompanyHit[]; after: string | null }> {
