@@ -3,10 +3,10 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, mapAssocRecord, mapOwners } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, mapAssocRecord, mapOwners } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
 import { getItem, setColumns, findItemByColumn } from "./monday";
 import { syncAssociations } from "./associations";
@@ -82,8 +82,8 @@ export default {
       // GET /app/search?type=contacts|companies|products&q=&limit=
       if (url.pathname === "/app/search" && req.method === "GET") {
         const type = url.searchParams.get("type") ?? "";
-        if (!["contacts", "companies", "products"].includes(type))
-          return Response.json({ error: "type must be contacts|companies|products" }, { status: 400, headers: { ...CORS, "Cache-Control": "no-store" } });
+        if (!["contacts", "companies", "products", "deals"].includes(type))
+          return Response.json({ error: "type must be contacts|companies|products|deals" }, { status: 400, headers: { ...CORS, "Cache-Control": "no-store" } });
         const q = url.searchParams.get("q") ?? "";
         const limit = Number(url.searchParams.get("limit") ?? "20");
         const SEARCH_HEADERS = { ...CORS, "Cache-Control": "no-store" };
@@ -143,7 +143,7 @@ export default {
           return Response.json({ error: "type/to must be a CRM object; id must be numeric" }, { status: 400, headers: CORS });
         try {
           const ids = await getAssociatedIds(env, type, id, to);
-          const recs = ids.length ? await getRecordsByIds(env, to, ids, ["name", "domain", "firstname", "lastname", "email", "jobtitle"]) : [];
+          const recs = ids.length ? await getRecordsByIds(env, to, ids, ["name", "domain", "firstname", "lastname", "email", "jobtitle", "dealname"]) : [];
           const results = recs.map(r => mapAssocRecord(to, r));
           return Response.json({ results }, { headers: CORS });
         } catch (e) {
@@ -264,17 +264,18 @@ export default {
         }
       }
 
-      // DELETE /app/association {fromObject, fromId, toObject, toId}
-      if (url.pathname === "/app/association" && req.method === "DELETE") {
-        const body = await req.json().catch(() => ({}));
-        const a = parseAssociationBody(body);
+      // /app/association {fromObject, fromId, toObject, toId} — POST adds, DELETE removes a HubSpot
+      // association. fromObject ∈ {deals, companies}. Used by the deal + company drawers.
+      if (url.pathname === "/app/association" && (req.method === "POST" || req.method === "DELETE")) {
+        const a = parseAssociationBody(await req.json().catch(() => ({})));
         if (!a.ok) return Response.json({ error: a.error }, { status: 400, headers: CORS });
         try {
-          await deleteAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
+          if (req.method === "POST") await putAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
+          else await deleteAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
-          console.log(`[app/association] ${a.fromId}->${a.toId} error="${String(e).slice(0, 160)}"`);
-          return Response.json({ ok: false, error: "hubspot-failed" }, { status: 502, headers: CORS });
+          console.log(`[app/association] ${req.method} ${a.fromObject}/${a.fromId}->${a.toObject}/${a.toId} error="${String(e).slice(0, 140)}"`);
+          return Response.json({ ok: false, error: "assoc-failed" }, { status: 502, headers: CORS });
         }
       }
 
@@ -322,6 +323,20 @@ export default {
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/sync-deal] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/sync-company { itemId } — reverse-sync a company's monday edits (fields + contact links)
+      // to HubSpot. Reuses the generic syncMondayItem (COMPANIES_MYLA board).
+      if (url.pathname === "/app/sync-company" && req.method === "POST") {
+        const s = parseSyncCompanyBody(await req.json().catch(() => ({})));
+        if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
+        try {
+          await syncMondayItem(env, COMPANIES_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/sync-company] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
         }
       }
