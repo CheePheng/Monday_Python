@@ -7,6 +7,7 @@ import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
 } from "../monday-client";
 import { deleteHubspotAssociation, getDealLineItems, createContact, createCompany, getContactSchema, getCompanySchema, ensureCard, clearDealFields, getRecordAssociations, type EnumProp } from "../worker-client";
+import { mergeAssoc } from "../lib/assoc-merge";
 import { mergeLineItems } from "../lib/line-item-merge";
 import { mergeAssociatedCompanies } from "../lib/auto-associate";
 import { validateDealForm } from "../lib/validate";
@@ -126,8 +127,21 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         getCardsByIds(linkedIds(it, DEAL_COLS.contact.id), CONTACT_ID_COL),
         getCardsByIds(linkedIds(it, DEAL_COLS.company.id), COMPANY_ID_COL),
       ]);
-      const cs = contactCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name }));
-      const cos = companyCards.map(c => ({ hubspotId: c.hubspotId, itemId: c.itemId, label: c.name }));
+      const cCards = contactCards.map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, label: c.name }));
+      const coCards = companyCards.map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, label: c.name }));
+      let cs: Assoc[] = cCards;
+      let cos: Assoc[] = coCards;
+      const dealHsId = colText(it, DEAL_COLS.hubspotDealId.id);
+      if (dealHsId) {  // merge the deal's LIVE HubSpot associations so all show (fixes the 1-of-10 bug)
+        try {
+          const [hsC, hsCo] = await Promise.all([
+            getRecordAssociations(board.sessionToken, "deals", dealHsId, "contacts"),
+            getRecordAssociations(board.sessionToken, "deals", dealHsId, "companies"),
+          ]);
+          cs = mergeAssoc(cCards, hsC);
+          cos = mergeAssoc(coCards, hsCo);
+        } catch { /* fail soft — fall back to the monday relation */ }
+      }
       setContacts(cs); setOrigContacts(cs);
       resolvedContactsRef.current = new Set(cs.map(c => c.hubspotId).filter((x): x is string => !!x));
       setCompanies(cos); setOrigCompanies(cos);
