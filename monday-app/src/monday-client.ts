@@ -85,6 +85,23 @@ export async function getDeal(itemId: string): Promise<RawItem | null> {
   return d.items?.[0] ?? null;
 }
 
+/** Fetch one item (any board) with column values + relation linked ids. Generic form of getDeal. */
+export async function getItem(itemId: string): Promise<RawItem | null> {
+  const d: any = await api(`query ($i:[ID!]) { items(ids:$i) {
+    id name created_at group { id } column_values { id text value ... on BoardRelationValue { linked_item_ids } } } }`, { i: [itemId] });
+  return d.items?.[0] ?? null;
+}
+export async function updateItemColumns(boardId: string, itemId: string, columnValues: Record<string, unknown>): Promise<void> {
+  await api(`mutation ($b:ID!, $i:ID!, $c:JSON!) {
+    change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
+    { b: boardId, i: itemId, c: JSON.stringify(columnValues) });
+}
+export async function renameItem(boardId: string, itemId: string, name: string): Promise<void> {
+  await api(`mutation ($b:ID!, $i:ID!, $c:JSON!) {
+    change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
+    { b: boardId, i: itemId, c: JSON.stringify({ name }) });
+}
+
 // monday's `items(ids:)` returns only the FIRST 25 rows unless an explicit `limit` is passed. It is a
 // silent truncation — no error, no partial-result flag — so any ids query that can exceed 25 must pass a
 // limit >= its chunk size. This once left 444 of 608 linked deals showing "—" in the board's Company /
