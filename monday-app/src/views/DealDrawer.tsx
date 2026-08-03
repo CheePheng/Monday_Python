@@ -236,7 +236,7 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
     for (const o of orig) {
       if (!o.hubspotId || !o.itemId) continue;
       if (current.some(c => c.itemId === o.itemId)) continue;
-      try { await deleteHubspotAssociation(board.sessionToken, kind, dealHubspotId, o.hubspotId); }
+      try { await deleteHubspotAssociation(board.sessionToken, "deals", dealHubspotId, kind, o.hubspotId); }
       catch (e) { setChildErr("Couldn't unlink in HubSpot: " + String(e).slice(0, 120)); }
     }
   }

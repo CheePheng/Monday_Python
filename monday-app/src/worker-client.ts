@@ -64,13 +64,13 @@ export async function getCompanyContacts(token: string, companyHubspotId: string
 }
 
 /** A record's linked records in HubSpot (e.g. a contact's companies), for auto-staging in the deal form. */
-export async function getRecordAssociations(token: string, type: "contacts" | "companies", id: string, to: "contacts" | "companies"):
+export async function getRecordAssociations(token: string, type: "contacts" | "companies" | "deals", id: string, to: "contacts" | "companies" | "deals"):
     Promise<{ hubspotId: string; name: string }[]> {
   const res = await call(token, "GET", `/app/associations?type=${type}&id=${encodeURIComponent(id)}&to=${to}`);
   return res?.results ?? [];
 }
 
-export async function searchHubspot(token: string, type: "contacts" | "companies" | "products", q: string, signal?: AbortSignal): Promise<SearchResult> {
+export async function searchHubspot(token: string, type: "contacts" | "companies" | "products" | "deals", q: string, signal?: AbortSignal): Promise<SearchResult> {
   const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q.trim())}&limit=20`, undefined, signal);
   if (res?.error) throw new Error("search-" + res.error);           // surface HubSpot failure (scope/search-failed)
   return { items: res.results ?? [], total: Number(res.total ?? (res.results?.length ?? 0)) };
@@ -102,10 +102,15 @@ export async function getDealLineItems(token: string, itemId: string): Promise<i
 export async function deleteHubspotLineItem(token: string, lineItemId: string): Promise<void> {
   await call(token, "DELETE", "/app/line-item", { lineItemId });
 }
-export async function deleteHubspotAssociation(
-  token: string, toObject: "contacts" | "companies", fromId: string, toId: string,
-): Promise<void> {
-  await call(token, "DELETE", "/app/association", { fromObject: "deals", fromId, toObject, toId });
+export async function addHubspotAssociation(token: string, fromObject: "deals" | "companies", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
+  await call(token, "POST", "/app/association", { fromObject, fromId, toObject, toId });
+}
+export async function deleteHubspotAssociation(token: string, fromObject: "deals" | "companies", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
+  await call(token, "DELETE", "/app/association", { fromObject, fromId, toObject, toId });
+}
+export async function syncCompany(token: string, itemId: string): Promise<boolean> {
+  const res = await call(token, "POST", "/app/sync-company", { itemId });
+  return res?.ok === true;
 }
 export async function archiveHubspotDeal(token: string, hubspotDealId: string): Promise<void> {
   await call(token, "DELETE", "/app/deal", { hubspotDealId });
