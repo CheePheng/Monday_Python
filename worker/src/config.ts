@@ -158,7 +158,7 @@ export const COMPANIES_MYLA: ObjectSpec = {
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
     { hs: "name", col: "text_mm4scke9", type: "text", reverse: true },
-    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
+    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", reverse: true },  // Owner (two-way)
     { hs: "sales_user", col: "multiple_person_mm54phd7", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "industry", col: "dropdown_mm54zrp2", type: "dropdown", labels: "industry", reverse: true }, // single-select dropdown (limit_select): 200 options, one pick
     { hs: "type", col: "color_mm545z1t", type: "status", labels: "companyType", reverse: true },

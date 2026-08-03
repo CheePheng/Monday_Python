@@ -79,7 +79,7 @@ describe("listCompanies", () => {
   });
 });
 
-import { mapAssocRecord } from "../src/hubspot";
+import { mapAssocRecord, mapSearchResult } from "../src/hubspot";
 
 describe("mapAssocRecord", () => {
   it("company -> {hubspotId, name} (name||domain)", () => {
@@ -94,6 +94,16 @@ describe("mapAssocRecord", () => {
     expect(mapAssocRecord("contacts", { id: "4", properties: { email: "a@b.co" } }))
       .toEqual({ hubspotId: "4", name: "a@b.co", email: "a@b.co", title: "" });
   });
+});
+
+describe("mapAssocRecord deals", () => {
+  it("deals -> {hubspotId, name: dealname}", () =>
+    expect(mapAssocRecord("deals", { id: "7", properties: { dealname: "Acme Q3" } }))
+      .toEqual({ hubspotId: "7", name: "Acme Q3" }));
+});
+describe("mapSearchResult deals", () => {
+  it("deals -> name from dealname", () =>
+    expect(mapSearchResult("deals", { dealname: "Acme Q3" })).toEqual({ name: "Acme Q3", secondary: "" }));
 });
 
 import { mapOwners } from "../src/hubspot";

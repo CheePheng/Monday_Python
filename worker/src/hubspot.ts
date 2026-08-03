@@ -211,6 +211,7 @@ const SEARCH_PROPS: Record<string, string[]> = {
   contacts: ["firstname", "lastname", "email"],
   companies: ["name", "domain"],
   products: ["name", "price", "hs_sku", "description"],
+  deals: ["dealname"],
 };
 
 export interface SearchHit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
@@ -222,6 +223,7 @@ export function mapSearchResult(type: string, p: Record<string, any>): Omit<Sear
     return { name: name || p.email || "(no name)", secondary: p.email ?? "" };
   }
   if (type === "companies") return { name: p.name || "(no name)", secondary: p.domain ?? "" };
+  if (type === "deals") return { name: p.dealname || "(no name)", secondary: "" };
   // products
   const price = p.price != null ? String(p.price) : "";
   return { name: p.name || "(no name)", secondary: price, sku: p.hs_sku ?? "", price, description: p.description ?? "" };
@@ -334,6 +336,7 @@ export function mapAssocRecord(
     const name = [p.firstname, p.lastname].filter(Boolean).join(" ").trim() || (p.email ?? "");
     return { hubspotId: rec.id, name, email: p.email ?? "", title: p.jobtitle ?? "" };
   }
+  if (to === "deals") return { hubspotId: rec.id, name: (p.dealname ?? "").trim() };
   return { hubspotId: rec.id, name: "" };
 }
 
