@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getContext } from "../monday-client";
+import { getContext, getUsers, type AccountUser } from "../monday-client";
 import { listCompanies, getOwners, type Company } from "../worker-client";
 import { orDash, fmtCompanyDate, type NewDealSeed } from "../lib/companies";
 import CompanyDrawer from "./CompanyDrawer";
@@ -33,6 +33,7 @@ export default function CompaniesView() {
   const [open, setOpen] = useState<Company | null>(null);
   const seq = useRef(0);
   const [owners, setOwners] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<AccountUser[]>([]);
   const [ownerId, setOwnerId] = useState("");
   const [createdF, setCreatedF] = useState<DateFilterValue>({ preset: "" });
   const [activityF, setActivityF] = useState<DateFilterValue>({ preset: "" });
@@ -78,6 +79,7 @@ export default function CompaniesView() {
   }, [q, ownerId, createdF, activityF]);
 
   useEffect(() => { if (token) getOwners(token).then(setOwners).catch(() => {}); }, [token]);
+  useEffect(() => { getUsers().then(setUsers).catch(() => {}); }, []);
 
   function onCreateDeal(seed: NewDealSeed) {
     navigate("/board", { state: { newDeal: seed } });
@@ -149,7 +151,9 @@ export default function CompaniesView() {
         )}
       </div>
 
-      {open && <CompanyDrawer company={open} token={token} onClose={() => setOpen(null)} onCreateDeal={onCreateDeal} />}
+      {open && <CompanyDrawer company={open} token={token} users={users}
+        onClose={() => setOpen(null)} onCreateDeal={onCreateDeal}
+        onSaved={() => void load(q)} />}
     </div>
   );
 }
