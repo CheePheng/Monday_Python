@@ -4,8 +4,8 @@ import { pickWritableLineItemProps } from "./line-item-props";
 import { pickWritableContactProps, pickWritableCompanyProps } from "./contact-company-props";
 
 const numeric = (v: unknown): v is string => typeof v === "string" && /^\d+$/.test(v);
-const FROM_OK = new Set(["deals"]);
-const TO_OK = new Set(["contacts", "companies"]);
+const FROM_OK = new Set(["deals", "companies"]);
+const TO_OK = new Set(["contacts", "companies", "deals"]);
 
 export interface LineItemReq { ok: boolean; lineItemId?: string; properties?: Record<string, string>; error?: string }
 export function parseLineItemBody(method: string, body: any): LineItemReq {
@@ -23,10 +23,18 @@ export function parseLineItemBody(method: string, body: any): LineItemReq {
 export interface AssocReq { ok: boolean; fromObject?: string; fromId?: string; toObject?: string; toId?: string; error?: string }
 export function parseAssociationBody(body: any): AssocReq {
   const { fromObject, fromId, toObject, toId } = body ?? {};
-  if (!FROM_OK.has(fromObject)) return { ok: false, error: "fromObject must be deals" };
-  if (!TO_OK.has(toObject)) return { ok: false, error: "toObject must be contacts|companies" };
+  if (!FROM_OK.has(fromObject)) return { ok: false, error: "fromObject must be deals|companies" };
+  if (!TO_OK.has(toObject)) return { ok: false, error: "toObject must be contacts|companies|deals" };
+  if (fromObject === toObject) return { ok: false, error: "fromObject and toObject must differ" };
   if (!numeric(fromId) || !numeric(toId)) return { ok: false, error: "fromId/toId must be numeric strings" };
   return { ok: true, fromObject, fromId, toObject, toId };
+}
+
+export interface SyncCompanyReq { ok: boolean; itemId?: string; error?: string }
+export function parseSyncCompanyBody(body: any): SyncCompanyReq {
+  const itemId = body?.itemId;
+  if (!numeric(itemId)) return { ok: false, error: "itemId must be a numeric string" };
+  return { ok: true, itemId };
 }
 
 export interface DealReq { ok: boolean; hubspotDealId?: string; error?: string }

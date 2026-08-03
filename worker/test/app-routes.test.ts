@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody,
-  parseCreateLineItemBody, parseContactBody, parseCompanyBody,
+  parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody,
 } from "../src/app-routes";
 
 describe("parseClearDealBody", () => {
@@ -118,4 +118,22 @@ describe("parseCompanyBody", () => {
     expect(parseCompanyBody({ idempotencyKey: KEY, properties: { city: "SG" } }).ok).toBe(false));
   it("rejects a non-numeric id in associateContactHubspotIds", () =>
     expect(parseCompanyBody({ idempotencyKey: KEY, properties: { name: "Acme" }, associateContactHubspotIds: ["1", "x"] }).ok).toBe(false));
+});
+
+describe("parseAssociationBody (generalized)", () => {
+  it("accepts companies->deals", () =>
+    expect(parseAssociationBody({ fromObject: "companies", fromId: "1", toObject: "deals", toId: "2" }))
+      .toEqual({ ok: true, fromObject: "companies", fromId: "1", toObject: "deals", toId: "2" }));
+  it("accepts companies->contacts", () =>
+    expect(parseAssociationBody({ fromObject: "companies", fromId: "1", toObject: "contacts", toId: "2" }).ok).toBe(true));
+  it("still accepts deals->contacts", () =>
+    expect(parseAssociationBody({ fromObject: "deals", fromId: "1", toObject: "contacts", toId: "2" }).ok).toBe(true));
+  it("rejects a bad fromObject", () =>
+    expect(parseAssociationBody({ fromObject: "contacts", fromId: "1", toObject: "deals", toId: "2" }).ok).toBe(false));
+  it("rejects non-numeric ids", () =>
+    expect(parseAssociationBody({ fromObject: "companies", fromId: "x", toObject: "deals", toId: "2" }).ok).toBe(false));
+});
+describe("parseSyncCompanyBody", () => {
+  it("accepts a numeric itemId", () => expect(parseSyncCompanyBody({ itemId: "55" })).toEqual({ ok: true, itemId: "55" }));
+  it("rejects a non-numeric itemId", () => expect(parseSyncCompanyBody({ itemId: "x" }).ok).toBe(false));
 });
