@@ -6,8 +6,8 @@ export const HUBSPOT_PORTAL_ID = "39939588";
 export const hubspotDealUrl = (dealId: string) =>
   `https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/record/0-3/${dealId}`;
 // Deep link to a linked contact/company's HubSpot record (0-1 = contacts, 0-2 = companies; deals are 0-3).
-const HS_OBJ = { contacts: "0-1", companies: "0-2" } as const;
-export const hubspotRecordUrl = (kind: "contacts" | "companies", id: string) =>
+const HS_OBJ = { contacts: "0-1", companies: "0-2", deals: "0-3" } as const;
+export const hubspotRecordUrl = (kind: "contacts" | "companies" | "deals", id: string) =>
   `https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/record/${HS_OBJ[kind]}/${id}`;
 
 export const DEALS_BOARD = "5029480547";
@@ -54,4 +54,20 @@ export const SUB_COLS = {
   netPrice:   { id: "numeric_mm538yj9",    kind: "numeric" },
   currency:   { id: "text_mm538b8k",       kind: "text" },
   description:{ id: "long_text_mm53a511",  kind: "long-text" },
+} as const;
+
+// Company Follow Up board editable columns (mirrors worker COMPANIES_MYLA reverse fields). Item name = domain.
+export const COMPANY_REL_CONTACT = "board_relation_mm54e96"; // Company -> Contact card link
+export const COMPANY_COLS = {
+  name:        { id: "text_mm4scke9",          kind: "text" },       // Company Name
+  industry:    { id: "dropdown_mm54zrp2",      kind: "dropdown" },
+  type:        { id: "color_mm545z1t",         kind: "status" },
+  salesUsers:  { id: "multiple_person_mm54phd7", kind: "multiple-person" },
+  owner:       { id: "multiple_person_mm4p8xe2", kind: "multiple-person" },
+  city:        { id: "text_mm4p2bvb",          kind: "text" },
+  state:       { id: "text_mm4sznkw",          kind: "text" },
+  employees:   { id: "numeric_mm4ww8gs",       kind: "numeric" },
+  revenue:     { id: "numeric_mm4w8g9k",       kind: "numeric" },
+  linkedin:    { id: "text_mm4w6rzg",          kind: "text" },
+  description: { id: "text_mm4wwtd0",          kind: "text" },
 } as const;
