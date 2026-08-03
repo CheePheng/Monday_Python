@@ -5,3 +5,7 @@ __pycache__/
 .ipynb_checkpoints/
 .pytest_cache/
 .venv/
+
+# graphify: keep the graph outputs (graph.json/html, GRAPH_REPORT.md), drop machine-specific internals
+graphify-out/.graphify_*
+graphify-out/cache/
