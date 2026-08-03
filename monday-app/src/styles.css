@@ -408,3 +408,14 @@
 .dc-datefilter { display: inline-flex; align-items: center; gap: 6px; }
 .dc-daterange-custom { display: inline-flex; align-items: center; gap: 6px; }
 .dc-daterange-custom .dc-input { width: 140px; }
+
+/* Tables scroll horizontally so right-hand columns (Sales User / ↗ HubSpot) are reachable */
+.dc-table-scroll { overflow-x: auto; scrollbar-width: thin; }
+.dc-table-scroll::-webkit-scrollbar { height: 10px; }
+.dc-table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+.dc-table { min-width: max-content; }
+
+/* Deal-picker results in the company drawer */
+.dc-picker-results { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+.dc-picker-row { text-align: left; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); cursor: pointer; }
+.dc-picker-row:hover { border-color: var(--accent); }
