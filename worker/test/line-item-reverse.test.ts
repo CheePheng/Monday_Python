@@ -18,7 +18,7 @@ describe("subitemFieldByCol / reverse flags", () => {
       expect(subitemFieldByCol(c)?.reverse).toBe(true);
   });
   it("calc + currency columns are NOT reverse-eligible", () => {
-    for (const c of [AMOUNT, CURRENCY, "numeric_mm53txgw" /* pre_discount */])
+    for (const c of [AMOUNT, CURRENCY])
       expect(subitemFieldByCol(c)?.reverse).toBeFalsy();
   });
   it("unknown / id column maps to no field", () => {

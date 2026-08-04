@@ -70,7 +70,6 @@ export const LINE_ITEM_SUBITEMS: SubitemSpec = {
   fields: [
     { hs: "price", col: "numeric_mm53rsfd", type: "numbers", reverse: true },                    // Unit Price
     { hs: "quantity", col: "numeric_mm531345", type: "numbers", reverse: true },                 // Quantity
-    { hs: "hs_pre_discount_amount", col: "numeric_mm53txgw", type: "numbers" },                  // Amount (pre-discount) — calc, forward-only
     { hs: "amount", col: "numeric_mm538yj9", type: "numbers" },                                  // Net Price — calc, forward-only
     { hs: "service_date", col: "date_mm53chbv", type: "date", reverse: true },                   // Service Date
     { hs: "discount", col: "numeric_mm53pkyf", type: "numbers", reverse: true },                 // Unit Discount (amount)
