@@ -71,6 +71,13 @@ export async function getSubitems(env: Env, parentItemId: string): Promise<Monda
   return data.items?.[0]?.subitems ?? [];
 }
 
+/** The parent item id of a subitem (a line-item subitem's parent is the deal card). Null if none/deleted. */
+export async function getParentItemId(env: Env, subitemId: string): Promise<string | null> {
+  const data = await gql(env, `query ($i:[ID!]) { items(ids:$i) { parent_item { id } } }`, { i: [subitemId] });
+  const pid = data.items?.[0]?.parent_item?.id;
+  return pid ? String(pid) : null;
+}
+
 /** Create a subitem under a parent. Returns the new subitem id (null in dry-run). retries=1 (a create). */
 export async function createSubitem(env: Env, parentItemId: string, name: string,
     cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
