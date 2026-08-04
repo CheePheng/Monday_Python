@@ -1,5 +1,5 @@
 import type { Budget, Env, ObjectSpec, RunOpts } from "./types";
-import { SPEC_BY_BOARD } from "./config";
+import { SPEC_BY_BOARD, LINE_ITEM_SUBITEMS } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
@@ -104,18 +104,22 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   const columnId = ev.columnId ? String(ev.columnId) : "";
   const spec = SPEC_BY_BOARD[boardId];
 
-  // monday SUBITEM (line-item) events reverse to HubSpot. These register on the PARENT deals board with
-  // change_subitem_* events and carry the SUBITEM in pulseId — so they must be intercepted by EVENT TYPE
-  // here, BEFORE the normal deal handling (which would treat the subitem id as a deal and could create a
-  // spurious HubSpot deal). Coalesce PER SUBITEM+COLUMN (the handler processes only the one changed column,
-  // so a per-subitem key would collapse two rapid different-column edits and drop one).
-  if (isReverseSubitemEvent(type)) {
+  // monday SUBITEM (line-item) edits reverse to HubSpot. When we subscribe to change_subitem_* on the
+  // PARENT deals board, monday DELIVERS each edit as a GENERIC "update_column_value"/"update_name" event
+  // whose boardId is the HIDDEN subitems board (5029480548) and which carries parentItemId (confirmed from
+  // live payloads). The delivered type is the same one a main-board edit uses, so `boardId` — not the type
+  // string — is the unambiguous signal. Intercept here BEFORE normal deal handling (else the subitem id
+  // would be treated as a deal). Coalesce PER SUBITEM+COLUMN so two rapid different-column edits don't
+  // collapse and drop one.
+  if (boardId === LINE_ITEM_SUBITEMS.boardId || isReverseSubitemEvent(type)) {
     const s = readSubitemEvent(ev);
-    console.log(`[webhook] source=monday subitem=${s.subitemId} type=${type}${s.columnId ? ` col=${s.columnId}` : ""} action=received-subitem raw=${raw.slice(0, 600)}`);
-    const coKey = s.columnId ? `sub:${s.subitemId}:${s.columnId}` : `sub:${s.subitemId}:name`;
-    ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
-      .catch(e => console.log(`[webhook] source=monday subitem=${s.subitemId} action=error reason="${String(e).slice(0, 160)}"`)));
-    return new Response("ok");
+    if (s.subitemId) {
+      console.log(`[webhook] source=monday subitem=${s.subitemId} type=${type}${s.columnId ? ` col=${s.columnId}` : ""} action=received-subitem`);
+      const coKey = s.columnId ? `sub:${s.subitemId}:${s.columnId}` : `sub:${s.subitemId}:name`;
+      ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
+        .catch(e => console.log(`[webhook] source=monday subitem=${s.subitemId} action=error reason="${String(e).slice(0, 160)}"`)));
+      return new Response("ok");
+    }
   }
 
   if (!spec || !itemId) {
