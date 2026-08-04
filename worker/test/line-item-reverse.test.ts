@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSubitemReversePatch, subitemFieldByCol, liValueEqual } from "../src/line-item-reverse";
+import { buildSubitemReversePatch, subitemFieldByCol, liValueEqual, isReverseSubitemEvent, readSubitemEvent } from "../src/line-item-reverse";
 
 // column ids from LINE_ITEM_SUBITEMS
 const PRICE = "numeric_mm53rsfd";
@@ -57,4 +57,27 @@ describe("buildSubitemReversePatch", () => {
     expect(buildSubitemReversePatch(SERVICE_DATE, "2026-08-04T00:00:00Z", "")).toEqual({ service_date: "2026-08-04" }));
   it("service date equal after slice -> null (echo)", () =>
     expect(buildSubitemReversePatch(SERVICE_DATE, "2026-08-04", "2026-08-04")).toBeNull());
+});
+
+describe("isReverseSubitemEvent", () => {
+  it("column-change + rename subitem events are reverse events", () => {
+    expect(isReverseSubitemEvent("change_subitem_column_value")).toBe(true);
+    expect(isReverseSubitemEvent("change_subitem_name")).toBe(true);
+  });
+  it("create/delete/archive subitem events + parent-item events are NOT", () => {
+    for (const t of ["create_subitem", "subitem_deleted", "subitem_archived", "change_column_value", "change_name", ""])
+      expect(isReverseSubitemEvent(t)).toBe(false);
+  });
+});
+
+describe("readSubitemEvent (camelCase + snake_case tolerant)", () => {
+  it("reads camelCase fields", () =>
+    expect(readSubitemEvent({ pulseId: 111, columnId: "numeric_x", parentItemId: 222 }))
+      .toEqual({ subitemId: "111", columnId: "numeric_x", parentItemId: "222" }));
+  it("reads snake_case fields", () =>
+    expect(readSubitemEvent({ pulse_id: 111, column_id: "numeric_x", parent_item_id: 222 }))
+      .toEqual({ subitemId: "111", columnId: "numeric_x", parentItemId: "222" }));
+  it("missing fields -> empty strings (e.g. a rename has no columnId)", () =>
+    expect(readSubitemEvent({ pulseId: 111 }))
+      .toEqual({ subitemId: "111", columnId: "", parentItemId: "" }));
 });

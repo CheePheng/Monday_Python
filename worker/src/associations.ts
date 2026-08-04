@@ -2,7 +2,7 @@ import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, Run
 import { createLineItem, getAssociatedIds, getRecord, getRecordsByIds, patchLineItem, propertiesForSpec, putAssociation } from "./hubspot";
 import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItem, getItemsColumnText, getLinkedItemIds, getParentItemId, getSubitems, setColumns, updateItem } from "./monday";
 import { DEALS, LINE_ITEM_SUBITEMS, SPEC_BY_OBJECT } from "./config";
-import { buildSubitemReversePatch, subitemFieldByCol } from "./line-item-reverse";
+import { buildSubitemReversePatch, subitemFieldByCol, readSubitemEvent } from "./line-item-reverse";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { buildColumnValues, formatValue, itemName } from "./mapping";
 import { targetGroup } from "./routing";
@@ -239,8 +239,7 @@ async function syncLineItems(env: Env, a: AssocSpec, ids: string[], parentId: st
 export async function reverseSubitemEdit(env: Env, ev: any, opts: RunOpts, budget: Budget): Promise<void> {
   if (env.LINE_ITEM_WRITE !== "true") return;
   const sub = LINE_ITEM_SUBITEMS;
-  const subitemId = String(ev.pulseId ?? ev.itemId ?? "");
-  const columnId = ev.columnId ? String(ev.columnId) : "";
+  const { subitemId, columnId, parentItemId } = readSubitemEvent(ev); // camelCase/snake_case tolerant
   if (!subitemId) return;
 
   // --- Column edit (has columnId) -> patch the changed field, or create if the row has no id yet ---
@@ -261,8 +260,9 @@ export async function reverseSubitemEdit(env: Env, ev: any, opts: RunOpts, budge
       console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId} action=patched cols=${Object.keys(props).join(",")}`);
       return;
     }
-    // No id -> CREATE via the existing reverse pass (grace period + name-dedup)
-    const parentId = await getParentItemId(env, subitemId);
+    // No id -> CREATE via the existing reverse pass (grace period + name-dedup). Prefer the event's
+    // parentItemId (subitem events carry it); fall back to a lookup only if absent.
+    const parentId = parentItemId || (await getParentItemId(env, subitemId)) || "";
     if (!parentId) return;
     const parent = await getItem(env, parentId);
     if (!parent) return;

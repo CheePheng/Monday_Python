@@ -1,10 +1,11 @@
 import type { Budget, Env, ObjectSpec, RunOpts } from "./types";
-import { SPEC_BY_BOARD, LINE_ITEM_SUBITEMS } from "./config";
+import { SPEC_BY_BOARD } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 import { reverseSubitemEdit } from "./associations";
+import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
 
 /** Columns whose monday-side change must NOT trigger a reconcile:
  *  - our own bookkeeping (Sync State / HubSpot ID / Link) — echoes of our own writes;
@@ -103,16 +104,17 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   const columnId = ev.columnId ? String(ev.columnId) : "";
   const spec = SPEC_BY_BOARD[boardId];
 
-  // Line-item subitem edits (subitems board 5029480548) reverse to HubSpot. That board is NOT in
-  // SPEC_BY_BOARD, so route it explicitly before the "board not configured" drop. Handles both
-  // change_column_value (field patch / create) and change_name (line-item rename).
-  // Coalesce PER SUBITEM+COLUMN (not per subitem): reverseSubitemEdit only processes the one column
-  // in `ev`, so a per-subitem key would collapse two rapid edits to different columns and drop one.
-  if (boardId === LINE_ITEM_SUBITEMS.boardId && itemId) {
-    console.log(`[webhook] source=monday board=${boardId} subitem=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} action=received-line-item raw=${raw.slice(0, 600)}`);
-    const coKey = columnId ? `sub:${itemId}:${columnId}` : `sub:${itemId}:name`;
+  // monday SUBITEM (line-item) events reverse to HubSpot. These register on the PARENT deals board with
+  // change_subitem_* events and carry the SUBITEM in pulseId — so they must be intercepted by EVENT TYPE
+  // here, BEFORE the normal deal handling (which would treat the subitem id as a deal and could create a
+  // spurious HubSpot deal). Coalesce PER SUBITEM+COLUMN (the handler processes only the one changed column,
+  // so a per-subitem key would collapse two rapid different-column edits and drop one).
+  if (isReverseSubitemEvent(type)) {
+    const s = readSubitemEvent(ev);
+    console.log(`[webhook] source=monday subitem=${s.subitemId} type=${type}${s.columnId ? ` col=${s.columnId}` : ""} action=received-subitem raw=${raw.slice(0, 600)}`);
+    const coKey = s.columnId ? `sub:${s.subitemId}:${s.columnId}` : `sub:${s.subitemId}:name`;
     ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
-      .catch(e => console.log(`[webhook] source=monday subitem=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
+      .catch(e => console.log(`[webhook] source=monday subitem=${s.subitemId} action=error reason="${String(e).slice(0, 160)}"`)));
     return new Response("ok");
   }
 

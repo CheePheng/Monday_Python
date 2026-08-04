@@ -12,6 +12,27 @@ export function subitemFieldByCol(colId: string): FieldSpec | undefined {
   return LINE_ITEM_SUBITEMS.fields.find(f => f.col === colId);
 }
 
+/** monday subitem webhook events we reverse-sync. Registered on the PARENT deals board (not the hidden
+ * subitems board, which the API rejects). We handle only column edits + renames; create is folded into
+ * the first column edit, and removals are not synced. */
+export function isReverseSubitemEvent(type: string): boolean {
+  return type === "change_subitem_column_value" || type === "change_subitem_name";
+}
+
+/** Extract subitem-event fields from a monday webhook `event`, tolerant of camelCase AND snake_case
+ * (monday payloads have been observed in both). Returns "" for any missing field. */
+export function readSubitemEvent(ev: any): { subitemId: string; columnId: string; parentItemId: string } {
+  const pick = (...keys: string[]): string => {
+    for (const k of keys) { const v = ev?.[k]; if (v != null && v !== "") return String(v); }
+    return "";
+  };
+  return {
+    subitemId: pick("pulseId", "pulse_id", "itemId", "item_id", "subitemId", "subitem_id"),
+    columnId: pick("columnId", "column_id"),
+    parentItemId: pick("parentItemId", "parent_item_id", "parentId", "parent_id"),
+  };
+}
+
 /** Type-aware equality: numbers compared numerically (90 == 90.00), dates by first 10 chars, else trimmed string. */
 export function liValueEqual(type: string, a: string, b: string): boolean {
   const A = (a ?? "").trim(), B = (b ?? "").trim();
