@@ -109,15 +109,17 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   // Coalesce PER SUBITEM+COLUMN (not per subitem): reverseSubitemEdit only processes the one column
   // in `ev`, so a per-subitem key would collapse two rapid edits to different columns and drop one.
   if (boardId === LINE_ITEM_SUBITEMS.boardId && itemId) {
-    console.log(`[webhook] source=monday board=${boardId} subitem=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} action=received-line-item`);
-    const coKey = type === "change_name" ? `sub:${itemId}:name` : `sub:${itemId}:${columnId}`;
+    console.log(`[webhook] source=monday board=${boardId} subitem=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} action=received-line-item raw=${raw.slice(0, 600)}`);
+    const coKey = columnId ? `sub:${itemId}:${columnId}` : `sub:${itemId}:name`;
     ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
       .catch(e => console.log(`[webhook] source=monday subitem=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
     return new Response("ok");
   }
 
   if (!spec || !itemId) {
-    console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} action=ignored reason="board not configured / no item"`);
+    // TEMP DIAGNOSTIC: log the raw body of any unrecognized monday webhook so we can confirm the exact
+    // shape of the subitems-board UI-integration webhook (its boardId/type/field names may differ).
+    console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} action=ignored reason="board not configured / no item" raw=${raw.slice(0, 600)}`);
     return new Response("ok");
   }
   // A posted Update ("Updates" feed) -> a Note on the matching HubSpot record (Activities). One-way.

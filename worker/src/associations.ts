@@ -229,59 +229,58 @@ async function syncLineItems(env: Env, a: AssocSpec, ids: string[], parentId: st
 
 /**
  * REVERSE a single monday line-item subitem edit -> HubSpot (event-source-wins; monday is the source).
- * change_name -> patch the line-item `name`. change_column_value -> patch the one reverse-eligible field
- * (has id) or create the line item (no id, via reverseLineItems' grace + dedup). Echo-suppressed and
- * omit-empty via buildSubitemReversePatch. HubSpot writes gated on LINE_ITEM_WRITE.
+ * A column edit (carries columnId; API "change_column_value" OR the monday UI-integration
+ * "update_column_value") -> patch the one reverse-eligible field (has id) or create the line item
+ * (no id, via reverseLineItems' grace + dedup). A rename (no columnId; "change_name"/"update_name")
+ * -> patch the line-item `name`. Payload-tolerant: it keys on the PRESENCE of columnId, not the exact
+ * event-`type` string, so it works for both the API webhook and the monday integration webhook.
+ * Echo-suppressed and omit-empty via buildSubitemReversePatch. HubSpot writes gated on LINE_ITEM_WRITE.
  */
 export async function reverseSubitemEdit(env: Env, ev: any, opts: RunOpts, budget: Budget): Promise<void> {
   if (env.LINE_ITEM_WRITE !== "true") return;
   const sub = LINE_ITEM_SUBITEMS;
   const subitemId = String(ev.pulseId ?? ev.itemId ?? "");
-  const type = String(ev.type ?? "");
   const columnId = ev.columnId ? String(ev.columnId) : "";
   if (!subitemId) return;
 
-  // --- Rename: subitem name -> HubSpot line-item `name` (omit-empty + echo) ---
-  if (type === "change_name") {
+  // --- Column edit (has columnId) -> patch the changed field, or create if the row has no id yet ---
+  if (columnId) {
+    const f = subitemFieldByCol(columnId);
+    if (!f || !f.reverse) return;                          // gate first: non-reverse column costs 0 API calls
     const item = await getItem(env, subitemId);
     if (!item) return;
     const liId = colText(item, sub.idCol);
-    if (!liId) return;                                   // no id -> the create path owns the name
-    const newName = (item.name ?? "").trim();
-    if (!newName) return;                                // omit-empty
-    const cur = await getRecord(env, "line_items", liId, ["name"]);
-    if (cur && (String(cur.properties.name ?? "")).trim() === newName) return; // echo
-    await patchLineItem(env, liId, { name: newName }, opts); budget.left--;
-    console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId} action=patched-name`);
+    const value = colText(item, f.col);
+
+    if (liId) { // PATCH the single changed field
+      const cur = await getRecord(env, "line_items", liId, [f.hs]);
+      const hsVal = cur ? String(cur.properties[f.hs] ?? "") : "";
+      const props = buildSubitemReversePatch(columnId, value, hsVal);
+      if (!props) return;                                  // echo / omit-empty
+      await patchLineItem(env, liId, props, opts); budget.left--;
+      console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId} action=patched cols=${Object.keys(props).join(",")}`);
+      return;
+    }
+    // No id -> CREATE via the existing reverse pass (grace period + name-dedup)
+    const parentId = await getParentItemId(env, subitemId);
+    if (!parentId) return;
+    const parent = await getItem(env, parentId);
+    if (!parent) return;
+    const dealId = colText(parent, DEALS.idCol);
+    if (!dealId) return;                                   // deal not linked to HubSpot yet; a later sync carries it
+    await reverseLineItems(env, sub, parent, dealId, opts, budget);
     return;
   }
 
-  if (type !== "change_column_value") return;
-  const f = subitemFieldByCol(columnId);
-  if (!f || !f.reverse) return;                          // gate first: non-reverse column costs 0 API calls
-
+  // --- Rename (no columnId) -> patch HubSpot line-item `name` (omit-empty + echo; guarded no-op otherwise) ---
   const item = await getItem(env, subitemId);
   if (!item) return;
   const liId = colText(item, sub.idCol);
-  const value = colText(item, f.col);
-
-  // --- Has id -> PATCH the single changed field ---
-  if (liId) {
-    const cur = await getRecord(env, "line_items", liId, [f.hs]);
-    const hsVal = cur ? String(cur.properties[f.hs] ?? "") : "";
-    const props = buildSubitemReversePatch(columnId, value, hsVal);
-    if (!props) return;                                  // echo / omit-empty
-    await patchLineItem(env, liId, props, opts); budget.left--;
-    console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId} action=patched cols=${Object.keys(props).join(",")}`);
-    return;
-  }
-
-  // --- No id -> CREATE via the existing reverse pass (grace period + name-dedup) ---
-  const parentId = await getParentItemId(env, subitemId);
-  if (!parentId) return;
-  const parent = await getItem(env, parentId);
-  if (!parent) return;
-  const dealId = colText(parent, DEALS.idCol);
-  if (!dealId) return;                                   // deal not linked to HubSpot yet; a later sync carries it
-  await reverseLineItems(env, sub, parent, dealId, opts, budget);
+  if (!liId) return;                                       // no id -> the create path owns the name
+  const newName = (item.name ?? "").trim();
+  if (!newName) return;                                    // omit-empty
+  const cur = await getRecord(env, "line_items", liId, ["name"]);
+  if (cur && (String(cur.properties.name ?? "")).trim() === newName) return; // echo
+  await patchLineItem(env, liId, { name: newName }, opts); budget.left--;
+  console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId} action=patched-name`);
 }
