@@ -1,9 +1,10 @@
 import type { Budget, Env, ObjectSpec, RunOpts } from "./types";
-import { SPEC_BY_BOARD } from "./config";
+import { SPEC_BY_BOARD, LINE_ITEM_SUBITEMS } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
+import { reverseSubitemEdit } from "./associations";
 
 /** Columns whose monday-side change must NOT trigger a reconcile:
  *  - our own bookkeeping (Sync State / HubSpot ID / Link) — echoes of our own writes;
@@ -101,6 +102,19 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   const type = String(ev.type ?? "");
   const columnId = ev.columnId ? String(ev.columnId) : "";
   const spec = SPEC_BY_BOARD[boardId];
+
+  // Line-item subitem edits (subitems board 5029480548) reverse to HubSpot. That board is NOT in
+  // SPEC_BY_BOARD, so route it explicitly before the "board not configured" drop. Handles both
+  // change_column_value (field patch / create) and change_name (line-item rename).
+  // Coalesce PER SUBITEM+COLUMN (not per subitem): reverseSubitemEdit only processes the one column
+  // in `ev`, so a per-subitem key would collapse two rapid edits to different columns and drop one.
+  if (boardId === LINE_ITEM_SUBITEMS.boardId && itemId) {
+    console.log(`[webhook] source=monday board=${boardId} subitem=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} action=received-line-item`);
+    const coKey = type === "change_name" ? `sub:${itemId}:name` : `sub:${itemId}:${columnId}`;
+    ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
+      .catch(e => console.log(`[webhook] source=monday subitem=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
+    return new Response("ok");
+  }
 
   if (!spec || !itemId) {
     console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} action=ignored reason="board not configured / no item"`);
