@@ -68,15 +68,15 @@ export const LINE_ITEM_SUBITEMS: SubitemSpec = {
   statusCol: "status",              // removed line items -> subitem Status = "Removed"
   productIdCol: "text_mm54hbvj",    // "HubSpot Product ID" (vibe app sets this) -> reverse sets hs_product_id
   fields: [
-    { hs: "price", col: "numeric_mm53rsfd", type: "numbers" },                       // Unit Price (HubSpot "Unit price")
-    { hs: "quantity", col: "numeric_mm531345", type: "numbers" },                    // Quantity
-    { hs: "hs_pre_discount_amount", col: "numeric_mm53txgw", type: "numbers" },      // Amount (pre-discount total)
-    { hs: "amount", col: "numeric_mm538yj9", type: "numbers" },                      // Net Price (HubSpot "Net price")
-    { hs: "service_date", col: "date_mm53chbv", type: "date" },                      // Service Date
-    { hs: "discount", col: "numeric_mm53pkyf", type: "numbers" },                    // Unit Discount (per-unit amount)
-    { hs: "hs_discount_percentage", col: "numeric_mm5ax22v", type: "numbers" },      // Discount % (alternative to per-unit discount)
-    { hs: "hs_line_item_currency_code", col: "text_mm538b8k", type: "text" },        // Currency
-    { hs: "description", col: "long_text_mm53a511", type: "long_text" },             // Description
+    { hs: "price", col: "numeric_mm53rsfd", type: "numbers", reverse: true },                    // Unit Price
+    { hs: "quantity", col: "numeric_mm531345", type: "numbers", reverse: true },                 // Quantity
+    { hs: "hs_pre_discount_amount", col: "numeric_mm53txgw", type: "numbers" },                  // Amount (pre-discount) — calc, forward-only
+    { hs: "amount", col: "numeric_mm538yj9", type: "numbers" },                                  // Net Price — calc, forward-only
+    { hs: "service_date", col: "date_mm53chbv", type: "date", reverse: true },                   // Service Date
+    { hs: "discount", col: "numeric_mm53pkyf", type: "numbers", reverse: true },                 // Unit Discount (amount)
+    { hs: "hs_discount_percentage", col: "numeric_mm5ax22v", type: "numbers", reverse: true },   // Discount %
+    { hs: "hs_line_item_currency_code", col: "text_mm538b8k", type: "text" },                    // Currency — deal-owned, forward-only
+    { hs: "description", col: "long_text_mm53a511", type: "long_text", reverse: true },          // Description
   ],
 };
 
