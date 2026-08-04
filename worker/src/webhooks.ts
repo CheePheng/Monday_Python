@@ -123,9 +123,7 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   }
 
   if (!spec || !itemId) {
-    // TEMP DIAGNOSTIC: log the raw body of any unrecognized monday webhook so we can confirm the exact
-    // shape of the subitems-board UI-integration webhook (its boardId/type/field names may differ).
-    console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} action=ignored reason="board not configured / no item" raw=${raw.slice(0, 600)}`);
+    console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} action=ignored reason="board not configured / no item"`);
     return new Response("ok");
   }
   // A posted Update ("Updates" feed) -> a Note on the matching HubSpot record (Activities). One-way.
