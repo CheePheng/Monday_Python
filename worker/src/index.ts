@@ -8,7 +8,8 @@ import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody, parseSyncContactBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
-import { getItem, setColumns, findItemByColumn } from "./monday";
+import { getItem, setColumns, findItemByColumn, getBoardItems } from "./monday";
+import { phoneBackfillCandidates } from "./backfill";
 import { syncAssociations } from "./associations";
 import { colText } from "./dedup";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
@@ -361,6 +362,51 @@ export default {
         } catch (e) {
           console.log(`[app/sync-company] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/backfill-contact-phones { dryRun?, limit? } — ONE-OFF bounded migration for historical
+      // contacts: fill an EMPTY HubSpot phone from the monday card. Contacts are skipFullReconcile, so the
+      // automatic per-record backfill (which fires on a webhook/incremental touch) never reaches records
+      // nobody edits. DRY-RUN BY DEFAULT: pass {"dryRun": false} to actually write. Every write is logged
+      // `[backfill] ... path=migration`. Never overwrites an existing phone, never matched by name.
+      if (url.pathname === "/app/backfill-contact-phones" && req.method === "POST") {
+        const body: any = await req.json().catch(() => ({}));
+        const dryRun = body?.dryRun !== false;                       // default TRUE
+        const n = Number(body?.limit ?? 25);
+        const limit = Math.min(Math.max(Number.isFinite(n) ? n : 25, 1), 200);
+        const phoneCol = CONTACTS_MYLA.fields.find(f => f.hs === "phone")!.col;
+        try {
+          const items = await getBoardItems(env, CONTACTS_MYLA.boardId);
+          const cards = items
+            .map(it => ({ itemId: it.id, hubspotId: colText(it, CONTACTS_MYLA.idCol).trim(), phone: colText(it, phoneCol) }))
+            .filter(c => c.hubspotId && c.phone.trim());
+          // Batch-read HubSpot phones (100/call) for just those cards.
+          const phoneById: Record<string, string | null> = {};
+          for (let i = 0; i < cards.length; i += 100) {
+            const ids = cards.slice(i, i + 100).map(c => c.hubspotId);
+            for (const r of await getRecordsByIds(env, "contacts", ids, ["phone"]))
+              phoneById[r.id] = r.properties.phone ?? "";
+          }
+          const candidates = phoneBackfillCandidates(cards, phoneById);
+          const batch = candidates.slice(0, limit);
+          let written = 0;
+          if (!dryRun) {
+            for (const c of batch) {
+              await patchRecord(env, CONTACTS_MYLA, c.hubspotId, { phone: c.phone.trim() }, appWriteOpts(env));
+              written++;
+              console.log(`[backfill] object=contacts hubspot_id=${c.hubspotId} monday_item=${c.itemId} field=phone previous="" value="${c.phone.trim()}" result=written path=migration`);
+            }
+          }
+          console.log(`[backfill] migration scanned=${items.length} with_monday_phone=${cards.length} candidates=${candidates.length} batch=${batch.length} written=${written} dryRun=${dryRun}`);
+          return Response.json({
+            scanned: items.length, withMondayPhone: cards.length, candidates: candidates.length,
+            batch: batch.length, written, dryRun, remaining: Math.max(candidates.length - batch.length, 0),
+            sample: batch.slice(0, 10).map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, phone: c.phone })),
+          }, { headers: { ...CORS, "Cache-Control": "no-store" } });
+        } catch (e) {
+          console.log(`[app/backfill-contact-phones] error="${String(e).slice(0, 200)}"`);
+          return Response.json({ error: "backfill-failed" }, { status: 502, headers: CORS });
         }
       }
 
