@@ -372,7 +372,9 @@ export function mapContactResult(
     leadSource: lab("contactSource", p.leadsource ?? ""),
     createdate: p.createdate ?? "",
     ownerName: p.hubspot_owner_id ? (ownersById[p.hubspot_owner_id]?.name ?? "") : "",
-    salesUser: p.sales_user ?? "",
+    // sales_user holds a raw HubSpot OWNER ID; resolve it through the label dict like mapCompanyResult
+    // does, or the directory's Owner column shows a bare id (e.g. "70154321") for owner-less contacts.
+    salesUser: lab("salesUser", p.sales_user ?? ""),
   };
 }
 

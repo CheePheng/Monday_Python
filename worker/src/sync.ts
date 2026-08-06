@@ -96,12 +96,18 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   // Contacts are `skipFullReconcile`, so nothing would ever retry it. Runs before the branch below; the
   // `toHubspot` path already carries backfills inside buildReversePatch, so skip it there to avoid a
   // duplicate PATCH.
-  if (dir !== "toHubspot") await writeSafeBackfills(env, spec, ctx, opts, budget, rec, existing, diffs);
+  // A backfill PATCH bumps the record's lastmodifieddate, so the baseline stamped below must be the
+  // POST-patch value. Stamping the pre-patch one would leave hs > synced, and the next reconcile would
+  // read that as "HubSpot is newer" and overwrite a rep's monday edit instead of pushing it.
+  const backfilledMod = dir !== "toHubspot"
+    ? await writeSafeBackfills(env, spec, ctx, opts, budget, rec, existing, diffs)
+    : null;
+  const stampMod = backfilledMod ?? recModified;
 
   if (dir === "none") {
     stats.inSync++;
-    if (lastSynced !== recModified) { // establish baseline so future monday edits win correctly
-      await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: recModified }, opts);
+    if (lastSynced !== stampMod) { // establish baseline so future monday edits win correctly
+      await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: stampMod }, opts);
       budget.left--; // count the bookkeeping write so a first-run backlog can't overrun the tick
     }
     return;
@@ -126,10 +132,14 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   // tick re-runs toMonday (never flips to a reverse write that reverts the HubSpot stage change).
   if (diffs.some(d => d.kind === "group")) await moveItem(env, spec.boardId, existing.id, group, opts);
   const cv = buildUpdatePayload(diffs, rec, spec, ctx);
-  cv[spec.syncStateCol] = recModified;
+  cv[spec.syncStateCol] = stampMod;   // post-backfill timestamp (see the note above)
   await updateItem(env, spec.boardId, existing.id, itemName(rec, spec), cv, opts);
   stats.toMonday++; budget.left--;
 }
+
+/** Objects that take the direction-INDEPENDENT backfill path. Deliberately contacts-only — see the note
+ * inside writeSafeBackfills. Deals keep their long-standing toHubspot-only backfill. */
+const INDEPENDENT_BACKFILL_OBJECTS = new Set(["contacts"]);
 
 /** Write only the SAFE BACKFILLS from `diffs` (empty HubSpot field <- non-empty monday value), independent
  * of the direction decision. Same guarantees as the reverse path: allowlisted `backfill` fields only,
@@ -137,22 +147,39 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
  * Every fill is logged `[backfill] ... path=independent` so a rollout's blast radius is auditable. */
 async function writeSafeBackfills(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> }, item: MondayItem,
-    diffs: Diff[]): Promise<void> {
-  if (budget.left <= 0) return;
+    diffs: Diff[]): Promise<string | null> {
+  if (budget.left <= 0) return null;
+  // Deliberately NARROW: only contacts take the direction-independent path. Deals already carry `backfill`
+  // on six fields, and they ARE swept by the daily full reconcile, so their existing toHubspot-only
+  // behaviour is adequate — routing them here too would turn every toMonday pass (including the nightly
+  // sweep over every deal) into an unannounced bulk HubSpot write. Contacts need it precisely because they
+  // are skipFullReconcile and nothing else would ever retry the fill.
+  if (!INDEPENDENT_BACKFILL_OBJECTS.has(spec.object)) return null;
   const fills = diffs.filter(d => d.kind === "field" && d.backfill && d.f?.reverse);
-  if (!fills.length) return;
+  if (!fills.length) return null;
   const patch: Record<string, string> = {};
   for (const d of fills) {
     const v = reverseFieldValue(d.f!, d.mdText, ctx);
     if (v) patch[d.f!.hs] = v;
   }
-  if (!Object.keys(patch).length) return;
-  const newMod = await patchRecord(env, spec, rec.id, patch, opts); budget.left--;
+  if (!Object.keys(patch).length) return null;
+  // A rejected backfill must NEVER abort the record's normal sync: patchRecord throws on any HubSpot 4xx,
+  // and an unguarded throw here would skip the forward write for good on a record whose monday value
+  // HubSpot refuses (validation rule, over-length, bad enum) — that record would stop receiving updates
+  // entirely and every drawer save would 502.
+  let newMod: string | null = null;
+  try {
+    newMod = await patchRecord(env, spec, rec.id, patch, opts); budget.left--;
+  } catch (e) {
+    console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${item.id} fields=${Object.keys(patch).join(",")} result=error reason="${String(e).slice(0, 160)}" path=independent`);
+    return null;
+  }
   for (const d of fills) {
     const v = patch[d.f!.hs];
     if (v !== undefined)
       console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${item.id} field=${d.f!.hs} previous="" value="${v}" result=${newMod === null ? "dry-run" : "written"} path=independent`);
   }
+  return newMod;
 }
 
 /** Keep the "Shared" people column holding the all-members team on records with NO sales_user (so

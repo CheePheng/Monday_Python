@@ -27,7 +27,9 @@ export interface FieldSpec {
   type: ColType;
   labels?: LabelDict;    // enum label dictionary (HubSpot internal value -> display label)
   reverse?: boolean;     // monday edits may be written back to HubSpot
-  backfill?: boolean;    // allowlisted: a non-empty monday value may FILL an EMPTY HubSpot value (deals only)
+  backfill?: boolean;    // allowlisted: a non-empty monday value may FILL an EMPTY HubSpot value.
+                         // Objects allowed: deals + contacts (BACKFILL_OBJECTS in reconcile.ts); contacts
+                         // carry it on `phone` only. "Empty" is judged on the RAW HubSpot value.
   /** HubSpot -> monday only. A monday-side edit has nothing to push back, so its webhook is ignored
    * instead of triggering a full single-record reconcile. The daily sweep still heals a manual edit. */
   oneWay?: boolean;

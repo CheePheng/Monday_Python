@@ -216,7 +216,7 @@ describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
 // created moments later, and the deal.creation webhook's association read comes back EMPTY (HubSpot's
 // association index lags). The forward pass then cleared the links the rep had just picked — 2 of 3
 // test deals lost them. reverseAssociations is additive-only, so the forward pass is too now.
-import { sameSet, clearsFromEmpty } from "../src/associations";
+import { sameSet, clearsFromEmpty, resolvedAllIds } from "../src/associations";
 
 describe("relation write guards", () => {
   it("sameSet ignores order and detects real differences", () => {
@@ -231,4 +231,13 @@ describe("relation write guards", () => {
     expect(clearsFromEmpty([], ["1"])).toBe(false);           // first link -> allowed to write
     expect(clearsFromEmpty([], [])).toBe(false);              // nothing either side
   });
+});
+
+describe("resolvedAllIds — partial-resolution guard", () => {
+  it("every associated id resolved -> safe to write (a genuine removal still reconciles)", () =>
+    expect(resolvedAllIds(["h1", "h2"], ["c1", "c2"])).toBe(true));
+  it("an id failed to resolve (partial HubSpot read / budget exhausted) -> do NOT write", () =>
+    expect(resolvedAllIds(["h1", "h2"], ["c1"])).toBe(false));
+  it("nothing associated resolves to nothing wanted", () =>
+    expect(resolvedAllIds([], [])).toBe(true));
 });

@@ -47,10 +47,16 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
     if (hsText === null) continue; // phone: not diffable
     if (hsText === "") {
       // Empty HubSpot value: normally we don't fight monday (no clear, no loop). EXCEPTION — controlled
-      // backfill: an ALLOWLISTED reversible field on a DEAL whose card carries the matching HubSpot Deal ID
-      // may FILL the empty HubSpot value from a non-empty monday value. Never the reverse (an empty monday
-      // value never clears HubSpot), never for contacts/companies, never matched by name.
-      if (f.backfill && f.reverse && BACKFILL_OBJECTS.has(spec.object) && colText(item, spec.idCol) === rec.id) {
+      // backfill: an ALLOWLISTED reversible field on an ALLOWLISTED object whose card carries the matching
+      // HubSpot id may FILL the empty HubSpot value from a non-empty monday value. Never the reverse (an
+      // empty monday value never clears HubSpot), never for companies, never matched by name.
+      //
+      // "Empty" is judged on the RAW property, not on hsText. hsText is NORMALIZED (phone -> digits), so a
+      // real-but-digitless value like "N/A"/"none"/"ask reception" normalizes to "" and would otherwise look
+      // empty — backfilling over it would DESTROY real HubSpot data while logging previous="".
+      const rawHs = String(rec.properties[f.hs] ?? "").trim();
+      if (rawHs === "" && f.backfill && f.reverse && BACKFILL_OBJECTS.has(spec.object)
+          && colText(item, spec.idCol) === rec.id) {
         const md = colText(item, f.col);
         if (md) out.push({ kind: "field", f, hsText: "", mdText: md, backfill: true });
       }
@@ -95,6 +101,16 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
   const text = mdText.trim();
   if (!text) return "";
   if (f.type === "people") return text; // the people diff's mdText already holds the HubSpot owner id
+  // Phone: write a CANONICAL value, never monday's rendered column text. monday renders a phone column as
+  // "<number> <countryShortName>" once a country is set (which is what a rep picking the flag produces), and
+  // storing "12345678900 US" in HubSpot would poison dialer/marketing integrations — and it would never
+  // self-repair, because the digits still match so no further diff is ever raised. Mirrors mapping.ts's
+  // phone branch: keep a LEADING "+" (international), otherwise bare digits.
+  if (f.type === "phone") {
+    const digits = text.replace(/[^\d]/g, "");
+    if (!digits) return "";
+    return text.startsWith("+") ? "+" + digits : digits;
+  }
   const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : {};
   if (f.type === "dropdown") {
     if (rev[text] !== undefined) return rev[text]; // whole-label match first (single value)

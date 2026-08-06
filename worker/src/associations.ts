@@ -153,6 +153,16 @@ export const sameSet = (a: string[], b: string[]): boolean =>
 export const clearsFromEmpty = (current: string[], want: string[]): boolean =>
   want.length === 0 && current.length > 0;
 
+/** Would this write DROP links because the desired set is INCOMPLETE rather than genuinely smaller?
+ *
+ * `want` is built by resolving each associated HubSpot id to a monday card, and an id silently falls out
+ * when (a) HubSpot's association index has only partially caught up — the create race is not all-or-nothing,
+ * it can return the company but not yet the contact — or (b) the budget ran out before the missing card
+ * could be created (syncRelationColumn skips on-demand creation once `budget.left <= 0`). In both cases the
+ * shortfall is OUR blind spot, not a user removing a link, so writing `want` would destroy real links. A
+ * genuine removal still reconciles, because then every remaining id resolves and `want.length === ids.length`. */
+export const resolvedAllIds = (ids: string[], want: string[]): boolean => want.length === ids.length;
+
 /** company/contact/deal associations -> a monday "Connect Boards" (board_relation) column that LINKS the
  * actual cards. Resolves each associated HubSpot id to the monday card on the target board; if a target
  * card doesn't exist yet, it is created on demand (so associations always link, even for records the
@@ -195,6 +205,12 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   // Never wipe existing links from an empty HubSpot read (see clearsFromEmpty) — this is the create-race guard.
   if (clearsFromEmpty(current, want)) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} current=${current.length} action=kept-no-clear reason="hubspot returned no associations"`);
+    return;
+  }
+  // ...and never wipe links just because some associated id didn't resolve to a card this pass (partial
+  // eventual consistency, or the budget ran out before the card could be created). See resolvedAllIds.
+  if (!resolvedAllIds(ids, want) && current.length > want.length) {
+    console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} ids=${ids.length} resolved=${want.length} current=${current.length} action=kept-partial reason="not every associated id resolved to a card"`);
     return;
   }
   if (opts.dryRun) { console.log(`DRY relation ${spec.object}/${item.id} ${a.toObject}=[${want.join(",")}]`); return; }

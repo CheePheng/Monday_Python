@@ -371,16 +371,28 @@ export default {
       // nobody edits. DRY-RUN BY DEFAULT: pass {"dryRun": false} to actually write. Every write is logged
       // `[backfill] ... path=migration`. Never overwrites an existing phone, never matched by name.
       if (url.pathname === "/app/backfill-contact-phones" && req.method === "POST") {
+        // Bulk WRITE + full-board scan: require the server-to-server secret specifically. Plain /app/ auth
+        // accepts ANY valid monday session token, so a board-view user (or a lifted token) could otherwise
+        // fire hundreds of HubSpot writes. Every other bulk/admin route in this Worker is gated the same way.
+        if (auth.reason !== "trigger-secret")
+          return Response.json({ error: "trigger-secret required for the bulk backfill" }, { status: 403, headers: CORS });
         const body: any = await req.json().catch(() => ({}));
         const dryRun = body?.dryRun !== false;                       // default TRUE
         const n = Number(body?.limit ?? 25);
-        const limit = Math.min(Math.max(Number.isFinite(n) ? n : 25, 1), 200);
+        // Capped at 50: each write is a sequential HubSpot PATCH (retried up to 3x on 429/5xx) on top of a
+        // full board scan, and a bigger batch risks the Worker's subrequest ceiling / an edge timeout —
+        // after which the caller cannot tell how many writes landed. `remaining` drives the next call.
+        const limit = Math.min(Math.max(Number.isFinite(n) ? n : 25, 1), 50);
         const phoneCol = CONTACTS_MYLA.fields.find(f => f.hs === "phone")!.col;
         try {
           const items = await getBoardItems(env, CONTACTS_MYLA.boardId);
           const cards = items
             .map(it => ({ itemId: it.id, hubspotId: colText(it, CONTACTS_MYLA.idCol).trim(), phone: colText(it, phoneCol) }))
-            .filter(c => c.hubspotId && c.phone.trim());
+            // Numeric ids only: a hand-typed non-numeric "HubSpot ID" would 400 the WHOLE 100-id batch/read
+            // and abort the run with zero progress. Dedup by id so a duplicated card can't PATCH the same
+            // record twice with different phones (last-write-wins, silently).
+            .filter(c => /^\d+$/.test(c.hubspotId) && c.phone.trim())
+            .filter((c, i, arr) => arr.findIndex(o => o.hubspotId === c.hubspotId) === i);
           // Batch-read HubSpot phones (100/call) for just those cards.
           const phoneById: Record<string, string | null> = {};
           for (let i = 0; i < cards.length; i += 100) {
@@ -393,9 +405,14 @@ export default {
           let written = 0;
           if (!dryRun) {
             for (const c of batch) {
-              await patchRecord(env, CONTACTS_MYLA, c.hubspotId, { phone: c.phone.trim() }, appWriteOpts(env));
+              // Canonical phone, NOT monday's rendered column text (which carries a country suffix once a
+              // rep picks the flag) — identical rule to reverseFieldValue's phone branch.
+              const digits = c.phone.replace(/[^\d]/g, "");
+              if (!digits) continue;
+              const value = c.phone.trim().startsWith("+") ? "+" + digits : digits;
+              await patchRecord(env, CONTACTS_MYLA, c.hubspotId, { phone: value }, appWriteOpts(env));
               written++;
-              console.log(`[backfill] object=contacts hubspot_id=${c.hubspotId} monday_item=${c.itemId} field=phone previous="" value="${c.phone.trim()}" result=written path=migration`);
+              console.log(`[backfill] object=contacts hubspot_id=${c.hubspotId} monday_item=${c.itemId} field=phone previous="" value="${value}" result=written path=migration`);
             }
           }
           console.log(`[backfill] migration scanned=${items.length} with_monday_phone=${cards.length} candidates=${candidates.length} batch=${batch.length} written=${written} dryRun=${dryRun}`);
@@ -415,7 +432,10 @@ export default {
         const s = parseSyncContactBody(await req.json().catch(() => ({})));
         if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
         try {
-          await syncMondayItem(env, CONTACTS_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 8 });
+          // 30 to match /app/sync-deal and /app/sync-company: reverseAssociations spends one unit per
+          // putAssociation across BOTH relation columns and simply breaks when the budget runs out, so a
+          // smaller budget silently drops a contact's later company/deal links with no error to the drawer.
+          await syncMondayItem(env, CONTACTS_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/sync-contact] item=${s.itemId} error="${String(e).slice(0, 160)}"`);

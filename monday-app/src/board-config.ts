@@ -79,7 +79,7 @@ export const CONTACT_COLS = {
   lastname:   { id: "text_mm4scke9",           kind: "text" },
   email:      { id: "text_mm4p2bvb",           kind: "text" },
   jobtitle:   { id: "text_mm4sznkw",           kind: "text" },
-  phone:      { id: "phone_mm4s31p3",          kind: "phone" },       // read-only until Task 8
+  phone:      { id: "phone_mm4s31p3",          kind: "phone" },       // editable (two-way, digits-compared)
   salesUsers: { id: "multiple_person_mm542gng", kind: "multiple-person" },
   owner:      { id: "multiple_person_mm4p8xe2", kind: "multiple-person" },
   leadStatus: { id: "status",                  kind: "status" },

@@ -525,6 +525,33 @@ describe("fieldDiffs backfill — contacts/phone", () => {
     const mismatched = item({ column_values: [{ id: "c_id", text: "OTHER" }, { id: "c_phone", text: "+1 234" }] });
     expect(fieldDiffs(cRec(""), mismatched, contactSpec, ctx).filter(x => x.kind === "field")).toEqual([]);
   });
-  it("reverseFieldValue keeps the raw monday phone text (formatting/+ preserved on the write)", () =>
-    expect(reverseFieldValue(phoneField, "+1 234-567-8900", ctx)).toBe("+1 234-567-8900"));
+  // Superseded by the canonical-phone fix: the write must NOT carry monday's rendered text (which gains a
+  // country suffix once a rep picks the flag). Only the leading "+" is preserved.
+  it("reverseFieldValue canonicalises the phone for the write", () =>
+    expect(reverseFieldValue(phoneField, "+1 234-567-8900", ctx)).toBe("+12345678900"));
+});
+
+// --- review fixes (2026-08-04) -----------------------------------------------------------------
+describe("backfill safety: 'empty' is judged on the RAW HubSpot value", () => {
+  const phoneField: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true };
+  const contactSpec: ObjectSpec = { ...spec, object: "contacts", fields: [phoneField] };
+  const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: "+1 234-567-8900" }] });
+
+  // phoneDigits("N/A") === "" — without the raw check this looked EMPTY and the fill DESTROYED real data.
+  it("a real but digitless HubSpot phone ('N/A') is NOT treated as empty -> no backfill", () =>
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", phone: "N/A" } } as any, md, contactSpec, ctx)
+      .some(d => d.backfill)).toBe(false));
+  it("a genuinely empty HubSpot phone still backfills", () =>
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", phone: "  " } } as any, md, contactSpec, ctx)
+      .some(d => d.backfill)).toBe(true));
+});
+
+describe("reverseFieldValue phone -> canonical, never monday's rendered text", () => {
+  const ph: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true };
+  it("strips monday's country suffix (a rep picking the flag renders '<number> US')", () =>
+    expect(reverseFieldValue(ph, "12345678900 US", ctx)).toBe("12345678900"));
+  it("keeps a LEADING + for international numbers", () =>
+    expect(reverseFieldValue(ph, "+1 (234) 567-8900", ctx)).toBe("+12345678900"));
+  it("drops a stray non-leading +", () => expect(reverseFieldValue(ph, "1+2", ctx)).toBe("12"));
+  it("digitless input writes nothing", () => expect(reverseFieldValue(ph, "N/A", ctx)).toBe(""));
 });

@@ -22,7 +22,10 @@ export function phoneBackfillCandidates(
   for (const c of cards) {
     if (!c.hubspotId || !phoneDigits(c.phone)) continue;      // no id, or nothing to write
     if (!(c.hubspotId in hubspotPhoneById)) continue;         // record not found in HubSpot -> never guess
-    if (phoneDigits(hubspotPhoneById[c.hubspotId] ?? "")) continue; // already has a phone -> never overwrite
+    // "Already has a phone" is judged on the RAW value, not on digits: a real-but-digitless entry like
+    // "N/A" / "none" / "ask reception" has no digits, and treating it as empty would OVERWRITE real
+    // HubSpot data while logging previous="".
+    if (String(hubspotPhoneById[c.hubspotId] ?? "").trim()) continue;
     out.push(c);
   }
   return out;

@@ -31,7 +31,9 @@ describe("contactSearchBody", () => {
 
 describe("mapContactResult", () => {
   const owners = { "77": { name: "Jane Rep", email: "jane@dkm.com" } };
-  const labels = { leadStatus: { NEW: "New" }, contactSource: { WEB: "Web" }, contactVendor: { ACME: "Acme" } };
+  // salesUser maps a raw HubSpot OWNER ID -> owner name; without it the directory shows a bare id.
+  const labels = { leadStatus: { NEW: "New" }, contactSource: { WEB: "Web" }, contactVendor: { ACME: "Acme" },
+    salesUser: { "77": "Jane Rep" } };
   it("joins name, resolves owner + enum labels, '' when missing", () => {
     expect(mapContactResult({
       firstname: "Jo", lastname: "Lee", email: "jo@x.com", phone: "123", jobtitle: "CTO",
@@ -40,7 +42,7 @@ describe("mapContactResult", () => {
     } as any, owners as any, labels as any)).toEqual({
       name: "Jo Lee", email: "jo@x.com", phone: "123", jobtitle: "CTO", company: "Acme Inc",
       leadStatus: "New", leadSource: "Web", createdate: "2026-07-01T00:00:00Z",
-      ownerName: "Jane Rep", salesUser: "77",
+      ownerName: "Jane Rep", salesUser: "Jane Rep",
     });
   });
   it("no name falls back to email", () =>
