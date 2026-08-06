@@ -59,10 +59,19 @@ export function buildColumnValues(rec: HsRecord, spec: ObjectSpec, ctx: Ctx): Re
  * Trimmed + number-normalized so it round-trips against monday's echoed column text
  * (monday trims text and renders "1500000.50" as "1500000.5") — otherwise every tick sees a
  * phantom diff and loops. */
+/** Bare digits of a phone value. Phone is the one column whose monday rendering never matches HubSpot's
+ * string byte-for-byte (monday re-formats by country), so BOTH sides are compared on digits only —
+ * otherwise every reconcile tick sees a phantom diff and the sync fights itself. */
+export function phoneDigits(v: string | null | undefined): string {
+  return String(v ?? "").replace(/[^\d]/g, "");
+}
+
 export function expectedText(f: FieldSpec, value: string | null | undefined, ctx: Ctx): string | null {
-  if (f.type === "people" || f.type === "phone") return null;
+  if (f.type === "people") return null;
   if (value === null || value === undefined || value === "") return "";
   const v = String(value).trim();
+  // Phone: diffable, but only as digits (see phoneDigits). fieldDiffs normalizes the monday side to match.
+  if (f.type === "phone") return phoneDigits(v);
   switch (f.type) {
     case "date": return v.slice(0, 10);
     case "numbers": { const n = Number(v); return Number.isFinite(n) ? String(n) : v; }

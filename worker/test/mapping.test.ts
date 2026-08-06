@@ -16,6 +16,15 @@ const ctx: Ctx = {
 
 const f = (over: Partial<FieldSpec>): FieldSpec => ({ hs: "p", col: "c", type: "text", ...over });
 
+describe("expectedText phone (digits-normalized so monday's formatted echo round-trips)", () => {
+  const ph = f({ type: "phone" });
+  it("strips punctuation/spaces to bare digits", () => {
+    expect(expectedText(ph, "+1 (234) 567-8900", ctx)).toBe("12345678900");
+    expect(expectedText(ph, "234-567-8900", ctx)).toBe("2345678900");
+  });
+  it("empty -> ''", () => expect(expectedText(ph, "", ctx)).toBe(""));
+});
+
 describe("formatValue", () => {
   it("status uses the label dictionary", () =>
     expect(formatValue(f({ type: "status", labels: "stage" }), "appointmentscheduled", ctx))

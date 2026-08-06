@@ -61,7 +61,7 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
           lastname: colText(it as any, CONTACT_COLS.lastname.id),
           email: colText(it as any, CONTACT_COLS.email.id),
           jobtitle: colText(it as any, CONTACT_COLS.jobtitle.id),
-          phone: colText(it as any, CONTACT_COLS.phone.id),                 // read-only display
+          phone: colText(it as any, CONTACT_COLS.phone.id),
           salesUserId: people(CONTACT_COLS.salesUsers.id)[0],
           ownerId: people(CONTACT_COLS.owner.id)[0],
           leadStatus: colText(it as any, CONTACT_COLS.leadStatus.id),
@@ -171,7 +171,7 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
             <Field label="Last name"><input className="dc-field-input" value={form.lastname ?? ""} onChange={e => set({ lastname: e.target.value })} /></Field>
             <Field label="Email"><input className="dc-field-input" value={form.email ?? ""} onChange={e => set({ email: e.target.value })} /></Field>
             <Field label="Job title"><input className="dc-field-input" value={form.jobtitle ?? ""} onChange={e => set({ jobtitle: e.target.value })} /></Field>
-            <Field label="Phone (read-only)"><input className="dc-field-input" value={form.phone ?? ""} disabled /></Field>
+            <Field label="Phone"><input className="dc-field-input" value={form.phone ?? ""} onChange={e => set({ phone: e.target.value })} /></Field>
             <Field label="Sales user"><SelectOpt options={userOpts} value={form.salesUserId} onChange={v => set({ salesUserId: v })} placeholder="No sales user" /></Field>
             <Field label="Owner"><SelectOpt options={userOpts} value={form.ownerId} onChange={v => set({ ownerId: v })} placeholder="No owner" /></Field>
             <Field label="Lead status"><SelectStr options={enumOpts(schema, "hs_lead_status")} value={form.leadStatus} onChange={v => set({ leadStatus: v })} placeholder="—" /></Field>

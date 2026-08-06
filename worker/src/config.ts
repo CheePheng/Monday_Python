@@ -214,7 +214,7 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { hs: "email", col: "text_mm4p2bvb", type: "text", reverse: true },
     { hs: "jobtitle", col: "text_mm4sznkw", type: "text", reverse: true },
     { hs: "company", col: "text_mm4sbj9b", type: "text" },
-    { hs: "phone", col: "phone_mm4s31p3", type: "phone" },
+    { hs: "phone", col: "phone_mm4s31p3", type: "phone", reverse: true },  // digits-compared (see phoneDigits)
     { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", reverse: true },
     { hs: "sales_user", col: "multiple_person_mm542gng", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "createdate", col: "date_mm4s2bjd", type: "date", oneWay: true },

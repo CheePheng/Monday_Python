@@ -16,6 +16,12 @@ describe("contactFormToColumnValues", () => {
     });
   });
   it("empty form -> {} (no clear path)", () => expect(contactFormToColumnValues({})).toEqual({}));
-  it("does not write phone (read-only until Task 8)", () =>
-    expect(contactFormToColumnValues({ phone: "123" } as any)).toEqual({}));
+  it("writes phone as { phone } with digits (keeps a leading +), stripping formatting", () => {
+    expect(contactFormToColumnValues({ phone: "+1 (234) 567-8900" }))
+      .toEqual({ phone_mm4s31p3: { phone: "+12345678900" } });
+    expect(contactFormToColumnValues({ phone: "234-567-8900" }))
+      .toEqual({ phone_mm4s31p3: { phone: "2345678900" } });
+  });
+  it("blank phone is omitted (no clear path)", () =>
+    expect(contactFormToColumnValues({ phone: "   " })).toEqual({}));
 });

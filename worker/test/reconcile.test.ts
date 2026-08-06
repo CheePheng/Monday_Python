@@ -39,6 +39,33 @@ const rec = (props: Record<string, string>) => ({
     dealtype: "existingbusiness", createdate: "2026-06-26T00:00:00Z", ...props },
 });
 
+// Phone is diffable but compared DIGITS-ONLY on both sides: monday renders a phone column with its own
+// formatting, so a raw text compare would report a diff on every tick and the reconcile would fight
+// itself (write -> echo -> write). These tests are the loop guard.
+describe("fieldDiffs phone", () => {
+  const phoneSpec: ObjectSpec = {
+    ...spec, object: "contacts",
+    fields: [{ hs: "phone", col: "c_phone", type: "phone", reverse: true }],
+  };
+  const phoneItem = (text: string): MondayItem =>
+    item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text }] });
+
+  it("same number, different formatting -> NO diff (no phantom-diff loop)", () => {
+    const d = fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "+1 (234) 567-8900" } } as any,
+      phoneItem("+1 234-567-8900"), phoneSpec, ctx);
+    expect(d.filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("a genuinely different number -> one field diff carrying the RAW monday text (keeps the +)", () => {
+    const d = fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "+1 234-567-8900" } } as any,
+      phoneItem("+1 999-000-1111"), phoneSpec, ctx).filter(x => x.kind === "field");
+    expect(d).toHaveLength(1);
+    expect(d[0].mdText).toBe("+1 999-000-1111");
+  });
+  it("empty HubSpot phone never clears from monday (no backfill for contacts)", () =>
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "" } } as any,
+      phoneItem("+1 234-567-8900"), phoneSpec, ctx).filter(x => x.kind === "field")).toEqual([]));
+});
+
 describe("fieldDiffs", () => {
   it("returns [] when everything matches", () =>
     expect(fieldDiffs(rec({}), item({}), spec, ctx)).toEqual([]));

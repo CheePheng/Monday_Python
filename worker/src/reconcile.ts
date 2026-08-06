@@ -1,5 +1,5 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
-import { expectedText, formatValue, itemName } from "./mapping";
+import { expectedText, formatValue, itemName, phoneDigits } from "./mapping";
 import { colText } from "./dedup";
 import { reverseGroup, targetGroup } from "./routing";
 
@@ -51,7 +51,11 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       continue;
     }
     const mdText = colText(item, f.col);
-    if (hsText !== mdText) out.push({ kind: "field", f, hsText, mdText });
+    // Phone compares DIGITS on both sides (hsText is already digits from expectedText): monday re-formats
+    // a phone column by country, so a raw compare would diff every tick and loop. The diff still carries the
+    // RAW monday text so the reverse write keeps the user's "+"/formatting.
+    const same = f.type === "phone" ? phoneDigits(mdText) === hsText : hsText === mdText;
+    if (!same) out.push({ kind: "field", f, hsText, mdText });
   }
   const wantName = itemName(rec, spec);
   if (wantName !== item.name.trim()) out.push({ kind: "name", hsText: wantName, mdText: item.name.trim() });
