@@ -136,8 +136,22 @@ async function syncNameColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids: str
   console.log(`source=hubspot object=${spec.object} id=${rec.id} association=${a.toObject} count=${ids.length} board=${spec.boardId} item=${item.id} action=${names ? "updated-monday" : "cleared-monday"}`);
 }
 
-const sameSet = (a: string[], b: string[]): boolean =>
+export const sameSet = (a: string[], b: string[]): boolean =>
   a.length === b.length && new Set([...a, ...b]).size === a.length;
+
+/** Would writing `want` over `current` WIPE an existing set of links using an EMPTY HubSpot read?
+ *
+ * HubSpot's association index is eventually consistent, and an app-created deal pushes its links via
+ * reverseAssociations moments after the card is written. A deal.creation webhook that lands in between
+ * reads ZERO associations — and the forward pass would then clear the links the rep just picked
+ * (observed live: 2 of 3 test deals lost their contact/company links this way).
+ *
+ * The reverse pass is already additive-only (reverseAssociations NEVER deletes), so refusing to clear
+ * from an empty read keeps both directions additive and consistent. Trade-off: removing the LAST
+ * association in HubSpot no longer clears monday. Removing links IN THE APP still works — the drawer
+ * writes the relation column itself and calls deleteAssociation. */
+export const clearsFromEmpty = (current: string[], want: string[]): boolean =>
+  want.length === 0 && current.length > 0;
 
 /** company/contact/deal associations -> a monday "Connect Boards" (board_relation) column that LINKS the
  * actual cards. Resolves each associated HubSpot id to the monday card on the target board; if a target
@@ -176,6 +190,11 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   const current = await getLinkedItemIds(env, item.id, a.relationCol!);
   if (sameSet(current, want)) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} count=${want.length} action=skipped`);
+    return;
+  }
+  // Never wipe existing links from an empty HubSpot read (see clearsFromEmpty) — this is the create-race guard.
+  if (clearsFromEmpty(current, want)) {
+    console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} current=${current.length} action=kept-no-clear reason="hubspot returned no associations"`);
     return;
   }
   if (opts.dryRun) { console.log(`DRY relation ${spec.object}/${item.id} ${a.toObject}=[${want.join(",")}]`); return; }

@@ -210,3 +210,25 @@ describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
     expect(H.parentCols.get("900")!["conn_co"]).toEqual({ item_ids: [701] });
   });
 });
+
+// --- create-race guard: the forward pass must never wipe links from an EMPTY HubSpot read ---
+// Live-observed 2026-08-04: an app-created deal writes its contact/company links, HubSpot's deal is
+// created moments later, and the deal.creation webhook's association read comes back EMPTY (HubSpot's
+// association index lags). The forward pass then cleared the links the rep had just picked — 2 of 3
+// test deals lost them. reverseAssociations is additive-only, so the forward pass is too now.
+import { sameSet, clearsFromEmpty } from "../src/associations";
+
+describe("relation write guards", () => {
+  it("sameSet ignores order and detects real differences", () => {
+    expect(sameSet(["1", "2"], ["2", "1"])).toBe(true);
+    expect(sameSet(["1"], ["1", "2"])).toBe(false);
+    expect(sameSet([], [])).toBe(true);
+  });
+  it("an EMPTY HubSpot read never clears existing monday links (the create race)", () =>
+    expect(clearsFromEmpty(["2812162017"], [])).toBe(true));
+  it("a non-empty HubSpot set still reconciles normally (adds and removals both apply)", () => {
+    expect(clearsFromEmpty(["1", "2"], ["1"])).toBe(false);   // removing one of two -> allowed to write
+    expect(clearsFromEmpty([], ["1"])).toBe(false);           // first link -> allowed to write
+    expect(clearsFromEmpty([], [])).toBe(false);              // nothing either side
+  });
+});
