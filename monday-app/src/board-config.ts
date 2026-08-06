@@ -71,3 +71,18 @@ export const COMPANY_COLS = {
   linkedin:    { id: "text_mm4w6rzg",          kind: "text" },
   description: { id: "text_mm4wwtd0",          kind: "text" },
 } as const;
+
+// Contact Follow Up board editable columns (mirrors worker CONTACTS_MYLA reverse fields). Item name = firstname.
+export const CONTACT_REL_COMPANY = "board_relation_mm54dbxk"; // Contact -> Company card link
+export const CONTACT_REL_DEAL = "board_relation_mm54zahf";    // Contact -> Deal card link
+export const CONTACT_COLS = {
+  lastname:   { id: "text_mm4scke9",           kind: "text" },
+  email:      { id: "text_mm4p2bvb",           kind: "text" },
+  jobtitle:   { id: "text_mm4sznkw",           kind: "text" },
+  phone:      { id: "phone_mm4s31p3",          kind: "phone" },       // read-only until Task 8
+  salesUsers: { id: "multiple_person_mm542gng", kind: "multiple-person" },
+  owner:      { id: "multiple_person_mm4p8xe2", kind: "multiple-person" },
+  leadStatus: { id: "status",                  kind: "status" },
+  leadSource: { id: "dropdown_mm4sj3kw",       kind: "dropdown" },
+  vendor:     { id: "dropdown_mm4t8gjf",       kind: "dropdown" },
+} as const;
