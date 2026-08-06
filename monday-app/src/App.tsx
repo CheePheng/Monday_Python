@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-do
 import mondaySdk from "monday-sdk-js";
 import BoardView from "./views/BoardView";
 import CompaniesView from "./views/CompaniesView";
+import ContactsView from "./views/ContactsView";
 import { ConfirmProvider } from "./confirm";
 import { useBoard } from "./useBoard";
 
@@ -25,10 +26,12 @@ export default function App() {
           <nav className="dc-topnav">
             <NavLink to="/board" className={({ isActive }) => "dc-topnav-tab" + (isActive ? " on" : "")}>Deals</NavLink>
             <NavLink to="/companies" className={({ isActive }) => "dc-topnav-tab" + (isActive ? " on" : "")}>Companies</NavLink>
+            <NavLink to="/contacts" className={({ isActive }) => "dc-topnav-tab" + (isActive ? " on" : "")}>Contacts</NavLink>
           </nav>
           <Routes>
             <Route path="/board" element={<BoardView board={board} />} />
             <Route path="/companies" element={<CompaniesView />} />
+            <Route path="/contacts" element={<ContactsView />} />
             <Route path="*" element={<Navigate to="/board" replace />} />
           </Routes>
         </BrowserRouter>
