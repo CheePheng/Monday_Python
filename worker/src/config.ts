@@ -215,13 +215,13 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { hs: "jobtitle", col: "text_mm4sznkw", type: "text", reverse: true },
     { hs: "company", col: "text_mm4sbj9b", type: "text" },
     { hs: "phone", col: "phone_mm4s31p3", type: "phone" },
-    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
+    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", reverse: true },
     { hs: "sales_user", col: "multiple_person_mm542gng", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "createdate", col: "date_mm4s2bjd", type: "date", oneWay: true },
     { hs: "notes_last_updated", col: "date4", type: "date" },
     { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus", reverse: true }, // edit here -> writes back to HubSpot
-    { hs: "leadsource", col: "dropdown_mm4sj3kw", type: "dropdown", labels: "contactSource" },
-    { hs: "manufacturer__c", col: "dropdown_mm4t8gjf", type: "dropdown", labels: "contactVendor" },
+    { hs: "leadsource", col: "dropdown_mm4sj3kw", type: "dropdown", labels: "contactSource", reverse: true },
+    { hs: "manufacturer__c", col: "dropdown_mm4t8gjf", type: "dropdown", labels: "contactVendor", reverse: true },
   ],
 };
 

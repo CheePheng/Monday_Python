@@ -325,6 +325,71 @@ export async function listCompanies(
   return { items, after: res.paging?.next?.after ?? null };
 }
 
+// --- /app/contacts directory (live HubSpot contact list + search) ---
+export const CONTACT_LIST_PROPS = [
+  "firstname", "lastname", "email", "phone", "jobtitle", "company",
+  "hs_lead_status", "leadsource", "createdate", "hubspot_owner_id", "sales_user", "notes_last_updated",
+];
+
+export interface ContactHit {
+  hubspotId: string; name: string; email: string; phone: string; jobtitle: string; company: string;
+  leadStatus: string; leadSource: string; createdate: string; ownerName: string; salesUser: string;
+}
+
+/** Build the HubSpot contact search body. Pure/testable. Same shape as companySearchBody. */
+export function contactSearchBody(args: { q?: string; after?: string; limit?: number } & CompanyFilters): Record<string, unknown> {
+  const limit = Math.min(Math.max(args.limit ?? 25, 1), 50);
+  const body: Record<string, unknown> = {
+    sorts: [{ propertyName: "createdate", direction: "DESCENDING" }],
+    properties: CONTACT_LIST_PROPS,
+    limit,
+  };
+  const filters: Record<string, unknown>[] = [];
+  if (args.ownerId) filters.push({ propertyName: "hubspot_owner_id", operator: "EQ", value: args.ownerId });
+  if (args.created?.gte != null) filters.push({ propertyName: "createdate", operator: "GTE", value: args.created.gte });
+  if (args.created?.lte != null) filters.push({ propertyName: "createdate", operator: "LTE", value: args.created.lte });
+  if (args.activity?.gte != null) filters.push({ propertyName: "notes_last_updated", operator: "GTE", value: args.activity.gte });
+  if (args.activity?.lte != null) filters.push({ propertyName: "notes_last_updated", operator: "LTE", value: args.activity.lte });
+  const query = (args.q ?? "").trim();
+  if (query) body.query = query;
+  if (filters.length) body.filterGroups = [{ filters }];
+  else if (!query) body.filterGroups = [{ filters: [{ propertyName: "createdate", operator: "HAS_PROPERTY" }] }];
+  if (args.after) body.after = args.after;
+  return body;
+}
+
+/** Map one HubSpot contact result to a ContactHit (minus id). Pure/testable. */
+export function mapContactResult(
+  p: Record<string, any>,
+  ownersById: Record<string, { name: string; email: string | null }>,
+  labels: Partial<Record<string, Record<string, string>>>,
+): Omit<ContactHit, "hubspotId"> {
+  const lab = (dict: string, v: string) => (v ? (labels?.[dict]?.[v] ?? v) : "");
+  const name = [p.firstname, p.lastname].filter(Boolean).join(" ").trim() || (p.email ?? "");
+  return {
+    name, email: p.email ?? "", phone: p.phone ?? "", jobtitle: p.jobtitle ?? "", company: p.company ?? "",
+    leadStatus: lab("leadStatus", p.hs_lead_status ?? ""),
+    leadSource: lab("contactSource", p.leadsource ?? ""),
+    createdate: p.createdate ?? "",
+    ownerName: p.hubspot_owner_id ? (ownersById[p.hubspot_owner_id]?.name ?? "") : "",
+    salesUser: p.sales_user ?? "",
+  };
+}
+
+/** Live contact list/search for /app/contacts. Returns mapped hits + the next-page cursor (or null). */
+export async function listContacts(
+  env: Env,
+  args: { q?: string; after?: string; limit?: number } & CompanyFilters,
+  ownersById: Record<string, { name: string; email: string | null }>,
+  labels: Partial<Record<string, Record<string, string>>>,
+): Promise<{ items: ContactHit[]; after: string | null }> {
+  const res = await hs(env, "POST", "/crm/v3/objects/contacts/search", contactSearchBody(args), 2);
+  const items = (res.results ?? []).map((r: any) => ({
+    hubspotId: String(r.id), ...mapContactResult(r.properties ?? {}, ownersById, labels),
+  }));
+  return { items, after: res.paging?.next?.after ?? null };
+}
+
 /** Map an associated record for /app/associations. companies -> {hubspotId,name}; contacts also carry
  * email + jobtitle. Pure/testable. */
 export function mapAssocRecord(
