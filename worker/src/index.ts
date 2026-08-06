@@ -3,10 +3,10 @@ export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
-import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, mapAssocRecord, mapOwners } from "./hubspot";
+import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, listContacts, mapAssocRecord, mapOwners } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody, parseSyncContactBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
 import { getItem, setColumns, findItemByColumn } from "./monday";
 import { syncAssociations } from "./associations";
@@ -118,6 +118,29 @@ export default {
           const scope = /403|forbidden|scope/i.test(String(e));
           console.log(`[app/companies] error="${String(e).slice(0, 140)}"`);
           return Response.json({ results: [], after: null, error: scope ? "scope" : "companies-failed" }, { headers: H });
+        }
+      }
+
+      // GET /app/contacts?q=&after=&limit= — live contact directory (newest-created first), paginated.
+      if (url.pathname === "/app/contacts" && req.method === "GET") {
+        const q = url.searchParams.get("q") ?? "";
+        const after = url.searchParams.get("after") || undefined;
+        const limit = Number(url.searchParams.get("limit") ?? "25");
+        const numP = (k: string) => { const s = url.searchParams.get(k); if (!s) return undefined; const v = Number(s); return Number.isFinite(v) ? v : undefined; };
+        const ownerId = url.searchParams.get("ownerId") || undefined;
+        const created = { gte: numP("createdGte"), lte: numP("createdLte") };
+        const activity = { gte: numP("activityGte"), lte: numP("activityLte") };
+        const H = { ...CORS, "Cache-Control": "no-store" };
+        try {
+          const ctx = await getCtxCached(env);
+          const { items, after: next } = await listContacts(
+            env, { q, after, limit: Number.isFinite(limit) ? limit : 25, ownerId, created, activity },
+            ctx.ownersById, ctx.labels);
+          return Response.json({ results: items, after: next }, { headers: H });
+        } catch (e) {
+          const scope = /403|forbidden|scope/i.test(String(e));
+          console.log(`[app/contacts] error="${String(e).slice(0, 140)}"`);
+          return Response.json({ results: [], after: null, error: scope ? "scope" : "contacts-failed" }, { headers: H });
         }
       }
 
@@ -338,6 +361,19 @@ export default {
         } catch (e) {
           console.log(`[app/sync-company] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "sync-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/sync-contact { itemId } — reverse-sync a contact's monday edits (fields + company/deal links)
+      if (url.pathname === "/app/sync-contact" && req.method === "POST") {
+        const s = parseSyncContactBody(await req.json().catch(() => ({})));
+        if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
+        try {
+          await syncMondayItem(env, CONTACTS_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 8 });
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/sync-contact] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ error: "sync-failed" }, { status: 502, headers: CORS });
         }
       }
 

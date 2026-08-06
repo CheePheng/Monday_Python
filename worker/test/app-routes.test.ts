@@ -129,11 +129,18 @@ describe("parseAssociationBody (generalized)", () => {
   it("still accepts deals->contacts", () =>
     expect(parseAssociationBody({ fromObject: "deals", fromId: "1", toObject: "contacts", toId: "2" }).ok).toBe(true));
   it("rejects a bad fromObject", () =>
-    expect(parseAssociationBody({ fromObject: "contacts", fromId: "1", toObject: "deals", toId: "2" }).ok).toBe(false));
+    expect(parseAssociationBody({ fromObject: "tickets", fromId: "1", toObject: "deals", toId: "2" }).ok).toBe(false));
   it("rejects non-numeric ids", () =>
     expect(parseAssociationBody({ fromObject: "companies", fromId: "x", toObject: "deals", toId: "2" }).ok).toBe(false));
 });
 describe("parseSyncCompanyBody", () => {
   it("accepts a numeric itemId", () => expect(parseSyncCompanyBody({ itemId: "55" })).toEqual({ ok: true, itemId: "55" }));
   it("rejects a non-numeric itemId", () => expect(parseSyncCompanyBody({ itemId: "x" }).ok).toBe(false));
+});
+
+describe("parseAssociationBody contacts fromObject", () => {
+  it("accepts contacts -> companies and contacts -> deals", () => {
+    expect(parseAssociationBody({ fromObject: "contacts", fromId: "1", toObject: "companies", toId: "2" }).ok).toBe(true);
+    expect(parseAssociationBody({ fromObject: "contacts", fromId: "1", toObject: "deals", toId: "2" }).ok).toBe(true);
+  });
 });

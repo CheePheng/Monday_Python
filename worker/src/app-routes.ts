@@ -4,7 +4,7 @@ import { pickWritableLineItemProps } from "./line-item-props";
 import { pickWritableContactProps, pickWritableCompanyProps } from "./contact-company-props";
 
 const numeric = (v: unknown): v is string => typeof v === "string" && /^\d+$/.test(v);
-const FROM_OK = new Set(["deals", "companies"]);
+const FROM_OK = new Set(["deals", "companies", "contacts"]);
 const TO_OK = new Set(["contacts", "companies", "deals"]);
 
 export interface LineItemReq { ok: boolean; lineItemId?: string; properties?: Record<string, string>; error?: string }
@@ -34,6 +34,13 @@ export interface SyncCompanyReq { ok: boolean; itemId?: string; error?: string }
 export function parseSyncCompanyBody(body: any): SyncCompanyReq {
   const itemId = body?.itemId;
   if (!numeric(itemId)) return { ok: false, error: "itemId must be a numeric string" };
+  return { ok: true, itemId };
+}
+
+export interface SyncContactReq { ok: boolean; itemId?: string; error?: string }
+export function parseSyncContactBody(body: any): SyncContactReq {
+  const itemId = String(body?.itemId ?? "");
+  if (!/^\d+$/.test(itemId)) return { ok: false, error: "itemId required" };
   return { ok: true, itemId };
 }
 
