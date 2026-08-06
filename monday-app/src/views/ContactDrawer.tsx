@@ -32,6 +32,7 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
   const [dirty, setDirty] = useState(false);
   const [form, setForm] = useState<ContactForm & { firstname?: string; phone?: string }>({});
   const [origFirstname, setOrigFirstname] = useState("");
+  const [origPhone, setOrigPhone] = useState("");   // so an untouched phone is never re-written (keeps monday's country flag)
   const [companies, setCompanies] = useState<Assoc[]>([]);
   const [origCompanies, setOrigCompanies] = useState<Assoc[]>([]);
   const [deals, setDeals] = useState<Assoc[]>([]);
@@ -79,7 +80,7 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
         const mDeals = mergeAssoc(dealCards.map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, label: c.name })),
           hsDeals.map(c => ({ hubspotId: c.hubspotId, name: c.name })));
         if (!alive) return;
-        setItemId(id); setForm(f); setOrigFirstname(it.name);
+        setItemId(id); setForm(f); setOrigFirstname(it.name); setOrigPhone(f.phone ?? "");
         setCompanies(mCompanies); setOrigCompanies(mCompanies);
         setDeals(mDeals); setOrigDeals(mDeals); setLoaded(true);
       } catch (e) { if (alive) setErr("Couldn't load this contact. " + String(e).slice(0, 120)); }
@@ -116,7 +117,10 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
     if (savingRef.current || !itemId) return;
     savingRef.current = true; setSaving(true); setErr(null);
     try {
-      const cv = contactFormToColumnValues(form);
+      // Send phone ONLY when the rep actually changed it. monday's phone column stores a countryShortName
+      // alongside the number, and our write emits just { phone } — so re-sending an untouched, hydrated
+      // value would silently drop the country flag the rep picked, on every save of any other field.
+      const cv = contactFormToColumnValues(form.phone === origPhone ? { ...form, phone: undefined } : form);
       if (Object.keys(cv).length) await updateItemColumns(CONTACT_BOARD, itemId, cv);
       if (form.firstname && form.firstname !== origFirstname) await renameItem(CONTACT_BOARD, itemId, form.firstname);
       const rc = await resolveCompanies(companies); setCompanies(rc);

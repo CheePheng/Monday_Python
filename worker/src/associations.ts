@@ -209,7 +209,9 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   }
   // ...and never wipe links just because some associated id didn't resolve to a card this pass (partial
   // eventual consistency, or the budget ran out before the card could be created). See resolvedAllIds.
-  if (!resolvedAllIds(ids, want) && current.length > want.length) {
+  // Only skip when the unresolved ids FULLY EXPLAIN the shrinkage. Otherwise a permanently unresolvable id
+  // (e.g. a merged-away HubSpot record) would freeze the column against every legitimate removal forever.
+  if (!resolvedAllIds(ids, want) && current.length - want.length <= ids.length - want.length) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} ids=${ids.length} resolved=${want.length} current=${current.length} action=kept-partial reason="not every associated id resolved to a card"`);
     return;
   }

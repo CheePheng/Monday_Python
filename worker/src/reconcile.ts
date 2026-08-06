@@ -44,7 +44,7 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       continue;
     }
     const hsText = expectedText(f, rec.properties[f.hs], ctx);
-    if (hsText === null) continue; // phone: not diffable
+    if (hsText === null) continue; // people: matched by owner id above, not text-diffable
     if (hsText === "") {
       // Empty HubSpot value: normally we don't fight monday (no clear, no loop). EXCEPTION — controlled
       // backfill: an ALLOWLISTED reversible field on an ALLOWLISTED object whose card carries the matching
@@ -58,7 +58,10 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       if (rawHs === "" && f.backfill && f.reverse && BACKFILL_OBJECTS.has(spec.object)
           && colText(item, spec.idCol) === rec.id) {
         const md = colText(item, f.col);
-        if (md) out.push({ kind: "field", f, hsText: "", mdText: md, backfill: true });
+        // Only raise the diff if the value would actually SURVIVE the reverse mapping. A monday value that
+        // canonicalises to "" (a digitless phone, an unmappable dropdown label) writes nothing, so raising
+        // it would re-diff every pass forever — churn, a bogus stats.toMonday++, and no progress.
+        if (md && reverseFieldValue(f, md, ctx)) out.push({ kind: "field", f, hsText: "", mdText: md, backfill: true });
       }
       continue;
     }

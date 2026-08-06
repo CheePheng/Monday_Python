@@ -386,21 +386,30 @@ export default {
         const phoneCol = CONTACTS_MYLA.fields.find(f => f.hs === "phone")!.col;
         try {
           const items = await getBoardItems(env, CONTACTS_MYLA.boardId);
-          const cards = items
+          const deduped = items
             .map(it => ({ itemId: it.id, hubspotId: colText(it, CONTACTS_MYLA.idCol).trim(), phone: colText(it, phoneCol) }))
             // Numeric ids only: a hand-typed non-numeric "HubSpot ID" would 400 the WHOLE 100-id batch/read
-            // and abort the run with zero progress. Dedup by id so a duplicated card can't PATCH the same
-            // record twice with different phones (last-write-wins, silently).
-            .filter(c => /^\d+$/.test(c.hubspotId) && c.phone.trim())
-            .filter((c, i, arr) => arr.findIndex(o => o.hubspotId === c.hubspotId) === i);
-          // Batch-read HubSpot phones (100/call) for just those cards.
+            // and abort the run with zero progress.
+            .filter(c => /^\d+$/.test(c.hubspotId) && c.phone.trim());
+          // Dedup by id via a Set (a findIndex scan is O(n^2) — ~2.5bn comparisons on a 50k board) so a
+          // duplicated card can't PATCH the same record twice with different phones, last-write-wins.
+          const seen = new Set<string>();
+          const cards = deduped.filter(c => !seen.has(c.hubspotId) && (seen.add(c.hubspotId), true));
+          // Batch-read HubSpot phones (100/call), STOPPING once we have enough candidates for this batch.
+          // Reading every carded contact just to write `limit` of them is what pushes a large board toward
+          // the Worker's subrequest ceiling. `candidates`/`remaining` therefore become LOWER BOUNDS when the
+          // scan stops early (`scanComplete` says which) — call again to continue.
           const phoneById: Record<string, string | null> = {};
+          const candidates: typeof cards = [];
+          let scanned = 0, scanComplete = true;
           for (let i = 0; i < cards.length; i += 100) {
-            const ids = cards.slice(i, i + 100).map(c => c.hubspotId);
-            for (const r of await getRecordsByIds(env, "contacts", ids, ["phone"]))
+            const slice = cards.slice(i, i + 100);
+            for (const r of await getRecordsByIds(env, "contacts", slice.map(c => c.hubspotId), ["phone"]))
               phoneById[r.id] = r.properties.phone ?? "";
+            scanned += slice.length;
+            candidates.push(...phoneBackfillCandidates(slice, phoneById));
+            if (candidates.length >= limit && i + 100 < cards.length) { scanComplete = false; break; }
           }
-          const candidates = phoneBackfillCandidates(cards, phoneById);
           const batch = candidates.slice(0, limit);
           let written = 0;
           if (!dryRun) {
@@ -410,14 +419,19 @@ export default {
               const digits = c.phone.replace(/[^\d]/g, "");
               if (!digits) continue;
               const value = c.phone.trim().startsWith("+") ? "+" + digits : digits;
-              await patchRecord(env, CONTACTS_MYLA, c.hubspotId, { phone: value }, appWriteOpts(env));
-              written++;
-              console.log(`[backfill] object=contacts hubspot_id=${c.hubspotId} monday_item=${c.itemId} field=phone previous="" value="${value}" result=written path=migration`);
+              const newMod = await patchRecord(env, CONTACTS_MYLA, c.hubspotId, { phone: value }, appWriteOpts(env));
+              // Stamp the POST-patch timestamp, exactly as the reconcile path does. The PATCH bumps the
+              // contact's lastmodifieddate, so without this the next incremental sweep reads hs > synced,
+              // decides "HubSpot is newer", and overwrites the monday card — reverting any unsynced rep edit.
+              if (newMod) await setColumns(env, CONTACTS_MYLA.boardId, c.itemId, { [CONTACTS_MYLA.syncStateCol]: newMod }, appWriteOpts(env));
+              if (newMod) written++;
+              console.log(`[backfill] object=contacts hubspot_id=${c.hubspotId} monday_item=${c.itemId} field=phone previous="" value="${value}" result=${newMod === null ? "dry-run" : "written"} path=migration`);
             }
           }
-          console.log(`[backfill] migration scanned=${items.length} with_monday_phone=${cards.length} candidates=${candidates.length} batch=${batch.length} written=${written} dryRun=${dryRun}`);
+          console.log(`[backfill] migration board_items=${items.length} with_monday_phone=${cards.length} hubspot_checked=${scanned} candidates=${candidates.length} scan_complete=${scanComplete} batch=${batch.length} written=${written} dryRun=${dryRun}`);
           return Response.json({
-            scanned: items.length, withMondayPhone: cards.length, candidates: candidates.length,
+            boardItems: items.length, withMondayPhone: cards.length, hubspotChecked: scanned,
+            candidates: candidates.length, scanComplete,   // false -> counts are LOWER BOUNDS; call again
             batch: batch.length, written, dryRun, remaining: Math.max(candidates.length - batch.length, 0),
             sample: batch.slice(0, 10).map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, phone: c.phone })),
           }, { headers: { ...CORS, "Cache-Control": "no-store" } });

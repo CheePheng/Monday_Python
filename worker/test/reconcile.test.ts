@@ -389,8 +389,11 @@ describe("deal Amount / Currency / Close date reverse to HubSpot (real DEALS spe
 });
 
 describe("controlled deals-only backfill of EMPTY HubSpot values (every reverse deal field)", () => {
-  const bctx: Ctx = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {},
-    ownerIdByEmail: {}, portalId: 1 };
+  // A dropdown needs its label dict to reverse-map (buildCtx always loads these in production). Without it
+  // reverseFieldValue yields "" and the backfill diff is correctly suppressed — writing nothing is what
+  // buildReversePatch would do anyway, so raising the diff would just churn every pass.
+  const bctx: Ctx = { labels: { vendor: { "37Docusign": "37Docusign" } }, ownersById: {},
+    mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1 };
   // monday card carrying the matching HubSpot Deal ID (numeric_mm4nz332 = 9001).
   const bItem = (over: Partial<{ id: string; amount: string; close: string; type: string }> = {}) => item({
     name: "Acme", group: { id: "group_mm4nf6fw" },
@@ -554,4 +557,17 @@ describe("reverseFieldValue phone -> canonical, never monday's rendered text", (
     expect(reverseFieldValue(ph, "+1 (234) 567-8900", ctx)).toBe("+12345678900"));
   it("drops a stray non-leading +", () => expect(reverseFieldValue(ph, "1+2", ctx)).toBe("12"));
   it("digitless input writes nothing", () => expect(reverseFieldValue(ph, "N/A", ctx)).toBe(""));
+});
+
+describe("backfill is suppressed when the monday value would write nothing (no permanent churn)", () => {
+  const phoneField: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true };
+  const cSpec: ObjectSpec = { ...spec, object: "contacts", fields: [phoneField] };
+  const md = (phone: string) => item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: phone }] });
+  const emptyHs = { id: "9001", properties: { dealname: "A", phone: "" } } as any;
+
+  // reverseFieldValue("N/A") -> "": the write would be skipped, so raising the diff would re-fire forever.
+  it("a digitless monday phone raises NO backfill diff", () =>
+    expect(fieldDiffs(emptyHs, md("N/A"), cSpec, ctx).some(d => d.backfill)).toBe(false));
+  it("a real monday phone still raises one", () =>
+    expect(fieldDiffs(emptyHs, md("+1 234-567-8900"), cSpec, ctx).some(d => d.backfill)).toBe(true));
 });
