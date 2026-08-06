@@ -76,6 +76,16 @@ export async function getDeals(): Promise<RawItem[]> {
   return items;
 }
 
+/** Find the monday item id on a board whose column equals a value (e.g. a deal card by its HubSpot id).
+ * Returns the first match's id, or null. Used to resolve a picked HubSpot deal to its board card, since
+ * deals are never created by the app (unlike contacts/companies via ensureCard). */
+export async function findItemByColumn(boardId: string, columnId: string, value: string): Promise<string | null> {
+  const data: any = await api(`query ($b: ID!, $c: String!, $v: String!) {
+    items_page_by_column_values(board_id: $b, columns: [{ column_id: $c, column_values: [$v] }], limit: 1) { items { id } }
+  }`, { b: boardId, c: columnId, v: value });
+  return data?.items_page_by_column_values?.items?.[0]?.id ?? null;
+}
+
 /** Fetch a single deal item (fast edit-open, avoids re-fetching every deal). */
 export async function getDeal(itemId: string): Promise<RawItem | null> {
   // created_at MUST be selected: patchRow() rebuilds the row from this after a save, and without it the

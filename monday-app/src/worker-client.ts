@@ -1,5 +1,6 @@
 import { WORKER_BASE } from "./board-config";
 import type { DateRange } from "./lib/date-range";
+import type { ContactHit } from "./lib/contacts";
 
 async function call(token: string, method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<any> {
   const res = await fetch(WORKER_BASE + path, {
@@ -43,6 +44,25 @@ export async function listCompanies(token: string, args: {
   if (args.activity?.gte != null) p.set("activityGte", String(args.activity.gte));
   if (args.activity?.lte != null) p.set("activityLte", String(args.activity.lte));
   const res = await call(token, "GET", `/app/companies?${p.toString()}`);
+  return { items: res.results ?? [], after: res.after ?? null, error: res.error };
+}
+
+/** Live contact directory (newest-created first); `after` pages, `q` searches name+email. Fails soft:
+ * a Worker error comes back as { error } (HTTP 200), surfaced to the caller. */
+export async function listContacts(token: string, args: {
+  q?: string; after?: string; limit?: number;
+  ownerId?: string; created?: DateRange; activity?: DateRange;
+}): Promise<{ items: ContactHit[]; after: string | null; error?: string }> {
+  const p = new URLSearchParams();
+  if (args.q?.trim()) p.set("q", args.q.trim());
+  if (args.after) p.set("after", args.after);
+  p.set("limit", String(args.limit ?? 25));
+  if (args.ownerId) p.set("ownerId", args.ownerId);
+  if (args.created?.gte != null) p.set("createdGte", String(args.created.gte));
+  if (args.created?.lte != null) p.set("createdLte", String(args.created.lte));
+  if (args.activity?.gte != null) p.set("activityGte", String(args.activity.gte));
+  if (args.activity?.lte != null) p.set("activityLte", String(args.activity.lte));
+  const res = await call(token, "GET", `/app/contacts?${p.toString()}`);
   return { items: res.results ?? [], after: res.after ?? null, error: res.error };
 }
 
@@ -102,15 +122,19 @@ export async function getDealLineItems(token: string, itemId: string): Promise<i
 export async function deleteHubspotLineItem(token: string, lineItemId: string): Promise<void> {
   await call(token, "DELETE", "/app/line-item", { lineItemId });
 }
-export async function addHubspotAssociation(token: string, fromObject: "deals" | "companies", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
+export async function addHubspotAssociation(token: string, fromObject: "deals" | "companies" | "contacts", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
   await call(token, "POST", "/app/association", { fromObject, fromId, toObject, toId });
 }
-export async function deleteHubspotAssociation(token: string, fromObject: "deals" | "companies", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
+export async function deleteHubspotAssociation(token: string, fromObject: "deals" | "companies" | "contacts", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
   await call(token, "DELETE", "/app/association", { fromObject, fromId, toObject, toId });
 }
 export async function syncCompany(token: string, itemId: string): Promise<boolean> {
   const res = await call(token, "POST", "/app/sync-company", { itemId });
   return res?.ok === true;
+}
+export async function syncContact(token: string, itemId: string): Promise<boolean> {
+  const r = await call(token, "POST", "/app/sync-contact", { itemId });
+  return !!(r as any)?.ok;
 }
 export async function archiveHubspotDeal(token: string, hubspotDealId: string): Promise<void> {
   await call(token, "DELETE", "/app/deal", { hubspotDealId });

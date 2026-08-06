@@ -7,7 +7,7 @@ import { hubspotRecordUrl } from "../board-config";
 import type { Assoc } from "../lib/assoc";
 export type { Assoc };
 interface Props {
-  kind: "contacts" | "companies"; token: string;
+  kind: "contacts" | "companies" | "deals"; token: string;
   value: Assoc[]; onChange: (next: Assoc[]) => void;
   single?: boolean;   // keep at most one staged link
 }
@@ -39,7 +39,7 @@ export default function AssociationPicker({ kind, token, value, onChange, single
 
   return (
     <div>
-      <div className="dc-section-title">{kind === "contacts" ? "Contacts" : "Companies"}</div>
+      <div className="dc-section-title">{kind === "contacts" ? "Contacts" : kind === "deals" ? "Deals" : "Companies"}</div>
       {value.length > 0 && (
         <div className="dc-chips">
           {value.map((a, i) => (
