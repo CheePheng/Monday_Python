@@ -20,6 +20,12 @@ function firstPersonOwnerId(item: MondayItem, col: string, ctx: Ctx): string {
   return email ? (ctx.ownerIdByEmail[email.toLowerCase()] ?? "") : "";
 }
 
+/** Objects whose ALLOWLISTED (`backfill: true`) fields may FILL an empty HubSpot value from monday.
+ * The per-field `backfill` flag is the real allowlist; this is the second lock, so adding the flag to a
+ * field on some other object can't silently start writing to that object. Contacts joined 2026-08-04 for
+ * `phone` only — see the phone note in config.ts. */
+const BACKFILL_OBJECTS = new Set(["deals", "contacts"]);
+
 export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx): Diff[] {
   const out: Diff[] = [];
   for (const f of spec.fields) {
@@ -44,7 +50,7 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       // backfill: an ALLOWLISTED reversible field on a DEAL whose card carries the matching HubSpot Deal ID
       // may FILL the empty HubSpot value from a non-empty monday value. Never the reverse (an empty monday
       // value never clears HubSpot), never for contacts/companies, never matched by name.
-      if (f.backfill && f.reverse && spec.object === "deals" && colText(item, spec.idCol) === rec.id) {
+      if (f.backfill && f.reverse && BACKFILL_OBJECTS.has(spec.object) && colText(item, spec.idCol) === rec.id) {
         const md = colText(item, f.col);
         if (md) out.push({ kind: "field", f, hsText: "", mdText: md, backfill: true });
       }

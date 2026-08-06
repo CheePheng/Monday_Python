@@ -11,6 +11,7 @@ import { ensureCardForRecord } from "./ensure-card";
 import { targetGroup } from "./routing";
 import {
   buildCreateProperties, buildReversePatch, buildUpdatePayload, decideDirection, fieldDiffs,
+  reverseFieldValue, type Diff,
 } from "./reconcile";
 import {
   createItem, deleteItem, findItemByColumn, getBoardItems, getItem, getUsersByEmail, moveItem,
@@ -87,6 +88,16 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   const diffs = fieldDiffs(rec, existing, spec, ctx);
   const dir = decideDirection(diffs, recModified, lastSynced);
 
+  // SAFE BACKFILLS RIDE OUTSIDE THE DIRECTION DECISION. A backfill fills an EMPTY HubSpot field from a
+  // non-empty monday value: it can never overwrite or clear real HubSpot data, so it is non-conflicting by
+  // definition and has no business in the record-level newer-wins arbitration. If it rode along, a
+  // `toMonday` pass (HubSpot record newer than our sync state) would write nothing for the empty field —
+  // buildUpdatePayload's formatValue returns null — then stamp the sync state and silently drop the fill.
+  // Contacts are `skipFullReconcile`, so nothing would ever retry it. Runs before the branch below; the
+  // `toHubspot` path already carries backfills inside buildReversePatch, so skip it there to avoid a
+  // duplicate PATCH.
+  if (dir !== "toHubspot") await writeSafeBackfills(env, spec, ctx, opts, budget, rec, existing, diffs);
+
   if (dir === "none") {
     stats.inSync++;
     if (lastSynced !== recModified) { // establish baseline so future monday edits win correctly
@@ -118,6 +129,30 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   cv[spec.syncStateCol] = recModified;
   await updateItem(env, spec.boardId, existing.id, itemName(rec, spec), cv, opts);
   stats.toMonday++; budget.left--;
+}
+
+/** Write only the SAFE BACKFILLS from `diffs` (empty HubSpot field <- non-empty monday value), independent
+ * of the direction decision. Same guarantees as the reverse path: allowlisted `backfill` fields only,
+ * id-matched card, never clears (an empty monday value produces no diff in the first place), idempotent.
+ * Every fill is logged `[backfill] ... path=independent` so a rollout's blast radius is auditable. */
+async function writeSafeBackfills(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, item: MondayItem,
+    diffs: Diff[]): Promise<void> {
+  if (budget.left <= 0) return;
+  const fills = diffs.filter(d => d.kind === "field" && d.backfill && d.f?.reverse);
+  if (!fills.length) return;
+  const patch: Record<string, string> = {};
+  for (const d of fills) {
+    const v = reverseFieldValue(d.f!, d.mdText, ctx);
+    if (v) patch[d.f!.hs] = v;
+  }
+  if (!Object.keys(patch).length) return;
+  const newMod = await patchRecord(env, spec, rec.id, patch, opts); budget.left--;
+  for (const d of fills) {
+    const v = patch[d.f!.hs];
+    if (v !== undefined)
+      console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${item.id} field=${d.f!.hs} previous="" value="${v}" result=${newMod === null ? "dry-run" : "written"} path=independent`);
+  }
 }
 
 /** Keep the "Shared" people column holding the all-members team on records with NO sales_user (so

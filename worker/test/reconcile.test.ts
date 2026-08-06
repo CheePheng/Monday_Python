@@ -61,7 +61,7 @@ describe("fieldDiffs phone", () => {
     expect(d).toHaveLength(1);
     expect(d[0].mdText).toBe("+1 999-000-1111");
   });
-  it("empty HubSpot phone never clears from monday (no backfill for contacts)", () =>
+  it("empty HubSpot phone is not touched when the field has no `backfill` flag", () =>
     expect(fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "" } } as any,
       phoneItem("+1 234-567-8900"), phoneSpec, ctx).filter(x => x.kind === "field")).toEqual([]));
 });
@@ -467,12 +467,23 @@ describe("controlled deals-only backfill of EMPTY HubSpot values (every reverse 
   it("is idempotent: once HubSpot holds the value there is no diff", () =>
     expect(byCol2(fieldDiffs(bRec({ amount: "5000.00" }), bItem(), DEALS, bctx), "numeric_mm531t6e")).toBeUndefined());
 
-  it("does NOT apply to contacts/companies even if a field were flagged", () => {
-    const contactish: ObjectSpec = { ...spec, object: "contacts", idCol: "c_id",
+  // 2026-08-04: contacts JOINED the backfill objects (for `phone` only — see config.ts). Companies are
+  // still excluded, so this keeps the original protection where it still applies.
+  it("does NOT apply to companies even if a field were flagged", () => {
+    const companyish: ObjectSpec = { ...spec, object: "companies", idCol: "c_id",
       fields: [{ hs: "amount", col: "c_amt", type: "numbers", reverse: true, backfill: true }] };
     const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_amt", text: "5000" }] });
-    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", amount: "" } }, md, contactish, ctx)
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", amount: "" } }, md, companyish, ctx)
       .find(x => x.f?.col === "c_amt")).toBeUndefined();
+  });
+
+  it("DOES apply to contacts when the field carries the backfill flag (phone rollout)", () => {
+    const contactish: ObjectSpec = { ...spec, object: "contacts", idCol: "c_id",
+      fields: [{ hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true }] };
+    const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: "+1 234-567-8900" }] });
+    const d = fieldDiffs({ id: "9001", properties: { dealname: "A", phone: "" } }, md, contactish, ctx)
+      .find(x => x.f?.col === "c_phone");
+    expect(d?.backfill).toBe(true);
   });
 
   // The invariant that matters most: a backfill diff makes fieldDiffs non-empty, so decideDirection can
@@ -481,4 +492,39 @@ describe("controlled deals-only backfill of EMPTY HubSpot values (every reverse 
   it("a backfill diff never clears the monday value when the direction resolves toMonday", () =>
     expect(buildUpdatePayload(fieldDiffs(bRec(), bItem(), DEALS, bctx), bRec(), DEALS, bctx))
       .not.toHaveProperty("numeric_mm531t6e"));
+});
+
+// --- contact phone backfill (2026-08-04) -------------------------------------------------------
+// An EMPTY HubSpot field may be FILLED from a non-empty monday value, but ONLY for an allowlisted
+// `backfill` field on an allowlisted object, with the card's HubSpot id matching. Never the reverse:
+// an empty monday value still never clears HubSpot.
+describe("fieldDiffs backfill — contacts/phone", () => {
+  const phoneField: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true };
+  const contactSpec: ObjectSpec = { ...spec, object: "contacts", fields: [phoneField] };
+  const cItem = (phone: string): MondayItem =>
+    item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: phone }] });
+  const cRec = (phone: string) => ({ id: "9001", properties: { dealname: "Acme", phone } }) as any;
+
+  it("empty HubSpot phone + monday phone -> a BACKFILL diff carrying the monday value", () => {
+    const d = fieldDiffs(cRec(""), cItem("+1 234-567-8900"), contactSpec, ctx).filter(x => x.kind === "field");
+    expect(d).toHaveLength(1);
+    expect(d[0].backfill).toBe(true);
+    expect(d[0].mdText).toBe("+1 234-567-8900");
+  });
+  it("empty on BOTH sides -> no diff (nothing to fill)", () =>
+    expect(fieldDiffs(cRec(""), cItem(""), contactSpec, ctx).filter(x => x.kind === "field")).toEqual([]));
+  it("a contact field WITHOUT the backfill flag still never fills an empty HubSpot value", () => {
+    const noFlag: ObjectSpec = { ...contactSpec, fields: [{ ...phoneField, backfill: undefined }] };
+    expect(fieldDiffs(cRec(""), cItem("+1 234-567-8900"), noFlag, ctx).filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("companies are NOT a backfill object (second lock beyond the per-field flag)", () => {
+    const coSpec: ObjectSpec = { ...contactSpec, object: "companies" };
+    expect(fieldDiffs(cRec(""), cItem("+1 234-567-8900"), coSpec, ctx).filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("a NON-matching HubSpot id never backfills (never matched by name)", () => {
+    const mismatched = item({ column_values: [{ id: "c_id", text: "OTHER" }, { id: "c_phone", text: "+1 234" }] });
+    expect(fieldDiffs(cRec(""), mismatched, contactSpec, ctx).filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("reverseFieldValue keeps the raw monday phone text (formatting/+ preserved on the write)", () =>
+    expect(reverseFieldValue(phoneField, "+1 234-567-8900", ctx)).toBe("+1 234-567-8900"));
 });
