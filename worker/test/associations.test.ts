@@ -216,7 +216,7 @@ describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
 // created moments later, and the deal.creation webhook's association read comes back EMPTY (HubSpot's
 // association index lags). The forward pass then cleared the links the rep had just picked — 2 of 3
 // test deals lost them. reverseAssociations is additive-only, so the forward pass is too now.
-import { sameSet, clearsFromEmpty, resolvedAllIds } from "../src/associations";
+import { sameSet, clearsFromEmpty, resolvedAllIds, shrinksFreshCard } from "../src/associations";
 
 describe("relation write guards", () => {
   it("sameSet ignores order and detects real differences", () => {
@@ -240,4 +240,22 @@ describe("resolvedAllIds — partial-resolution guard", () => {
     expect(resolvedAllIds(["h1", "h2"], ["c1"])).toBe(false));
   it("nothing associated resolves to nothing wanted", () =>
     expect(resolvedAllIds([], [])).toBe(true));
+});
+
+// The partial-lag clobber resolvedAllIds cannot see: HubSpot returns a STRICT SUBSET of the ids, so every
+// returned id resolves and the shortfall is invisible — arithmetically identical to a real removal.
+describe("shrinksFreshCard — partial association read on a brand-new card", () => {
+  const NOW = Date.parse("2026-08-04T12:00:00Z");
+  const ago = (s: number) => new Date(NOW - s * 1000).toISOString();
+
+  it("a seconds-old card losing a link is HELD (the app-create race)", () =>
+    expect(shrinksFreshCard(ago(5), ["cA"], ["cA", "cB"], NOW)).toBe(true));
+  it("an established card losing a link is a REAL removal -> allowed through", () =>
+    expect(shrinksFreshCard(ago(600), ["cA"], ["cA", "cB"], NOW)).toBe(false));
+  it("a fresh card GAINING a link is not a shrink -> allowed through", () =>
+    expect(shrinksFreshCard(ago(5), ["cA", "cB"], ["cA"], NOW)).toBe(false));
+  it("no change is not a shrink", () =>
+    expect(shrinksFreshCard(ago(5), ["cA"], ["cA"], NOW)).toBe(false));
+  it("an unparseable created_at is treated as old (fails open, never wedges)", () =>
+    expect(shrinksFreshCard("", ["cA"], ["cA", "cB"], NOW)).toBe(false));
 });

@@ -163,6 +163,17 @@ export const clearsFromEmpty = (current: string[], want: string[]): boolean =>
  * genuine removal still reconciles, because then every remaining id resolves and `want.length === ids.length`. */
 export const resolvedAllIds = (ids: string[], want: string[]): boolean => want.length === ids.length;
 
+/** Would this write SHRINK a brand-new card's links?
+ *
+ * `resolvedAllIds` cannot see the worst case: when HubSpot's association index has only partially caught up
+ * it returns a STRICT SUBSET of the ids, so every id it did return resolves cleanly and the shortfall is
+ * invisible (ids=[A], want=[cardA], current=[cardA,cardB] — arithmetically identical to a genuine removal
+ * of B). The one signal that separates them is the card's AGE: an app-created deal is seconds old and is
+ * precisely when the index lags, whereas a real removal happens on an established card. Same 90s grace the
+ * line-item reverse pass already uses. */
+export const shrinksFreshCard = (createdAt: string, want: string[], current: string[], now: number): boolean =>
+  want.length < current.length && (now - (Date.parse(createdAt) || 0)) < APP_CREATE_GRACE_MS;
+
 /** company/contact/deal associations -> a monday "Connect Boards" (board_relation) column that LINKS the
  * actual cards. Resolves each associated HubSpot id to the monday card on the target board; if a target
  * card doesn't exist yet, it is created on demand (so associations always link, even for records the
@@ -209,6 +220,12 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   }
   // ...and never wipe links just because some associated id didn't resolve to a card this pass (partial
   // eventual consistency, or the budget ran out before the card could be created). See resolvedAllIds.
+  // ...nor shrink a card created moments ago, where a partial (strict-subset) association read is expected
+  // and looks arithmetically identical to a real removal. See shrinksFreshCard.
+  if (shrinksFreshCard(item.created_at, want, current, Date.now())) {
+    console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} ids=${ids.length} resolved=${want.length} current=${current.length} action=kept-fresh reason="card created <90s ago; association index may lag"`);
+    return;
+  }
   // Only skip when the unresolved ids FULLY EXPLAIN the shrinkage. Otherwise a permanently unresolvable id
   // (e.g. a merged-away HubSpot record) would freeze the column against every legitimate removal forever.
   if (!resolvedAllIds(ids, want) && current.length - want.length <= ids.length - want.length) {
