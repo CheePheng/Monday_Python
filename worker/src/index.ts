@@ -15,6 +15,15 @@ import { colText } from "./dedup";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
 import { CONTACT_ENUM_PROPS, COMPANY_ENUM_PROPS } from "./contact-company-props";
 
+/** Properties `/app/associations` reads per TARGET object — exactly what mapAssocRecord consumes, and
+ * nothing that the object type doesn't own (a foreign property name can make HubSpot reject the whole
+ * batch/read, and that endpoint fails soft, so the drawer would just show an empty association list). */
+const ASSOC_PROPS: Record<string, string[]> = {
+  contacts: ["firstname", "lastname", "email", "jobtitle"],
+  companies: ["name", "domain"],
+  deals: ["dealname"],
+};
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
@@ -167,7 +176,11 @@ export default {
           return Response.json({ error: "type/to must be a CRM object; id must be numeric" }, { status: 400, headers: CORS });
         try {
           const ids = await getAssociatedIds(env, type, id, to);
-          const recs = ids.length ? await getRecordsByIds(env, to, ids, ["name", "domain", "firstname", "lastname", "email", "jobtitle", "dealname"]) : [];
+          // Ask ONLY for properties that exist on the target object. The previous shared list sent
+          // `dealname` to contacts and `firstname`/`email` to deals; HubSpot can reject a batch/read that
+          // names a property the object type doesn't have, and this endpoint fails SOFT — so one bad
+          // property silently emptied the drawer's association list instead of erroring.
+          const recs = ids.length ? await getRecordsByIds(env, to, ids, ASSOC_PROPS[to]) : [];
           const results = recs.map(r => mapAssocRecord(to, r));
           return Response.json({ results }, { headers: CORS });
         } catch (e) {

@@ -87,6 +87,10 @@ export async function getCompanyContacts(token: string, companyHubspotId: string
 export async function getRecordAssociations(token: string, type: "contacts" | "companies" | "deals", id: string, to: "contacts" | "companies" | "deals"):
     Promise<{ hubspotId: string; name: string }[]> {
   const res = await call(token, "GET", `/app/associations?type=${type}&id=${encodeURIComponent(id)}&to=${to}`);
+  // The endpoint fails SOFT ({results: [], error}), which is indistinguishable from "no associations" — a
+  // lookup failure would silently show an empty list and a save could then drop real HubSpot links. Throw so
+  // callers decide: every one of them already wraps this in try/catch and falls back to the board links.
+  if (res?.error) throw new Error("assoc-" + res.error);
   return res?.results ?? [];
 }
 

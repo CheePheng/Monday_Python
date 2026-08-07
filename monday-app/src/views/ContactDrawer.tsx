@@ -38,6 +38,9 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
   const [deals, setDeals] = useState<Assoc[]>([]);
   const [origDeals, setOrigDeals] = useState<Assoc[]>([]);
   const [schema, setSchema] = useState<Record<string, EnumProp>>({});
+  // Non-fatal: the HubSpot association read failed, so the lists below show the monday board links ONLY.
+  // Surfaced instead of swallowed — an empty section is indistinguishable from "no associations" otherwise.
+  const [assocWarn, setAssocWarn] = useState(false);
   const savingRef = useRef(false);
   const title = contact.name || contact.email || "Contact";
   const userOpts: Opt[] = users.map(u => ({ value: u.id, label: u.name || u.email || u.id }));
@@ -71,9 +74,10 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
         };
         const compCards = await getCardsByIds(linkedIds(it as any, CONTACT_REL_COMPANY), COMPANY_ID_COL);
         const dealCards = await getCardsByIds(linkedIds(it as any, CONTACT_REL_DEAL), DEAL_COLS.hubspotDealId.id);
+        let hsFailed = false;
         const [hsCompanies, hsDeals] = await Promise.all([
-          getRecordAssociations(token, "contacts", contact.hubspotId, "companies").catch(() => []),
-          getRecordAssociations(token, "contacts", contact.hubspotId, "deals").catch(() => []),
+          getRecordAssociations(token, "contacts", contact.hubspotId, "companies").catch(() => { hsFailed = true; return []; }),
+          getRecordAssociations(token, "contacts", contact.hubspotId, "deals").catch(() => { hsFailed = true; return []; }),
         ]);
         const mCompanies = mergeAssoc(compCards.map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, label: c.name })),
           hsCompanies.map(c => ({ hubspotId: c.hubspotId, name: c.name })));
@@ -81,6 +85,7 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
           hsDeals.map(c => ({ hubspotId: c.hubspotId, name: c.name })));
         if (!alive) return;
         setItemId(id); setForm(f); setOrigFirstname(it.name); setOrigPhone(f.phone ?? "");
+        setAssocWarn(hsFailed);
         setCompanies(mCompanies); setOrigCompanies(mCompanies);
         setDeals(mDeals); setOrigDeals(mDeals); setLoaded(true);
       } catch (e) { if (alive) setErr("Couldn't load this contact. " + String(e).slice(0, 120)); }
@@ -183,6 +188,12 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
             <Field label="Vendor"><SelectStr options={enumOpts(schema, "manufacturer__c")} value={form.vendor} onChange={v => set({ vendor: v })} placeholder="—" /></Field>
           </div>
 
+          {assocWarn && (
+            <div className="dc-err">
+              Couldn't load HubSpot associations — showing this card's board links only. Saving now could drop
+              links that exist in HubSpot; close and reopen to retry.
+            </div>
+          )}
           {/* AssociationPicker renders its own "Companies"/"Deals" section title — no preceding heading. */}
           <AssociationPicker kind="companies" token={token} value={companies} onChange={next => { setDirty(true); setCompanies(next); }} />
           <AssociationPicker kind="deals" token={token} value={deals} onChange={next => { setDirty(true); setDeals(next); }} />
