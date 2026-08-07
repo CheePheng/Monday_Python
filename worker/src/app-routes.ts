@@ -56,6 +56,35 @@ export function parseDealBody(body: any): DealReq {
  * an explicit act the rep takes in the app, carried here, and confined to this allowlist. */
 export const CLEARABLE_DEAL_PROPS = new Set(["amount", "closedate", "sales_user"]);
 
+/** Per-object clearable allowlists, enforced SERVER-side. Deliberately excludes anything identifying or
+ * used for matching: a contact's `email` (the dedup/adoption key) and `firstname`/`lastname`, and a
+ * company's `name`/`domain`. Clearing those would break record matching or orphan the card. */
+export const CLEARABLE_PROPS: Record<string, Set<string>> = {
+  deals: CLEARABLE_DEAL_PROPS,
+  companies: new Set(["industry", "type", "city", "state", "numberofemployees", "annualrevenue",
+    "linkedin_company_page", "description", "sales_user", "hubspot_owner_id"]),
+  contacts: new Set(["jobtitle", "phone", "hs_lead_status", "leadsource", "manufacturer__c",
+    "sales_user", "hubspot_owner_id"]),
+};
+
+export interface ClearRecordReq { ok: boolean; object?: string; hubspotId?: string; fields?: string[]; error?: string }
+/** Body: { object: "deals"|"companies"|"contacts", hubspotId, fields[] }. Same intent-carrying contract as
+ * the deal-only route: the rep emptied the field and pressed Save, which the reconciler can never infer
+ * from state (an empty monday value means "never set" OR "just cleared"). */
+export function parseClearRecordBody(body: any): ClearRecordReq {
+  const object = String(body?.object ?? "");
+  const allow = CLEARABLE_PROPS[object];
+  if (!allow) return { ok: false, error: "object must be deals|companies|contacts" };
+  const hubspotId = body?.hubspotId;
+  if (!numeric(hubspotId)) return { ok: false, error: "hubspotId must be a numeric string" };
+  const fields = body?.fields;
+  if (!Array.isArray(fields) || fields.length === 0)
+    return { ok: false, error: "fields must be a non-empty array" };
+  const bad = fields.filter(f => typeof f !== "string" || !allow.has(f));
+  if (bad.length) return { ok: false, error: `not clearable on ${object}: ${bad.map(String).join(",")}` };
+  return { ok: true, object, hubspotId, fields: [...new Set(fields as string[])] };
+}
+
 export interface ClearDealReq { ok: boolean; hubspotDealId?: string; fields?: string[]; error?: string }
 export function parseClearDealBody(body: any): ClearDealReq {
   const hubspotDealId = body?.hubspotDealId;

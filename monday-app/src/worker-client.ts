@@ -143,6 +143,13 @@ export async function addHubspotAssociation(token: string, fromObject: "deals" |
 export async function deleteHubspotAssociation(token: string, fromObject: "deals" | "companies" | "contacts", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
   await call(token, "DELETE", "/app/association", { fromObject, fromId, toObject, toId });
 }
+/** Blank allowlisted HubSpot properties on a company/contact. Carries the rep's INTENT: the reconciler
+ * can never infer a clear from state (an empty monday value means "never set" OR "just cleared"). */
+export async function clearRecordFields(token: string, object: "companies" | "contacts", hubspotId: string, fields: string[]): Promise<void> {
+  if (!fields.length) return;
+  await call(token, "POST", "/app/clear-record-fields", { object, hubspotId, fields });
+}
+
 export async function syncCompany(token: string, itemId: string): Promise<boolean> {
   const res = await call(token, "POST", "/app/sync-company", { itemId });
   return res?.ok === true;

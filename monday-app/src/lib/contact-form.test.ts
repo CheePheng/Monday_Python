@@ -49,3 +49,24 @@ describe("contactFormToColumnValues — changed fields only", () => {
   it("with no baseline (create-style) it still writes everything non-empty", () =>
     expect(Object.keys(contactFormToColumnValues(hydrated)).length).toBeGreaterThan(5));
 });
+
+import { contactClears } from "./contact-form";
+describe("contactClears — deliberate clears only", () => {
+  const had = { jobtitle: "CTO", phone: "+60123", leadStatus: "New", vendor: "Acme", salesUserId: "7" };
+  it("a field that HAD a value and is now blank is a clear (props + monday null)", () => {
+    const c = contactClears(had, { ...had, jobtitle: "" });
+    expect(c.props).toEqual(["jobtitle"]);
+    expect(c.cols).toEqual({ text_mm4sznkw: null });
+  });
+  it("an ALREADY-empty field is never a clear (sync lag must not wipe HubSpot)", () =>
+    expect(contactClears({ jobtitle: "" }, { jobtitle: "" }).props).toEqual([]));
+  it("no edits -> nothing to clear", () => expect(contactClears(had, had).props).toEqual([]));
+  it("clearing a people column emits sales_user + a null column", () => {
+    const c = contactClears(had, { ...had, salesUserId: "" });
+    expect(c.props).toEqual(["sales_user"]);
+    expect(c.cols).toEqual({ multiple_person_mm542gng: null });
+  });
+  it("email is NOT clearable (it is the dedup/adoption key)", () =>
+    expect(contactClears({ ...had, email: "a@b.co" } as any, { ...had, email: "" } as any).props)
+      .not.toContain("email"));
+});

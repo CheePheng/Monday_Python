@@ -5,10 +5,10 @@ import { Field, SelectStr, SelectOpt, type Opt } from "./FormFields";
 import { CONTACT_COLS, CONTACT_REL_COMPANY, CONTACT_REL_DEAL, CONTACT_BOARD, COMPANY_ID_COL, DEALS_BOARD, DEAL_COLS, hubspotRecordUrl } from "../board-config";
 import { getItem, updateItemColumns, renameItem, getCardsByIds, findItemByColumn, openLink, openItemCard, type AccountUser } from "../monday-client";
 import {
-  ensureCard, syncContact, getRecordAssociations, getContactSchema,
+  ensureCard, syncContact, getRecordAssociations, getContactSchema, clearRecordFields,
   addHubspotAssociation, deleteHubspotAssociation, type EnumProp,
 } from "../worker-client";
-import { contactFormToColumnValues, type ContactForm } from "../lib/contact-form";
+import { contactFormToColumnValues, contactClears, type ContactForm } from "../lib/contact-form";
 import { boardRelationValue } from "../lib/columns";
 import { mergeAssoc } from "../lib/assoc-merge";
 import type { Assoc } from "../lib/assoc";
@@ -126,7 +126,12 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
     if (savingRef.current || !itemId) return;
     savingRef.current = true; setSaving(true); setErr(null);
     try {
-      const cv = contactFormToColumnValues(form, origForm);
+      // Clear HubSpot FIRST, before the monday write. If HubSpot still held the old value, the monday
+      // webhook would read the now-empty column as "never set", restore it from HubSpot and undo the clear
+      // on both sides while still reporting success (the bug fixed for deals in v3.4).
+      const clears = contactClears(origForm, form);
+      if (clears.props.length) await clearRecordFields(token, "contacts", contact.hubspotId, clears.props);
+      const cv = { ...contactFormToColumnValues(form, origForm), ...clears.cols };
       if (Object.keys(cv).length) await updateItemColumns(CONTACT_BOARD, itemId, cv);
       if (form.firstname && form.firstname !== origFirstname) await renameItem(CONTACT_BOARD, itemId, form.firstname);
       const rc = await resolveCompanies(companies); setCompanies(rc);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BoardState } from "../useBoard";
 import { dealFormToColumnValues, deliberateClears, boardRelationValue, type DealForm } from "../lib/columns";
 import { groupIdForStage, stageOptions } from "../lib/stage";
-import { DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
+import { UNASSIGNED_GROUP, DEAL_COLS, SUB_COLS, CONTACT_ID_COL, COMPANY_ID_COL, hubspotDealUrl } from "../board-config";
 import {
   createDeal, updateDealColumns, renameDeal, moveToGroup, getSubitems, getDeal, getCardsByIds, openLink,
 } from "../monday-client";
@@ -290,14 +290,21 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
         // the deal in the wrong group instead of telling anyone.
         const groupId = groupIdForStage(stage, board.meta!.groups);
         if (!groupId) throw new Error(`No group matches the stage "${stage}"`);
-        parentId = await createDeal(groupId, name || "New Deal", dealFormToColumnValues(form));
+        // A deal with NO sales user belongs in Unassigned regardless of stage — that is the Worker's own
+        // rule (routing.ts targetGroup). Filing it by stage instead makes the reconcile pull it straight
+        // back and re-PATCH dealstage on every tick, forever.
+        const createGroup = (form.salesUserIds?.length ?? 0) === 0 && UNASSIGNED_GROUP ? UNASSIGNED_GROUP : groupId;
+        parentId = await createDeal(createGroup, name || "New Deal", dealFormToColumnValues(form));
         setCreatedItemId(parentId); // retries reuse this id, never create a second deal
       } else {
         // Also covers retrying a create whose later steps failed: the item already exists, so re-apply
         // the form to it rather than skipping (edits made before the retry would otherwise be lost).
         await renameDeal(parentId, name);
         await updateDealColumns(parentId, dealFormToColumnValues(form, clears));
-        const gid = form.stage ? groupIdForStage(form.stage, board.meta!.groups) : undefined;
+        // Only file by stage once the deal HAS a sales user; an unassigned deal stays in Unassigned
+        // (see routing.ts targetGroup), otherwise the reconcile fights the move on every tick.
+        const assigned = (form.salesUserIds?.length ?? 0) > 0;
+        const gid = assigned && form.stage ? groupIdForStage(form.stage, board.meta!.groups) : undefined;
         if (gid) await moveToGroup(parentId, gid);
       }
       // Staged associations become real only now, at Save.

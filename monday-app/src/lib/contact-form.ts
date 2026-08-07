@@ -37,3 +37,25 @@ export function contactFormToColumnValues(f: ContactForm, orig?: ContactForm): R
   if (changed("vendor") && f.vendor?.trim()) cv[CONTACT_COLS.vendor.id] = { labels: [f.vendor] };
   return cv;
 }
+
+/** HubSpot props the rep DELIBERATELY emptied: the field loaded with a value and the box is now blank.
+ * A field that was ALREADY empty is never a clear — monday being blank from sync lag must not wipe
+ * HubSpot. Mirrors the deal drawer's deliberateClears. Only server-allowlisted props are listed. */
+const CLEARABLE: [keyof ContactForm, string][] = [
+  ["jobtitle", "jobtitle"], ["phone", "phone"], ["leadStatus", "hs_lead_status"],
+  ["leadSource", "leadsource"], ["vendor", "manufacturer__c"],
+  ["salesUserId", "sales_user"], ["ownerId", "hubspot_owner_id"],
+];
+export function contactClears(orig: ContactForm, now: ContactForm): { props: string[]; cols: Record<string, null> } {
+  const props: string[] = []; const cols: Record<string, null> = {};
+  const colOf: Record<string, string> = {
+    jobtitle: CONTACT_COLS.jobtitle.id, phone: CONTACT_COLS.phone.id, leadStatus: CONTACT_COLS.leadStatus.id,
+    leadSource: CONTACT_COLS.leadSource.id, vendor: CONTACT_COLS.vendor.id,
+    salesUserId: CONTACT_COLS.salesUsers.id, ownerId: CONTACT_COLS.owner.id,
+  };
+  for (const [key, hs] of CLEARABLE) {
+    const had = (orig[key] ?? "").toString().trim(), has = (now[key] ?? "").toString().trim();
+    if (had && !has) { props.push(hs); cols[colOf[key as string]] = null; }  // null clears any monday column type
+  }
+  return { props, cols };
+}

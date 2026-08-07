@@ -5,11 +5,11 @@ import { Field, SelectStr, SelectOpt, type Opt } from "./FormFields";
 import { COMPANY_COLS, COMPANY_REL_CONTACT, CONTACT_ID_COL, COMPANY_BOARD, hubspotRecordUrl } from "../board-config";
 import { getItem, updateItemColumns, renameItem, getCardsByIds, openLink, openItemCard, type AccountUser } from "../monday-client";
 import {
-  ensureCard, syncCompany, getCompanyContacts, getRecordAssociations, getCompanySchema, createContact,
+  ensureCard, syncCompany, getCompanyContacts, getRecordAssociations, getCompanySchema, createContact, clearRecordFields,
   addHubspotAssociation, deleteHubspotAssociation, searchHubspot,
   type Company, type EnumProp,
 } from "../worker-client";
-import { companyFormToColumnValues, type CompanyForm } from "../lib/company-form";
+import { companyFormToColumnValues, companyClears, type CompanyForm } from "../lib/company-form";
 import { mergeAssoc } from "../lib/assoc-merge";
 import type { Assoc } from "../lib/assoc";
 import { colText, linkedIds } from "../useBoard";
@@ -110,7 +110,11 @@ export default function CompanyDrawer({ company, token, users, onClose, onCreate
     if (savingRef.current || !itemId) return;
     savingRef.current = true; setSaving(true); setErr(null);
     try {
-      const cv = companyFormToColumnValues(form, origForm);
+      // Clear HubSpot FIRST (see the ContactDrawer note): a monday-first clear gets restored by our own
+      // webhook and silently undone on both sides.
+      const clears = companyClears(origForm, form);
+      if (clears.props.length) await clearRecordFields(token, "companies", company.hubspotId, clears.props);
+      const cv = { ...companyFormToColumnValues(form, origForm), ...clears.cols };
       if (Object.keys(cv).length) await updateItemColumns(COMPANY_BOARD, itemId, cv);
       if (form.domain && form.domain !== origDomain) await renameItem(COMPANY_BOARD, itemId, form.domain);
       const rc = await resolveContacts(contacts);

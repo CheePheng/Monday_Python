@@ -31,3 +31,26 @@ export function companyFormToColumnValues(f: CompanyForm, orig?: CompanyForm): R
   if (changed("description") && f.description?.trim()) cv[COMPANY_COLS.description.id] = f.description;
   return cv;
 }
+
+/** HubSpot props the rep DELIBERATELY emptied (loaded with a value, now blank). An already-empty field is
+ * never a clear, so sync lag can't wipe HubSpot. Only server-allowlisted props (never name/domain). */
+const CLEARABLE: [keyof CompanyForm, string, string][] = [
+  ["industry", "industry", COMPANY_COLS.industry.id],
+  ["type", "type", COMPANY_COLS.type.id],
+  ["city", "city", COMPANY_COLS.city.id],
+  ["state", "state", COMPANY_COLS.state.id],
+  ["employees", "numberofemployees", COMPANY_COLS.employees.id],
+  ["revenue", "annualrevenue", COMPANY_COLS.revenue.id],
+  ["linkedin", "linkedin_company_page", COMPANY_COLS.linkedin.id],
+  ["description", "description", COMPANY_COLS.description.id],
+  ["salesUserId", "sales_user", COMPANY_COLS.salesUsers.id],
+  ["ownerId", "hubspot_owner_id", COMPANY_COLS.owner.id],
+];
+export function companyClears(orig: CompanyForm, now: CompanyForm): { props: string[]; cols: Record<string, null> } {
+  const props: string[] = []; const cols: Record<string, null> = {};
+  for (const [key, hs, col] of CLEARABLE) {
+    const had = (orig[key] ?? "").toString().trim(), has = (now[key] ?? "").toString().trim();
+    if (had && !has) { props.push(hs); cols[col] = null; }
+  }
+  return { props, cols };
+}

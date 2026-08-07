@@ -144,3 +144,23 @@ describe("parseAssociationBody contacts fromObject", () => {
     expect(parseAssociationBody({ fromObject: "contacts", fromId: "1", toObject: "deals", toId: "2" }).ok).toBe(true);
   });
 });
+
+import { parseClearRecordBody } from "../src/app-routes";
+describe("parseClearRecordBody — server-side clear allowlist", () => {
+  it("accepts an allowlisted company prop", () =>
+    expect(parseClearRecordBody({ object: "companies", hubspotId: "1", fields: ["city"] }).ok).toBe(true));
+  it("accepts an allowlisted contact prop", () =>
+    expect(parseClearRecordBody({ object: "contacts", hubspotId: "1", fields: ["jobtitle"] }).ok).toBe(true));
+  it("REFUSES a contact's email (dedup/adoption key)", () =>
+    expect(parseClearRecordBody({ object: "contacts", hubspotId: "1", fields: ["email"] }).ok).toBe(false));
+  it("REFUSES a company's name/domain (identity)", () => {
+    expect(parseClearRecordBody({ object: "companies", hubspotId: "1", fields: ["name"] }).ok).toBe(false);
+    expect(parseClearRecordBody({ object: "companies", hubspotId: "1", fields: ["domain"] }).ok).toBe(false);
+  });
+  it("REFUSES an unknown object and a non-numeric id", () => {
+    expect(parseClearRecordBody({ object: "tickets", hubspotId: "1", fields: ["x"] }).ok).toBe(false);
+    expect(parseClearRecordBody({ object: "contacts", hubspotId: "abc", fields: ["jobtitle"] }).ok).toBe(false);
+  });
+  it("REFUSES an empty field list", () =>
+    expect(parseClearRecordBody({ object: "contacts", hubspotId: "1", fields: [] }).ok).toBe(false));
+});

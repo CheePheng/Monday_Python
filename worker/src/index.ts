@@ -6,7 +6,7 @@ import { handleHubspot, handleMonday } from "./webhooks";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, listContacts, mapAssocRecord, mapOwners } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
-import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody, parseSyncContactBody } from "./app-routes";
+import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody, parseSyncContactBody, parseClearRecordBody } from "./app-routes";
 import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
 import { getItem, setColumns, findItemByColumn, getBoardItems } from "./monday";
 import { phoneBackfillCandidates } from "./backfill";
@@ -347,6 +347,25 @@ export default {
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} error="${String(e).slice(0, 160)}"`);
+          return Response.json({ ok: false, error: "clear-failed" }, { status: 502, headers: CORS });
+        }
+      }
+
+      // POST /app/clear-record-fields {object, hubspotId, fields:[...]} — the company/contact equivalent of
+      // clear-deal-fields. MUST run BEFORE the drawer's monday write: if HubSpot still held the old value,
+      // the monday webhook would read the now-empty column as "never set", restore it from HubSpot and
+      // silently undo the clear on both sides (the exact bug fixed for deals in v3.4).
+      if (url.pathname === "/app/clear-record-fields" && req.method === "POST") {
+        const c = parseClearRecordBody(await req.json().catch(() => ({})));
+        if (!c.ok) return Response.json({ error: c.error }, { status: 400, headers: CORS });
+        const spec = c.object === "companies" ? COMPANIES_MYLA : c.object === "contacts" ? CONTACTS_MYLA : DEALS;
+        try {
+          const props = Object.fromEntries(c.fields!.map(f => [f, ""]));
+          console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} fields=${c.fields!.join(",")}`);
+          await patchRecord(env, spec, c.hubspotId!, props, appWriteOpts(env));
+          return Response.json({ ok: true }, { headers: CORS });
+        } catch (e) {
+          console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} error="${String(e).slice(0, 160)}"`);
           return Response.json({ ok: false, error: "clear-failed" }, { status: 502, headers: CORS });
         }
       }
