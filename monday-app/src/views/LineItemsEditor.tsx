@@ -216,7 +216,11 @@ export async function persistLineItems(token: string, parentItemId: string, item
     const cols = lineItemToSubitemColumns(li);
     if (li.lineItemId) {                                   // already synced -> update the same line item
       if (li.subitemId) await updateSubitemColumns(li.subitemId, cols);
-      await updateHubspotLineItem(token, li.lineItemId, li.props ?? lineItemHubspotProperties(li));
+      // `props` is the FULL property set fetched fresh-on-open (it carries the extended fields — SKU, tax,
+      // pricing model — that have no monday column). It is a BASE only: the row's own edited core fields
+      // must win, or an edit to qty/price/discount PATCHes HubSpot with the values it already had, and the
+      // change silently reverts. `patch()` never updates `props`, which is exactly how that happened.
+      await updateHubspotLineItem(token, li.lineItemId, { ...(li.props ?? {}), ...lineItemHubspotProperties(li) });
       out.push(li);
       continue;
     }

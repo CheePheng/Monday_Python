@@ -248,8 +248,11 @@ export default function DealDrawer({ itemId, board, onClose, onSaved, onDirtyCha
   async function unlinkRemoved(orig: Assoc[], current: Assoc[], kind: "contacts" | "companies") {
     if (!dealHubspotId) return;
     for (const o of orig) {
-      if (!o.hubspotId || !o.itemId) continue;
-      if (current.some(c => c.itemId === o.itemId)) continue;
+      if (!o.hubspotId) continue;
+      // Match on hubspotId as well as itemId: mergeAssoc adds LIVE HubSpot associations with no itemId, so
+      // an itemId-only check skipped exactly those — removing such a chip left the HubSpot link in place and
+      // the next forward pass re-created the card and re-linked it ("I deleted it and it came back").
+      if (current.some(c => (o.itemId && c.itemId === o.itemId) || c.hubspotId === o.hubspotId)) continue;
       try { await deleteHubspotAssociation(board.sessionToken, "deals", dealHubspotId, kind, o.hubspotId); }
       catch (e) { setChildErr("Couldn't unlink in HubSpot: " + String(e).slice(0, 120)); }
     }

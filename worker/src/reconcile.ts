@@ -26,7 +26,16 @@ function firstPersonOwnerId(item: MondayItem, col: string, ctx: Ctx): string {
  * `phone` only — see the phone note in config.ts. */
 const BACKFILL_OBJECTS = new Set(["deals", "contacts"]);
 
-export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx): Diff[] {
+/**
+ * @param fillEmpty  APP-SAVE INTENT. A rep pressing Save in a drawer is an explicit instruction to push
+ *   monday -> HubSpot, so an EMPTY HubSpot value must be fillable from the card even when the field
+ *   carries no `backfill` flag. Without this, editing a field that HubSpot has never held (very common on
+ *   imported/sparse records — companies carry no backfill flags at all) writes to monday, reports success,
+ *   and silently never reaches HubSpot. Passive reconciles (cron/webhook) still pass false and stay
+ *   conservative. It never CLEARS: an empty monday value still produces no diff.
+ */
+export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx,
+    fillEmpty = false): Diff[] {
   const out: Diff[] = [];
   for (const f of spec.fields) {
     if (f.type === "people") {
@@ -55,8 +64,8 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       // real-but-digitless value like "N/A"/"none"/"ask reception" normalizes to "" and would otherwise look
       // empty — backfilling over it would DESTROY real HubSpot data while logging previous="".
       const rawHs = String(rec.properties[f.hs] ?? "").trim();
-      if (rawHs === "" && f.backfill && f.reverse && BACKFILL_OBJECTS.has(spec.object)
-          && colText(item, spec.idCol) === rec.id) {
+      const allowed = fillEmpty || (f.backfill && BACKFILL_OBJECTS.has(spec.object));
+      if (rawHs === "" && allowed && f.reverse && colText(item, spec.idCol) === rec.id) {
         const md = colText(item, f.col);
         // Only raise the diff if the value would actually SURVIVE the reverse mapping. A monday value that
         // canonicalises to "" (a digitless phone, an unmappable dropdown label) writes nothing, so raising

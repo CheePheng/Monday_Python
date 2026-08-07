@@ -5,7 +5,7 @@ import { Field, SelectStr, SelectOpt, type Opt } from "./FormFields";
 import { COMPANY_COLS, COMPANY_REL_CONTACT, CONTACT_ID_COL, COMPANY_BOARD, hubspotRecordUrl } from "../board-config";
 import { getItem, updateItemColumns, renameItem, getCardsByIds, openLink, openItemCard, type AccountUser } from "../monday-client";
 import {
-  ensureCard, syncCompany, getCompanyContacts, getRecordAssociations, getCompanySchema,
+  ensureCard, syncCompany, getCompanyContacts, getRecordAssociations, getCompanySchema, createContact,
   addHubspotAssociation, deleteHubspotAssociation, searchHubspot,
   type Company, type EnumProp,
 } from "../worker-client";
@@ -92,6 +92,12 @@ export default function CompanyDrawer({ company, token, users, onClose, onCreate
     const out: Assoc[] = [];
     for (const a of list) {
       if (a.itemId) { out.push(a); continue; }
+      if (a.create) {   // staged "+ New contact": create it now (keyed, so a retry resumes, never duplicates)
+        const r = await createContact(token, { idempotencyKey: a.create.key, properties: a.create.properties });
+        if (!r.hubspotId || !r.mondayItemId) throw new Error("Couldn't create the new contact");
+        out.push({ label: a.label, hubspotId: r.hubspotId, itemId: r.mondayItemId });
+        continue;
+      }
       const cid = await ensureCard(token, "contacts", a.hubspotId!);
       out.push({ ...a, itemId: cid });
     }

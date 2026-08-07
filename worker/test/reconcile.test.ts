@@ -571,3 +571,36 @@ describe("backfill is suppressed when the monday value would write nothing (no p
   it("a real monday phone still raises one", () =>
     expect(fieldDiffs(emptyHs, md("+1 234-567-8900"), cSpec, ctx).some(d => d.backfill)).toBe(true));
 });
+
+// --- app-save intent (2026-08-07 functional review) --------------------------------------------
+// A rep pressing Save in a drawer is an explicit "push monday -> HubSpot". Two failures this covers:
+// a field HubSpot never held produced NO diff (edit silently stayed in monday), and the drawer's own
+// association writes bumped lastmodifieddate so newer-wins flipped to toMonday and REVERTED the edit.
+describe("fieldDiffs fillEmpty (app save)", () => {
+  const companySpec: ObjectSpec = {
+    ...spec, object: "companies",
+    fields: [{ hs: "city", col: "c_city", type: "text", reverse: true }],   // note: NO backfill flag
+  };
+  const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_city", text: "Shenzhen" }] });
+  const emptyHs = { id: "9001", properties: { dealname: "A", city: "" } } as any;
+
+  it("passive reconcile: an empty HubSpot value is left alone (unchanged behaviour)", () =>
+    expect(fieldDiffs(emptyHs, md, companySpec, ctx).some(d => d.backfill)).toBe(false));
+
+  it("app save: the same edit DOES produce a fill diff, so it reaches HubSpot", () => {
+    const d = fieldDiffs(emptyHs, md, companySpec, ctx, true).find(x => x.f?.col === "c_city");
+    expect(d?.backfill).toBe(true);
+    expect(d?.mdText).toBe("Shenzhen");
+  });
+
+  it("app save still NEVER clears: an empty monday value produces no diff", () => {
+    const blank = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_city", text: "" }] });
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", city: "Shenzhen" } } as any, blank, companySpec, ctx, true)
+      .some(d => d.backfill)).toBe(false);
+  });
+
+  it("app save still requires a MATCHING HubSpot id (never matched by name)", () => {
+    const other = item({ column_values: [{ id: "c_id", text: "OTHER" }, { id: "c_city", text: "Shenzhen" }] });
+    expect(fieldDiffs(emptyHs, other, companySpec, ctx, true).some(d => d.backfill)).toBe(false);
+  });
+});

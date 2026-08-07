@@ -75,9 +75,13 @@ export function lineItemHubspotProperties(li: LineItemForm): Record<string, stri
     ...(li.quantity ? { quantity: li.quantity } : {}),
     ...(li.currency ? { hs_line_item_currency_code: li.currency } : {}),
     ...(li.description ? { description: li.description } : {}),
+    // Send the discount pair ONLY when the active mode actually has a value. Emitting "" for both on a row
+    // with no discount would CLEAR a real HubSpot discount on any unrelated save (persistLineItems runs on
+    // every save, even one that only renamed the deal). A non-empty value still blanks the other mode, so
+    // switching $ <-> % can't leave a stale sibling behind.
     ...(li.discountMode === "percent"
-      ? { hs_discount_percentage: li.discountPct ?? "", discount: "" }
-      : { discount: li.discount ?? "", hs_discount_percentage: "" }),
+      ? (li.discountPct ? { hs_discount_percentage: li.discountPct, discount: "" } : {})
+      : (li.discount ? { discount: li.discount, hs_discount_percentage: "" } : {})),
     ...(li.serviceDate ? { service_date: li.serviceDate } : {}),
   };
 }

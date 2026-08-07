@@ -356,7 +356,7 @@ export default {
         const s = parseSyncDealBody(body);
         if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
         try {
-          await syncMondayItem(env, DEALS.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
+          await syncMondayItem(env, DEALS.boardId, s.itemId!, appWriteOpts(env), { left: 30 }, true);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/sync-deal] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
@@ -370,7 +370,7 @@ export default {
         const s = parseSyncCompanyBody(await req.json().catch(() => ({})));
         if (!s.ok) return Response.json({ error: s.error }, { status: 400, headers: CORS });
         try {
-          await syncMondayItem(env, COMPANIES_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
+          await syncMondayItem(env, COMPANIES_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 30 }, true);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/sync-company] item=${s.itemId} error="${String(e).slice(0, 160)}"`);
@@ -462,7 +462,7 @@ export default {
           // 30 to match /app/sync-deal and /app/sync-company: reverseAssociations spends one unit per
           // putAssociation across BOTH relation columns and simply breaks when the budget runs out, so a
           // smaller budget silently drops a contact's later company/deal links with no error to the drawer.
-          await syncMondayItem(env, CONTACTS_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 30 });
+          await syncMondayItem(env, CONTACTS_MYLA.boardId, s.itemId!, appWriteOpts(env), { left: 30 }, true);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/sync-contact] item=${s.itemId} error="${String(e).slice(0, 160)}"`);

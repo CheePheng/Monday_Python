@@ -68,7 +68,7 @@ export async function buildCtx(env: Env): Promise<Ctx> {
 /** HubSpot -> monday for one record, plus monday-edit -> HubSpot when monday is the newer side. */
 async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem | undefined,
-    stats: Stats): Promise<void> {
+    stats: Stats, appSave = false): Promise<void> {
   const group = targetGroup(rec, spec);
   if (!group) { stats.skipped++; return; }
   const recModified = rec.properties[spec.modifiedProp] ?? "";
@@ -85,8 +85,14 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   await maintainShared(env, spec, rec, existing, opts, budget); // toggle the Shared team on sales_user change
 
   const lastSynced = colText(existing, spec.syncStateCol);
-  const diffs = fieldDiffs(rec, existing, spec, ctx);
-  const dir = decideDirection(diffs, recModified, lastSynced);
+  // APP SAVE = INTENT. The rep just edited this card in a drawer, so monday wins and an empty HubSpot
+  // field is fillable. Two concrete failures this prevents:
+  //  - the drawer's own HubSpot association writes run BEFORE this sync, bumping the record's
+  //    lastmodifieddate past the card's Sync State, which flipped newer-wins to `toMonday` and REVERTED
+  //    the very edits being saved (drawer still reported success);
+  //  - a field HubSpot has never held produced no diff at all, so the edit silently never left monday.
+  const diffs = fieldDiffs(rec, existing, spec, ctx, appSave);
+  const dir = appSave && diffs.length ? "toHubspot" : decideDirection(diffs, recModified, lastSynced);
 
   // SAFE BACKFILLS RIDE OUTSIDE THE DIRECTION DECISION. A backfill fills an EMPTY HubSpot field from a
   // non-empty monday value: it can never overwrite or clear real HubSpot data, so it is non-conflicting by
@@ -544,7 +550,7 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
 
 /** monday card changed -> reconcile the one linked HubSpot deal (create / update). */
 export async function syncMondayItem(env: Env, boardId: string, itemId: string, opts: RunOpts,
-    budget: Budget): Promise<string> {
+    budget: Budget, appSave = false): Promise<string> {
   const spec = SPEC_BY_BOARD[boardId];
   if (!spec) return wlog("monday", itemId, "skipped", `reason="board ${boardId} not configured"`);
   const ctx = await getCtxCached(env);
@@ -556,7 +562,7 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
   if (dealId) { // already linked -> update that HubSpot record, never create a duplicate
     const deal = await getRecord(env, spec.object, dealId, propertiesForSpec(spec));
     if (!deal) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${dealId} not in HubSpot"`);
-    await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats);
+    await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave);
     // Reverse Connect-Boards links -> HubSpot associations (monday-edit path only; additive/set-only).
     if (budget.left > 0) await reverseAssociations(env, spec, deal, item, opts, budget);
     // Reverse monday subitems -> HubSpot line items (id-keyed; only when the write scope is enabled).
