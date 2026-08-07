@@ -1,13 +1,24 @@
+import { getContext } from "./monday-client";
 import { WORKER_BASE } from "./board-config";
 import type { DateRange } from "./lib/date-range";
 import type { ContactHit } from "./lib/contacts";
 
 async function call(token: string, method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<any> {
-  const res = await fetch(WORKER_BASE + path, {
+  const send = (t: string) => fetch(WORKER_BASE + path, {
     method, signal, cache: "no-store",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  let res = await send(token);
+  // monday session JWTs are short-lived. A drawer held open outlives its token, after which EVERY Worker
+  // call 403s — search dies, saves fail, and the only recovery was a full page reload. The drawers capture
+  // the token once at mount, so refresh it here: monday.get("sessionToken") mints a fresh one. One retry.
+  if (res.status === 403) {
+    try {
+      const fresh = (await getContext()).sessionToken;
+      if (fresh && fresh !== token) res = await send(fresh);
+    } catch { /* keep the original 403 */ }
+  }
   if (!res.ok) {
     // Surface the Worker's JSON {error} (e.g. "deal-not-synced") instead of a bare status code, so the
     // app's error toast reads meaningfully. Body may be empty/HTML -> fall back to the status.

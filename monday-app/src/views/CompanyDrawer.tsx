@@ -34,6 +34,8 @@ export default function CompanyDrawer({ company, token, users, onClose, onCreate
   const [dirty, setDirty] = useState(false);
   const [form, setForm] = useState<CompanyForm & { domain?: string }>({});
   const [origDomain, setOrigDomain] = useState("");
+  // As hydrated — only CHANGED fields are written (see companyFormToColumnValues).
+  const [origForm, setOrigForm] = useState<CompanyForm>({});
   const [contacts, setContacts] = useState<Assoc[]>([]);
   const [origContacts, setOrigContacts] = useState<Assoc[]>([]);
   const [deals, setDeals] = useState<{ hubspotId: string; name: string }[]>([]);
@@ -76,7 +78,7 @@ export default function CompanyDrawer({ company, token, users, onClose, onCreate
         const merged = mergeAssoc(cards.map(c => ({ itemId: c.itemId, hubspotId: c.hubspotId, label: c.name })),
           hsContacts.map(c => ({ hubspotId: c.hubspotId, name: c.name })));
         if (!alive) return;
-        setItemId(id); setForm(f); setOrigDomain(it.name);
+        setItemId(id); setForm(f); setOrigDomain(it.name); setOrigForm(f);
         setContacts(merged); setOrigContacts(merged); setDeals(hsDeals); setLoaded(true);
       } catch (e) { if (alive) setErr("Couldn't load this company. " + String(e).slice(0, 120)); }
     })();
@@ -108,7 +110,7 @@ export default function CompanyDrawer({ company, token, users, onClose, onCreate
     if (savingRef.current || !itemId) return;
     savingRef.current = true; setSaving(true); setErr(null);
     try {
-      const cv = companyFormToColumnValues(form);
+      const cv = companyFormToColumnValues(form, origForm);
       if (Object.keys(cv).length) await updateItemColumns(COMPANY_BOARD, itemId, cv);
       if (form.domain && form.domain !== origDomain) await renameItem(COMPANY_BOARD, itemId, form.domain);
       const rc = await resolveContacts(contacts);

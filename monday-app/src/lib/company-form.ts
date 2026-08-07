@@ -9,18 +9,25 @@ export interface CompanyForm {
 /** Company form -> monday column_values (JSON-encode before sending). Empty fields are OMITTED (no clear
  * path in v1). Enums use labels (status -> {label}, dropdown -> {labels:[label]}), people -> personsAndTeams.
  * The item name (domain) is set separately via renameItem. */
-export function companyFormToColumnValues(f: CompanyForm): Record<string, unknown> {
+/** Only columns whose value CHANGED are written. Rewriting an untouched column is not harmless here:
+ *  - a MULTI-value dropdown hydrates as monday's rendered text ("A, B"); re-sending that as a single
+ *    label is an unknown label, and monday rejects the WHOLE mutation -> the contact becomes unsavable;
+ *  - a people column holding two assignees hydrates as the first one, so a rewrite silently drops the rest;
+ *  - a phone column loses the country flag the rep picked.
+ * A field the rep genuinely edits is a single picked value, which is always valid. */
+export function companyFormToColumnValues(f: CompanyForm, orig?: CompanyForm): Record<string, unknown> {
   const cv: Record<string, unknown> = {};
-  if (f.name?.trim()) cv[COMPANY_COLS.name.id] = f.name;
-  if (f.industry?.trim()) cv[COMPANY_COLS.industry.id] = { labels: [f.industry] };
-  if (f.type?.trim()) cv[COMPANY_COLS.type.id] = { label: f.type };
-  if (f.salesUserId) cv[COMPANY_COLS.salesUsers.id] = peopleValue([f.salesUserId]);
-  if (f.ownerId) cv[COMPANY_COLS.owner.id] = peopleValue([f.ownerId]);
-  if (f.city?.trim()) cv[COMPANY_COLS.city.id] = f.city;
-  if (f.state?.trim()) cv[COMPANY_COLS.state.id] = f.state;
-  if (f.employees?.trim()) cv[COMPANY_COLS.employees.id] = f.employees;
-  if (f.revenue?.trim()) cv[COMPANY_COLS.revenue.id] = f.revenue;
-  if (f.linkedin?.trim()) cv[COMPANY_COLS.linkedin.id] = f.linkedin;
-  if (f.description?.trim()) cv[COMPANY_COLS.description.id] = f.description;
+  const changed = (k: keyof CompanyForm) => !orig || (f[k] ?? "") !== (orig[k] ?? "");
+  if (changed("name") && f.name?.trim()) cv[COMPANY_COLS.name.id] = f.name;
+  if (changed("industry") && f.industry?.trim()) cv[COMPANY_COLS.industry.id] = { labels: [f.industry] };
+  if (changed("type") && f.type?.trim()) cv[COMPANY_COLS.type.id] = { label: f.type };
+  if (changed("salesUserId") && f.salesUserId) cv[COMPANY_COLS.salesUsers.id] = peopleValue([f.salesUserId]);
+  if (changed("ownerId") && f.ownerId) cv[COMPANY_COLS.owner.id] = peopleValue([f.ownerId]);
+  if (changed("city") && f.city?.trim()) cv[COMPANY_COLS.city.id] = f.city;
+  if (changed("state") && f.state?.trim()) cv[COMPANY_COLS.state.id] = f.state;
+  if (changed("employees") && f.employees?.trim()) cv[COMPANY_COLS.employees.id] = f.employees;
+  if (changed("revenue") && f.revenue?.trim()) cv[COMPANY_COLS.revenue.id] = f.revenue;
+  if (changed("linkedin") && f.linkedin?.trim()) cv[COMPANY_COLS.linkedin.id] = f.linkedin;
+  if (changed("description") && f.description?.trim()) cv[COMPANY_COLS.description.id] = f.description;
   return cv;
 }
