@@ -79,6 +79,9 @@ export const CONTACT_COLS = {
   lastname:   { id: "text_mm4scke9",           kind: "text" },
   email:      { id: "text_mm4p2bvb",           kind: "text" },
   jobtitle:   { id: "text_mm4sznkw",           kind: "text" },
+  // HubSpot's free-text `company` property — a NAME string, NOT the associated company record. HubSpot
+  // auto-fills it from enrichment/forms, so it frequently names a company the contact isn't linked to.
+  companyText:{ id: "text_mm4sbj9b",           kind: "text" },
   phone:      { id: "phone_mm4s31p3",          kind: "phone" },       // editable (two-way, digits-compared)
   salesUsers: { id: "multiple_person_mm542gng", kind: "multiple-person" },
   owner:      { id: "multiple_person_mm4p8xe2", kind: "multiple-person" },

@@ -105,7 +105,7 @@ export default function ContactsView() {
         <div className="dc-table-scroll">
           <table className="dc-table">
             <thead><tr>
-              <th>Contact</th><th>Email</th><th>Company</th><th>Lead status</th><th>Owner</th><th>Created</th>
+              <th>Contact</th><th>Email</th><th title="HubSpot's free-text company field — not the linked company record">Company name</th><th>Lead status</th><th>Owner</th><th>Created</th>
             </tr></thead>
             <tbody>
               {loading && items.length === 0

@@ -30,7 +30,7 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [form, setForm] = useState<ContactForm & { firstname?: string; phone?: string }>({});
+  const [form, setForm] = useState<ContactForm & { firstname?: string; phone?: string; companyText?: string }>({});
   const [origFirstname, setOrigFirstname] = useState("");
   const [origPhone, setOrigPhone] = useState("");   // so an untouched phone is never re-written (keeps monday's country flag)
   const [companies, setCompanies] = useState<Assoc[]>([]);
@@ -60,11 +60,12 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
           try { return (JSON.parse(it.column_values.find(c => c.id === col)?.value ?? "{}").personsAndTeams ?? [])
             .filter((p: any) => p.kind === "person").map((p: any) => String(p.id)); } catch { return []; }
         };
-        const f: ContactForm & { firstname?: string; phone?: string } = {
+        const f: ContactForm & { firstname?: string; phone?: string; companyText?: string } = {
           firstname: it.name,
           lastname: colText(it as any, CONTACT_COLS.lastname.id),
           email: colText(it as any, CONTACT_COLS.email.id),
           jobtitle: colText(it as any, CONTACT_COLS.jobtitle.id),
+          companyText: colText(it as any, CONTACT_COLS.companyText.id),
           phone: colText(it as any, CONTACT_COLS.phone.id),
           salesUserId: people(CONTACT_COLS.salesUsers.id)[0],
           ownerId: people(CONTACT_COLS.owner.id)[0],
@@ -180,6 +181,10 @@ export default function ContactDrawer({ contact, token, users, onClose, onSaved 
             <Field label="Last name"><input className="dc-field-input" value={form.lastname ?? ""} onChange={e => set({ lastname: e.target.value })} /></Field>
             <Field label="Email"><input className="dc-field-input" value={form.email ?? ""} onChange={e => set({ email: e.target.value })} /></Field>
             <Field label="Job title"><input className="dc-field-input" value={form.jobtitle ?? ""} onChange={e => set({ jobtitle: e.target.value })} /></Field>
+            <Field label="Company name (HubSpot text field — not a link)">
+              <input className="dc-field-input" value={form.companyText ?? ""} disabled
+                title="HubSpot's free-text company property. The linked company records are in COMPANIES below." />
+            </Field>
             <Field label="Phone"><input className="dc-field-input" value={form.phone ?? ""} onChange={e => set({ phone: e.target.value })} /></Field>
             <Field label="Sales user"><SelectOpt options={userOpts} value={form.salesUserId} onChange={v => set({ salesUserId: v })} placeholder="No sales user" /></Field>
             <Field label="Owner"><SelectOpt options={userOpts} value={form.ownerId} onChange={v => set({ ownerId: v })} placeholder="No owner" /></Field>
