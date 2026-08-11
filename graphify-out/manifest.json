@@ -1,0 +1,1107 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1785746625.134717,
+    "ast_hash": "8013665e090c176e1b39d6f2e610fbd5",
+    "semantic_hash": ""
+  },
+  ".codex/hooks.json": {
+    "mtime": 1785983858.3113868,
+    "ast_hash": "17d41aeeedb5a325bc3c367a2ab7d0fc",
+    "semantic_hash": ""
+  },
+  "add_id_columns.py": {
+    "mtime": 1783046235.7398365,
+    "ast_hash": "bd758da76927229019ef99e8f1dd9d63",
+    "semantic_hash": ""
+  },
+  "config.example.json": {
+    "mtime": 1782446350.065382,
+    "ast_hash": "29b4efdbc29a681519befc715d7fa380",
+    "semantic_hash": ""
+  },
+  "conftest.py": {
+    "mtime": 1782440201.3568172,
+    "ast_hash": "08311f9915e2459c5704e8a48a74f2db",
+    "semantic_hash": ""
+  },
+  "hubspot-monday-webhook-sync/hsproject.json": {
+    "mtime": 1783181641.4361162,
+    "ast_hash": "0a8533b8d77b6e33a15937e5b55a79f3",
+    "semantic_hash": ""
+  },
+  "hubspot-monday-webhook-sync/src/app/app-hsmeta.json": {
+    "mtime": 1783587850.3204267,
+    "ast_hash": "d61ce7c8bb1ca55f51d7202394972e37",
+    "semantic_hash": ""
+  },
+  "hubspot-monday-webhook-sync/src/app/webhooks/webhooks-hsmeta.json": {
+    "mtime": 1783669259.9850378,
+    "ast_hash": "cd5b17891e4b2fde661b958723e093d0",
+    "semantic_hash": ""
+  },
+  "hubspot_smoke_test.py": {
+    "mtime": 1782439918.483466,
+    "ast_hash": "916d2e9fc6928b65abe5e929dc06fc79",
+    "semantic_hash": ""
+  },
+  "monday-app/package.json": {
+    "mtime": 1783938238.0320625,
+    "ast_hash": "b55d8d41ddb81e792e7e50ed4253bc9e",
+    "semantic_hash": ""
+  },
+  "monday-app/src/App.tsx": {
+    "mtime": 1785982495.9120095,
+    "ast_hash": "611dca3ea7c5aa3f75ef2885a263fd55",
+    "semantic_hash": ""
+  },
+  "monday-app/src/board-config.test.ts": {
+    "mtime": 1784907320.9297342,
+    "ast_hash": "97a0b1a8794065d36490befe855fd9f3",
+    "semantic_hash": ""
+  },
+  "monday-app/src/board-config.ts": {
+    "mtime": 1786072491.8716767,
+    "ast_hash": "fba2f2c2e1f68c24e3a3524d75cd77ac",
+    "semantic_hash": ""
+  },
+  "monday-app/src/confirm.tsx": {
+    "mtime": 1784815533.950819,
+    "ast_hash": "8a790f1e9230d6f028c8d8440bc40116",
+    "semantic_hash": ""
+  },
+  "monday-app/src/hooks/useDebouncedSearch.test.ts": {
+    "mtime": 1784563577.3928695,
+    "ast_hash": "969a6132b57a585114398da38fc23258",
+    "semantic_hash": ""
+  },
+  "monday-app/src/hooks/useDebouncedSearch.ts": {
+    "mtime": 1784564990.812902,
+    "ast_hash": "84d8180340aab63ba9ea6cbbaef1ab16",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/api-error.test.ts": {
+    "mtime": 1784270198.4302123,
+    "ast_hash": "83a91a022f335c8701cf4389e6fc2194",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/api-error.ts": {
+    "mtime": 1784270109.0486426,
+    "ast_hash": "b7749f08e784e92bc455df346d052a1a",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/assoc-merge.test.ts": {
+    "mtime": 1785766436.8560047,
+    "ast_hash": "9f701c575a84290b0d1e785749751722",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/assoc-merge.ts": {
+    "mtime": 1785766430.656292,
+    "ast_hash": "154fbd15821229f4ac1dd1cabc7b761c",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/assoc.test.ts": {
+    "mtime": 1784689117.6361966,
+    "ast_hash": "43821980cad13d0ba79475e77f21f2c2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/assoc.ts": {
+    "mtime": 1784689001.4895384,
+    "ast_hash": "9959145f1817a13503c7a91b04db4d15",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/auto-associate.test.ts": {
+    "mtime": 1785240284.0281343,
+    "ast_hash": "f0da4a428bb05b586c68f1faca0b53ce",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/auto-associate.ts": {
+    "mtime": 1785240305.708628,
+    "ast_hash": "17aa559981cd56afd3fdb8da0d309da9",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/columns.test.ts": {
+    "mtime": 1784863875.5376077,
+    "ast_hash": "1323216ff03c689e8a52555bef3bca7d",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/columns.ts": {
+    "mtime": 1786074242.9549322,
+    "ast_hash": "cf6ccea95f5ff8edf6028df5597be505",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/companies.test.ts": {
+    "mtime": 1785469150.9536953,
+    "ast_hash": "d82dc167d95b78be09ff5beec6ddf7bc",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/companies.ts": {
+    "mtime": 1785469166.7231975,
+    "ast_hash": "35ba09fde5cab6756e1252f5281b752b",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/company-create-flow.test.ts": {
+    "mtime": 1784811538.233488,
+    "ast_hash": "09155091619e603aa6d6f848e0c6ad6f",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/company-form.test.ts": {
+    "mtime": 1785766424.1868405,
+    "ast_hash": "540f894a990630bef45db6454a95609e",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/company-form.ts": {
+    "mtime": 1786076334.0482683,
+    "ast_hash": "e36fbb56b8ce33cc433c101dcbcdaf9a",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/confirm.test.ts": {
+    "mtime": 1784815497.8870988,
+    "ast_hash": "b917e1c442ddf2bf1f07dafb48aab5d6",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/confirm.ts": {
+    "mtime": 1784815489.9355097,
+    "ast_hash": "b956381e9a3390158d9f1e1dff03554f",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/contact-form.test.ts": {
+    "mtime": 1786076376.0563967,
+    "ast_hash": "6c97629dfbd42001cd004ecbd10e2ec7",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/contact-form.ts": {
+    "mtime": 1786076334.0482683,
+    "ast_hash": "87ea63ca3d70a323317418c382e2067b",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/contacts.ts": {
+    "mtime": 1785982181.2793863,
+    "ast_hash": "7b7deb3bad2037d83fba3f7125fe96e2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/create-progress.test.ts": {
+    "mtime": 1784687147.5277152,
+    "ast_hash": "ae404b141d1c38c6d1e665ea653f44e1",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/create-progress.ts": {
+    "mtime": 1784687160.1553566,
+    "ast_hash": "5bbbcd2cddb60a1951cec84ee89f17e2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/date-range.test.ts": {
+    "mtime": 1785516530.8609447,
+    "ast_hash": "6ff98534b953cbea853b2a9c6b9e30d7",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/date-range.ts": {
+    "mtime": 1785516549.5971057,
+    "ast_hash": "49198e84e74df0cedc544de53d48d1b8",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/dup-hints.test.ts": {
+    "mtime": 1784815700.2888148,
+    "ast_hash": "ce0cb4f9f323c2e738c7fbb1c46bbb4f",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/dup-hints.ts": {
+    "mtime": 1784815689.8461645,
+    "ast_hash": "f6ac9bb00d2b2c318fbadb603cd3a4c5",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/filter.test.ts": {
+    "mtime": 1785517855.6410112,
+    "ast_hash": "c9699264b8600ea5a56d31710073dc41",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/filter.ts": {
+    "mtime": 1785517836.9947321,
+    "ast_hash": "b3a5f553a2ae314e320b44a83be56bc6",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/kpi.test.ts": {
+    "mtime": 1784005719.2061644,
+    "ast_hash": "5cc451bd9af3718124dcbfcb842cf8b5",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/kpi.ts": {
+    "mtime": 1784005731.0064814,
+    "ast_hash": "4e42939a084305a46a17ab9a66770f5b",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/labels.test.ts": {
+    "mtime": 1783947630.6729515,
+    "ast_hash": "d297a1d3b684689d37f0d9f806403ba2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/labels.ts": {
+    "mtime": 1783947615.9826844,
+    "ast_hash": "4acf1c696e44984d58032e6db9d654ca",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/line-item-form.test.ts": {
+    "mtime": 1784602796.1272182,
+    "ast_hash": "b51d9800703961f08f3d4cb21e5a18ea",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/line-item-form.ts": {
+    "mtime": 1784604673.1625626,
+    "ast_hash": "fda51807e5f7cbc398f0f9062beee895",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/line-item-merge.test.ts": {
+    "mtime": 1784604637.7511601,
+    "ast_hash": "0ece6aff4606168f2e34eb28eb06baea",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/line-item-merge.ts": {
+    "mtime": 1784604650.0849578,
+    "ast_hash": "daf2cc6003bf789ce9649ab8d6370f3f",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/link-name.test.ts": {
+    "mtime": 1784907274.5068493,
+    "ast_hash": "fe38925d1bc879795bf020b6be2dc3ae",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/link-name.ts": {
+    "mtime": 1784907297.08379,
+    "ast_hash": "fab7b9d28cd43773f166b1a1928f0b2b",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/record-form.test.ts": {
+    "mtime": 1784865700.261822,
+    "ast_hash": "8a5951e7cb4b63346fbb8ab67e537e75",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/record-form.ts": {
+    "mtime": 1784865671.3144226,
+    "ast_hash": "2dfff91a9199f715c2268e9f4bd9e910",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/rows.test.ts": {
+    "mtime": 1784304842.763926,
+    "ast_hash": "1eb8b9cf2f7484f3c9afdac2116bc231",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/rows.ts": {
+    "mtime": 1784304830.0067463,
+    "ast_hash": "7070efdbc2dcf6a8f2cc698dc1edbfca",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/schema.test.ts": {
+    "mtime": 1783945962.9800136,
+    "ast_hash": "d998393f40dc8dec978f08b519ec7cce",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/schema.ts": {
+    "mtime": 1784272071.112496,
+    "ast_hash": "2e49901f06fb0e555c693ee541760406",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/sort.test.ts": {
+    "mtime": 1784303033.6248713,
+    "ast_hash": "6688f0ada68cf4988176a645f77f4d54",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/sort.ts": {
+    "mtime": 1784302951.595013,
+    "ast_hash": "a97db80019e60ed3db06ce2e9012f6d6",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/stage.test.ts": {
+    "mtime": 1784271628.3927286,
+    "ast_hash": "3990bb0f7a1ba06316f4767e208ffb5c",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/stage.ts": {
+    "mtime": 1784271606.837108,
+    "ast_hash": "5be983e569417ac0dcff47af7d3129b4",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/sync-status.test.ts": {
+    "mtime": 1784304823.904709,
+    "ast_hash": "6fad5b7d9a8d890ad4e881d753752a4d",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/sync-status.ts": {
+    "mtime": 1784304816.9888816,
+    "ast_hash": "7db2ee9ebe413205be6d8d14f99b9942",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/totals.test.ts": {
+    "mtime": 1784194647.0200746,
+    "ast_hash": "1dbfecb59c2b53f194e5c610fa90cbba",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/totals.ts": {
+    "mtime": 1784194671.8392746,
+    "ast_hash": "abc87533002956c3af260634a805643b",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/validate.test.ts": {
+    "mtime": 1784005554.1831565,
+    "ast_hash": "1a08a9f444e2f0cea52884c9fe207abd",
+    "semantic_hash": ""
+  },
+  "monday-app/src/lib/validate.ts": {
+    "mtime": 1784005565.495093,
+    "ast_hash": "ea1c8d601b37d434e3b895631cf29397",
+    "semantic_hash": ""
+  },
+  "monday-app/src/main.tsx": {
+    "mtime": 1783946970.8113935,
+    "ast_hash": "b10cc23e037e00a74cdc9416030d8306",
+    "semantic_hash": ""
+  },
+  "monday-app/src/monday-client.ts": {
+    "mtime": 1785982237.9966047,
+    "ast_hash": "b9ae68299e4549b8de9c377326670832",
+    "semantic_hash": ""
+  },
+  "monday-app/src/useBoard.ts": {
+    "mtime": 1784304931.432686,
+    "ast_hash": "e33dd1d8ae5025540ac9170e1d37bdde",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/AssociationPicker.tsx": {
+    "mtime": 1785982250.8133483,
+    "ast_hash": "f3c601e617bc483d20736cd3ed26c7dd",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/AssociationSection.tsx": {
+    "mtime": 1784815725.6896722,
+    "ast_hash": "6a47166ed6040c3f45aa927ad97d947d",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/BoardView.tsx": {
+    "mtime": 1785517009.8834417,
+    "ast_hash": "142b3c96888ad820ec76e225d4d9ac0c",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/CompaniesView.tsx": {
+    "mtime": 1785766776.6854331,
+    "ast_hash": "97010267f19e58382573eae3a7bf6f7c",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/CompanyDrawer.tsx": {
+    "mtime": 1786076352.7612057,
+    "ast_hash": "40619240e8e2fb51cd36117f795f2dcc",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/ConfirmDialog.tsx": {
+    "mtime": 1784815760.9225636,
+    "ast_hash": "a663b1f0c77ff5af16eb2d2191bd5be0",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/ContactDrawer.tsx": {
+    "mtime": 1786076352.7596984,
+    "ast_hash": "e4f58e960288e04b059894a151239bcb",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/ContactsView.tsx": {
+    "mtime": 1786072491.8716767,
+    "ast_hash": "5d7f28c024cc96231c483e38353dd8e2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/CreateMenu.tsx": {
+    "mtime": 1784687448.1331038,
+    "ast_hash": "707bb0172d9fabd035a909affa074469",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/CreateProgress.tsx": {
+    "mtime": 1784688170.852762,
+    "ast_hash": "a7e97016b40d20e2bf79e117426ca4c2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/DateRangeFilter.tsx": {
+    "mtime": 1785516918.319909,
+    "ast_hash": "1194e894d64272ee28f782c61b69df60",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/DealDrawer.tsx": {
+    "mtime": 1786076274.2434354,
+    "ast_hash": "aa748e50c93714c94b72f6ff81a439b7",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/DrawerShell.tsx": {
+    "mtime": 1784687215.6407394,
+    "ast_hash": "b64232455f7321de76ea1f0e9a5cb822",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/FormFields.tsx": {
+    "mtime": 1783948190.7459064,
+    "ast_hash": "3fa020f5f4ea56e65fcc5dbd726ed705",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/KanbanView.tsx": {
+    "mtime": 1784305111.1126108,
+    "ast_hash": "341fbb1e5eccfe99e2fe3a8a9b38dd2d",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/LineItemForm.tsx": {
+    "mtime": 1784604886.3471396,
+    "ast_hash": "39ea0b428ae896869bb1760f817e974d",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/LineItemsEditor.tsx": {
+    "mtime": 1786074242.9549322,
+    "ast_hash": "983fb7f10035efa70a771e4fbe7cf1ac",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/RecordDrawer.tsx": {
+    "mtime": 1784815714.5682411,
+    "ast_hash": "ca03d3e5134f377ba17823a2872cffb2",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/RecordForm.tsx": {
+    "mtime": 1784865688.3077698,
+    "ast_hash": "23c92d8750b358bce969a3a414eadc1a",
+    "semantic_hash": ""
+  },
+  "monday-app/src/views/UpdatesPanel.tsx": {
+    "mtime": 1783947118.5992043,
+    "ast_hash": "fbf6882fd0f32d0c6dd67d45fe328dce",
+    "semantic_hash": ""
+  },
+  "monday-app/src/worker-client.ts": {
+    "mtime": 1786076334.0482683,
+    "ast_hash": "7c1b2a4457d972a250ab019caf60af9d",
+    "semantic_hash": ""
+  },
+  "monday-app/tsconfig.json": {
+    "mtime": 1783938243.4922514,
+    "ast_hash": "2a28f18ad2a0db4bbe3bebde1a35bc46",
+    "semantic_hash": ""
+  },
+  "monday-app/vite.config.ts": {
+    "mtime": 1783938250.6273358,
+    "ast_hash": "53ea7bb816e972edaed722d5bccb790e",
+    "semantic_hash": ""
+  },
+  "monday-app/vitest.config.ts": {
+    "mtime": 1783938256.7646763,
+    "ast_hash": "3a382cee39da7c74b513bc2db74162b5",
+    "semantic_hash": ""
+  },
+  "monday_smoke_test.py": {
+    "mtime": 1782439799.908537,
+    "ast_hash": "ae2700e1b4b50d6b77609e5f72438e54",
+    "semantic_hash": ""
+  },
+  "owner_router_test.py": {
+    "mtime": 1782812336.0587778,
+    "ast_hash": "35fb131d13ae6d75e759f054db3bee95",
+    "semantic_hash": ""
+  },
+  "tests/test_routing.py": {
+    "mtime": 1782446333.6753018,
+    "ast_hash": "cb9c781988e3e08410153b1dbbdae24f",
+    "semantic_hash": ""
+  },
+  "worker/package.json": {
+    "mtime": 1783046832.852024,
+    "ast_hash": "8a57ba9cc5692cb45af643d27e835e79",
+    "semantic_hash": ""
+  },
+  "worker/scripts/register-subitem-webhook.mjs": {
+    "mtime": 1785829615.9657364,
+    "ast_hash": "be760fc4921b078b0bdee7df460ced78",
+    "semantic_hash": ""
+  },
+  "worker/src/actor.ts": {
+    "mtime": 1784784918.4625802,
+    "ast_hash": "becc1a1f30587664915537d8387b2f7d",
+    "semantic_hash": ""
+  },
+  "worker/src/app-routes.ts": {
+    "mtime": 1786076310.582357,
+    "ast_hash": "435c56607e8e796a2425ed9e9429d852",
+    "semantic_hash": ""
+  },
+  "worker/src/associations.ts": {
+    "mtime": 1786028388.1524794,
+    "ast_hash": "8514879c3420ed3b8e7669acd6e053bd",
+    "semantic_hash": ""
+  },
+  "worker/src/backfill.ts": {
+    "mtime": 1786004195.1138525,
+    "ast_hash": "36c7f65a1cd38be7e2e014e84b9f929e",
+    "semantic_hash": ""
+  },
+  "worker/src/card-registry.ts": {
+    "mtime": 1784807455.6054084,
+    "ast_hash": "b9945f11a6c60184bda89e99566d5ef6",
+    "semantic_hash": ""
+  },
+  "worker/src/config.ts": {
+    "mtime": 1786001891.500991,
+    "ast_hash": "89e519dcba66f6f2b1a09449df70d3b9",
+    "semantic_hash": ""
+  },
+  "worker/src/contact-company-props.ts": {
+    "mtime": 1784652893.686716,
+    "ast_hash": "08cad96c52879cbdf45befb2e4111506",
+    "semantic_hash": ""
+  },
+  "worker/src/create-idempotency-do.ts": {
+    "mtime": 1784804109.897753,
+    "ast_hash": "f4e08ea30fdd6ed21a08f7f371876e77",
+    "semantic_hash": ""
+  },
+  "worker/src/create-records.ts": {
+    "mtime": 1784881107.6808188,
+    "ast_hash": "0b81ae8da036f60e7b8ac41676e1e787",
+    "semantic_hash": ""
+  },
+  "worker/src/dedup.ts": {
+    "mtime": 1783047157.48106,
+    "ast_hash": "3b66b2c8f6ed7750a405f27c7b4235a1",
+    "semantic_hash": ""
+  },
+  "worker/src/ensure-card.ts": {
+    "mtime": 1784804314.731156,
+    "ast_hash": "2304e3a6e2abcac54ce4595261dfded3",
+    "semantic_hash": ""
+  },
+  "worker/src/hubspot.ts": {
+    "mtime": 1786004209.7071466,
+    "ast_hash": "7e918aa7e2991ec4e7557e2114da4973",
+    "semantic_hash": ""
+  },
+  "worker/src/idempotency.ts": {
+    "mtime": 1784653239.0619483,
+    "ast_hash": "2b704537d23d8b172b9c9c30cc34f600",
+    "semantic_hash": ""
+  },
+  "worker/src/index.ts": {
+    "mtime": 1786076310.582357,
+    "ast_hash": "53e4b1b863b959a64b5c433f4042fefe",
+    "semantic_hash": ""
+  },
+  "worker/src/line-item-props.ts": {
+    "mtime": 1784602237.8715713,
+    "ast_hash": "fa7d102720ce15f45dbf1d1fc1edceb1",
+    "semantic_hash": ""
+  },
+  "worker/src/line-item-reverse.ts": {
+    "mtime": 1785829497.5457773,
+    "ast_hash": "a9e713e7d61c8ad3de5620e745ec526d",
+    "semantic_hash": ""
+  },
+  "worker/src/mapping.ts": {
+    "mtime": 1785982871.9796395,
+    "ast_hash": "541d24cf95b21ecbbad6252e4f66e34b",
+    "semantic_hash": ""
+  },
+  "worker/src/monday.ts": {
+    "mtime": 1785827672.791929,
+    "ast_hash": "117b357ac993c0422ece5b2007afb837",
+    "semantic_hash": ""
+  },
+  "worker/src/normalize.ts": {
+    "mtime": 1784652712.467558,
+    "ast_hash": "b71f2b581659d5f272dd761e3a3205cb",
+    "semantic_hash": ""
+  },
+  "worker/src/reconcile.ts": {
+    "mtime": 1786074183.9877255,
+    "ast_hash": "095ac1c51be9613d994e799c74c766c7",
+    "semantic_hash": ""
+  },
+  "worker/src/routing.ts": {
+    "mtime": 1783568180.934837,
+    "ast_hash": "9d4c5120f3972e80b884d2babcf38203",
+    "semantic_hash": ""
+  },
+  "worker/src/session.ts": {
+    "mtime": 1783930772.014211,
+    "ast_hash": "17d32b6ecec1c9fecb9442b393b476a2",
+    "semantic_hash": ""
+  },
+  "worker/src/sync.ts": {
+    "mtime": 1786074204.1585426,
+    "ast_hash": "131abcd8d493b82e32cf1b9f8616187a",
+    "semantic_hash": ""
+  },
+  "worker/src/types.ts": {
+    "mtime": 1786004223.1145737,
+    "ast_hash": "5c611234642cac4cb19d94eec6b80baa",
+    "semantic_hash": ""
+  },
+  "worker/src/webhooks.ts": {
+    "mtime": 1785830463.6852605,
+    "ast_hash": "0cb95cf3189ce6caa7fd051b724af71a",
+    "semantic_hash": ""
+  },
+  "worker/test/actor.test.ts": {
+    "mtime": 1784784924.8958762,
+    "ast_hash": "30506a0fce604d530135dbe8e7c768e1",
+    "semantic_hash": ""
+  },
+  "worker/test/app-routes.test.ts": {
+    "mtime": 1786076376.0726528,
+    "ast_hash": "c809dff66a8755fb5f98ed0e9f9c3e97",
+    "semantic_hash": ""
+  },
+  "worker/test/associations.test.ts": {
+    "mtime": 1786028403.3649719,
+    "ast_hash": "82e9de02306eff2f6d7e0ad37ace1044",
+    "semantic_hash": ""
+  },
+  "worker/test/backfill.test.ts": {
+    "mtime": 1786005313.2220805,
+    "ast_hash": "f743cc8e5d469bfeed33438f4376776d",
+    "semantic_hash": ""
+  },
+  "worker/test/companies.test.ts": {
+    "mtime": 1785765939.012279,
+    "ast_hash": "453f9d7702e7db6eebbb462055e38612",
+    "semantic_hash": ""
+  },
+  "worker/test/contact-company-props.test.ts": {
+    "mtime": 1784652878.4997852,
+    "ast_hash": "b723334e162f0c3e327aa5a4add8043d",
+    "semantic_hash": ""
+  },
+  "worker/test/contacts.test.ts": {
+    "mtime": 1786004311.2917726,
+    "ast_hash": "a8b16197822004939336fc763825618f",
+    "semantic_hash": ""
+  },
+  "worker/test/hubspot-search.test.ts": {
+    "mtime": 1784563115.3864772,
+    "ast_hash": "b096c5f05ff2dbd11b63f5483a71f824",
+    "semantic_hash": ""
+  },
+  "worker/test/idempotency.test.ts": {
+    "mtime": 1784653223.8195815,
+    "ast_hash": "f196857c59cd027ebccb0509ab217f49",
+    "semantic_hash": ""
+  },
+  "worker/test/line-item-props.test.ts": {
+    "mtime": 1784602222.9944577,
+    "ast_hash": "ac5f249de0c8e4aa56cc7c6e9da84432",
+    "semantic_hash": ""
+  },
+  "worker/test/line-item-reverse.test.ts": {
+    "mtime": 1785830994.4956238,
+    "ast_hash": "1893417c752781d6c6f1711cb92caa77",
+    "semantic_hash": ""
+  },
+  "worker/test/mapping.test.ts": {
+    "mtime": 1785982843.3329647,
+    "ast_hash": "27167d6386fb30ce6fb1afbb6bff7569",
+    "semantic_hash": ""
+  },
+  "worker/test/normalize.test.ts": {
+    "mtime": 1784652697.2672565,
+    "ast_hash": "40af6f45ac65ae9d752af8cbea3603f1",
+    "semantic_hash": ""
+  },
+  "worker/test/reconcile.test.ts": {
+    "mtime": 1786074274.1490335,
+    "ast_hash": "ad4bcf4cce0ce9a5ff8013404cdb73be",
+    "semantic_hash": ""
+  },
+  "worker/test/routing.test.ts": {
+    "mtime": 1783651922.788046,
+    "ast_hash": "d914805bf714a37a7ebddec567f6a7b0",
+    "semantic_hash": ""
+  },
+  "worker/test/session.test.ts": {
+    "mtime": 1783930814.29248,
+    "ast_hash": "5c23bd615e795c58eb496ec72c579c12",
+    "semantic_hash": ""
+  },
+  "worker/test/sync-scope.test.ts": {
+    "mtime": 1785418758.3154044,
+    "ast_hash": "da477215e09e9ad12d9fdd8b48896790",
+    "semantic_hash": ""
+  },
+  "worker/test/sync.test.ts": {
+    "mtime": 1786005301.2332773,
+    "ast_hash": "d74714d605f87f1c32ee51595370efda",
+    "semantic_hash": ""
+  },
+  "worker/test/webhook.test.ts": {
+    "mtime": 1784859914.6459806,
+    "ast_hash": "27c54c46e658ee15a51834c27a59c3c2",
+    "semantic_hash": ""
+  },
+  "worker/tsconfig.json": {
+    "mtime": 1783046841.2219927,
+    "ast_hash": "e559e663a9422b629d3aae77db3c8aff",
+    "semantic_hash": ""
+  },
+  "worker_discovery.py": {
+    "mtime": 1783046192.9704373,
+    "ast_hash": "ccd373eea31d947c7c207566e32fcc13",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1785983858.310877,
+    "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1785746625.134717,
+    "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1782458548.9007378,
+    "ast_hash": "a32e422e7589f36a48b4ee219736142a",
+    "semantic_hash": ""
+  },
+  "docs/monday-vibe-app-backend-context.md": {
+    "mtime": 1783713255.6949983,
+    "ast_hash": "cd2d88db10695a5293c0746912f6b9d2",
+    "semantic_hash": ""
+  },
+  "docs/monday-vibe-deal-app-prompt.md": {
+    "mtime": 1783704347.7652166,
+    "ast_hash": "440b06f9c7a558bb9a9b01056aa8c4e6",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-03-two-way-sync-worker.md": {
+    "mtime": 1783045997.2985525,
+    "ast_hash": "b569c297691cacc2d2e11c0cb04569af",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-06-deals-single-board-remap.md": {
+    "mtime": 1783567578.067767,
+    "ast_hash": "5ae910809deb2617aa7f73c52d7fdb4a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-09-associations-line-items.md": {
+    "mtime": 1783588205.976502,
+    "ast_hash": "4bac9eb025ad69af57504b3e3a5a9c30",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-10-deal-associations-instant.md": {
+    "mtime": 1783665913.6773045,
+    "ast_hash": "7695a3441eabb2e47fdc89a803f7f0d9",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-10-people-reverse-sync.md": {
+    "mtime": 1783682499.7045062,
+    "ast_hash": "7b8dd483e088bf4bfa23d7df6606516a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-11-app-search-endpoint.md": {
+    "mtime": 1783703884.6027327,
+    "ast_hash": "6ed456546a3cd5b24c4561c4d7c18296",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-11-monday-first-deal-creation.md": {
+    "mtime": 1783701604.952351,
+    "ast_hash": "f6cf59d608823e657f936eaec1a09313",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-11-monday-update-to-hubspot-note.md": {
+    "mtime": 1783842573.7932625,
+    "ast_hash": "f0e5f597746d5cb67724521db068fd5b",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-11-product-dropdown-line-items.md": {
+    "mtime": 1783848206.4433348,
+    "ast_hash": "ef98c469e729b88fea96b87723e0c956",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-13-monday-deal-cockpit-app.md": {
+    "mtime": 1784182153.2296605,
+    "ast_hash": "c7ef6d08985254bf9cbe55961d9fe6b1",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-14-deal-cockpit-v2-ux.md": {
+    "mtime": 1784182153.2296605,
+    "ast_hash": "433e5754a5e553ff624e379567714987",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-16-deal-cockpit-v3.0-sync-correctness.md": {
+    "mtime": 1784182153.2311766,
+    "ast_hash": "846d3696c4be30027dff15142699d12d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-16-deal-cockpit-v3.1-drawer-editing.md": {
+    "mtime": 1784194309.0934956,
+    "ast_hash": "735a46fe123cce9f3841ff58e29620b9",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-18-deal-cockpit-v3.2-save-flow-ui-polish.md": {
+    "mtime": 1784304774.4303625,
+    "ast_hash": "f4b60fb89f4274ef6054223d03c1c5fe",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-20-deal-cockpit-v3.3-phase1-search.md": {
+    "mtime": 1784556003.3335617,
+    "ast_hash": "fea8c19ebe89df78079a6e558b4a1cd7",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-21-deal-cockpit-v3.3-phase2-line-items.md": {
+    "mtime": 1784602139.5436869,
+    "ast_hash": "ef7cae2cf7757943490aafee7ddd1525",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-21-deal-cockpit-v3.3-phase3-fresh-on-open.md": {
+    "mtime": 1784604459.6006312,
+    "ast_hash": "c09d1cafd962ef6bd9acfc5f0262a355",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-22-deal-cockpit-v3.4-phase-a-worker-foundation.md": {
+    "mtime": 1784685955.144859,
+    "ast_hash": "a8f8b985b49e1b7ffad988649174974a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-22-deal-cockpit-v3.4-phase-b-standalone-ui.md": {
+    "mtime": 1784687686.298579,
+    "ast_hash": "7a217d63833fd3f12e452c31bc79dfbb",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-22-deal-cockpit-v3.4-phase-c-associations.md": {
+    "mtime": 1784689162.2762456,
+    "ast_hash": "b85d5a516ed4431328ff6268738d65fd",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-23-created-date-and-domain-gate.md": {
+    "mtime": 1784810866.682936,
+    "ast_hash": "442a26e1e7e842222ebe13baffc7472c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-24-assoc-display-and-links.md": {
+    "mtime": 1784907127.5143132,
+    "ast_hash": "f72e66e59ff366a46c330cf5d5ce7aad",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-24-audit-fixes-f1-f4.md": {
+    "mtime": 1784880844.8624866,
+    "ast_hash": "12ce866b1d7560eb1a1a499c2948017c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-24-auto-associate-contact-company.md": {
+    "mtime": 1785239367.4825034,
+    "ast_hash": "c3b14ae7f1904eb28fe582d1154e9d12",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-24-deal-form-field-cardinality.md": {
+    "mtime": 1784863667.10608,
+    "ast_hash": "943c132d1d2caa0c9d84a06371970932",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-24-duplicate-cleanup-and-created-date-fill.md": {
+    "mtime": 1784859709.6104767,
+    "ast_hash": "7b5ab7118c1cfb88da18fdbefc26d2e9",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-24-phone-country-fix.md": {
+    "mtime": 1785239286.6892264,
+    "ast_hash": "d20285d7734d141483bd1034052d9811",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-30-all-companies-phase1.md": {
+    "mtime": 1785384764.670285,
+    "ast_hash": "4206673f9f587008791f8814f2efb76d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-30-all-companies-phase2-associations.md": {
+    "mtime": 1785418681.525201,
+    "ast_hash": "67d553c7f7a8dc690ff141376324b335",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-31-companies-tab.md": {
+    "mtime": 1785469330.1553686,
+    "ast_hash": "2883a81bd1039e9665ced5ca52ef4022",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-31-filters-and-tab-perf.md": {
+    "mtime": 1785516388.5475104,
+    "ast_hash": "350c655193f90ceb444cbd0e4bdfbca2",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-03-editable-companies-and-assoc-fix.md": {
+    "mtime": 1785765756.753231,
+    "ast_hash": "eabe09c01b04f1d4d84790dca65f5d1c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-04-editable-contacts-tab.md": {
+    "mtime": 1785833442.620256,
+    "ast_hash": "5808c8696b3db195f4873b8dae27d321",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-04-two-way-line-item-sync.md": {
+    "mtime": 1785811610.3396876,
+    "ast_hash": "136b8fee16e2e7f6223f2879ae749ce8",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-02-hubspot-monday-two-way-sync-worker-design.md": {
+    "mtime": 1783045395.265394,
+    "ast_hash": "b10022e17097c4300d1e61bd5844cae6",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-09-associations-line-items-design.md": {
+    "mtime": 1783587915.3823237,
+    "ast_hash": "a32d37f9d5873752f39d918f093b649a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-10-deal-associations-instant-design.md": {
+    "mtime": 1783665781.5449362,
+    "ast_hash": "31594f80d4be1cc940d7168058ef6414",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-10-people-reverse-sync-design.md": {
+    "mtime": 1783682353.8353996,
+    "ast_hash": "0c04490f14f57c12de0832ee0afcc5b8",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-11-app-search-endpoint-design.md": {
+    "mtime": 1783703849.2511313,
+    "ast_hash": "0b66dc0f1aadc8dbd56cd1b80a01a44c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-11-monday-deal-cockpit-app-design.md": {
+    "mtime": 1784182153.2311766,
+    "ast_hash": "98d08c07d6e693107d5c2bf042c1afa0",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-11-monday-first-deal-creation-design.md": {
+    "mtime": 1783701434.8240793,
+    "ast_hash": "e38e4c90838457fb240d14f323c1f9ef",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-11-monday-update-to-hubspot-note-design.md": {
+    "mtime": 1783842543.814488,
+    "ast_hash": "2a16771f58ef8198913623af1562755b",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-11-product-dropdown-line-items-design.md": {
+    "mtime": 1783848177.8865337,
+    "ast_hash": "9e68cd4d94979ee4bbc4f5556f631f58",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-14-deal-cockpit-v2-ux.md": {
+    "mtime": 1784182153.2311766,
+    "ast_hash": "009b7a21001c0b754801fde271147279",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-16-deal-cockpit-v3.0-sync-correctness.md": {
+    "mtime": 1784182153.2311766,
+    "ast_hash": "92f63b33a31d6445aa74694c82c4550a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-16-deal-cockpit-v3.1-drawer-editing.md": {
+    "mtime": 1784193962.0437734,
+    "ast_hash": "36d0dce8a8501cb2d848e2e334672de2",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-18-deal-cockpit-v3.2-save-flow-ui-polish.md": {
+    "mtime": 1784304411.931746,
+    "ast_hash": "862652d2882f7cdb03c148270536c03c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-21-deal-cockpit-v3.4-contact-company-creation.md": {
+    "mtime": 1784651938.830326,
+    "ast_hash": "ce475d4215869251112e5275bd594896",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-23-created-date-and-domain-gate-design.md": {
+    "mtime": 1784810422.6250103,
+    "ast_hash": "94a50fcab78cc18c5edda6a0fb9cc022",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-24-assoc-display-and-links-design.md": {
+    "mtime": 1784907002.5566761,
+    "ast_hash": "466ba4a7126e9276ec53e6181fa525fe",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-24-audit-fixes-f1-f4-design.md": {
+    "mtime": 1784880600.2647884,
+    "ast_hash": "f0a52fb8fad6c1e5c03670e84769603a",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-24-auto-associate-contact-company-design.md": {
+    "mtime": 1785238888.2070155,
+    "ast_hash": "5f18c70738fea807733eb233f2de904d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-24-deal-form-field-cardinality-design.md": {
+    "mtime": 1784863611.1651256,
+    "ast_hash": "54cbdbe01a47001d0c12b056889c209f",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-24-phone-country-fix-design.md": {
+    "mtime": 1785239197.090143,
+    "ast_hash": "2d1f68831289a85cd08f12c7fcb234c6",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-30-all-companies-phase1-design.md": {
+    "mtime": 1785384599.3720374,
+    "ast_hash": "3ae29e1774102068f47eb08a0d79d4ab",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-30-all-companies-phase2-associations-design.md": {
+    "mtime": 1785418460.9198265,
+    "ast_hash": "4cd2745f8d6a054edddb3b98e8410e82",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-31-companies-tab-design.md": {
+    "mtime": 1785466225.6653118,
+    "ast_hash": "d7fbd296c0b07636db1defd2b729510d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-31-filters-and-tab-perf-design.md": {
+    "mtime": 1785515976.3079865,
+    "ast_hash": "9ba8a8fd8df4402d2dc563afef75f036",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-03-editable-companies-and-assoc-fix-design.md": {
+    "mtime": 1785765352.6975617,
+    "ast_hash": "3d4cbe60d9bb6aa3804f1f90f16d91fc",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-04-editable-contacts-tab-design.md": {
+    "mtime": 1785833012.09429,
+    "ast_hash": "ff52193ccbd93e2f85ed04230511ee03",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-04-two-way-line-item-sync-design.md": {
+    "mtime": 1785811627.3722541,
+    "ast_hash": "c362f4b9d0bfa9551d8118c59a42767c",
+    "semantic_hash": ""
+  },
+  "hubspot-monday-webhook-sync/AGENTS.md": {
+    "mtime": 1783181641.053668,
+    "ast_hash": "99fd8a9d0f4fc8c1b9742ff9d9089251",
+    "semantic_hash": ""
+  },
+  "hubspot-monday-webhook-sync/CLAUDE.md": {
+    "mtime": 1783181641.053668,
+    "ast_hash": "5b071a8337e375a232aa907901c345ff",
+    "semantic_hash": ""
+  },
+  "hubspot-monday-webhook-sync/HUBSPOT_PROJECTS.md": {
+    "mtime": 1783181641.0520897,
+    "ast_hash": "3c43c36a00eb4e2501fce9dfba9d62fb",
+    "semantic_hash": ""
+  },
+  "monday-app/DEPLOY.md": {
+    "mtime": 1783943625.5513895,
+    "ast_hash": "309832a6dc649db08ec8a010c3cb6b79",
+    "semantic_hash": ""
+  },
+  "monday-app/index.html": {
+    "mtime": 1783938261.768826,
+    "ast_hash": "7517232de801e72494da0b3640fbb92d",
+    "semantic_hash": ""
+  },
+  "requirements.txt": {
+    "mtime": 1782439667.396129,
+    "ast_hash": "833094927cf17ebd12d8f9f3fdea4ec4",
+    "semantic_hash": ""
+  },
+  "worker/README.md": {
+    "mtime": 1783588886.8434913,
+    "ast_hash": "f257a6a3102a1b60161ff8f726320bec",
+    "semantic_hash": ""
+  }
+}
