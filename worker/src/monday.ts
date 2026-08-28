@@ -167,6 +167,14 @@ export async function getUserById(env: Env, userId: string): Promise<{ name: str
   return u ? { name: u.name ?? "", email: u.email ?? "" } : null;
 }
 
+/** The monday user this API token acts as. Lets a log distinguish OUR writes from a person's, because
+ * every write we make is attributed to this user in monday's activity log. */
+export async function whoAmI(env: Env): Promise<string | null> {
+  const d: any = await gql(env, "query { me { id } }");
+  const id = d?.me?.id;
+  return id ? String(id) : null;
+}
+
 export async function getUsersByEmail(env: Env): Promise<Record<string, string>> {
   const users: any[] = (await gql(env, "query { users(limit:500) { id email } }")).users;
   const out: Record<string, string> = {};

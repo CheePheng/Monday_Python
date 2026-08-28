@@ -3,6 +3,7 @@ import { SPEC_BY_BOARD, LINE_ITEM_SUBITEMS } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
+import { actorLabel } from "./actor-label";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
@@ -114,7 +115,11 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   if (boardId === LINE_ITEM_SUBITEMS.boardId || isReverseSubitemEvent(type)) {
     const s = readSubitemEvent(ev);
     if (s.subitemId) {
-      console.log(`[webhook] source=monday subitem=${s.subitemId} type=${type}${s.columnId ? ` col=${s.columnId}` : ""} action=received-subitem`);
+      const actorId = String(ev.userId ?? "");
+      console.log(`[webhook] source=monday subitem=${s.subitemId} type=${type}${s.columnId ? ` col=${s.columnId}` : ""} user=${actorId} action=received-subitem`);
+      // Resolve WHO inside waitUntil so the webhook still returns immediately (cached per isolate).
+      ectx.waitUntil(actorLabel(env, actorId).then(a =>
+        console.log(`[actor] source=monday subitem=${s.subitemId} col=${s.columnId} ${a}`)).catch(() => {}));
       const coKey = s.columnId ? `sub:${s.subitemId}:${s.columnId}` : `sub:${s.subitemId}:name`;
       ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
         .catch(e => console.log(`[webhook] source=monday subitem=${s.subitemId} action=error reason="${String(e).slice(0, 160)}"`)));
@@ -140,7 +145,13 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
     return new Response("ok");
   }
 
-  console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} action=received`);
+  const actorId = String(ev.userId ?? "");
+  console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type}${columnId ? ` col=${columnId}` : ""} user=${actorId} action=received`);
+  // WHO made this edit. Every write WE make is attributed to the integration's own token user, so without
+  // this a log cannot tell a rep's edit from the sync's echo — the ambiguity behind the 2026-08-28
+  // owner-reassignment question. Resolved inside waitUntil (cached) to keep the webhook response fast.
+  ectx.waitUntil(actorLabel(env, actorId).then(a =>
+    console.log(`[actor] source=monday board=${boardId} item=${itemId}${columnId ? ` col=${columnId}` : ""} ${a}`)).catch(() => {}));
   const budget: Budget = { left: 30 };
   // coalesce by item id so rapid edits (or our own write-back echoes) can't race into a duplicate.
   ectx.waitUntil(coalesce(`md:${itemId}`, () => syncMondayItem(env, boardId, itemId, liveOpts(env), budget))

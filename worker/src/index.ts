@@ -12,6 +12,7 @@ import { getItem, setColumns, findItemByColumn, getBoardItems } from "./monday";
 import { phoneBackfillCandidates } from "./backfill";
 import { syncAssociations } from "./associations";
 import { colText } from "./dedup";
+import { actorLabel } from "./actor-label";
 import { LINE_ITEM_ENUM_PROPS, PRODUCT_COPY_PROPS } from "./line-item-props";
 import { CONTACT_ENUM_PROPS, COMPANY_ENUM_PROPS } from "./contact-company-props";
 
@@ -87,6 +88,13 @@ export default {
         return new Response("forbidden", { status: 403, headers: CORS });
       }
       const actingUserId = auth.userId; // undefined under trigger-secret auth -> record created Unassigned
+      // Attribute every WRITE from the app to the logged-in monday account (the session token identifies it).
+      // GETs are skipped to keep the log readable.
+      if (req.method !== "GET") {
+        console.log(`[actor] source=app path=${url.pathname} user=${actingUserId ?? "trigger-secret"}`);
+        if (actingUserId) ectx.waitUntil(actorLabel(env, actingUserId).then(a =>
+          console.log(`[actor] source=app path=${url.pathname} ${a}`)).catch(() => {}));
+      }
       const actingAccountId = auth.accountId ?? env.MONDAY_ACCOUNT_ID ?? "acct"; // namespaces idempotency keys
 
       // GET /app/search?type=contacts|companies|products&q=&limit=
