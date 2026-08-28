@@ -45,7 +45,7 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       if (!colText(item, f.col)) {
         if (formatValue(f, rec.properties[f.hs], ctx))
           out.push({ kind: "field", f, hsText: "(person)", mdText: "" });
-      } else if (f.reverse) {
+      } else if (f.reverse || (fillEmpty && f.appReverse)) {   // appReverse: explicit app save only
         const wantOwner = firstPersonOwnerId(item, f.col, ctx);
         const hsOwner = (rec.properties[f.hs] ?? "").trim();
         if (wantOwner && wantOwner !== hsOwner) out.push({ kind: "field", f, hsText: hsOwner, mdText: wantOwner });
@@ -155,7 +155,7 @@ export function buildReversePatch(
       const v = reverseGroup(spec, item.group.id);
       if (v) patch[spec.groupBy.prop] = v;
     }
-    if (d.kind === "field" && d.f?.reverse) {
+    if (d.kind === "field" && (d.f?.reverse || d.f?.appReverse)) {   // the diff only exists when allowed
       const v = reverseFieldValue(d.f, d.mdText, ctx);
       if (v) patch[d.f.hs] = v;
     }

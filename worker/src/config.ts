@@ -157,7 +157,9 @@ export const COMPANIES_MYLA: ObjectSpec = {
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
     { hs: "name", col: "text_mm4scke9", type: "text", reverse: true },
-    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", reverse: true },  // Owner (two-way)
+    // Owner is app-save-only (appReverse): editable in the drawer, but a passive reconcile must never let
+    // a stale monday people column reassign the record. See the FieldSpec.appReverse note.
+    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", appReverse: true },  // Owner
     { hs: "sales_user", col: "multiple_person_mm54phd7", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "industry", col: "dropdown_mm54zrp2", type: "dropdown", labels: "industry", reverse: true }, // single-select dropdown (limit_select): 200 options, one pick
     { hs: "type", col: "color_mm545z1t", type: "status", labels: "companyType", reverse: true },
@@ -220,7 +222,8 @@ export const CONTACTS_MYLA: ObjectSpec = {
     // trivially revertible. `email` is deliberately excluded — it is the contact dedup/adoption key.
     // Compared as DIGITS on both sides (see phoneDigits), so monday's country formatting can't loop.
     { hs: "phone", col: "phone_mm4s31p3", type: "phone", reverse: true, backfill: true },
-    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", reverse: true },
+    // Owner: app-save-only. A plain `reverse` here reassigned contact owners unattended (2026-08-28).
+    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", appReverse: true },
     { hs: "sales_user", col: "multiple_person_mm542gng", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
     { hs: "createdate", col: "date_mm4s2bjd", type: "date", oneWay: true },
     { hs: "notes_last_updated", col: "date4", type: "date" },

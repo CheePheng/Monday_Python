@@ -57,9 +57,9 @@ describe("fieldDiffs phone", () => {
   });
   it("a genuinely different number -> one field diff carrying the RAW monday text (keeps the +)", () => {
     const d = fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "+1 234-567-8900" } } as any,
-      phoneItem("+1 999-000-1111"), phoneSpec, ctx).filter(x => x.kind === "field");
+      phoneItem("+1 995-639-1925"), phoneSpec, ctx).filter(x => x.kind === "field");
     expect(d).toHaveLength(1);
-    expect(d[0].mdText).toBe("+1 999-000-1111");
+    expect(d[0].mdText).toBe("+1 995-639-1925");
   });
   it("empty HubSpot phone is not touched when the field has no `backfill` flag", () =>
     expect(fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "" } } as any,
@@ -602,5 +602,39 @@ describe("fieldDiffs fillEmpty (app save)", () => {
   it("app save still requires a MATCHING HubSpot id (never matched by name)", () => {
     const other = item({ column_values: [{ id: "c_id", text: "OTHER" }, { id: "c_city", text: "Shenzhen" }] });
     expect(fieldDiffs(emptyHs, other, companySpec, ctx, true).some(d => d.backfill)).toBe(false);
+  });
+});
+
+// --- appReverse: OWNERSHIP is app-save-only (live incident 2026-08-28) --------------------------
+// A plain `reverse` on hubspot_owner_id let a passive reconcile push monday's Owner people column over
+// HubSpot's Contact owner, silently reassigning a contact (Steven -> Wendy) with no human edit.
+describe("appReverse — owner reverses only on an explicit app save", () => {
+  const ownerField: FieldSpec = { hs: "hubspot_owner_id", col: "c_owner", type: "people", appReverse: true };
+  const ownerSpec: ObjectSpec = { ...spec, object: "contacts", fields: [ownerField] };
+  const octx: Ctx = { ...ctx, mondayEmailByUserId: { "500": "wendy@dkm.com" }, ownerIdByEmail: { "wendy@dkm.com": "W1" } };
+  // a monday people column holding Wendy, while HubSpot's owner is Steven
+  const md = item({ column_values: [
+    { id: "c_id", text: "9001" },
+    { id: "c_owner", text: "Wendy Wang", persons_and_teams: [{ id: "500", kind: "person" }] } as any,
+  ] });
+  const hs = { id: "9001", properties: { dealname: "A", hubspot_owner_id: "S1" } } as any;
+
+  it("PASSIVE reconcile does NOT reassign the owner", () =>
+    expect(fieldDiffs(hs, md, ownerSpec, octx).some(d => d.f?.hs === "hubspot_owner_id")).toBe(false));
+
+  it("an explicit APP SAVE does push the owner", () => {
+    const d = fieldDiffs(hs, md, ownerSpec, octx, true).find(x => x.f?.hs === "hubspot_owner_id");
+    expect(d?.mdText).toBe("W1");
+  });
+
+  it("an appReverse diff is included in the reverse patch", () => {
+    const diffs = fieldDiffs(hs, md, ownerSpec, octx, true);
+    expect(buildReversePatch(diffs, md, ownerSpec, octx).hubspot_owner_id).toBe("W1");
+  });
+
+  it("a plain `reverse` people field still reverses passively (sales_user is unchanged)", () => {
+    const su: ObjectSpec = { ...ownerSpec, fields: [{ hs: "sales_user", col: "c_owner", type: "people", reverse: true }] };
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", sales_user: "S1" } } as any, md, su, octx)
+      .some(d => d.f?.hs === "sales_user")).toBe(true);
   });
 });

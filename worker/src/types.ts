@@ -27,6 +27,12 @@ export interface FieldSpec {
   type: ColType;
   labels?: LabelDict;    // enum label dictionary (HubSpot internal value -> display label)
   reverse?: boolean;     // monday edits may be written back to HubSpot
+  /** Reverse ONLY on an explicit app save (a rep pressing Save in a drawer), never on a passive
+   * webhook/cron reconcile. For business-critical assignment fields — record OWNERSHIP — where letting a
+   * monday column silently win reassigns records: monday's people column is populated BY the sync and can
+   * be stale, so a plain `reverse` reassigns owners unattended (live incident 2026-08-28: a contact's owner
+   * was moved Steven -> Wendy by the reconcile, source "Integration monday sync", with no human edit). */
+  appReverse?: boolean;
   backfill?: boolean;    // allowlisted: a non-empty monday value may FILL an EMPTY HubSpot value.
                          // Objects allowed: deals + contacts (BACKFILL_OBJECTS in reconcile.ts); contacts
                          // carry it on `phone` only. "Empty" is judged on the RAW HubSpot value.
