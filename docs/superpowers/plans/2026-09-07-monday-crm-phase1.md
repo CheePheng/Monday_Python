@@ -577,7 +577,32 @@ git commit -m "feat(crm): fail-closed ownership guard at HubSpot chokepoints + c
 
 ---
 
-## Task 3B: CRM discovery gate at the monday card-creation chokepoint
+## Task 3B: CRM discovery gate at the monday card-creation chokepoint — ✅ **DONE 2026-09-07**
+
+**Result:** `mayCreateCrmCard` in `ownership.ts`, gate wired into `ensure-card.ts` before `targetGroup`
+and `createItem`. **33 gate tests + 18 enum reverse-map tests. Suite 433 → 484, tsc clean.**
+
+### All five `ensureCardForRecord` callers, and what a refusal does to each
+
+| # | Caller | Handling of `{status:"skipped"}` | Safe? |
+|---|---|---|---|
+| 1 | `sync.ts:80` `reconcileRecord` — normal HubSpot reconciliation | `if (r.status === "created")` counts, then returns. Refusal increments nothing and returns cleanly. | ✅ |
+| 2 | `associations.ts:202` — association-triggered target card | `cardIdOf` → null → `if (id)` skips; `want` then filters falsy, so the relation is written **without** the denied target instead of crashing. | ✅ |
+| 3 | `create-records.ts:82` — app create/adopt | `if (itemId) result.mondayItemId = itemId`, and `result.steps.monday = true` is set **unconditionally**, so no retry loop. | ✅ |
+| 4 | `index.ts:517` `POST /app/ensure-card` | `if (!itemId) return 409 "card-pending"`, commented "caller should retry shortly". **Semantically wrong for a refusal** — a retry can never succeed, and an auto-retrying client would loop. **Unreachable for CRM in Phase 1**: this route hardcodes `CONTACTS_MYLA`/`COMPANIES_MYLA`, which declare no ownership, so the gate returns `true`. ⚠️ **Must return a distinct terminal status before any CRM spec is routed here — carried into Task 10.** | ⚠️ WM-only |
+| 5 | `index.ts:662` — companies card import | `.catch(...)`, counts `created`/`existing`; a refusal is counted as neither. Also hardcodes `COMPANIES_MYLA` (no ownership). | ✅ |
+
+**Proven by test, not by inspection:** zero `createItem` calls on refusal · zero `fetch` calls (the gate
+is monday-side only) · `forgetCard` called so the reservation is released and the record is never wedged
+as "creating" · refusal never reported as `created`/`existing` so no caller miscounts · no `itemId`
+property to dereference · repeating a refusal 5× is stable with no escalation (no retry storm) · an
+**adopted** pre-cutover card still resolves via both the column search and the registry, so rule 4's
+forward updates keep flowing · specs without `ownership` create identically for pre-cutover,
+post-cutover and missing dates.
+
+---
+
+## Task 3B (original specification)
 
 **Files:** Modify `worker/src/ownership.ts`, `worker/src/ensure-card.ts`; create `worker/test/crm-discovery-gate.test.ts`.
 

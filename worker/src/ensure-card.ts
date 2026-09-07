@@ -3,6 +3,7 @@ import { createItem, findItemByColumn, getItem } from "./monday";
 import { buildColumnValues, itemName } from "./mapping";
 import { targetGroup } from "./routing";
 import { claimCard, finishCard, forgetCard } from "./card-registry";
+import { mayCreateCrmCard } from "./ownership";
 
 /** What happened when a path asked for a record's card. Explicit, because callers need to tell "we made
  * one" (count it, spend budget) apart from "someone else is making it" (do nothing this pass). */
@@ -38,6 +39,16 @@ export async function ensureCardForRecord(env: Env, spec: ObjectSpec, ctx: Ctx, 
     // existed (or by anything outside it), so we adopt rather than duplicate.
     const existing = (await findItemByColumn(env, boardId, spec.idCol, rec.id))[0];
     if (existing) { await finishCard(env, boardId, rec.id, existing.id); return { status: "existing", itemId: existing.id }; }
+
+    // NO HISTORICAL IMPORT. Reached only when no card exists, so this gates card BIRTH and never an
+    // update to a card someone deliberately adopted. Placed BEFORE targetGroup/createItem so a refusal
+    // costs no monday write. The reservation is released: refusing is a settled decision for this
+    // record, not work in flight, so holding it would wedge the record behind a permanent "creating".
+    if (!mayCreateCrmCard(rec, spec.ownership)) {
+      await forgetCard(env, boardId, rec.id);
+      console.log(`${spec.object}/${rec.id} action=refused-card reason="outside CRM creation scope" board=${boardId}`);
+      return { status: "skipped" };
+    }
 
     const group = targetGroup(rec, spec);
     if (!group) { await forgetCard(env, boardId, rec.id); return { status: "skipped" }; }

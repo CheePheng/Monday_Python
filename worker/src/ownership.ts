@@ -102,6 +102,33 @@ export function canClaimCrmOwnership(rec: HsRecord, o: OwnershipSpec): boolean {
   return !Number.isNaN(created) && created >= o.cutoverAtMs;
 }
 
+/**
+ * May the CRM path CREATE a missing monday card for this record?  NO HISTORICAL IMPORT.
+ *
+ * A separate chokepoint from authorizeWrite: that one guards HubSpot mutations, this one guards the
+ * BIRTH of a monday card, and the two sit on opposite sides of the sync. Nothing on the card-creation
+ * path (sync.ts -> reconcileRecord -> ensureCardForRecord -> createItem) consults ownership otherwise,
+ * and CRM specs set `includeAll: true`, which short-circuits recInScope to true — so without this an
+ * unstamped 2024 record with no card would be carded the moment anything touched it.
+ *
+ * Consulted ONLY when no card exists, so it decides creation and never blocks updates to a card that
+ * a user deliberately adopted. Returns true for specs without `ownership` so every WM path is
+ * byte-for-byte unchanged.
+ *
+ * Fail-closed: absent or unparseable ownership metadata yields "" / NaN and therefore refusal. A
+ * caller that forgets to fetch sync_owner/createdate declines to create rather than importing the
+ * portal.
+ */
+export function mayCreateCrmCard(rec: HsRecord, o: OwnershipSpec | undefined): boolean {
+  if (!o) return true;                      // no ownership declared -> legacy WM behaviour
+  const stamp = syncOwnerOf(rec, o);
+  if (stamp === "other") return false;      // parked by an operator (e.g. "hold") -> hands off
+  if (stamp === "wm") return false;         // the WM Worker owns it -> no CRM card
+  if (stamp === "crm") return true;         // ours
+  const created = toMs(rec.properties[o.createdProp]);   // unstamped -> the cutover decides
+  return !Number.isNaN(created) && created >= o.cutoverAtMs;
+}
+
 /** The ONLY payload a claim may send. Exactly one property; anything else is a bug. */
 export function claimPatch(o: OwnershipSpec): Record<string, string> {
   return { [o.prop]: o.owner };
