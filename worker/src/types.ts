@@ -41,6 +41,26 @@ export interface FieldSpec {
   oneWay?: boolean;
 }
 
+/** Which sync owns WRITE access to a HubSpot record. */
+export type SyncOwner = "wm" | "crm";
+
+/** How a spec decides write ownership. `cutoverAtMs` is ONLY a fallback for unstamped records. */
+export interface OwnershipSpec {
+  prop: string;         // HubSpot property holding the stamp, e.g. "sync_owner"
+  createdProp: string;  // create-date property (contacts + companies both use "createdate")
+  owner: SyncOwner;     // which side THIS Worker is
+  cutoverAtMs: number;  // CRM_CUTOVER_AT; POSITIVE_INFINITY = inert (nothing is ever post-cutover)
+}
+
+/** Result of the ownership check. `reason` is always logged, never swallowed. */
+export interface WriteAuth { allowed: boolean; reason: string }
+
+/** How a monday-originated create finds its existing HubSpot twin, so it ADOPTS instead of duplicating. */
+export interface AdoptBy {
+  kind: "email" | "domain";
+  col: string;   // monday column id holding the key
+}
+
 export type GroupBy =
   // hs value -> monday group id. fallbackGroup catches empty/unmapped values so the record is placed
   // instead of skipped (e.g. a contact with no lead status still lands in the "New" group).
@@ -65,6 +85,13 @@ export interface ObjectSpec {
   includeAll?: boolean;        // sync EVERY record (ignore the sales_user/createdate scope gate)
   skipFullReconcile?: boolean; // exclude from the 03:00 full sweep (too large / search-capped)
   scopeAlsoLinkedProp?: string; // in scope if this property is present, OR'd with the sales_user/date gate
+  /** Per-record HubSpot WRITE ownership. When set, EVERY HubSpot mutation for this spec must carry a
+   * WriteAuth — a mutation without one throws rather than writing (see hubspot.ts assertMayWrite).
+   * Absent on every production WM spec, so their code path is unchanged. */
+  ownership?: OwnershipSpec;
+  /** Spec-driven adoption key. Absent on production WM specs, which keep their existing
+   * object-specific adoption branches untouched. */
+  adoptBy?: AdoptBy;
   // monday -> HubSpot record creation (new cards). false for system-populated boards (Unassigned).
   createFromMonday: boolean;
   // fixed HubSpot properties stamped on records created from monday (pipeline, owner, sales_user...).
