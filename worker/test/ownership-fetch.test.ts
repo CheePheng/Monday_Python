@@ -27,14 +27,17 @@ describe("propertiesForSpec + ownership metadata", () => {
     expect(propertiesForSpec(spec).filter(x => x === "createdate")).toHaveLength(1);
   });
 
-  it("honours a non-default ownership property name", () => {
+  // `prop` is now constrained to the literal "sync_owner" so a spec author cannot aim the claim
+  // payload at a business field — so only createdProp varies, and it must still be fetched.
+  it("honours a non-default create-date property", () => {
     const spec: ObjectSpec = {
       ...owned,
-      ownership: { prop: "custom_owner_field", createdProp: "hs_createdate", owner: "crm", cutoverAtMs: 0 },
+      ownership: { prop: "sync_owner", createdProp: "hs_createdate", owner: "crm", cutoverAtMs: 0 },
     };
     const p = propertiesForSpec(spec);
-    expect(p).toContain("custom_owner_field");
+    expect(p).toContain("sync_owner");
     expect(p).toContain("hs_createdate");
+    expect(p).not.toContain("createdate");
   });
 
   it("PRODUCTION specs are unchanged — no ownership means no extra properties", () => {

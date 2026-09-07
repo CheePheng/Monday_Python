@@ -1,7 +1,7 @@
 import type { Env, HsRecord, ObjectSpec, RunOpts, WriteAuth } from "./types";
 import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
 import { normalizeDomain } from "./normalize";
-import { claimPatch } from "./ownership";
+import { canClaimCrmOwnership, claimPatch } from "./ownership";
 
 const BASE = "https://api.hubapi.com";
 
@@ -53,6 +53,10 @@ function assertMayWrite(spec: ObjectSpec, id: string, auth: WriteAuth | undefine
   if (!spec.ownership) return;
   if (!auth) throw new OwnershipError(
     `hubspot write to ${spec.object}/${id} requires a WriteAuth (spec declares ownership)`);
+  // The decision must belong to THIS record. A loop that computes auth once and then patches many
+  // records is an ordinary mistake, and without this the guard would wave every one of them through.
+  if (auth.forId !== id) throw new OwnershipError(
+    `hubspot write to ${spec.object}/${id} refused: auth was computed for ${auth.forId}`);
   if (!auth.allowed) throw new OwnershipError(
     `hubspot write to ${spec.object}/${id} refused: ${auth.reason}`);
 }
@@ -554,16 +558,23 @@ export async function createRecord(env: Env, spec: ObjectSpec, properties: Recor
  * widen this, and widening this can never write a business field. A brand-new record created from
  * monday is a different case — it is born owned via withBirthOwnership() in the create payload.
  */
-export async function claimOwnership(env: Env, spec: ObjectSpec, id: string,
+export async function claimOwnership(env: Env, spec: ObjectSpec, rec: HsRecord,
     opts: RunOpts): Promise<string | null> {
   if (!spec.ownership) throw new OwnershipError(`claimOwnership on ${spec.object}: no ownership spec`);
+  // Eligibility is asserted HERE, not left to the caller. authorizeWrite returns allowed:false for
+  // two very different reasons — "unstamped: crm must claim" and "owned by wm" — so the natural
+  // wiring `if (!auth.allowed) claim()` would stamp crm onto every WM-owned record. This repo has a
+  // live incident of exactly that shape (silent owner reassignment on a passive reconcile), and the
+  // guard's own principle is that a predicate only callers consult is one missed call from disaster.
+  if (!canClaimCrmOwnership(rec, spec.ownership)) throw new OwnershipError(
+    `claim refused for ${spec.object}/${rec.id}: not eligible (stamp/cutover)`);
   const properties = claimPatch(spec.ownership);
   if (opts.dryRun || !opts.writeHubspot) {
-    console.log(`DRY hubspot CLAIM ${spec.object}/${id}: ${JSON.stringify(properties)}`);
+    console.log(`DRY hubspot CLAIM ${spec.object}/${rec.id}: ${JSON.stringify(properties)}`);
     return null;
   }
-  const res = await hs(env, "PATCH", `/crm/v3/objects/${spec.object}/${id}`, { properties });
-  console.log(`hubspot CLAIM ${spec.object}/${id} -> ${spec.ownership.owner}`);
+  const res = await hs(env, "PATCH", `/crm/v3/objects/${spec.object}/${rec.id}`, { properties });
+  console.log(`hubspot CLAIM ${spec.object}/${rec.id} -> ${spec.ownership.owner}`);
   return res.properties?.[spec.modifiedProp] ?? null;
 }
 

@@ -44,16 +44,24 @@ export interface FieldSpec {
 /** Which sync owns WRITE access to a HubSpot record. */
 export type SyncOwner = "wm" | "crm";
 
+/** What the ownership stamp says. "other" = present but unrecognised, which means HANDS OFF for
+ *  both syncs (the property is human-editable, so an ops user may park a record with "hold"). */
+export type StampState = SyncOwner | "" | "other";
+
 /** How a spec decides write ownership. `cutoverAtMs` is ONLY a fallback for unstamped records. */
 export interface OwnershipSpec {
-  prop: string;         // HubSpot property holding the stamp, e.g. "sync_owner"
+  /** HubSpot property holding the stamp. Constrained to a literal so a spec author cannot point the
+   *  claim payload at a business field (`prop: "email"` would make a claim write email="crm"). */
+  prop: "sync_owner";
   createdProp: string;  // create-date property (contacts + companies both use "createdate")
   owner: SyncOwner;     // which side THIS Worker is
   cutoverAtMs: number;  // CRM_CUTOVER_AT; POSITIVE_INFINITY = inert (nothing is ever post-cutover)
 }
 
-/** Result of the ownership check. `reason` is always logged, never swallowed. */
-export interface WriteAuth { allowed: boolean; reason: string }
+/** Result of the ownership check. `reason` is always logged, never swallowed.
+ *  `forId` binds the decision to the record it was computed for, so one record's allow cannot be
+ *  reused to write another's — assertMayWrite rejects a mismatch. */
+export interface WriteAuth { allowed: boolean; reason: string; forId: string }
 
 /** How a monday-originated create finds its existing HubSpot twin, so it ADOPTS instead of duplicating. */
 export interface AdoptBy {

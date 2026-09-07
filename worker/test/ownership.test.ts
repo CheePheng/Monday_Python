@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   syncOwnerOf, authorizeWrite, canClaimCrmOwnership, claimPatch, cutoverFromEnv, withBirthOwnership,
+  authorizeCreate, NEW_RECORD_ID,
 } from "../src/ownership";
+import { ALL_SPECS } from "../src/config";
 import type { OwnershipSpec } from "../src/types";
 
 const CUTOVER = Date.parse("2026-10-01T00:00:00Z");
@@ -20,8 +22,23 @@ describe("syncOwnerOf", () => {
     expect(syncOwnerOf(rec({ sync_owner: null }), crm)).toBe("");
     expect(syncOwnerOf(rec({ sync_owner: "  " }), crm)).toBe("");
   });
-  it("an unrecognised value belongs to NEITHER owner", () =>
-    expect(syncOwnerOf(rec({ sync_owner: "someone_else" }), crm)).toBe(""));
+  it("an unrecognised value is 'other' — present but not ours, distinct from absent", () =>
+    expect(syncOwnerOf(rec({ sync_owner: "someone_else" }), crm)).toBe("other"));
+});
+
+// The property is human-editable in HubSpot, so an ops user may park a record with "hold"/"manual".
+// That must mean HANDS OFF for BOTH syncs. Treating it as "unowned" would let CRM claim it and
+// overwrite the marker — the consequence, not just the normalisation, is what these assert.
+describe("an unrecognised stamp parks the record", () => {
+  const parked = rec({ sync_owner: "hold", createdate: after });
+  const parkedOld = rec({ sync_owner: "manual", createdate: before });
+  it("CRM cannot write it", () => expect(authorizeWrite(parked, crm).allowed).toBe(false));
+  it("WM cannot write it either, even pre-cutover", () =>
+    expect(authorizeWrite(parkedOld, wm).allowed).toBe(false));
+  it("CRM cannot CLAIM it — the marker is never overwritten", () =>
+    expect(canClaimCrmOwnership(parked, crm)).toBe(false));
+  it("the refusal names the offending value so an operator can find it", () =>
+    expect(authorizeWrite(parked, crm).reason).toContain("hold"));
 });
 
 describe("authorizeWrite — CRM Worker", () => {
@@ -98,9 +115,58 @@ describe("cutoverFromEnv — fails safe, never opens the floodgates", () => {
   it("a zero or negative epoch is refused (a sentinel, not a real cutover)", () => {
     expect(cutoverFromEnv("0")).toBe(Number.POSITIVE_INFINITY);
     expect(cutoverFromEnv("-1")).toBe(Number.POSITIVE_INFINITY);
+    expect(cutoverFromEnv("+0")).toBe(Number.POSITIVE_INFINITY);
   });
   it("an epoch-ms string parses", () =>
     expect(cutoverFromEnv(String(CUTOVER))).toBe(CUTOVER));
+
+  // THE DANGEROUS INPUTS ARE THE PLAUSIBLE TYPOS. Each of these parses as epoch-ms a few
+  // milliseconds after 1970, which would put the cutover in the past, make EVERY record
+  // post-cutover, and hand the CRM Worker the entire portal.
+  it('"1" (meaning "enabled") is refused, not treated as 1ms after 1970', () =>
+    expect(cutoverFromEnv("1")).toBe(Number.POSITIVE_INFINITY));
+  it('"2026" (the year) is refused, not 2026ms after 1970', () =>
+    expect(cutoverFromEnv("2026")).toBe(Number.POSITIVE_INFINITY));
+  it('"20261001" (a date without separators) is refused', () =>
+    expect(cutoverFromEnv("20261001")).toBe(Number.POSITIVE_INFINITY));
+  it("a date before the plausible window is refused", () =>
+    expect(cutoverFromEnv("1999-01-01T00:00:00Z")).toBe(Number.POSITIVE_INFINITY));
+  it("a date past the plausible window is refused", () =>
+    expect(cutoverFromEnv("2200-01-01T00:00:00Z")).toBe(Number.POSITIVE_INFINITY));
+  it("overflow and non-finite forms are refused", () => {
+    for (const v of ["1e999", "Infinity", "-Infinity", "1e21", "0x10", "1_000", "1.5"])
+      expect(cutoverFromEnv(v)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe("authorizeCreate", () => {
+  it("allows a create and is bound to the new-record id, not a real record", () => {
+    const a = authorizeCreate(crm);
+    expect(a.allowed).toBe(true);
+    expect(a.forId).toBe(NEW_RECORD_ID);
+  });
+});
+
+// A garbage create date must NOT make a record claimable. Number("1e21") is finite, so a bare
+// `>=` comparison would have sailed straight through.
+describe("an unusable create date fails closed in BOTH directions", () => {
+  for (const bad of ["1e21", "1e999", "not-a-date", ""]) {
+    it(`createdate ${JSON.stringify(bad)}: not claimable, not writable`, () => {
+      const r = rec({ createdate: bad });
+      expect(canClaimCrmOwnership(r, crm)).toBe(false);
+      expect(authorizeWrite(r, wm).allowed).toBe(false);
+    });
+  }
+});
+
+// TRIPWIRE. Phase 1 must ship with NO production spec declaring ownership — the guard and the
+// property-fetch addition are both no-ops until one does. The day someone flips it, this names the
+// invariant instead of letting six call sites throw in production.
+describe("Phase 1 tripwire", () => {
+  it("no production spec declares ownership yet", () =>
+    expect(ALL_SPECS.every(s => !s.ownership)).toBe(true));
+  it("no production spec declares adoptBy yet", () =>
+    expect(ALL_SPECS.every(s => !s.adoptBy)).toBe(true));
 });
 
 describe("withBirthOwnership", () => {
