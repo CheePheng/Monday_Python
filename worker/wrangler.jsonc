@@ -20,7 +20,11 @@
   // DRY_RUN starts TRUE: Phase A writes nothing at all. Phase B flips this to "false" while the
   // code path keeps writeHubspot=false, giving real HubSpot -> monday CRM writes with every
   // HubSpot mutation still blocked (handoff §10).
-  "vars": { "DRY_RUN": "true", "MAX_WRITES": "25" },
+  // ENABLE_CRM IS LOAD-BEARING AND WAS MISSING. specsFor() is EXCLUSIVE: without this var the
+  // deployed CRM Worker resolves the WORK MANAGEMENT specs and becomes a second processor for the
+  // live WM boards — writing them twice, with a token that can also write HubSpot. Exactly the
+  // failure the exclusive gate exists to prevent. Only the literal string "true" enables CRM mode.
+  "vars": { "DRY_RUN": "true", "MAX_WRITES": "25", "ENABLE_CRM": "true" },
 
   "observability": { "enabled": true },
 
