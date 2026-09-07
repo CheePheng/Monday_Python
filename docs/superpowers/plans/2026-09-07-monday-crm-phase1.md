@@ -1616,3 +1616,75 @@ itself is untouched, so the production path is unaffected.
 Domain column would adopt whichever HubSpot company holds that domain — a wrong-record link. The WM
 company path has the same exposure today. Blocking a provider list is a business decision, so it is
 recorded here rather than implemented unilaterally.
+
+---
+
+## Task 9 — ✅ DONE 2026-09-07. `ensureHubspotWriteAuth` in `sync.ts`, 26 tests. Suite 567 → 593.
+
+### The plan's own Task 9 draft was WRONG, and this is the correction
+
+The draft (above) placed the gate immediately after `const lastSynced = ...`, i.e. **before** `fieldDiffs`
+and before the direction decision:
+
+```ts
+  // DRAFT — DO NOT USE
+  if (spec.ownership) {
+    if (canClaimCrmOwnership(rec, spec.ownership)) { await claimOwnership(...); ... }
+```
+
+At that position a **purely forward** HubSpot -> monday reconcile of an eligible unstamped record stamps
+`sync_owner=crm`. Every new post-cutover Contact would be claimed simply by being discovered — the "claim
+too early" failure. The draft also called `claimOwnership(env, spec, rec.id, opts)`, passing an **id**,
+which is the pre-HIGH-2 signature; the fixed function takes the record so it can prove eligibility itself.
+
+**Implemented instead:** `ensureHubspotWriteAuth(env, spec, budget, rec, opts)`, called **lazily at the
+two points where a HubSpot business write is genuinely required** and only once the patch is known
+non-empty:
+
+- `reconcileRecord`, inside `dir === "toHubspot"`, after `Object.keys(patch).length > 0`;
+- `writeSafeBackfills`, after its own patch is built and found non-empty.
+
+Discovery, card creation and every HubSpot -> monday write now reach no ownership code at all. Reading
+HubSpot and writing monday is always safe, so there is nothing to authorize.
+
+A refusal returns without patching **and without stamping the sync state**, so the next tick
+re-evaluates rather than treating the record as done.
+
+### Where this differs from the review's guidance, and why
+
+The review asked to "recompute authorization from confirmed CRM ownership before applying the
+business-field PATCH. Prefer refetching or an equally strong verified transition."
+
+**Implemented as the verified transition, deliberately not a refetch.** A re-read that lagged behind its
+own write would return the pre-claim state, `authorizeWrite` would refuse the business patch we had just
+earned the right to make, and the next tick would re-enter and re-claim — churn and a spurious skip, for
+one extra GET per claim. The transition is sound because `claimOwnership` throws on any HubSpot error and
+returns the new modified timestamp **only** on success, and `claimPatch` is type-constrained to exactly
+`{ sync_owner: <owner> }`. "We wrote this one property and HubSpot accepted it" is therefore a confirmed
+fact, not an assumption, and it is trusted across one statement with no interleaved `await`.
+
+**Strengthened beyond both the draft and the guidance:** the draft stamped the record locally
+*unconditionally*. Under `dryRun` or `writeHubspot: false`, `claimOwnership` writes nothing and returns
+`null` — so stamping locally would manufacture an `allowed` auth for a record this Worker does not own,
+and every downstream log line would be false. The implementation applies the local stamp **only when the
+claim actually happened**, and otherwise logs `action=claim-suppressed`. Phase B therefore blocks the
+claim *and* the business write, and says so truthfully.
+
+### Pre-Phase-A / Phase-D items recorded here
+
+**PA-1 — Public email-provider domains must fail closed for Company adoption/creation.** A rep typing
+`gmail.com` into an Accounts Domain column would adopt whichever HubSpot company holds that domain — a
+wrong-record link — or create a company keyed on a shared consumer domain. `adoptionKey`'s hostname
+shape-check does **not** catch this: `gmail.com` is a perfectly valid hostname. Required before real
+CRM -> HubSpot Company creation is enabled; deliberately **not** implemented during Task 9, and not as an
+arbitrary large blacklist. Note for whoever implements it: for **this** portal the Chinese providers
+matter at least as much as the Western ones — `qq.com`, `163.com`, `126.com`, `sina.com`, `foxmail.com`
+alongside `gmail.com`, `yahoo.com`, `hotmail.com`, `outlook.com`. A live contact in this portal is
+literally `uyjvs@qq.com`. A short, explicit, tested list beats a long guessed one.
+
+**PA-2 — Rehearse the claim path before the cutover goes live.** `CRM_CUTOVER_AT_MS` is
+`POSITIVE_INFINITY`, so `canClaimCrmOwnership` is **always false** and the claim path is 100% inert in
+Phase 1 — it can only be exercised by tests. Its first real execution therefore happens the instant
+someone sets a finite cutover at Phase D. Do not let that be the first observation of it: set the finite
+cutover with `writeHubspot: false` first and read the `DRY hubspot CLAIM <object>/<id>` lines to preview
+the exact blast radius, then enable writes. The `action=claim-suppressed` log exists for this rehearsal.
