@@ -1581,3 +1581,38 @@ A live record holds **`"49HubSpot;55Aircall"`** — it is a **multi-value** enum
 So its eventual monday representation must be a **multi-select dropdown** (no `limit_select`) seeded with
 all 89 exact labels, which `reverseFieldValue`'s dropdown branch can then validate. Not mapped at all in
 Phase 1.
+
+---
+
+## Task 8 — ✅ DONE 2026-09-07. `worker/src/adopt.ts`, 40 tests. Suite 520 → 567.
+
+`adoptionKey(item, spec)` plus a new `if (spec.adoptBy)` branch in `createFromMonday`, chained
+`else if` ahead of both WM branches. **The chaining is load-bearing**, not cosmetic: without it a CRM
+Accounts card that found no domain match would fall through into the WM companies branch and adopt on
+`searchCompanyByDomain(env, item.name)` — i.e. on a company **display name**, the exact "never match by
+name" violation the spec forbids. Both WM branch bodies are byte-for-byte unchanged.
+
+**Behaviour delivered**
+
+| Case | Result |
+|---|---|
+| Account card with a usable domain | search HubSpot by **normalised domain** |
+| existing HubSpot company found | **adopt** its id (no duplicate); ownership untouched |
+| historical pre-cutover unstamped company | adopted, **not claimed** — CRM reverse write stays blocked |
+| CRM-owned company | approved reverse updates allowed |
+| **no usable domain** | **no HubSpot company created**; Sync State stamped `not synced — needs domain` |
+| brand-new company created from monday | full payload **+ `sync_owner=crm`** atomically (birth ownership) |
+| adoption by name | **impossible** — `adoptionKey` never reads `item.name` |
+
+**A gap the tests caught.** `normalizeDomain` only CANONICALISES (lowercase, strip scheme/`www.`/path);
+it does not validate, and correctly so — the WM path feeds it a column that already is a domain. But
+`adoptBy` reads a **free-typed rep column**, so `"ABC Trading Sdn Bhd"` normalised to
+`"abc trading sdn bhd"`, would have matched no HubSpot company, and would then have been used to
+**CREATE** one with a garbage domain. Fixed by shape-checking the result against a registrable-hostname
+pattern inside `adoptionKey` (13 rejection cases + 5 acceptance cases asserted). `normalizeDomain`
+itself is untouched, so the production path is unaffected.
+
+**Open hazard, flagged not fixed:** a rep typing a free email-provider domain (`gmail.com`) into the
+Domain column would adopt whichever HubSpot company holds that domain — a wrong-record link. The WM
+company path has the same exposure today. Blocking a provider list is a business decision, so it is
+recorded here rather than implemented unilaterally.

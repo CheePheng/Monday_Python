@@ -8,6 +8,8 @@ import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
 import { lookupCard, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem } from "./card-registry";
 import { ensureCardForRecord } from "./ensure-card";
+import { adoptionKey } from "./adopt";
+import { authorizeCreate, withBirthOwnership } from "./ownership";
 import { targetGroup } from "./routing";
 import {
   buildCreateProperties, buildReversePatch, buildUpdatePayload, decideDirection, fieldDiffs,
@@ -227,7 +229,37 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
     return;
   }
 
-  if (spec.object === "contacts") {
+  // CRM specs declare their adoption key. A SEPARATE branch so the production WM adoption paths below
+  // stay byte-for-byte unchanged — WM specs have no `adoptBy` and never enter here. The `else if` is
+  // load-bearing: a CRM Accounts spec that found no match must NOT fall into the WM companies branch,
+  // which adopts on `item.name` (a display name on the CRM board).
+  if (spec.adoptBy) {
+    const key = adoptionKey(item, spec);
+    if (!key) {
+      // No usable domain/email -> do not create a HubSpot record. Non-destructive and visible: the reason
+      // is stamped on the card's Sync State so a rep can see why nothing happened.
+      stats.skipped++;
+      await forgetHubspotForItem(env, spec.boardId, item.id);
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.syncStateCol]: `not synced — needs ${spec.adoptBy.kind}` }, opts).catch(() => {});
+      console.log(`${spec.object} card ${item.id} action=skip-create reason=needs_${spec.adoptBy.kind}`);
+      return;
+    }
+    const adopt = spec.adoptBy.kind === "email"
+      ? await searchContactByEmail(env, key)
+      : await searchCompanyByDomain(env, key);
+    if (adopt) {
+      // ADOPTION DOES NOT CLAIM. The card is linked to the existing HubSpot record so no duplicate is
+      // made, but ownership is untouched: a historical record stays WM-owned (or unstamped), so the CRM
+      // reverse write remains blocked by authorizeWrite. Recreating history must never migrate ownership.
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
+      await finishHubspotForItem(env, spec.boardId, item.id, adopt.id);
+      stats.adopted++; budget.left--;
+      console.log(`${spec.object} card ${item.id} action=adopted hubspot_id=${adopt.id} by=${spec.adoptBy.kind}`);
+      return;
+    }
+  } else if (spec.object === "contacts") {
     const email = emailCol ? colText(item, emailCol) : "";
     if (!email) { stats.skipped++; await forgetHubspotForItem(env, spec.boardId, item.id); console.log(`contact card ${item.id} has no email — skip create`); return; }
     const adopt = await searchContactByEmail(env, email);
@@ -238,10 +270,10 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       stats.adopted++; budget.left--;
       return;
     }
-  }
-  if (spec.object === "companies") {
+  } else if (spec.object === "companies") {
     // Companies had NO dedup at all — every trigger created another company. The card's NAME is its domain
     // (COMPANIES_MYLA.nameProps = ["domain"]), so adopt an existing company on the same normalized domain.
+    // CHAINED to the adoptBy branch above: a CRM spec must never reach this name-based adoption.
     const adopt = await searchCompanyByDomain(env, item.name);
     if (adopt) {
       await setColumns(env, spec.boardId, item.id,
@@ -251,10 +283,15 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       return;
     }
   }
-  const props = buildCreateProperties(item, spec, ctx);
+  // BIRTH OWNERSHIP. A record created here has no HubSpot twin, so there is nothing to claim — and born
+  // unstamped it would be stranded behind this Worker's own write guard. Ownership is therefore set
+  // atomically in the create payload. Categorically different from claimOwnership(), whose only permitted
+  // mutation is the ownership property of an EXISTING record. Inert for specs without ownership.
+  const props = withBirthOwnership(buildCreateProperties(item, spec, ctx), spec.ownership);
   let created: { id: string; modified: string } | null;
   try {
-    created = await createRecord(env, spec, props, opts);
+    created = await createRecord(env, spec, props, opts,
+      spec.ownership ? authorizeCreate(spec.ownership) : undefined);
   } catch (e) {
     await forgetHubspotForItem(env, spec.boardId, item.id); // release so a later pass may retry
     throw e;
