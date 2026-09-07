@@ -121,7 +121,9 @@ beforeEach(() => {
 describe("ensureCardForRecord — the gate fires before any monday write", () => {
   it("REFUSES a pre-cutover unstamped record and creates NOTHING", async () => {
     const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live);
-    expect(r.status).toBe("skipped");
+    // "refused", not "skipped": Task 10 split the TERMINAL refusal from transient contention so
+    // /app/ensure-card can answer 422 non-retryable instead of 409 "retry shortly".
+    expect(r.status).toBe("refused");
     expect(monday.createItem).not.toHaveBeenCalled();
   });
 
@@ -133,13 +135,13 @@ describe("ensureCardForRecord — the gate fires before any monday write", () =>
 
   it("REFUSES a wm-stamped record", async () => {
     const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({ sync_owner: "wm", createdate: POST }), live);
-    expect(r.status).toBe("skipped");
+    expect(r.status).toBe("refused");
     expect(monday.createItem).not.toHaveBeenCalled();
   });
 
   it("REFUSES a record parked with an unrecognised stamp", async () => {
     const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({ sync_owner: "hold", createdate: POST }), live);
-    expect(r.status).toBe("skipped");
+    expect(r.status).toBe("refused");
     expect(monday.createItem).not.toHaveBeenCalled();
   });
 
@@ -208,7 +210,7 @@ describe("refusal is safe for every caller shape", () => {
   it("refusing repeatedly is idempotent and never escalates", async () => {
     for (let i = 0; i < 5; i++)
       expect((await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live)).status)
-        .toBe("skipped");
+        .toBe("refused");
     expect(monday.createItem).not.toHaveBeenCalled();
     expect(registry.forgetCard).toHaveBeenCalledTimes(5);
   });

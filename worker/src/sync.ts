@@ -2,7 +2,7 @@ import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats
 import { reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
   ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
-  DEALS, PORTAL_ID, SPEC_BY_BOARD,
+  DEALS, PORTAL_ID, SPEC_BY_BOARD, specByBoard, specByObject, specsFor,
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
@@ -425,7 +425,7 @@ export async function runAll(env: Env, opts: RunOpts, only?: string): Promise<Re
   const ctx = await buildCtx(env);
   const budget: Budget = { left: opts.maxWrites };
   const out: Record<string, Stats> = {};
-  for (const spec of ALL_SPECS) {
+  for (const spec of specsFor(env)) {
     if (spec.skipFullReconcile) continue;   // e.g. companies: 25k can't be search-swept; incremental+webhooks cover it
     if (only && spec.object !== only) continue;
     const key = `${spec.object}:${spec.boardId}`;
@@ -593,8 +593,15 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
 /** Dispatch a HubSpot object event to the right sync path. */
 export async function syncHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
     id: string, opts: RunOpts, budget: Budget): Promise<string> {
-  if (objectType === "deal") return syncHubspotDeal(env, id, opts, budget);
-  return syncHubspotRecord(env, objectType === "contact" ? CONTACTS_MYLA : COMPANIES_MYLA, id, opts, budget);
+  // Deals exist ONLY in the WM deployment. specByObject returns undefined for "deals" on the CRM
+  // deployment, so a stray deal webhook there is a logged no-op rather than an accidental Deal sync.
+  if (objectType === "deal") {
+    if (!specByObject(env, "deals")) return wlog("deals", id, "skipped", 'reason="deals not in scope for this deployment"');
+    return syncHubspotDeal(env, id, opts, budget);
+  }
+  const spec = specByObject(env, objectType === "contact" ? "contacts" : "companies");
+  if (!spec) return wlog(objectType, id, "skipped", 'reason="object not in scope for this deployment"');
+  return syncHubspotRecord(env, spec, id, opts, budget);
 }
 
 /** A HubSpot record was DELETED -> delete the linked monday card. HubSpot is the source of truth,
@@ -623,9 +630,10 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
   const budget: Budget = { left: opts.maxWrites };
   let changed = 0;
 
-  // Deals: dedup ids across the two deal boards, route via the deal-aware path.
+  // Deals: dedup ids across the two deal boards, route via the deal-aware path. Empty on the CRM
+  // deployment, whose specsFor() contains no deals spec at all.
   const dealIds = new Set<string>();
-  for (const spec of DEAL_SPECS) {
+  for (const spec of (specByObject(env, "deals") ? DEAL_SPECS : [])) {
     for (const id of await searchModifiedIds(env, spec, since)) dealIds.add(id);
   }
   for (const id of dealIds) {
@@ -636,7 +644,7 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
   }
 
   // Contacts + companies: one board each.
-  for (const spec of [COMPANIES_MYLA, CONTACTS_MYLA]) {
+  for (const spec of specsFor(env).filter(s => s.object !== "deals")) {
     for (const id of await searchModifiedIds(env, spec, since)) {
       if (budget.left <= 0) break;
       changed++;
@@ -650,7 +658,9 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
 /** monday card changed -> reconcile the one linked HubSpot deal (create / update). */
 export async function syncMondayItem(env: Env, boardId: string, itemId: string, opts: RunOpts,
     budget: Budget, appSave = false): Promise<string> {
-  const spec = SPEC_BY_BOARD[boardId];
+  // EXCLUSIVE routing: a board this deployment does not own resolves to undefined and the event is a
+  // no-op. That is what stops the CRM Worker from becoming a second processor for the WM boards.
+  const spec = specByBoard(env, boardId);
   if (!spec) return wlog("monday", itemId, "skipped", `reason="board ${boardId} not configured"`);
   const ctx = await getCtxCached(env);
   const item = await getItem(env, itemId);

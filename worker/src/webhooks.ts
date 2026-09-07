@@ -1,5 +1,5 @@
 import type { Budget, Env, ObjectSpec, RunOpts } from "./types";
-import { SPEC_BY_BOARD, LINE_ITEM_SUBITEMS } from "./config";
+import { LINE_ITEM_SUBITEMS, specByBoard } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
@@ -103,7 +103,7 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   const itemId = String(ev.pulseId ?? ev.itemId ?? "");
   const type = String(ev.type ?? "");
   const columnId = ev.columnId ? String(ev.columnId) : "";
-  const spec = SPEC_BY_BOARD[boardId];
+  const spec = specByBoard(env, boardId);   // EXCLUSIVE: undefined for a board this deployment does not own
 
   // monday SUBITEM (line-item) edits reverse to HubSpot. When we subscribe to change_subitem_* on the
   // PARENT deals board, monday DELIVERS each edit as a GENERIC "update_column_value"/"update_name" event

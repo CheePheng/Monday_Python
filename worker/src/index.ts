@@ -514,9 +514,22 @@ export default {
           const ctx = await getCtxCached(env);
           const rec = await getRecord(env, spec.object, hubspotId, propertiesForSpec(spec));
           if (!rec) return Response.json({ error: "record-not-found" }, { status: 404, headers: CORS });
-          const itemId = cardIdOf(await ensureCardForRecord(env, spec, ctx, rec, appWriteOpts(env)));
+          const r = await ensureCardForRecord(env, spec, ctx, rec, appWriteOpts(env));
+          // TERMINAL vs TRANSIENT. These were previously indistinguishable — both arrived as
+          // `skipped` and answered 409 "card-pending", whose own comment tells the caller to retry
+          // shortly. For an ownership refusal a retry can NEVER succeed, so a client that honours that
+          // advice loops forever. 422 (well-formed request, but this record cannot be carded) rather
+          // than 403 (which would imply the CALLER is unauthorised — it isn't; the RECORD isn't ours)
+          // and rather than 409 (which means "conflict, try again"). `retryable` is the field clients
+          // should branch on; the status code is for humans and proxies.
+          if (r.status === "refused")
+            return Response.json({ code: "card-refused", retryable: false, reason: "ownership",
+              detail: r.reason }, { status: 422, headers: CORS });
+          const itemId = cardIdOf(r);
           // null = another path holds the reservation right now; the caller should retry shortly.
-          if (!itemId) return Response.json({ error: "card-pending" }, { status: 409, headers: CORS });
+          // `error` is unchanged so existing WM clients behave exactly as before.
+          if (!itemId) return Response.json({ error: "card-pending", retryable: true },
+            { status: 409, headers: CORS });
           return Response.json({ itemId }, { headers: CORS });
         } catch (e) {
           console.log(`[app/ensure-card] ${object}/${hubspotId} error="${String(e).slice(0, 160)}"`);

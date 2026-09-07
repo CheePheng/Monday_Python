@@ -10,7 +10,12 @@ import { mayCreateCrmCard } from "./ownership";
 export type EnsureCard =
   | { status: "existing"; itemId: string }        // a card already existed (registry or column search)
   | { status: "created"; itemId: string | null }  // we created it; itemId is null under dryRun
-  | { status: "skipped" };                        // another path holds the reservation, or no target group
+  | { status: "skipped" }                         // TRANSIENT: another path holds the reservation, or no
+                                                  // target group. Retrying later can succeed.
+  /** PERMANENT: this record is outside the CRM creation scope. Retrying can NEVER succeed until the
+   *  record's ownership or the cutover changes, so callers must not present it as retryable. Kept
+   *  distinct from `skipped` precisely because /app/ensure-card answers 409 "retry shortly" to that. */
+  | { status: "refused"; reason: string };
 
 /** THE single way any path may obtain the monday card for a HubSpot record.
  *
@@ -47,7 +52,7 @@ export async function ensureCardForRecord(env: Env, spec: ObjectSpec, ctx: Ctx, 
     if (!mayCreateCrmCard(rec, spec.ownership)) {
       await forgetCard(env, boardId, rec.id);
       console.log(`${spec.object}/${rec.id} action=refused-card reason="outside CRM creation scope" board=${boardId}`);
-      return { status: "skipped" };
+      return { status: "refused", reason: "outside CRM creation scope" };
     }
 
     const group = targetGroup(rec, spec);
@@ -66,5 +71,10 @@ export async function ensureCardForRecord(env: Env, spec: ObjectSpec, ctx: Ctx, 
 
 /** Convenience for callers that only want an id (null when nothing usable came back). */
 export function cardIdOf(r: EnsureCard): string | null {
-  return r.status === "skipped" ? null : r.itemId;
+  return r.status === "skipped" || r.status === "refused" ? null : r.itemId;
+}
+
+/** True when retrying this call could still succeed. A refusal is terminal; everything else is not. */
+export function isRetryable(r: EnsureCard): boolean {
+  return r.status !== "refused";
 }

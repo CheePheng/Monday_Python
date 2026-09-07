@@ -13,6 +13,8 @@ export interface Env {
   APP_SECRET?: string;           // shared secret the vibe app sends to /app/search (falls back to TRIGGER_SECRET)
   MONDAY_APP_SESSION_SECRET?: string; // signs the monday Board View sessionToken JWT (verify empirically: Client vs Signing secret)
   MONDAY_ACCOUNT_ID?: string;         // the one allowed monday account id (rejects tokens from any other account)
+  ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
+                                      // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)
 }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone" | "email" | "link";

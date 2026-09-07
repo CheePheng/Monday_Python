@@ -1688,3 +1688,91 @@ Phase 1 — it can only be exercised by tests. Its first real execution therefor
 someone sets a finite cutover at Phase D. Do not let that be the first observation of it: set the finite
 cutover with `writeHubspot: false` first and read the `DRY hubspot CLAIM <object>/<id>` lines to preview
 the exact blast radius, then enable writes. The `action=claim-suppressed` log exists for this rehearsal.
+
+---
+
+## Task 10 — ✅ DONE 2026-09-07. Exclusive routing + terminal refusal + registrar. Suite 593 → 640.
+
+### 1. Exclusive runtime routing
+
+`config.ts` gains `specsFor(env)`, `specByBoard(env, id)`, `specByObject(env, object)` and
+`ALL_KNOWN_SPECS`. `ENABLE_CRM === "true"` selects `CRM_SPECS` **exclusively**; anything else — including
+`"TRUE"`, `"1"`, `"yes"`, `""` — selects `ALL_SPECS` (asserted, so a typo can never half-enable CRM).
+
+`ALL_SPECS` / `SPEC_BY_BOARD` are **unchanged**, so a production deploy still sees only WM.
+
+Call sites migrated from the module constants to the env-aware accessors:
+
+| Site | Was | Now |
+|---|---|---|
+| `sync.ts` `syncMondayItem` | `SPEC_BY_BOARD[boardId]` | `specByBoard(env, boardId)` |
+| `webhooks.ts` monday handler | `SPEC_BY_BOARD[boardId]` | `specByBoard(env, boardId)` |
+| `sync.ts` `runAll` | `ALL_SPECS` | `specsFor(env)` |
+| `sync.ts` `syncHubspotObject` | hardcoded `CONTACTS_MYLA`/`COMPANIES_MYLA` | `specByObject(env, …)`, and **deals return a logged no-op** when not in scope |
+| `sync.ts` `runIncremental` | hardcoded `DEAL_SPECS` + `[COMPANIES_MYLA, CONTACTS_MYLA]` | deals skipped unless in scope; specs from `specsFor(env)` |
+
+`SPEC_BY_OBJECT` (associations.ts) is deliberately **not** migrated: CRM specs declare no associations,
+so it is unreachable from the CRM deployment. It becomes part of the association task.
+
+### 2. `/app/ensure-card` — terminal refusal, and an honest note about the risk
+
+`EnsureCard` gained a fourth variant. `{status:"skipped"}` previously meant BOTH "another path holds the
+reservation" (transient) and "ownership refused" (permanent); they are now `skipped` and
+**`refused`**, and `isRetryable(r)` names the difference.
+
+| Outcome | HTTP | Body |
+|---|---|---|
+| permanent ownership refusal | **422** | `{ code: "card-refused", retryable: false, reason: "ownership", detail }` |
+| transient contention | 409 | `{ error: "card-pending", retryable: true }` — `error` key **unchanged** |
+| resolved | 200 | `{ itemId }` |
+
+**422, not 403** — the caller *is* authorised; the *record* is not ours. **422, not 409** — 409 means
+"conflict, try again", the opposite of terminal.
+
+**Honest scoping of the risk I flagged in Task 3B:** the worker's comment said the caller "should retry
+shortly", but the actual client (`monday-app/src/worker-client.ts:193`) **throws** on any response
+without an `itemId` and does not loop. So the retry storm was **latent — documented intent with no
+implementation — not an active bug.** The fix is still right (any future client would be misled, and the
+two states genuinely differ) but it did not repair a live defect. WM behaviour is unchanged either way:
+WM specs declare no ownership, so `refused` is unreachable for them.
+
+### 3. monday webhook registrar — written, NOT run
+
+`worker/scripts/register-crm-webhooks.mjs` (+ `.d.mts` so the suite can import its constants).
+Defaults to `--plan` (read-only); `--apply` additionally requires `--url`. Reads existing hooks first and
+only creates what is missing, so re-running cannot duplicate deliveries.
+
+Boards: `5028000495`, `5028000496` — and a test asserts **no WM board** appears.
+Registration events: `create_item`, `change_column_value`, `change_name`, `item_deleted`.
+
+`DELIVERED_EVENT_ALIASES` records that monday **registers** `create_item` but **delivers**
+`event.type = "create_pulse"`. A test pins both halves so nobody "corrects" the registration list to the
+delivered name — a mismatch this repo has already been bitten by (see the create_pulse notes in
+`card-registry.ts:49` and `sync.ts:276`).
+
+**No webhook was registered. The script was not executed.**
+
+### 4. HubSpot webhook routing
+
+The existing dual-format parser (`webhooks.ts:185-207` — generic `object.*` + `objectTypeId`, legacy
+`contact.*`/`company.*`/`deal.*`, and the bare Workflow payload) is **untouched**. Only the spec
+resolution downstream changed, via `specByObject`. A deal event reaching the CRM deployment resolves no
+spec and logs `reason="deals not in scope for this deployment"`.
+
+### 5. Phase B (`dryRun: false`, `writeHubspot: false`) preserved
+
+HubSpot → monday writes are real; `patchRecord`/`createRecord` suppress the HubSpot write; and
+`claimOwnership` returns `null`, which Task 9 turns into `action=claim-suppressed` **without** fabricating
+local ownership. So no business PATCH, no CREATE, no claim, and the logs say so truthfully.
+
+### 6. Phase-D claim rehearsal is now MANDATORY
+
+Promoted from PA-2 to a required cutover step. Before any real claiming:
+
+1. set the **identical** finite `CRM_CUTOVER_AT` on both Workers;
+2. keep `writeHubspot: false`;
+3. run and read the `DRY hubspot CLAIM <object>/<id>` and `action=claim-suppressed` lines;
+4. inspect exactly which records are CRM claim candidates;
+5. only after explicit approval enable HubSpot writes.
+
+Not implemented as a production cutover — `CRM_CUTOVER_AT_MS` remains `POSITIVE_INFINITY`.

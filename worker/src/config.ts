@@ -1,3 +1,4 @@
+import { CRM_SPECS } from "./config/crm";
 import type { ObjectSpec, SubitemSpec } from "./types";
 
 // ---- Discovered constants (worker_discovery.py / add_id_columns.py, 2026-07-03) ----
@@ -247,3 +248,35 @@ export const SPEC_BY_BOARD: Record<string, ObjectSpec> =
 export const SPEC_BY_OBJECT: Record<string, ObjectSpec> = {
   deals: DEALS, companies: COMPANIES_MYLA, contacts: CONTACTS_MYLA,
 };
+
+// ---------------------------------------------------------------------------------------------------
+// RUNTIME SPEC ROUTING — EXCLUSIVE, never a union.
+//
+// `ALL_SPECS`/`SPEC_BY_BOARD` above are module-level constants shared with the deployed production
+// Worker, so adding the CRM specs to them would make a production deploy start syncing the CRM boards.
+// Hence the env gate. But the gate must also be EXCLUSIVE: if the CRM deployment resolved WM specs too,
+// both Workers would reconcile the same WM records, write monday twice and race each other. Ownership
+// only guards HUBSPOT writes — it would not save us from two Workers writing the same monday board.
+//
+//   The old Worker owns WM. The new one owns CRM. Each deployment resolves ONLY its own boards.
+// ---------------------------------------------------------------------------------------------------
+
+/** The specs THIS deployment is allowed to process. Exclusive by design — see the note above. */
+export function specsFor(env: { ENABLE_CRM?: string }): ObjectSpec[] {
+  return env.ENABLE_CRM === "true" ? CRM_SPECS : ALL_SPECS;
+}
+
+/** boardId -> spec for THIS deployment. Undefined for a board this deployment does not own, which is
+ *  what makes a cross-deployment webhook a no-op instead of a double write. */
+export function specByBoard(env: { ENABLE_CRM?: string }, boardId: string): ObjectSpec | undefined {
+  return specsFor(env).find(s => s.boardId === boardId);
+}
+
+/** HubSpot object -> spec for THIS deployment. Deals exist only in the WM deployment. */
+export function specByObject(env: { ENABLE_CRM?: string }, object: string): ObjectSpec | undefined {
+  return specsFor(env).find(s => s.object === object);
+}
+
+/** Every spec that exists anywhere, for DIAGNOSTICS AND TESTS ONLY. Never use it to route: routing on
+ *  the union is exactly the double-processing bug the exclusive gate exists to prevent. */
+export const ALL_KNOWN_SPECS: ObjectSpec[] = [...ALL_SPECS, ...CRM_SPECS];
