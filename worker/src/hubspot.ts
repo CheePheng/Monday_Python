@@ -38,6 +38,11 @@ function propertiesFor(spec: ObjectSpec): string[] {
   const props = new Set<string>([...spec.nameProps, spec.modifiedProp]);
   for (const f of spec.fields) props.add(f.hs);
   if ("prop" in spec.groupBy) props.add(spec.groupBy.prop);
+  // Ownership metadata is INFRASTRUCTURE, not a mapped field: it must be fetched even though no
+  // monday column displays it. Omitting it makes authorizeWrite read undefined and classify every
+  // record as unstamped, which would hand records to the wrong Worker. Specs without `ownership`
+  // (every production WM spec) are unaffected.
+  if (spec.ownership) { props.add(spec.ownership.prop); props.add(spec.ownership.createdProp); }
   return [...props];
 }
 
