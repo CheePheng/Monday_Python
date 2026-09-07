@@ -1,10 +1,31 @@
 {
-  "name": "hubspot-monday-sync",
+  // CRM sync Worker — SEPARATE deployment from the live `hubspot-monday-sync`.
+  // This worktree inherited production config verbatim; renaming it is what stops an accidental
+  // `wrangler deploy` here from overwriting the live Work Management Worker.
+  "name": "hubspot-monday-crm-sync",
+  // COMPANY Cloudflare account — pinned deliberately as a second guard. Wrangler auth is
+  // machine-global, so switching accounts for an unrelated project silently retargets this one
+  // (that is exactly what happened on 2026-09-07). With the account pinned, a mismatched profile
+  // ERRORS instead of quietly deploying to a personal account.
+  // Verified from wrangler logs: every hubspot-monday-sync deploy used this account.
+  "account_id": "5f4d31a75fd669df8527210deb973591",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
-  "triggers": { "crons": ["*/10 * * * *", "0 3 * * *"] },
-  "vars": { "DRY_RUN": "false", "MAX_WRITES": "100", "LINE_ITEM_WRITE": "true" },
+
+  // NO CRONS in Phase 1. The production config carries */10 (incremental) and 0 3 (full sweep);
+  // inheriting those would start unattended sweeps on day one — see handoff §5, §19.
+  // Re-enable the 10-minute incremental only after webhook behaviour is proven, and only with the
+  // CRM ownership scope enforced. The 03:00 full sweep stays off permanently for CRM.
+
+  // DRY_RUN starts TRUE: Phase A writes nothing at all. Phase B flips this to "false" while the
+  // code path keeps writeHubspot=false, giving real HubSpot -> monday CRM writes with every
+  // HubSpot mutation still blocked (handoff §10).
+  "vars": { "DRY_RUN": "true", "MAX_WRITES": "25" },
+
   "observability": { "enabled": true },
+
+  // A new Worker script gets its OWN Durable Object namespace, so CRM idempotency state can never
+  // collide with production's. The v1 migration is required to create the class on a fresh script.
   "durable_objects": {
     "bindings": [ { "name": "CREATE_IDEMPOTENCY", "class_name": "CreateIdempotency" } ]
   },

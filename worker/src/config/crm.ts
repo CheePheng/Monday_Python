@@ -86,6 +86,10 @@ export const CRM_CONTACTS: ObjectSpec = {
     // leadsource is FORWARD-ONLY into text: ~200 legacy options (Tableau/Alteryx webinar history), far
     // too many for a rep-facing dropdown. `labels` renders the friendly label, not the internal value.
     { hs: "leadsource", col: "text_mm6sc26t", type: "text", labels: "contactSource" },
+    // Event Name — the marketing/event a contact came in from (e.g. "Reimagine - For HB/Aircall").
+    // Verified `type: "string"` (free text), and the monday column was already text, so no retype was
+    // needed. FORWARD-ONLY: HubSpot owns it and it is set at import/form time, not edited by reps.
+    { hs: "event_name", col: "text_mm6t8bxb", type: "text" },
     { hs: "createdate", col: "date_mm6z33nk", type: "date", oneWay: true },
   ],
 };

@@ -99,6 +99,39 @@ describe("CRM_CONTACTS", () => {
   it("does NOT map manufacturer__c yet", () =>
     expect(CRM_CONTACTS.fields.some(f => f.hs === "manufacturer__c")).toBe(false));
 
+  // Approved 2026-09-07 from the mapping sheet. HubSpot `event_name` is verified free text and the
+  // monday column was already `text`, so no retype was needed.
+  it("event_name is mapped FORWARD-ONLY onto the existing Event Name column", () => {
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "event_name")!;
+    expect(f).toMatchObject({ col: "text_mm6t8bxb", type: "text" });
+    expect(f.reverse).toBeUndefined();
+    expect(f.appReverse).toBeUndefined();
+    expect(f.backfill).toBeUndefined();
+  });
+
+  // DECISIONS HELD FROM THE 2026-09-07 REQUIREMENTS REVIEW. Each of these must stay unmapped; the
+  // mapping sheet lists some of them and they must not be wired up on name similarity alone.
+  it("priority__c stays UNMAPPED — HubSpot 优先级 is a follow-up SLA (P1_2小时内 …) while monday's native Priority is High/Medium/Low. Different concepts, zero label overlap", () => {
+    expect(CRM_CONTACTS.fields.some(f => f.hs === "priority__c")).toBe(false);
+    expect(CRM_CONTACTS.fields.some(f => f.col === "status5")).toBe(false);
+  });
+
+  it("notes_last_updated stays deferred to the 24-hour reminder feature", () => {
+    expect(CRM_CONTACTS.fields.some(f => f.hs === "notes_last_updated")).toBe(false);
+    expect(CRM_CONTACTS.fields.some(f => f.col === "text_mm6tmzgq")).toBe(false);
+  });
+
+  it("num_notes / activity COUNTS stay unmapped — a number cannot represent an activity timeline", () => {
+    for (const hs of ["num_notes", "num_contacted_notes", "num_associated_deals",
+                      "hs_last_sales_activity_timestamp"])
+      expect(CRM_CONTACTS.fields.some(f => f.hs === hs)).toBe(false);
+  });
+
+  it("monday's native Activities timeline and Comments stay native and unmapped", () => {
+    for (const col of ["custom_mkrm9y8c", "long_text4", "mirror2", "title5"])
+      expect(CRM_CONTACTS.fields.some(f => f.col === col)).toBe(false);
+  });
+
   it("associates ONLY to companies, via the native relation, and maps no deal column", () => {
     expect(CRM_CONTACTS.associations).toEqual([
       { toObject: "companies", nameProps: ["name"], relationCol: "contact_account" },
