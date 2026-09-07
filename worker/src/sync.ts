@@ -1,8 +1,8 @@
 import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth } from "./types";
 import { reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
-  ALL_SPECS, COMPANIES_MYLA, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS,
-  DEALS, PORTAL_ID, SPEC_BY_BOARD, specByBoard, specByObject, specsFor,
+  CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS, DEALS, PORTAL_ID,
+  specByBoard, specByObject, specsFor,
 } from "./config";
 import { buildColumnValues, itemName } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
@@ -611,12 +611,20 @@ export async function syncHubspotObject(env: Env, objectType: "deal" | "contact"
 export async function deleteHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
     id: string, opts: RunOpts, budget: Budget): Promise<string> {
   if (objectType === "deal") {
+    // Same guard as the contact/company branch below: findLinkedDealItem scans the WM DEAL boards, so
+    // without this the CRM deployment would delete a WM deal card on a HubSpot deal deletion.
+    if (!specByObject(env, "deals"))
+      return wlog("deals", id, "skipped", 'reason="deals not in scope for this deployment"');
     const linked = await findLinkedDealItem(env, id); // searches both deal boards
     if (!linked) return wlog("deals", id, "skipped", 'reason="deleted in HubSpot; no linked monday card"');
     await deleteItem(env, linked.item.id, opts); budget.left--;
     return wlog("deals", id, "deleted-monday", `board=${linked.spec.boardId} item=${linked.item.id}`);
   }
-  const spec = objectType === "contact" ? CONTACTS_MYLA : COMPANIES_MYLA;
+  // EXCLUSIVE routing, same as every other path. Hardcoding the WM specs here meant the CRM deployment
+  // would look up a deleted HubSpot id on the WM board and DELETE THAT CARD — a cross-deployment write,
+  // the precise failure exclusive routing exists to prevent. Found by the Task 11 matrix.
+  const spec = specByObject(env, objectType === "contact" ? "contacts" : "companies");
+  if (!spec) return wlog(objectType, id, "skipped", 'reason="object not in scope for this deployment"');
   const item = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
   if (!item) return wlog(spec.object, id, "skipped", 'reason="deleted in HubSpot; no linked monday card"');
   await deleteItem(env, item.id, opts); budget.left--;
