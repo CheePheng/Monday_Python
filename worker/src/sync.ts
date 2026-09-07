@@ -1,4 +1,4 @@
-import type { Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth } from "./types";
+import type { Budget, Ctx, Env, HsRecord, LabelDict, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth } from "./types";
 import { reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
   CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS, DEALS, PORTAL_ID,
@@ -35,36 +35,74 @@ function linkValue(spec: ObjectSpec, ctx: Ctx, id: string): Record<string, unkno
     : {};
 }
 
+/**
+ * Where each enum label dictionary comes from.
+ *
+ * SPEC-DRIVEN so that a deployment only fetches the metadata its OWN specs actually reference. This is
+ * not a micro-optimisation: buildCtx previously fetched deal pipelines and three deal properties
+ * unconditionally, which would have forced the CRM HubSpot app to hold `crm.objects.deals.read` +
+ * `crm.schemas.deals.read` purely to satisfy a shared helper — for an integration where Deals are
+ * deliberately out of scope. Least privilege beats convenience.
+ *
+ * "derived" dictionaries cost no API call: `salesUser` is built from the owner list, `pipeline` is a
+ * literal. They are always present.
+ */
+const LABEL_SOURCE: Record<LabelDict, { object: string; prop: string } | "dealPipelines" | "derived"> = {
+  stage:         "dealPipelines",
+  pipeline:      "derived",
+  salesUser:     "derived",
+  dealtype:      { object: "deals", prop: "dealtype" },
+  priority:      { object: "deals", prop: "hs_priority" },
+  vendor:        { object: "deals", prop: "vendorschang_shang_lai_yuan" },
+  leadStatus:    { object: "contacts", prop: "hs_lead_status" },
+  contactSource: { object: "contacts", prop: "leadsource" },
+  contactVendor: { object: "contacts", prop: "manufacturer__c" },
+  industry:      { object: "companies", prop: "industry" },
+  companyType:   { object: "companies", prop: "type" },
+  partnerWith:   { object: "companies", prop: "partner_with" },
+};
+
+/** The label dictionaries THIS deployment's specs actually reference. */
+export function labelDictsFor(env: { ENABLE_CRM?: string }): LabelDict[] {
+  const want = new Set<LabelDict>();
+  for (const spec of specsFor(env))
+    for (const f of spec.fields) if (f.labels) want.add(f.labels);
+  return [...want];
+}
+
 export async function buildCtx(env: Env): Promise<Ctx> {
-  const [ownersById, mondayUsersByEmail, stage, dealtype, priority, vendor, leadStatus,
-         industry, companyType, contactSource, contactVendor, partnerWith] = await Promise.all([
+  // Only the dictionaries this deployment needs, and only the ones that require a fetch. For the WM
+  // deployment this resolves to the same 10 property/pipeline calls as before (its specs reference
+  // every one of them); for CRM it is 5 calls and NOTHING under /deals.
+  const wanted = labelDictsFor(env);
+  const fetched = wanted.filter(d => LABEL_SOURCE[d] !== "derived");
+
+  const [ownersById, mondayUsersByEmail, ...dicts] = await Promise.all([
     getOwners(env),
     getUsersByEmail(env),
-    getDealStageLabels(env),
-    getPropertyOptions(env, "deals", "dealtype"),
-    getPropertyOptions(env, "deals", "hs_priority"),
-    getPropertyOptions(env, "deals", "vendorschang_shang_lai_yuan"),
-    getPropertyOptions(env, "contacts", "hs_lead_status"),
-    getPropertyOptions(env, "companies", "industry"),
-    getPropertyOptions(env, "companies", "type"),
-    getPropertyOptions(env, "contacts", "leadsource"),
-    getPropertyOptions(env, "contacts", "manufacturer__c"),
-    getPropertyOptions(env, "companies", "partner_with"),
+    ...fetched.map(d => {
+      const src = LABEL_SOURCE[d];
+      return src === "dealPipelines" ? getDealStageLabels(env)
+        : getPropertyOptions(env, (src as { object: string }).object, (src as { prop: string }).prop);
+    }),
   ]);
+
+  const labels: Partial<Record<LabelDict, Record<string, string>>> = {};
+  fetched.forEach((d, i) => { labels[d] = dicts[i] as Record<string, string>; });
+
   // sales_user values are raw owner ids; label them with owner names.
   const salesUser: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.name) salesUser[id] = o.name;
+  // Derived dictionaries need no fetch, so they are always available regardless of the spec scan.
+  labels.salesUser = salesUser;
+  labels.pipeline = { default: "Sales Pipeline" };
+
   // Reverse lookups for people-column reverse-sync: monday person id -> email -> HubSpot owner id.
   const mondayEmailByUserId: Record<string, string> = {};
   for (const [email, id] of Object.entries(mondayUsersByEmail)) mondayEmailByUserId[id] = email;
   const ownerIdByEmail: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.email) ownerIdByEmail[o.email.toLowerCase()] = id;
-  return {
-    labels: { stage, dealtype, priority, vendor, leadStatus, industry, companyType,
-              contactSource, contactVendor, salesUser, partnerWith,
-              pipeline: { default: "Sales Pipeline" } },
-    ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, portalId: PORTAL_ID,
-  };
+  return { labels, ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, portalId: PORTAL_ID };
 }
 
 /**

@@ -13,6 +13,9 @@ export interface Env {
   APP_SECRET?: string;           // shared secret the vibe app sends to /app/search (falls back to TRIGGER_SECRET)
   MONDAY_APP_SESSION_SECRET?: string; // signs the monday Board View sessionToken JWT (verify empirically: Client vs Signing secret)
   MONDAY_ACCOUNT_ID?: string;         // the one allowed monday account id (rejects tokens from any other account)
+  /** "false" DISABLES every HubSpot mutation while leaving HubSpot -> monday writes real. Opt-OUT: the
+   *  live WM Worker sets no such var and keeps writing HubSpot exactly as before. See run-opts.ts. */
+  WRITE_HUBSPOT?: string;
   ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
                                       // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)
 }

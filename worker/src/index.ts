@@ -1,6 +1,7 @@
 import type { Env, RunOpts, Budget } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
+import { writeModeFor, maxWritesFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, listContacts, mapAssocRecord, mapOwners } from "./hubspot";
@@ -33,8 +34,7 @@ const CORS = {
 
 // Writes for real when the Worker is live (mirrors optsFromEnv but with a small per-request budget).
 function appWriteOpts(env: Env): RunOpts {
-  const live = env.DRY_RUN === "false";
-  return { dryRun: !live, writeHubspot: live, maxWrites: 5 };
+  return writeModeFor(env, 5);
 }
 
 // Auth for /app/*: a valid monday session token (browser) OR X-Trigger-Secret (server-to-server).
@@ -49,12 +49,7 @@ async function authApp(req: Request, env: Env): Promise<{ ok: boolean; reason: s
 }
 
 function optsFromEnv(env: Env): RunOpts {
-  const live = env.DRY_RUN === "false";
-  // Writes/records per cron tick. Default 25 keeps subrequests under the free-plan 50 cap; raise via the
-  // MAX_WRITES var on Workers Paid (1,000 subrequests) so bulk imports catch up faster per tick.
-  const n = Number(env.MAX_WRITES ?? "25");
-  const maxWrites = Number.isFinite(n) && n > 0 ? n : 25;
-  return { dryRun: !live, writeHubspot: live, maxWrites };
+  return writeModeFor(env, maxWritesFor(env));
 }
 
 export default {
@@ -608,11 +603,12 @@ export default {
         return new Response("forbidden", { status: 403 });
       const mode = url.searchParams.get("mode") ?? "dry";
       const n = Number(url.searchParams.get("maxWrites") ?? "300");
-      const opts: RunOpts = {
-        dryRun: mode !== "live",
-        writeHubspot: mode === "live",
-        maxWrites: Number.isFinite(n) && n >= 0 ? n : 300,
-      };
+      // /run's ?mode=live is an explicit manual override of DRY_RUN, but WRITE_HUBSPOT still applies:
+      // a deployment configured not to touch HubSpot must not be talked into it by a query string.
+      const opts: RunOpts = writeModeFor(
+        { DRY_RUN: mode === "live" ? "false" : "true", WRITE_HUBSPOT: env.WRITE_HUBSPOT },
+        Number.isFinite(n) && n >= 0 ? n : 300,
+      );
       const stats = await runAll(env, opts, url.searchParams.get("object") ?? undefined);
       return Response.json({ mode, maxWrites: opts.maxWrites, stats });
     }

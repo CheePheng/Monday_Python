@@ -24,7 +24,7 @@
   // deployed CRM Worker resolves the WORK MANAGEMENT specs and becomes a second processor for the
   // live WM boards — writing them twice, with a token that can also write HubSpot. Exactly the
   // failure the exclusive gate exists to prevent. Only the literal string "true" enables CRM mode.
-  "vars": { "DRY_RUN": "true", "MAX_WRITES": "25", "ENABLE_CRM": "true" },
+  "vars": { "DRY_RUN": "true", "WRITE_HUBSPOT": "false", "MAX_WRITES": "25", "ENABLE_CRM": "true" },
 
   "observability": { "enabled": true },
 
