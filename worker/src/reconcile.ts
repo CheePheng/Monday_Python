@@ -78,7 +78,9 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
     // Phone compares DIGITS on both sides (hsText is already digits from expectedText): monday re-formats
     // a phone column by country, so a raw compare would diff every tick and loop. The diff still carries the
     // RAW monday text so the reverse write keeps the user's "+"/formatting.
-    const same = f.type === "phone" ? phoneDigits(mdText) === hsText : hsText === mdText;
+    const same = f.type === "phone" ? phoneDigits(mdText) === hsText
+      : f.type === "email" ? mdText.trim().toLowerCase() === hsText
+      : hsText === mdText;
     if (!same) out.push({ kind: "field", f, hsText, mdText });
   }
   const wantName = itemName(rec, spec);

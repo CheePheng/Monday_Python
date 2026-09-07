@@ -21,6 +21,18 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
       const uid = email ? ctx.mondayUsersByEmail[email] : undefined;
       return uid ? { personsAndTeams: [{ id: Number(uid), kind: "person" }] } : null;
     }
+    // monday EMAIL column. Needs { email, text }, not a bare string. Only the CRM boards use this type
+    // (the WM contacts board keeps email in a plain text column), so nothing in production changes.
+    case "email": {
+      const e = v.trim();
+      return e ? { email: e, text: e } : null;
+    }
+    // monday LINK column. Needs { url, text }. Distinct from spec.linkCol, which is the fixed
+    // "Open in HubSpot" deep link; this carries a HubSpot URL property (e.g. linkedin_company_page).
+    case "link": {
+      const u = v.trim();
+      return u ? { url: u, text: u } : null;
+    }
     case "phone": {
       const digits = v.replace(/[^\d]/g, "");
       if (!digits) return null;
@@ -72,9 +84,15 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
   const v = String(value).trim();
   // Phone: diffable, but only as digits (see phoneDigits). fieldDiffs normalizes the monday side to match.
   if (f.type === "phone") return phoneDigits(v);
+  // Email: compared CASE-INSENSITIVELY. HubSpot stores what was typed ("Bob@X.com") while monday's email
+  // column may echo a normalised form, and a raw compare would diff every tick and loop. fieldDiffs
+  // lowercases the monday side to match.
+  if (f.type === "email") return v.toLowerCase();
   switch (f.type) {
     case "date": return v.slice(0, 10);
     case "numbers": { const n = Number(v); return Number.isFinite(n) ? String(n) : v; }
+    // A monday link column echoes its TEXT part, which formatValue sets equal to the url.
+    case "link": return v;
     case "status": case "text": case "long_text": return (dict(f, ctx)[v] ?? v).trim();
     case "dropdown":
       return v.split(";").map(s => s.trim()).filter(Boolean).map(s => (dict(f, ctx)[s] ?? s).trim()).join(", ");

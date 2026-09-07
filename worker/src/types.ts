@@ -15,7 +15,7 @@ export interface Env {
   MONDAY_ACCOUNT_ID?: string;         // the one allowed monday account id (rejects tokens from any other account)
 }
 
-export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone";
+export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone" | "email" | "link";
 export type LabelDict =
   | "stage" | "dealtype" | "priority" | "vendor" | "pipeline"
   | "industry" | "companyType" | "leadStatus" | "salesUser"

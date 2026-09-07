@@ -1514,3 +1514,70 @@ UTC ISO-8601/RFC3339 timestamp, keeping the fail-closed range check:
 **Type consistency.** `OwnershipSpec{prop,createdProp,owner,cutoverAtMs}` · `WriteAuth{allowed,reason}` · `AdoptBy{kind,col}` · `syncOwnerOf` · `authorizeWrite` · `canClaimCrmOwnership` · `claimPatch` · `claimOwnership` · `OwnershipError` · `adoptionKey` · `specsFor` · `specByBoard` · `CRM_CONTACTS` · `CRM_ACCOUNTS` · `CRM_SPECS` · `CRM_CUTOVER_AT_MS` · `CRM_CREATE_CUTOFF_MS` — spelled identically at every definition and use. `patchRecord`/`createRecord` gain the same trailing `auth?: WriteAuth` in Task 3 and are called with it in Task 9.
 
 **Production-safety review.** Every shared-file change is inert without `ownership`/`adoptBy`/`ENABLE_CRM`: `propertiesFor` (Task 2) branches on `spec.ownership`; `assertMayWrite` (Task 3) returns immediately without it; the adoption branch (Task 8) is a new `if` above untouched code; the ownership gate (Task 9) is wrapped in `if (spec.ownership)`; routing (Task 10) leaves `ALL_SPECS`/`SPEC_BY_BOARD` literally unchanged and adds opt-in accessors. **Phase 1 requires no change to the deployed production WM Worker's behaviour.** Task 10's call-site migration (`SPEC_BY_BOARD[x]` → `specByBoard(env, x)`) is the only shared-code edit that touches a production execution path; it is behaviour-identical when `ENABLE_CRM` is unset and is covered by the "WM boards resolve identically either way" test.
+
+---
+
+## Tasks 6-7 — ✅ DONE 2026-09-07. `worker/src/config/crm.ts`, 36 tests. Suite 484 → 520.
+
+All 30 column references in both specs were cross-checked against the live boards: every id exists and
+every declared type matches. A test asserts none of the 19 deleted Task-5 stub ids can reappear.
+
+**Two additive engine changes** were required and are inert for production (no WM field uses either type,
+asserted by test): `ColType` gained **`"email"`** (monday email columns need `{email,text}`, and the CRM
+board uses the native `contact_email`; compared case-insensitively so HubSpot's stored casing cannot
+loop) and **`"link"`** (`{url,text}`, for `linkedin_company_page`). The WM contacts board keeps email in
+a plain text column, so its path is untouched.
+
+### Association findings — Contact↔Company is forward-only, and that needs a code guard
+
+`reverseAssociations` is **not** deals-only: `sync.ts:567` sits in `syncMondayItem`'s generic
+"already linked" branch, and `/app/sync-contact` (`index.ts:492`) already routes contacts through it.
+So the moment a CRM spec declares `associations`, a monday relation edit would call
+`putAssociation` — the unguarded HubSpot mutation path (P2-1/HIGH-3).
+
+Right now that is a **safe no-op**: `reverseAssociations` iterates `spec.associations ?? []`, and neither
+CRM spec declares associations. But forward-only cannot be left to convention.
+
+**Association task, step 1 (before declaring any `associations`):** make `reverseAssociations` return
+immediately when `spec.ownership` is set — a blanket "no ownership-declaring spec may write HubSpot
+associations until the association path is guarded". Inert for every WM spec (none declares ownership),
+impossible to forget per-field, and it is the ownership-activation gate applied to this path.
+
+**Deals stay out.** `contact_deal` points at board **5028000494 "Deals"** — the monday CRM template's
+third board, 26 columns, **3 demo items**. Populating it would mean carding HubSpot Deals onto a second
+board while the live WM deal boards already sync them: two boards owning the same HubSpot deals, the
+exact scenario `sync_owner` exists to prevent. `account_deal` is a mirror through `contact_deal`, so it
+inherits this. Both DEFER.
+
+### Primary association label — measured, recommendation: add nothing
+
+The HubSpot MCP exposes **no associations and no association labels**, so a precise census of
+companies-per-contact and Primary usage is not obtainable through this connector. What *is* exact, via
+the HubSpot-maintained `last_associated_company_name`, for Contacts created since 2026-06-01:
+
+| | Count | Share |
+|---|---:|---:|
+| Has >=1 associated Company | **1,202** | 52% |
+| Has **no** Company at all | **1,118** | **48%** |
+| Total | 2,320 | |
+
+`associatedcompanyid` **does not exist in this portal** (absent from `get_properties` and from a full
+record dump), so it cannot be used to identify the primary company either. **Separately: WM's
+`CONTACTS_MYLA.scopeAlsoLinkedProp = "associatedcompanyid"` (`config.ts:206`) therefore looks dead** —
+`recInScope`'s union branch would never fire, so the "also include company-linked contacts" scope
+extension is silently inactive on the live WM sync. Worth verifying; not touched here (production, and
+out of Phase 1 scope).
+
+**Recommendation: do not create a Primary Company column.** Nothing is lost by waiting — the forward
+association sync writes *all* associated companies into `contact_account`, so Primary can be added later
+as a **separate** `board_relation` without disturbing it. Overloading `contact_account` to mean
+"primary only" would discard the other associations, so that option is off the table either way.
+The dominant fact is that ~half of new Contacts have no company at all; a Primary column would be empty
+or redundant for the overwhelming majority.
+
+### Vendors / `manufacturer__c` — still DEFER, and now with a further reason
+
+A live record holds **`"49HubSpot;55Aircall"`** — it is a **multi-value** enumeration, not single-select.
+So its eventual monday representation must be a **multi-select dropdown** (no `limit_select`) seeded with
+all 89 exact labels, which `reverseFieldValue`'s dropdown branch can then validate. Not mapped at all in
+Phase 1.
