@@ -3,7 +3,7 @@
   "type": "webhooks",
   "config": {
     "settings": {
-      "targetUrl": "https://REPLACE-AFTER-DEPLOY.workers.dev/webhooks/hubspot",
+      "targetUrl": "https://hubspot-monday-crm-sync.askada.workers.dev/webhooks/hubspot",
       "maxConcurrentRequests": 10
     },
     "subscriptions": {
