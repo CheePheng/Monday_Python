@@ -1,6 +1,7 @@
-import type { Env, HsRecord, ObjectSpec, RunOpts } from "./types";
+import type { Env, HsRecord, ObjectSpec, RunOpts, WriteAuth } from "./types";
 import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
 import { normalizeDomain } from "./normalize";
+import { claimPatch } from "./ownership";
 
 const BASE = "https://api.hubapi.com";
 
@@ -32,6 +33,28 @@ async function hs(env: Env, method: string, path: string, body?: unknown, retrie
     const text = await resp.text();
     return text ? JSON.parse(text) : undefined;         // tolerate any other empty-body success
   }
+}
+
+/** A HubSpot mutation was attempted without, or against, write ownership. Never swallowed. */
+export class OwnershipError extends Error {
+  constructor(msg: string) { super(msg); this.name = "OwnershipError"; }
+}
+
+/**
+ * Fail-closed write authorization.
+ *
+ * A spec that declares `ownership` may not be mutated without an explicit allow — so a forgotten
+ * call site becomes a loud error rather than a silent write to a record another sync owns. Placed at
+ * the HTTP chokepoint on purpose: a predicate that only callers consult is one missed call away from
+ * writing to the wrong place. Specs without `ownership` (every production WM spec) return
+ * immediately, so their behaviour is unchanged.
+ */
+function assertMayWrite(spec: ObjectSpec, id: string, auth: WriteAuth | undefined): void {
+  if (!spec.ownership) return;
+  if (!auth) throw new OwnershipError(
+    `hubspot write to ${spec.object}/${id} requires a WriteAuth (spec declares ownership)`);
+  if (!auth.allowed) throw new OwnershipError(
+    `hubspot write to ${spec.object}/${id} refused: ${auth.reason}`);
 }
 
 function propertiesFor(spec: ObjectSpec): string[] {
@@ -496,7 +519,8 @@ export async function searchModifiedIds(env: Env, spec: ObjectSpec, sinceMs: num
 /** PATCH existing record (update-only). Returns the record's new modified timestamp (for Sync
  * State), or null when not actually written (dry / reverse writes disabled). */
 export async function patchRecord(env: Env, spec: ObjectSpec, id: string,
-    properties: Record<string, string>, opts: RunOpts): Promise<string | null> {
+    properties: Record<string, string>, opts: RunOpts, auth?: WriteAuth): Promise<string | null> {
+  assertMayWrite(spec, id, auth);   // before the dry-run check: a refusal must never look like a skip
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot PATCH ${spec.object}/${id}: ${JSON.stringify(properties)}`);
     return null;
@@ -508,7 +532,8 @@ export async function patchRecord(env: Env, spec: ObjectSpec, id: string,
 
 /** CREATE a new record from a monday card. Returns {id, modified}, or null when not written. */
 export async function createRecord(env: Env, spec: ObjectSpec, properties: Record<string, string>,
-    opts: RunOpts): Promise<{ id: string; modified: string } | null> {
+    opts: RunOpts, auth?: WriteAuth): Promise<{ id: string; modified: string } | null> {
+  assertMayWrite(spec, "(new)", auth);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot CREATE ${spec.object}: ${JSON.stringify(properties)}`);
     return null;
@@ -519,6 +544,27 @@ export async function createRecord(env: Env, spec: ObjectSpec, properties: Recor
   const res = await hs(env, "POST", `/crm/v3/objects/${spec.object}`, { properties }, 1);
   console.log(`hubspot CREATE ${spec.object} -> ${res.id}`);
   return { id: String(res.id), modified: res.properties?.[spec.modifiedProp] ?? "" };
+}
+
+/**
+ * Claim CRM write ownership of an EXISTING HubSpot record.
+ *
+ * The only mutation permitted on an unclaimed record, and its payload is exactly one property
+ * (claimPatch). Deliberately NOT routed through patchRecord: widening the write guard can never
+ * widen this, and widening this can never write a business field. A brand-new record created from
+ * monday is a different case — it is born owned via withBirthOwnership() in the create payload.
+ */
+export async function claimOwnership(env: Env, spec: ObjectSpec, id: string,
+    opts: RunOpts): Promise<string | null> {
+  if (!spec.ownership) throw new OwnershipError(`claimOwnership on ${spec.object}: no ownership spec`);
+  const properties = claimPatch(spec.ownership);
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot CLAIM ${spec.object}/${id}: ${JSON.stringify(properties)}`);
+    return null;
+  }
+  const res = await hs(env, "PATCH", `/crm/v3/objects/${spec.object}/${id}`, { properties });
+  console.log(`hubspot CLAIM ${spec.object}/${id} -> ${spec.ownership.owner}`);
+  return res.properties?.[spec.modifiedProp] ?? null;
 }
 
 /** Find a HubSpot contact by exact email (for adopt-if-exists). Null if none. */
