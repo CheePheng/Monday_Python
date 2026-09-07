@@ -221,8 +221,9 @@ remove hand-added duplicates, prefer native relations, clean duplicate phone and
 | `headquarters_loc` | Headquarters location | text | **DEFER** | business call | native, 3/3 — keep, or standardise on City/State/Postal? (question G) |
 | `company_profile` | Company profile | link | **DEFER** | business call | native, 3/3 — how does it differ from `company_domain`? (question G) |
 
-**Totals:** 11 REPLACE (retypes, all provably empty) · 9 DELETE (each with a named verified
-replacement) · 8 REUSE · 8 DEFER · 2 already done by the lead.
+**Totals (corrected):** **9 REPLACE** · **10 DELETE** · 8 REUSE · 8 DEFER · 2 already done by the lead.
+*(The rev. 2 summary line first said 11/9 — an arithmetic slip in the summary only; the itemised rows
+were always 9 and 10. Verified against the executed operations below.)*
 
 > **Structural finding — no native Deal relation on Accounts.** On Accounts, "Deals" is `account_deal`,
 > a **mirror**, not a `board_relation` (it resolves through `account_contact`). So "prefer the native
@@ -231,6 +232,83 @@ replacement) · 8 REUSE · 8 DEFER · 2 already done by the lead.
 
 > **Execution order within Tier 2:** every REPLACE (retype) and the `text_mm6tafj5` rename first, verify,
 > then the DELETEs. Re-query both boards and confirm each column id immediately before touching it.
+
+---
+
+## H. Task 5 — EXECUTED 2026-09-07. Both boards: 27 columns, 0 items.
+
+### H-1. Two platform findings that changed the mechanism
+
+**1. monday cannot retype a column.** There is no `change_column_type` mutation. `update_column` accepts
+a `column_type` argument, but supplying it for a type change returns
+`INVALID_INPUT / "column type mismatch"` (probed on `text_mm6t7rpd`; the column was left unmodified).
+**So every REPLACE is create-new-correctly-typed + delete-old-stub, and the stub's column ID does not
+survive.** Net board state is identical to what was approved; only the mechanism differs. Consequence:
+19 delete operations were performed (10 approved DELETEs + the 9 replaced stubs), and Tasks 6-7 must use
+the new IDs in H-2, not the old `text_mm6t*` ones.
+
+**2. monday status columns cannot hold 27 labels.** Seeding `partner_with`'s 27 options into a `status`
+column returns a bare `500 INTERNAL_SERVER_ERROR`. Probed: 16 labels ✅ (the `Type` column), 20 / 24 /
+26 / 27 all ❌. `create_dropdown_column` with `defaults: { labels: [{label}], limit_select: true }`
+accepted all 27 and stored them. **`partner_with` is therefore a `dropdown`, not a `status`** — a
+platform limit, not a preference. It is also the safer type: `reverseFieldValue`'s dropdown branch
+validates each label against the inverted dict and **stops on an unknown label** (`reconcile.ts:137-138`),
+whereas the status/text branch falls through raw (`rev[text] ?? text`, `reconcile.ts:144`) and would
+send an unmapped monday label straight to a HubSpot enum.
+
+### H-2. Old → new column IDs (REPLACE)
+
+| Board | Old stub (deleted) | New column | Type | Title | Labels seeded |
+|---|---|---|---|---|---|
+| Contacts | `text_mm6t8x04` | **`link_mm6z7mj`** | link | HubSpot Link | — |
+| Contacts | `text_mm6sdc3b` | **`date_mm6z33nk`** | date | Created date | — |
+| Contacts | `text_mm6tqwyw` | **`color_mm6zb4tc`** | status | Lead Status | **8**, exact `hs_lead_status` labels |
+| Accounts | `text_mm6t4jp` | **`numeric_mm6zj731`** | numbers | Annual Revenue | — |
+| Accounts | `text_mm6tghg4` | **`color_mm6zwhwt`** | status | Type | **16**, exact company `type` labels |
+| Accounts | `text_mm6t6w6n` | **`dropdown_mm6zd1ge`** | **dropdown** | Partner With (HubSpot) | **27**, exact `partner_with` labels, `limit_select` |
+| Accounts | `text_mm6t8r57` | **`link_mm6z41s3`** | link | LinkedIn company page | — |
+| Accounts | `text_mm6t7rpd` | **`date_mm6zmtf8`** | date | Created date | — |
+| Accounts | `text_mm6t1n5g` | **`link_mm6zyad8`** | link | HubSpot Link | — |
+
+Label seeding means the ctx dict maps HubSpot value → an already-existing monday label, so **no
+`create_labels_if_missing` is needed at runtime** for any of these three.
+
+### H-3. Renamed (ID preserved)
+
+`text_mm6tafj5` "Industry" → **"Industry (HubSpot)"** (Accounts). Still `text`, still empty, still the
+only industry field the sync writes. Native `industry` dropdown untouched and unmapped.
+
+### H-4. Deleted (19 total)
+
+**Approved DELETEs (10).** Contacts: `numeric_mm6swz9c`, `12849070_last_name`, `text_mm6t40d7`,
+`text_mm6s7db3`. Accounts: `text_mm6t68sz`, `text_mm6tyx9z`, `text_mm6thg86`, `text_mm6t638`,
+`text_mm6tvb8q`, `text_mm6t5nqt`.
+**Replaced stubs (9).** The nine "old stub" IDs in H-2.
+
+Every deletion was gated on a live re-query immediately beforehand asserting the column's **exact title
+and type**, membership of a hard-coded allowlist, and **board item count == 0**. A mismatch aborted the
+run rather than guessing. No native, mirror, `board_relation`, `subtasks`, `unsupported` or people
+column was touched.
+
+### H-5. Groups (unchanged, confirmed)
+
+Both boards sync into group **`topics`** — Contacts "Active Contacts", Accounts "Companies". The
+not-synced groups are Contacts `new_group95562` and Accounts `group_mm6t6ear`.
+
+### H-6. Nothing behaved unexpectedly beyond H-1
+
+The retype refusal and the 27-label 500 are recorded above; both were caught by probing before any
+destructive step. Two scratch probe columns were created during isolation and **both deleted** —
+verified absent in the final schema. One incidental note: the `mq.py` helper raises `SystemExit`, not
+`Exception`, so an early probe's `except Exception` did not catch a GraphQL error; it aborted safely
+rather than continuing blind, and the 5 already-created IDs were recovered from the live board and
+re-verified before the run resumed.
+
+### H-7. Deferred fields — confirmed still present, untouched
+
+Contacts: `text_mm6tmzgq`, `text_mm6s40ew`, `text_mm6sakj3`, `text_mm6t8bxb`, `text_mm6szy4q`,
+`title5`, `status`. Accounts: `text_mm6twxwe`, `headquarters_loc`, `company_profile`, `employee_count`,
+`industry`. **No Sales Users column created. Board permissions unchanged** (`everyone` / `public`).
 
 ### Never touched
 

@@ -849,7 +849,36 @@ git commit -m "docs(crm): record applied board schema changes and the resulting 
 
 **Interfaces:** produces `CRM_CUTOVER_AT_MS`, `CRM_CREATE_CUTOFF_MS`, `CRM_CONTACTS: ObjectSpec`.
 
-**Prerequisite:** Task 5 complete — every column id below is a real id from the live board. **No placeholders.**
+**Prerequisite:** Task 5 complete (**done 2026-09-07**) — every column id below is a real id from the live board. **No placeholders.**
+
+> **⛔ HARD SEQUENCING GATE.** **Task 3B (`mayCreateCrmCard`) must be implemented and green BEFORE this
+> task creates a spec carrying `includeAll: true`.** There must never be an intermediate state where a
+> runtime-selectable CRM spec sets `includeAll: true` while the card-creation chokepoint is unguarded —
+> that configuration gradually imports the historical portal. Tests must prove the gate covers both
+> normal reconciliation (`sync.ts:80`) and association-triggered creation (`associations.ts:202`).
+> Actual execution order: Tasks 1-3 → **Task 4** → **Task 5** → **Task 3B** → Tasks 6-7 → 8-11.
+
+**Live column ids captured from Task 5 (board `5028000495`, 27 columns, group `topics` = "Active Contacts"):**
+
+| Purpose | Column id | Type |
+|---|---|---|
+| HubSpot ID (`idCol`) | `text_mm6t71dj` | text |
+| Sync State (`syncStateCol`) | `text_mm6twy4w` | text |
+| HubSpot Link (`linkCol`) | **`link_mm6z7mj`** | link |
+| `hubspot_owner_id` (`appReverse`) | `multiple_person_mm6zap53` | people |
+| `hs_lead_status` (two-way) | **`color_mm6zb4tc`** | status, 8 labels seeded |
+| `createdate` (one-way) | **`date_mm6z33nk`** | date |
+| `email` (adoption key, unused in Phase 1) | `contact_email` | email |
+| `phone` | `contact_phone` | phone |
+| `jobtitle` | `text_mm6szy4q` | text |
+| `company` (forward-only) | `text_mm6sdvkq` | text |
+| `leadsource` (forward-only) | `text_mm6sc26t` | text |
+| `firstname` / `lastname` | `text_mm6sab4c` / `text_mm6snp6r` | text |
+
+**Deliberately unmapped:** `text_mm6s40ew` (Vendors — DEFER, see the note in Task 7), `text_mm6sakj3`
+(Sales Users — DEFER, and `sales_user` is irrelevant to CRM), `text_mm6t8bxb` (Event Name — business
+call), `text_mm6tmzgq` (Last Activity Date — reserved for R-1), `title5` / `status` / `status5` /
+`long_text4` / `mirror2` / `contact_account` / `contact_deal` (native monday CRM functionality).
 
 - [ ] **Step 1: Write the failing test** — assert board/id/sync-state columns; `modifiedProp === "lastmodifieddate"` (**not** `hs_lastmodifieddate`); `ownership.owner === "crm"`; `propertiesForSpec` contains `sync_owner` + `createdate`; `includeAll === true`; **`createFromMonday === false`**, **`adoptBy` undefined**, **`createDefaults` undefined** (see the creation-source note below); `skipFullReconcile === true`; `groupBy === { singleGroup: "topics" }`; phone maps to `contact_phone` and **no field maps `numeric_mm6swz9c`**; `hubspot_owner_id` has `appReverse: true` and **no** `reverse`; `hs_lead_status`/`manufacturer__c` have `reverse: true` while `leadsource`/`company` do not; `nameProps === ["firstname","lastname"]` with **`nameReverse` undefined**; and `CRM_CUTOVER_AT_MS === Number.POSITIVE_INFINITY` (inert). Plus: **no field maps `sales_user`**, and `recInScope(CRM_CONTACTS, rec)` is `true` for a record with no `sales_user`.
 
@@ -899,7 +928,41 @@ git commit -m "feat(crm): CRM Contacts ObjectSpec on real column ids"
 
 **Interfaces:** produces `CRM_ACCOUNTS: ObjectSpec`, `CRM_SPECS: ObjectSpec[]`.
 
-- [ ] **Step 1: Write the failing test** — assert board `5028000496`, `idCol text_mm6tsnwx`, `syncStateCol text_mm6tccd0`; `modifiedProp === "hs_lastmodifieddate"`; `includeAll === true`; `adoptBy === { kind: "domain", col: "company_domain" }` and **not** the name column `text_mm6t1q4h`; `industry` is `type: "text"` mapped to **`text_mm6tafj5`** with **no** `reverse` and **no field maps the native `industry` dropdown** (audit F9 — see the taxonomy note below); `partner_with` forward-only, `type` two-way; `numberofemployees` maps to the **native `employee_count`** as `type: "text"` with **no `reverse`** and **no field maps a second employee-count column**; `hubspot_owner_id` `appReverse`; `nameReverse` undefined; `skipFullReconcile` true; **no field maps `sales_user`**. Plus `CRM_SPECS` covers exactly `["companies","contacts"]`, all declare crm ownership, none carry associations.
+- [ ] **Step 1: Write the failing test** — assert board `5028000496`, `idCol text_mm6tsnwx`, `syncStateCol text_mm6tccd0`, `linkCol link_mm6zyad8`, `groupBy { singleGroup: "topics" }`; `modifiedProp === "hs_lastmodifieddate"`; `includeAll === true`; `adoptBy === { kind: "domain", col: "company_domain" }` and **not** the name column `text_mm6t1q4h`; `industry` is `type: "text"` mapped to **`text_mm6tafj5`** with **no** `reverse` and **no field maps the native `industry` dropdown** (audit F9 — see the taxonomy note below); `partner_with` forward-only on **`dropdown_mm6zd1ge`** with `type: "dropdown"`, `type` two-way on **`color_mm6zwhwt`**; `numberofemployees` maps to the **native `employee_count`** as `type: "text"` with **no `reverse`** and **no field maps a second employee-count column**; `hubspot_owner_id` `appReverse` on `multiple_person_mm6z8mwy`; `nameReverse` undefined; `skipFullReconcile` true; **no field maps `sales_user`**. Plus `CRM_SPECS` covers exactly `["companies","contacts"]`, all declare crm ownership, none carry associations.
+
+**Live column ids captured from Task 5 (board `5028000496`, 27 columns, group `topics` = "Companies"):**
+
+| Purpose | Column id | Type |
+|---|---|---|
+| HubSpot ID (`idCol`) | `text_mm6tsnwx` | text |
+| Sync State (`syncStateCol`) | `text_mm6tccd0` | text |
+| HubSpot Link (`linkCol`) | **`link_mm6zyad8`** | link |
+| `hubspot_owner_id` (`appReverse`) | `multiple_person_mm6z8mwy` | people |
+| `industry` (**forward-only text**) | `text_mm6tafj5` "Industry (HubSpot)" | text |
+| `type` (two-way) | **`color_mm6zwhwt`** | status, 16 labels seeded |
+| `partner_with` (forward-only) | **`dropdown_mm6zd1ge`** | **dropdown**, 27 labels seeded, `limit_select` |
+| `annualrevenue` | **`numeric_mm6zj731`** | numbers |
+| `linkedin_company_page` | **`link_mm6z41s3`** | link |
+| `createdate` (one-way) | **`date_mm6zmtf8`** | date |
+| `numberofemployees` (**one-way**, native col) | `employee_count` | text |
+| `name` | `text_mm6t1q4h` | text |
+| `domain` (adoption key) | `company_domain` | link |
+| `city` / `state` / `zip` / `timezone` | `text_mm6tdrdn` / `text_mm6t5tv` / `text_mm6t7ha4` / `text_mm6tys5f` | text |
+| `description` | `company_description` | long_text |
+
+> **`partner_with` is a DROPDOWN, not a status — forced by a platform limit.** monday `status` columns
+> reject 27 labels with a bare `500` (probed: 16 ✅, 20/24/26/27 ❌); `create_dropdown_column` accepted
+> all 27. It is also the safer type — `reverseFieldValue`'s dropdown branch validates each label against
+> the inverted dict and **stops on an unknown label** (`reconcile.ts:137-138`), where the status/text
+> branch falls through raw (`rev[text] ?? text`, `reconcile.ts:144`).
+
+> **`manufacturer__c` / Vendors (Contacts `text_mm6s40ew`) stays DEFER and must NOT go two-way yet.**
+> 89 HubSpot enum options against an unconstrained monday **text** column, and the text reverse branch
+> does not validate — so a rep's typo would be PATCHed straight into a HubSpot enumeration and 400 on
+> every tick. Before it becomes two-way it must be a `dropdown` (or `status` if the option list is first
+> reduced under ~19) whose labels are seeded from the exact HubSpot option list, so `reverseFieldValue`
+> can validate against the dict. The same reasoning is why `hs_lead_status` (8) and company `type` (16)
+> were seeded with their exact HubSpot labels at creation.
 
 > **EMPLOYEE COUNT — reuse the native column, forward-only (verified 2026-09-07).**
 > `worker/test/employee-count-roundtrip.test.ts` exercises the real mapper: `formatValue` emits the
