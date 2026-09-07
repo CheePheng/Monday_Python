@@ -1,7 +1,7 @@
 import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, SubitemSpec } from "./types";
 import { createLineItem, getAssociatedIds, getRecord, getRecordsByIds, patchLineItem, propertiesForSpec, putAssociation } from "./hubspot";
 import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItem, getItemsColumnText, getLinkedItemIds, getParentItemId, getSubitems, setColumns, updateItem } from "./monday";
-import { DEALS, LINE_ITEM_SUBITEMS, SPEC_BY_OBJECT } from "./config";
+import { DEALS, LINE_ITEM_SUBITEMS, specByObject } from "./config";
 import { buildSubitemReversePatch, subitemFieldByCol, readSubitemEvent } from "./line-item-reverse";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { buildColumnValues, formatValue, itemName } from "./mapping";
@@ -32,10 +32,24 @@ export async function syncAssociations(env: Env, spec: ObjectSpec, rec: HsRecord
  * can't re-add a HubSpot-removed link. */
 export async function reverseAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, item: MondayItem,
     opts: RunOpts, budget: Budget): Promise<void> {
+  // OWNERSHIP ACTIVATION GATE for the association path (P2-1 / HIGH-3). putAssociation and
+  // deleteAssociation take no `spec`, so they cannot consult ownership and are NOT covered by the
+  // fail-closed guard on patchRecord/createRecord. Until they are, no ownership-declaring spec may
+  // write HubSpot associations at all.
+  //
+  // This is a BLANKET refusal rather than a per-field flag on purpose: "remember not to declare
+  // associations" is not a safety property. Note also that this function is NOT deals-only —
+  // sync.ts:567 sits in syncMondayItem's generic "already linked" branch and /app/sync-contact routes
+  // contacts through it — so a CRM spec declaring associations would otherwise reach putAssociation on
+  // any monday relation edit. Inert for every WM spec: none declares ownership.
+  if (spec.ownership) {
+    console.log(`source=monday object=${spec.object} id=${rec.id} action=reverse-assoc-refused reason="ownership-declaring spec: HubSpot association writes are not guarded yet (P2-1)"`);
+    return;
+  }
   for (const a of spec.associations ?? []) {
     if (!a.relationCol) continue;
     try {
-      const target = SPEC_BY_OBJECT[a.toObject];
+      const target = specByObject(env, a.toObject);
       if (!target) continue;
       const linkedCards = await getLinkedItemIds(env, item.id, a.relationCol);
       if (!linkedCards.length) continue;
@@ -180,8 +194,11 @@ export const shrinksFreshCard = (createdAt: string, want: string[], current: str
  * target board's own filter would exclude). Skips when links already match. HubSpot -> monday only. */
 async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids: string[],
     item: MondayItem, ctx: Ctx, opts: RunOpts, budget: Budget): Promise<void> {
-  const target = SPEC_BY_OBJECT[a.toObject];
-  if (!target) return; // no monday board for this object (e.g. line_items)
+  // DEPLOYMENT-SPECIFIC. With the global map, a CRM contact's relation column would be filled with
+  // cards from the WM companies board — a cross-deployment write. Undefined also covers line_items,
+  // which have no board, and any object this deployment does not own.
+  const target = specByObject(env, a.toObject);
+  if (!target) return;
   const existing = ids.length ? await findItemIdsByColumn(env, target.boardId, target.idCol, ids) : {};
   const cardByHsId: Record<string, string> = { ...existing };
   // Resolve every associated id to a monday card, creating on-demand for uncarded ones. A contact-heavy

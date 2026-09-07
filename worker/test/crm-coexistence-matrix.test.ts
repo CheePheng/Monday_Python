@@ -231,9 +231,9 @@ describe("E. delete direction", () => {
     expect(deleters.some(n => /contact|compan|deal(?!.*line)/i.test(n))).toBe(false);
   });
 
-  it("and the line-item deleter is unreachable from CRM: no CRM spec has associations or subitems", () => {
+  it("and the line-item deleter is unreachable from CRM: no CRM association carries subitems", () => {
     for (const s of CRM_SPECS) {
-      expect(s.associations).toBeUndefined();
+      for (const a of s.associations ?? []) expect(a.subitems).toBeUndefined();
       expect(s.fields.some(f => /subitem/i.test(f.col))).toBe(false);
     }
   });
@@ -303,8 +303,14 @@ describe("H. no Deals, no associations", () => {
     for (const s of CRM_SPECS) expect(s.object).not.toBe("deals");
   });
 
-  it("no CRM spec declares associations, so reverseAssociations is a no-op for them", () => {
-    for (const s of CRM_SPECS) expect(s.associations).toBeUndefined();
+  // SUPERSEDED by the association task: CRM specs now DO declare the Contact<->Company relation. The
+  // safety property moved from "declares nothing" to "declares only this, and the reverse is code-blocked"
+  // (reverseAssociations returns immediately for any ownership-declaring spec - crm-associations.test.ts).
+  it("CRM associations are Contact<->Company ONLY, never deals", () => {
+    for (const s of CRM_SPECS) {
+      expect(s.associations).toHaveLength(1);
+      for (const a of s.associations!) expect(["companies", "contacts"]).toContain(a.toObject);
+    }
   });
 
   it("no CRM field maps a deal relation or the CRM Deals board", () => {

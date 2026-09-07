@@ -83,7 +83,7 @@ describe("object resolution keeps Deals out of CRM", () => {
   it("no CRM spec is a deals spec, and none carries deal associations", () => {
     for (const s of CRM_SPECS) {
       expect(s.object).not.toBe("deals");
-      expect(s.associations).toBeUndefined();
+      for (const a of s.associations ?? []) expect(a.toObject).not.toBe("deals");
     }
   });
 });

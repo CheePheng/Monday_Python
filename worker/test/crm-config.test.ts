@@ -99,8 +99,10 @@ describe("CRM_CONTACTS", () => {
   it("does NOT map manufacturer__c yet", () =>
     expect(CRM_CONTACTS.fields.some(f => f.hs === "manufacturer__c")).toBe(false));
 
-  it("maps no Deal or association field", () => {
-    expect(CRM_CONTACTS.associations).toBeUndefined();
+  it("associates ONLY to companies, via the native relation, and maps no deal column", () => {
+    expect(CRM_CONTACTS.associations).toEqual([
+      { toObject: "companies", nameProps: ["name"], relationCol: "contact_account" },
+    ]);
     for (const f of CRM_CONTACTS.fields) expect(f.col).not.toMatch(/deal/i);
   });
 });
@@ -152,9 +154,11 @@ describe("CRM_ACCOUNTS", () => {
     expect(CRM_ACCOUNTS.fields.find(f => f.hs === "hubspot_owner_id"))
       .toMatchObject({ col: "multiple_person_mm6z8mwy", type: "people", appReverse: true }));
 
-  it("maps no sales_user and no associations", () => {
+  it("maps no sales_user, and associates ONLY to contacts", () => {
     expect(CRM_ACCOUNTS.fields.some(f => f.hs === "sales_user")).toBe(false);
-    expect(CRM_ACCOUNTS.associations).toBeUndefined();
+    expect(CRM_ACCOUNTS.associations).toEqual([
+      { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: "account_contact" },
+    ]);
   });
 });
 
@@ -215,7 +219,7 @@ describe("PRODUCTION WM specs are untouched", () => {
     expect(CRM_SPECS.map(s => s.object).sort()).toEqual(["companies", "contacts"]);
     for (const s of CRM_SPECS) {
       expect(s.ownership?.owner).toBe("crm");
-      expect(s.associations).toBeUndefined();
+      expect(s.associations).toHaveLength(1);          // Contact<->Company only; reverse is code-blocked
     }
   });
 });

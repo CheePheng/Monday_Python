@@ -37,6 +37,9 @@ export function adoptionKey(item: MondayItem, spec: ObjectSpec): string {
     } catch { /* malformed value JSON: keep the text fallback */ }
   }
   const d = normalizeDomain(raw);
+  // PA-1. A consumer email provider is not a company domain. Blocked BEFORE the hostname check so the
+  // reason is unambiguous in the logs.
+  if (isPublicEmailDomain(d)) return "";
   // SHAPE-CHECK, because this is the trust boundary for free-typed rep input. normalizeDomain only
   // CANONICALISES (lowercase, strip scheme/www/path) — it does not validate, and correctly so: the WM
   // path feeds it a column that already is a domain. Here a rep may type anything, and "ABC Trading Sdn
@@ -50,4 +53,39 @@ const HOSTNAME = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z
 
 function isHostname(d: string): boolean {
   return d.length <= 253 && HOSTNAME.test(d);
+}
+
+/**
+ * PA-1 — consumer/public email providers, which must NEVER be an automatic company-matching key.
+ *
+ * A SHORT, EXPLICIT, REVIEWED list, deliberately not an internet-derived blacklist. Every entry is
+ * either evidenced in this portal or an obvious provider a rep might plausibly type.
+ *
+ * Why this is not theoretical: five companies in the live portal ALREADY carry a provider domain —
+ * gmail.com -> "上海胜意十方传媒技术有限公司", qq.com -> "QQ Music", 163.com -> a Zhuhai consultancy,
+ * vip.163.com -> "NETEASE", yahoo.com -> "JOYY Inc." (verified 2026-09-07). So a rep typing "gmail.com"
+ * into an Accounts card's Domain column would adopt an unrelated Chinese media company. The collision
+ * target exists today.
+ *
+ * SCOPE: this blocks AUTOMATIC company adoption/creation by domain only. It says nothing about the
+ * validity of a Contact whose email is at one of these providers — contact email is never a company
+ * matching key, and those contacts sync normally. Some of these are also genuine companies (Tencent
+ * really does own qq.com); a human can still link such a card deliberately by its HubSpot ID.
+ */
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  // Western
+  "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "msn.com",
+  "yahoo.com", "ymail.com", "icloud.com", "me.com", "aol.com", "protonmail.com", "proton.me",
+  "gmx.com", "mail.com", "zoho.com",
+  // Chinese — the ones that matter most for this portal
+  "qq.com", "163.com", "126.com", "sina.com", "sina.cn", "foxmail.com", "139.com", "189.cn",
+  "aliyun.com", "sohu.com", "yeah.net", "21cn.com", "tom.com", "wo.cn", "vip.sina.com",
+]);
+
+/** True for a provider domain or any subdomain of one — "vip.163.com" is a real case in this portal. */
+export function isPublicEmailDomain(d: string): boolean {
+  if (!d) return false;
+  if (PUBLIC_EMAIL_DOMAINS.has(d)) return true;
+  for (const p of PUBLIC_EMAIL_DOMAINS) if (d.endsWith("." + p)) return true;
+  return false;
 }

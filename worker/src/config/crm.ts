@@ -60,7 +60,16 @@ export const CRM_CONTACTS: ObjectSpec = {
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,
   createFromMonday: false,                   // HubSpot is the creation source for Contacts
-  // no createDefaults, no adoptBy, no associations (Contact<->Company is its own task, forward-only)
+  // no createDefaults, no adoptBy
+  // CONTACT <-> COMPANY, HUBSPOT -> MONDAY ONLY. Fills the board's NATIVE `contact_account` relation
+  // with the CRM Account cards for this contact's HubSpot company associations. The reverse direction is
+  // blocked in code, not by convention: reverseAssociations returns immediately for any spec declaring
+  // `ownership`, because putAssociation/deleteAssociation take no spec and so cannot be ownership-guarded
+  // yet (P2-1). No `col` — no comma-joined text column is wanted. NO DEAL RELATION: `contact_deal`
+  // points at board 5028000494, a third board outside Phase 1 whose deals the WM boards already own.
+  associations: [
+    { toObject: "companies", nameProps: ["name"], relationCol: "contact_account" },
+  ],
   fields: [
     { hs: "firstname", col: "text_mm6sab4c", type: "text", reverse: true },
     { hs: "lastname", col: "text_mm6snp6r", type: "text", reverse: true },
@@ -104,6 +113,12 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   ownership: OWN_ACCOUNTS,
   createFromMonday: true,
   adoptBy: { kind: "domain", col: "company_domain" },   // native Domain link column, NOT the name column
+  // The mirror image of the Contacts relation, into the native `account_contact` column. HubSpot ->
+  // monday only, by the same reverseAssociations ownership gate. `account_deal` is a monday MIRROR that
+  // resolves through account_contact, so it is never written directly and needs no entry here.
+  associations: [
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: "account_contact" },
+  ],
   fields: [
     { hs: "name", col: "text_mm6t1q4h", type: "text", reverse: true },
     // industry -> the RENAMED custom text stub "Industry (HubSpot)". The board's NATIVE `industry`
