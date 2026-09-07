@@ -16,6 +16,10 @@ export interface Env {
   /** "false" DISABLES every HubSpot mutation while leaving HubSpot -> monday writes real. Opt-OUT: the
    *  live WM Worker sets no such var and keeps writing HubSpot exactly as before. See run-opts.ts. */
   WRITE_HUBSPOT?: string;
+  /** CRM ownership cutover as an ISO timestamp or epoch ms. Read via cutoverFromEnv, which fails
+   *  CLOSED to Infinity (claiming and CRM card creation both disabled) for a missing, malformed or
+   *  implausible value. Deployment config on purpose - a temporary test cutover never enters git. */
+  CRM_CUTOVER_AT?: string;
   ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
                                       // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)
 }

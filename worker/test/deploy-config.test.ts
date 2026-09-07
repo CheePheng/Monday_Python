@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readWranglerConfig } from "../scripts/read-wrangler.mjs";
 import { writeModeFor, maxWritesFor } from "../src/run-opts";
 import { labelDictsFor } from "../src/sync";
-import { specsFor } from "../src/config";
+import { specsFor, specByBoard, specByObject, ALL_SPECS } from "../src/config";
+import { CRM_SPECS } from "../src/config/crm";
 import { cutoverFromEnv } from "../src/ownership";
 
 /**
@@ -125,5 +126,53 @@ describe("spec-driven metadata: the CRM app needs NO Deals scope", () => {
       for (const spec of specsFor(env))
         for (const f of spec.fields)
           if (f.labels) expect(labelDictsFor(env)).toContain(f.labels);
+  });
+});
+
+describe("CRM_CUTOVER_AT is deployment config, and fails closed", () => {
+  const crm = (CRM_CUTOVER_AT?: string) => specsFor({ ENABLE_CRM: "true", CRM_CUTOVER_AT });
+  const cutoverOf = (CRM_CUTOVER_AT?: string) => crm(CRM_CUTOVER_AT)[0].ownership!.cutoverAtMs;
+
+  it("unset leaves the inert shipped cutover, and returns the ORIGINAL spec objects", () => {
+    expect(cutoverOf(undefined)).toBe(Number.POSITIVE_INFINITY);
+    expect(crm(undefined)).toBe(CRM_SPECS);          // identity preserved for the default path
+  });
+
+  it("a real ISO timestamp is applied to BOTH specs", () => {
+    const want = Date.parse("2026-09-07T11:00:00Z");
+    for (const s of crm("2026-09-07T11:00:00Z")) expect(s.ownership!.cutoverAtMs).toBe(want);
+  });
+
+  it("epoch milliseconds work too", () =>
+    expect(cutoverOf(String(Date.parse("2026-10-01T00:00:00Z"))))
+      .toBe(Date.parse("2026-10-01T00:00:00Z")));
+
+  // FAIL CLOSED. Each of these is a plausible operator slip, and every one must leave the CRM path
+  // unable to claim or card anything rather than silently choosing a cutover in the distant past.
+  it.each(["", "   ", "0", "1", "2026", "20261001", "not-a-date", "1e21", "1970-01-01T00:00:00Z",
+           "2199-01-01T00:00:00Z", "3000-01-01T00:00:00Z"])(
+    "CRM_CUTOVER_AT=%j fails closed to Infinity", (v) =>
+      expect(cutoverOf(v)).toBe(Number.POSITIVE_INFINITY));
+
+  it("applying a cutover changes ONLY the cutover — board, columns and owner are untouched", () => {
+    const [acc, con] = crm("2026-09-07T11:00:00Z");
+    expect(acc.boardId).toBe(CRM_SPECS[0].boardId);
+    expect(con.boardId).toBe(CRM_SPECS[1].boardId);
+    expect(con.ownership!.owner).toBe("crm");
+    expect(con.ownership!.prop).toBe("sync_owner");
+    expect(con.fields).toBe(CRM_SPECS[1].fields);     // same field array, not a rebuilt one
+  });
+
+  it("the WM deployment ignores CRM_CUTOVER_AT entirely", () => {
+    expect(specsFor({ CRM_CUTOVER_AT: "2026-09-07T11:00:00Z" })).toBe(ALL_SPECS);
+    for (const s of specsFor({ CRM_CUTOVER_AT: "2026-09-07T11:00:00Z" }))
+      expect(s.ownership).toBeUndefined();
+  });
+
+  it("board/object resolution still works with a cutover set", () => {
+    const env = { ENABLE_CRM: "true", CRM_CUTOVER_AT: "2026-09-07T11:00:00Z" };
+    expect(specByBoard(env, "5028000495")?.object).toBe("contacts");
+    expect(specByObject(env, "companies")?.boardId).toBe("5028000496");
+    expect(specByObject(env, "deals")).toBeUndefined();
   });
 });

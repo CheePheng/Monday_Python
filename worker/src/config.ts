@@ -1,4 +1,5 @@
 import { CRM_SPECS } from "./config/crm";
+import { cutoverFromEnv } from "./ownership";
 import type { ObjectSpec, SubitemSpec } from "./types";
 
 // ---- Discovered constants (worker_discovery.py / add_id_columns.py, 2026-07-03) ----
@@ -261,19 +262,31 @@ export const SPEC_BY_OBJECT: Record<string, ObjectSpec> = {
 //   The old Worker owns WM. The new one owns CRM. Each deployment resolves ONLY its own boards.
 // ---------------------------------------------------------------------------------------------------
 
-/** The specs THIS deployment is allowed to process. Exclusive by design — see the note above. */
-export function specsFor(env: { ENABLE_CRM?: string }): ObjectSpec[] {
-  return env.ENABLE_CRM === "true" ? CRM_SPECS : ALL_SPECS;
+/** The specs THIS deployment is allowed to process. Exclusive by design — see the note above.
+ *
+ * The CRM ownership cutover is DEPLOYMENT CONFIGURATION, not a committed constant: `CRM_CUTOVER_AT`
+ * is read from the environment through the range-bounded `cutoverFromEnv`, which fails closed to
+ * Infinity for a missing, malformed or implausible value. That keeps a temporary Phase-A/B test
+ * timestamp out of git entirely — setting it is a Worker var, and resetting it is deleting that var.
+ *
+ * When the var is absent (every test, and the checked-in config) the ORIGINAL spec objects are
+ * returned unchanged, so object identity is preserved for callers that compare by reference. */
+export function specsFor(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }): ObjectSpec[] {
+  if (env.ENABLE_CRM !== "true") return ALL_SPECS;
+  if (env.CRM_CUTOVER_AT === undefined) return CRM_SPECS;
+  const cutoverAtMs = cutoverFromEnv(env.CRM_CUTOVER_AT);
+  if (cutoverAtMs === Number.POSITIVE_INFINITY) return CRM_SPECS;   // fail-closed: no override
+  return CRM_SPECS.map(s => s.ownership ? { ...s, ownership: { ...s.ownership, cutoverAtMs } } : s);
 }
 
 /** boardId -> spec for THIS deployment. Undefined for a board this deployment does not own, which is
  *  what makes a cross-deployment webhook a no-op instead of a double write. */
-export function specByBoard(env: { ENABLE_CRM?: string }, boardId: string): ObjectSpec | undefined {
+export function specByBoard(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }, boardId: string): ObjectSpec | undefined {
   return specsFor(env).find(s => s.boardId === boardId);
 }
 
 /** HubSpot object -> spec for THIS deployment. Deals exist only in the WM deployment. */
-export function specByObject(env: { ENABLE_CRM?: string }, object: string): ObjectSpec | undefined {
+export function specByObject(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }, object: string): ObjectSpec | undefined {
   return specsFor(env).find(s => s.object === object);
 }
 
