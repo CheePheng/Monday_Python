@@ -7,6 +7,9 @@
  *   MONDAY_API_TOKEN=<token> node scripts/add-crm-columns.mjs --apply
  *
  * Idempotent by TITLE: a column with the same title is left alone, so re-running adds nothing.
+ * NOTE: titles here MUST track scripts/rename-crm-columns.mjs. They were renamed on 2026-09-08 to
+ * match the HubSpot Create Contact form labels, and a stale title here would silently re-create a
+ * duplicate column on the next --apply.
  */
 const API = "https://api.monday.com/v2";
 const CONTACTS = "5028000495";
@@ -36,15 +39,15 @@ const PRIORITY_LABELS = ["P1_2小时内", "P2_1周内", "P3_2周内", "P4_持续
 
 export const PLANNED = [
   {
-    title: "Assigned Date", type: "date", after: "multiple_person_mm6zap53",
+    title: "Owner assigned date", type: "date", after: "multiple_person_mm6zap53",
     why: "hubspot_owner_assigneddate — verified populated; HubSpot resets it on reassignment, so it is the trigger field for the future 24-hour follow-up reminder",
   },
   {
-    title: "HubSpot Last Activity Date", type: "date", after: "text_mm6tmzgq",
+    title: "Last Activity Date", type: "date", after: "text_mm6tmzgq",
     why: "notes_last_updated is a DATETIME; the existing 'Last Activity Date' column is TEXT and would show a raw ISO string. monday cannot retype, so a new date column is the only route",
   },
   {
-    title: "Priority (HubSpot)", type: "status", after: "color_mm6zb4tc", labels: PRIORITY_LABELS,
+    title: "优先级", type: "status", after: "color_mm6zb4tc", labels: PRIORITY_LABELS,
     why: "priority__c, seeded with its exact 4 SLA labels. Native Priority (High/Medium/Low) stays untouched",
   },
   {
