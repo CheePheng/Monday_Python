@@ -88,7 +88,12 @@ export const CRM_CONTACTS: ObjectSpec = {
     { hs: "phone", col: "contact_phone", type: "phone", reverse: true },
     // Owner: app-save-only. A plain `reverse` reassigned owners unattended on the WM side (2026-08-28).
     { hs: "hubspot_owner_id", col: "multiple_person_mm6zap53", type: "people", appReverse: true },
-    { hs: "hs_lead_status", col: "color_mm6zb4tc", type: "status", labels: "leadStatus", reverse: true },
+    // DROPPED 2026-09-08: `hs_lead_status` ("Lead Status", column color_mm6zb4tc) was the THIRD status
+    // ladder on this board and is set on 450 of 94,205 contacts (0.5%, measured live). The two that do
+    // the work are `lifecyclestage` (100%) and `leadstatus`/状态 (69%) below - the same eight-step
+    // ladder in English and Chinese. Three columns for one question is why they were indistinguishable.
+    // The WM Contact Follow Up board still maps AND groups by hs_lead_status (config.ts) - untouched,
+    // because ENABLE_CRM routing is exclusive.
     // leadsource is FORWARD-ONLY into text: ~200 legacy options (Tableau/Alteryx webinar history), far
     // too many for a rep-facing dropdown. `labels` renders the friendly label, not the internal value.
     { hs: "leadsource", col: "text_mm6sc26t", type: "text", labels: "contactSource" },
