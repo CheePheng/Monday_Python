@@ -51,12 +51,39 @@ async function monday(token, query, variables = {}) {
   return body.data;
 }
 
-async function hubspotOptions(token, object) {
-  const res = await fetch(`https://api.hubapi.com/crm/v3/properties/${object}/sales_user`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`hubspot ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  return ((await res.json()).options ?? []).map(o => ({ value: String(o.value), label: String(o.label) }));
+/**
+ * The labels come from the OWNERS API, not from the property definition.
+ *
+ * `sales_user` looks like a picklist but is not one: GET /properties/contacts/sales_user returns
+ * `type: "enumeration"`, `fieldType: "select"` and **`options: []`** — it carries
+ * `referencedObjectType` + `externalOptions` instead, so its choices are resolved dynamically from
+ * HubSpot's owner list. (HubSpot's own UI and the MCP property tool resolve them for you, which is why
+ * 42 options are visible there and zero come back from the raw property API. Reading `.options` here
+ * silently produced an empty list.)
+ *
+ * This mirrors getOwners + the `salesUser` "derived" dictionary in sync.ts EXACTLY —
+ * `${firstName} ${lastName}`.trim(), keeping only non-empty names — so the monday labels are the same
+ * strings the sync will write. Any divergence would show up as unwritable values.
+ *
+ * Drift is already handled elsewhere: every monday write mutation sets `create_labels_if_missing:true`
+ * (monday.ts), so an owner hired after this conversion has their name added to the dropdown on first
+ * write rather than failing the mutation.
+ */
+async function hubspotOptions(token, _object) {
+  const out = [];
+  let after;
+  do {
+    const url = `https://api.hubapi.com/crm/v3/owners/?limit=100${after ? `&after=${after}` : ""}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`hubspot owners ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = await res.json();
+    for (const o of body.results ?? []) {
+      const label = `${o.firstName ?? ""} ${o.lastName ?? ""}`.trim();
+      if (label) out.push({ value: String(o.id), label });
+    }
+    after = body.paging?.next?.after;
+  } while (after);
+  return out;
 }
 
 /** monday dropdown labels must be unique. Keep first occurrence; report every collision. */

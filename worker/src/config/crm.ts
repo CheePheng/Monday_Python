@@ -115,10 +115,29 @@ export const CRM_CONTACTS: ObjectSpec = {
     // HubSpot priority in its OWN status column, labels seeded from the exact 4 SLA options. The board's
     // native Priority (High/Medium/Low) stays UNMAPPED — same concept name, different meaning.
     { hs: "priority__c", col: "color_mm70ahh7", type: "status", labels: "contactPriority" },
-    // Sales User, DISPLAY-ONLY. `labels: "salesUser"` resolves the raw owner id to the person's name.
+    // Sales User, DISPLAY-ONLY, in a SINGLE-SELECT DROPDOWN (was text_mm6sakj3, a text column).
+    // `labels: "salesUser"` resolves the raw owner id to the person's name; the column is seeded with
+    // all 41 of those names so the value is filterable and groupable instead of an opaque string.
+    //
+    // Dropdown, not status: there are 42 owners and monday rejects 20+ status labels with a bare 500.
+    // `limit_select: true` keeps it single-choice — a contact has ONE sales user.
+    //
+    // `sales_user` is NOT a static picklist, which is the trap here: the property reports
+    // type "enumeration" / fieldType "select" but `options: []`, carrying referencedObjectType +
+    // externalOptions, so its choices resolve dynamically from the OWNER list. That is why the
+    // `salesUser` dictionary is "derived" in sync.ts (built from getOwners) rather than fetched, and why
+    // the seeding script reads /crm/v3/owners rather than the property. Owners hired later are handled
+    // by `create_labels_if_missing: true` on every monday write (monday.ts), which adds the label rather
+    // than failing the mutation — important, because a rejected column fails the WHOLE
+    // change_multiple_column_values and would freeze every card.
+    //
+    // Still FORWARD-ONLY, and now for a second reason beyond "a monday edit must never reassign":
+    // "Rick Antonio" is the name of TWO owner ids (164317533 and 165857270), so a label cannot be
+    // resolved back to a single owner. De-duplicating for display is safe; reversing would not be.
+    //
     // This does NOT reintroduce sales_user into SCOPE — scope is includeAll + mayCreateCrmCard, and
-    // recInScope still ignores it for CRM. Forward-only, so a monday edit can never reassign it.
-    { hs: "sales_user", col: "text_mm6sakj3", type: "text", labels: "salesUser" },
+    // recInScope still ignores it for CRM.
+    { hs: "sales_user", col: "dropdown_mm70mxfy", type: "dropdown", labels: "salesUser" },
     // Vendors. manufacturer__c is genuinely MULTI-VALUE (a live record holds "49HubSpot;55Aircall"),
     // so this is a MULTI-SELECT DROPDOWN, not text and not status:
     //   - formatValue's dropdown branch SPLITS on ";", so each vendor becomes a real tag rather than
@@ -215,10 +234,12 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     { hs: "numberofemployees", col: "employee_count", type: "text" },
     { hs: "hubspot_owner_id", col: "multiple_person_mm6z8mwy", type: "people", appReverse: true },
     { hs: "createdate", col: "date_mm6zmtf8", type: "date", oneWay: true },
-    // Sales User, DISPLAY-ONLY - the only field on the HubSpot Create Company form that had no monday
-    // mapping. Same treatment as on Contacts: `labels: "salesUser"` turns the raw owner id into the
-    // person's name, forward-only so a monday edit can never reassign it, and it plays no part in scope.
-    { hs: "sales_user", col: "text_mm6twxwe", type: "text", labels: "salesUser" },
+    // Sales User, DISPLAY-ONLY, in a SINGLE-SELECT DROPDOWN (was text_mm6twxwe, a text column).
+    // Identical treatment and identical reasoning to Contacts above — 41 seeded owner names, dropdown
+    // because 42 breaks a status column, limit_select so it stays single-choice, labels resolved from
+    // the OWNER list because `sales_user` has no static options, and forward-only because two owner ids
+    // share the name "Rick Antonio". See the Contacts mapping for the full note.
+    { hs: "sales_user", col: "dropdown_mm704kf4", type: "dropdown", labels: "salesUser" },
   ],
 };
 

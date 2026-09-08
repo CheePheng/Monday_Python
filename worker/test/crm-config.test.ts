@@ -52,7 +52,10 @@ describe("CRM_CONTACTS", () => {
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
     expect(CRM_CONTACTS.createDefaults?.sales_user).toBeUndefined();
     const f = CRM_CONTACTS.fields.find(x => x.hs === "sales_user")!;
-    expect(f).toMatchObject({ col: "text_mm6sakj3", type: "text", labels: "salesUser" });
+    // A SINGLE-SELECT DROPDOWN since 2026-09-08 (was a text column). Dropdown because there are 42
+    // owners and status dies above ~19 labels; forward-only for two reasons now — a monday edit must
+    // never reassign, AND "Rick Antonio" is two owner ids, so a label cannot resolve back to one owner.
+    expect(f).toMatchObject({ col: "dropdown_mm70mxfy", type: "dropdown", labels: "salesUser" });
     expect(f.reverse).toBeUndefined();      // a monday edit must never reassign it
     expect(f.appReverse).toBeUndefined();
     expect(f.backfill).toBeUndefined();
@@ -264,7 +267,7 @@ describe("CRM_ACCOUNTS", () => {
   // a scope input - the same split as on Contacts.
   it("shows sales_user display-only, and associates ONLY to contacts", () => {
     const su = CRM_ACCOUNTS.fields.find(f => f.hs === "sales_user")!;
-    expect(su).toMatchObject({ col: "text_mm6twxwe", type: "text", labels: "salesUser" });
+    expect(su).toMatchObject({ col: "dropdown_mm704kf4", type: "dropdown", labels: "salesUser" });
     expect(su.reverse).toBeUndefined();
     expect(recInScope(CRM_ACCOUNTS, { properties: {} })).toBe(true);
     expect(CRM_ACCOUNTS.associations).toEqual([
