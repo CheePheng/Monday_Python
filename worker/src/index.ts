@@ -70,8 +70,13 @@ export default {
   async fetch(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
 
-    // Near-instant fast paths (no secret header — guarded by the challenge/signature inside).
-    if (url.pathname === "/webhooks/monday") return handleMonday(req, env, ectx);
+    // Near-instant webhook fast paths. HubSpot is verified by its v3 HMAC signature (verifyHubspot).
+    // monday board webhooks carry NO signature unless created with an integration app's OAuth token,
+    // so the CRM Worker registers them under a capability path `/webhooks/monday/<key>` and
+    // mondayAuth refuses anything else. The bare path stays routable because the live WM Worker's
+    // hooks use it and set no key — see mondayAuth for why it fails open only when unconfigured.
+    if (url.pathname === "/webhooks/monday" || url.pathname.startsWith("/webhooks/monday/"))
+      return handleMonday(req, env, ectx);
     if (url.pathname === "/webhooks/hubspot") return handleHubspot(req, env, ectx);
 
     // App API (browser Board View app, cross-origin). Auth: monday session token or X-Trigger-Secret.

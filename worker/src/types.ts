@@ -7,7 +7,9 @@ export interface Env {
   TRIGGER_SECRET: string;
   DRY_RUN: string; // "true" | "false"
   HUBSPOT_APP_SECRET?: string;   // optional: validate HubSpot webhook v3 signatures if set
-  MONDAY_SIGNING_SECRET?: string; // optional: verify monday webhook JWT if set
+  /** Capability key for the CRM Worker's monday webhooks. Set ONLY on the CRM Worker: mondayAuth
+   *  fails open when absent so the live WM Worker's bare-path hooks keep working. */
+  MONDAY_WEBHOOK_KEY?: string;
   MAX_WRITES?: string;           // optional: writes/records per cron tick (default 25; raise on Workers Paid)
   LINE_ITEM_WRITE?: string;      // "true" once the token has crm.objects.line_items.write (enables reverse line items)
   APP_SECRET?: string;           // shared secret the vibe app sends to /app/search (falls back to TRIGGER_SECRET)

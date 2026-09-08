@@ -84,9 +84,47 @@ async function syncMondayUpdate(env: Env, spec: ObjectSpec, ev: any): Promise<vo
   console.log(`[webhook] source=monday-update item=${u.itemId} object=${spec.object}/${hsId} note=${noteId} action=created`);
 }
 
-// POST /webhooks/monday
+/**
+ * Is this monday webhook request authentic?
+ *
+ * monday gives a board webhook NO cryptographic signature unless the hook was created with an
+ * INTEGRATION APP's OAuth token — confirmed against current monday documentation. Ours were created
+ * with a personal API token, so there is no `Authorization` JWT to verify and no signature to check.
+ * (`MONDAY_SIGNING_SECRET` has sat in Env since the beginning, read by nothing, describing a mechanism
+ * that cannot exist for these hooks. It is a comment, not a control.)
+ *
+ * So the interim control is a CAPABILITY URL: the hook is registered at
+ * `/webhooks/monday/<32 random bytes>` and anything without that secret is refused. This is a shared
+ * secret, not a signature — weaker in two specific ways, and worth naming rather than glossing:
+ * a URL can leak through proxy and access logs, and it proves only "the caller knows the secret",
+ * never "monday sent this, about this board". What it does buy, today, with no OAuth round-trip, is
+ * turning "anyone who guesses the path" into "anyone who has 32 random bytes".
+ *
+ * FAILS OPEN WHEN UNCONFIGURED, CLOSED WHEN CONFIGURED. This handler is SHARED with the live
+ * Work-Management Worker, whose hooks are registered at the bare path and must keep working untouched.
+ * Only the CRM Worker gets MONDAY_WEBHOOK_KEY, and only there does the check bite. Making it
+ * unconditional would take the WM sync offline the moment it deployed.
+ */
+export function mondayAuth(url: URL, env: Env): { ok: boolean; reason: string } {
+  const key = (env.MONDAY_WEBHOOK_KEY ?? "").trim();
+  if (!key) return { ok: true, reason: "unconfigured" };   // WM path — byte-for-byte unchanged
+  const m = url.pathname.match(/^\/webhooks\/monday\/([^/]+)\/?$/);
+  const presented = m ? decodeURIComponent(m[1]) : (url.searchParams.get("k") ?? "");
+  return safeEq(presented, key)
+    ? { ok: true, reason: m ? "path-key" : "query-key" }
+    : { ok: false, reason: presented ? "bad-key" : "missing-key" };
+}
+
+// POST /webhooks/monday  (and /webhooks/monday/<key> when MONDAY_WEBHOOK_KEY is set)
 // Handles the subscription challenge, then item-created / name-changed / column-changed / moved / update.
 export async function handleMonday(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
+  // Refused BEFORE the body is parsed and before the challenge is echoed: an unauthenticated caller
+  // must learn nothing and cause nothing, including a successful webhook handshake.
+  const auth = mondayAuth(new URL(req.url), env);
+  if (!auth.ok) {
+    console.log(`[webhook] source=monday action=rejected reason="${auth.reason}"`);
+    return new Response("unauthorized", { status: 401 });
+  }
   const raw = await req.text();
   let body: any = {};
   try { body = JSON.parse(raw); } catch { /* not json */ }
