@@ -87,14 +87,13 @@ describe("CRM_CONTACTS", () => {
     expect(f.reverse).toBeUndefined();
   });
 
-  // Three status ladders answered one question. hs_lead_status was the least-used by two orders of
-  // magnitude (450 of 94,205 contacts) and is gone; the EN/ZH pair that reps actually fill remains.
-  it("hs_lead_status is NOT mapped on the CRM board", () => {
-    expect(CRM_CONTACTS.fields.find(f => f.hs === "hs_lead_status")).toBeUndefined();
-    expect(CRM_CONTACTS.fields.some(f => f.col === "color_mm6zb4tc")).toBe(false);
-  });
+  it("hs_lead_status is two-way on the seeded status column", () =>
+    expect(CRM_CONTACTS.fields.find(f => f.hs === "hs_lead_status"))
+      .toMatchObject({ col: "color_mm6zb4tc", type: "status", labels: "leadStatus", reverse: true }));
 
-  it("keeps both surviving status ladders — lifecyclestage (EN) and leadstatus/状态 (ZH)", () => {
+  // All THREE status ladders stay mapped: each is pinned to the HubSpot contact sidebar, which is the
+  // portal owner's statement of intent. Fill rate alone is not grounds for dropping one.
+  it("keeps all three status ladders — hs_lead_status, lifecyclestage (EN), leadstatus/状态 (ZH)", () => {
     expect(CRM_CONTACTS.fields.find(f => f.hs === "lifecyclestage"))
       .toMatchObject({ col: "color_mm70k2wk", type: "status", labels: "lifecycleStage" });
     expect(CRM_CONTACTS.fields.find(f => f.hs === "leadstatus"))

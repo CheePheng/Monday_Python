@@ -1,19 +1,20 @@
 /**
- * Delete the two Contacts columns that carry no information.
+ * Delete the Contacts columns that no HubSpot field can ever fill.
  *
- * 1. "Lead Status" (color_mm6zb4tc) -> HubSpot `hs_lead_status`, set on 450 of 94,205 contacts
- *    (0.5%, measured live 2026-09-08). It is a THIRD English status ladder next to
- *    "Lifecycle Stage" (100% filled) and "状态" (69% filled), and its presence is most of why the
- *    board's status columns are hard to tell apart.
+ * "Priority" (status5, monday's native High/Medium/Low) -> NO HubSpot property maps to it, in either
+ * direction. It is a board-template leftover: never written, never read, permanently blank. HubSpot's
+ * real priority is `priority__c` (优先级), a response-time SLA (P1_2小时内 … P4_持续跟进) which has its
+ * own column (color_mm70ahh7) with the exact 4 SLA labels. Same word, different concept, zero label
+ * overlap - which is why they are two columns and only one of them is real.
  *
- * 2. "Priority" (monday's native High/Medium/Low) -> NO HubSpot field maps to it. Never written,
- *    never read, cannot ever populate. HubSpot's real priority is `priority__c` (优先级), a
- *    response-time SLA (P1_2小时内 … P4_持续跟进) which keeps its own column.
- *
- * NOT DELETED, deliberately: "Lifecycle Stage" and "状态" are the SAME eight-step ladder in English
- * and Chinese, but they have DRIFTED — sampling contacts at Lifecycle Stage "1.NEW" found one at
- * 状态 "7购买有意向". Each therefore holds assessments the other lacks. Reconciling them is a
- * data decision for the sales team, not a column deletion.
+ * NOT DELETED, deliberately - all three status ladders stay:
+ *   "Lifecycle Stage" (lifecyclestage, 100% filled) and "状态" (leadstatus, 69%) are the SAME
+ *   eight-step ladder in English and Chinese, and they have DRIFTED - sampling contacts at Lifecycle
+ *   Stage "1.NEW" found one at 状态 "7购买有意向". Each holds assessments the other lacks, so deleting
+ *   either loses real data; reconciling them is a sales-team decision, not a column deletion.
+ *   "Lead Status" (hs_lead_status) is only 0.5% filled and was briefly cut on that basis, which was
+ *   wrong: it is PINNED TO THE CONTACT SIDEBAR in this portal. Sidebar membership is the portal
+ *   owner's statement that the field is wanted, and it outranks today's fill rate.
  *
  *   MONDAY_API_TOKEN=<token> node scripts/remove-duplicate-crm-columns.mjs --plan
  *   MONDAY_API_TOKEN=<token> node scripts/remove-duplicate-crm-columns.mjs --apply
@@ -27,11 +28,7 @@ const CONTACTS = "5028000495";
 
 export const TARGETS = [
   {
-    id: "color_mm6zb4tc", expectTitle: "Lead Status",
-    why: "hs_lead_status - 0.5% filled in HubSpot; third redundant English status ladder",
-  },
-  {
-    id: null, matchTitle: "Priority", expectType: "status",
+    id: "status5", expectTitle: "Priority", expectType: "status",
     why: "monday native High/Medium/Low - no HubSpot field maps to it, can never populate",
   },
 ];

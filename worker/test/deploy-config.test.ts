@@ -109,12 +109,10 @@ describe("spec-driven metadata: the CRM app needs NO Deals scope", () => {
       expect(dicts).not.toContain(dealDict);
   });
 
-  // `leadStatus` dropped out when hs_lead_status was unmapped from the CRM board — one fewer HubSpot
-  // schema fetch per run. WM still loads it (regression test below).
   it("CRM loads exactly the contact + company dictionaries its fields reference", () =>
     expect(labelDictsFor(crmEnv).sort())
       .toEqual(["companyType", "contactPriority", "contactSource", "contactStatus",
-                "contactVendor", "industry", "lifecycleStage", "partnerWith",
+                "contactVendor", "industry", "leadStatus", "lifecycleStage", "partnerWith",
                 "salesUser"]));
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.
