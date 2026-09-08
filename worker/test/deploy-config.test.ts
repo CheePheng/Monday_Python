@@ -134,8 +134,11 @@ describe("spec-driven metadata: the CRM app needs NO Deals scope", () => {
 
   it("CRM loads exactly the contact + company dictionaries its fields reference", () =>
     expect(labelDictsFor(crmEnv).sort())
+      // `industry` dropped out when company industry was unmapped (its text column was deleted from the
+      // board). CRM_CONTACTS still maps a contact-level `industry`, but that one is free text with no
+      // dictionary, so nothing references the dict any more — one fewer HubSpot schema fetch per run.
       .toEqual(["companyType", "contactPriority", "contactSource", "contactStatus",
-                "contactVendor", "industry", "leadStatus", "lifecycleStage", "partnerWith",
+                "contactVendor", "leadStatus", "lifecycleStage", "partnerWith",
                 "salesUser"]));
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.

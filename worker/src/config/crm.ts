@@ -264,12 +264,23 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     // empty Domain — the one field the whole matching design depends on. Forward-only: the domain is
     // the dedup key, exactly as `email` is for contacts, so a monday edit must never rewrite it.
     { hs: "domain", col: "company_domain", type: "link" },
-    // industry -> the RENAMED custom text stub "Industry (HubSpot)". The board's NATIVE `industry`
-    // dropdown is deliberately UNMAPPED: HubSpot's enumeration carries ~250 options (English plus a
-    // parallel Chinese taxonomy, heavily duplicated) against monday's 47, with 8 matching (audit F9).
-    // Forward-only does not fix a vocabulary mismatch, and create_labels_if_missing would permanently
-    // contaminate a native column the CRM board relies on. `labels` renders the readable HubSpot label.
-    { hs: "industry", col: "text_mm6tafj5", type: "text", labels: "industry" },
+    // COMPANY `industry` IS NOT MAPPED, as of 2026-09-08. It pointed at a custom text column
+    // "Industry (HubSpot)" (text_mm6tafj5) which has since been DELETED from the board — and a spec
+    // field naming a column monday does not have makes monday reject the ENTIRE
+    // change_multiple_column_values mutation, which froze every card on the Accounts board until this
+    // line changed. Found by the live association test, not by a unit test: only
+    // scripts/audit-crm-column-types.mjs can see a dead id, because it asks the real board.
+    //
+    // NOT re-pointed at the board's native `industry` dropdown, and that restraint is the original
+    // reasoning rather than laziness: HubSpot's enumeration carries ~250 options (English plus a
+    // parallel Chinese taxonomy, heavily duplicated) against monday's 47, with only 8 matching. Every
+    // monday write sets create_labels_if_missing, so mapping onto it would progressively fill a native
+    // column the board relies on with a second, redundant vocabulary — permanently, and past the
+    // 88-label ceiling that is the most this account has been shown to tolerate.
+    //
+    // So the native dropdown stays a monday-owned field reps can set freely, and HubSpot's Industry no
+    // longer flows to the board. Restoring the sync means a dedicated text column again — a deliberate
+    // choice between one clean column and one synced column, which is the caller's to make, not mine.
     { hs: "type", col: "color_mm6zwhwt", type: "status", labels: "companyType", reverse: true },
     // partner_with is a DROPDOWN, not a status: monday status columns reject its 27 labels with a 500
     // (16 ok, 20+ fail). Also the safer branch — dropdown reverse DROPS an unknown label where

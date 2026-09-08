@@ -240,10 +240,14 @@ describe("CRM_ACCOUNTS", () => {
   });
 
   // THE INDUSTRY REGRESSION GUARD.
-  it("industry goes to the renamed custom stub, and the NATIVE dropdown stays unmapped", () => {
-    const f = CRM_ACCOUNTS.fields.find(x => x.hs === "industry")!;
-    expect(f).toMatchObject({ col: "text_mm6tafj5", type: "text", labels: "industry" });
-    expect(f.reverse).toBeUndefined();
+  // COMPANY industry is UNMAPPED as of 2026-09-08. Its text column (text_mm6tafj5) was deleted from the
+  // board, and a spec field naming a column monday does not have makes monday reject the ENTIRE
+  // change_multiple_column_values mutation — it froze every Accounts card until this changed.
+  it("company industry is unmapped, and the NATIVE dropdown stays unmapped too", () => {
+    expect(CRM_ACCOUNTS.fields.some(x => x.hs === "industry")).toBe(false);
+    // The deleted stub must never be referenced again, and the native column stays monday-owned:
+    // HubSpot's ~250-option enum against monday's 47 would contaminate it via create_labels_if_missing.
+    expect(CRM_ACCOUNTS.fields.some(x => x.col === "text_mm6tafj5")).toBe(false);
     expect(CRM_ACCOUNTS.fields.some(x => x.col === "industry")).toBe(false);
   });
 

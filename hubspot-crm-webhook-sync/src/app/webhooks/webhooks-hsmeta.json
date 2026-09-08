@@ -107,12 +107,6 @@
         {
           "subscriptionType": "object.propertyChange",
           "objectType": "company",
-          "propertyName": "industry",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "company",
           "propertyName": "type",
           "active": true
         },

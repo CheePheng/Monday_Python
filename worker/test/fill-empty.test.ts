@@ -98,11 +98,11 @@ describe("monday value + blank HubSpot -> FILL", () => {
 
   // Forward-only fields must NOT be filled from monday, however tempting — HubSpot owns them.
   it("only fills reverse:true fields, never a forward-only one", () => {
-    const fwd = CRM_ACCOUNTS.fields.find(f => f.hs === "industry")!;
+    const fwd = CRM_ACCOUNTS.fields.find(f => f.hs === "timezone")!;
     expect(fwd.reverse).toBeUndefined();
-    const d = fieldDiffs(rec({ industry: "" }),
-      card(CRM_ACCOUNTS, "344965792487", { [fwd.col]: "Chemicals" }), CRM_ACCOUNTS, ctx);
-    expect(d.filter(x => x.f?.hs === "industry")).toEqual([]);
+    const d = fieldDiffs(rec({ timezone: "" }),
+      card(CRM_ACCOUNTS, "344965792487", { [fwd.col]: "Asia/Kuala_Lumpur" }), CRM_ACCOUNTS, ctx);
+    expect(d.filter(x => x.f?.hs === "timezone")).toEqual([]);
   });
 });
 
