@@ -118,7 +118,12 @@ async function main() {
       "query ($b: [ID!]) { boards(ids: $b) { columns { id title type } "
       + "items_page(limit: 500) { items { id column_values { id text } } } } }",
       { b: [b.id] })).boards[0];
-    const already = board.columns.find(c => c.title === TITLE && c.type === "dropdown");
+    // MATCH THE INTERIM TITLES TOO. This checked `title === TITLE`, but a run without --delete-old
+    // deliberately leaves the column named "Sales User (dropdown)" (and it is briefly
+    // "Sales User (new)" mid-run), so the check could never match after the documented first pass —
+    // and the documented second pass with --delete-old would have created a THIRD column rather than
+    // finding the one it had just made. Match any dropdown whose title starts with the base name.
+    const already = board.columns.find(c => c.type === "dropdown" && c.title.startsWith(TITLE));
     const old = board.columns.find(c => c.id === b.oldCol);
     const filled = board.items_page.items
       .map(it => ({ id: it.id, text: (it.column_values.find(c => c.id === b.oldCol) || {}).text }))

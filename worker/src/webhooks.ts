@@ -1,4 +1,4 @@
-import type { Budget, Env, ObjectSpec, RunOpts } from "./types";
+import type { Budget, Env, ObjectSpec } from "./types";
 import { LINE_ITEM_SUBITEMS, specByBoard } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
@@ -140,6 +140,17 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   // card stayed gone forever. Restoration still goes through mayCreateCrmCard, so a pre-cutover record
   // is refused and this cannot become a historical import.
   if (isDeletionEvent(type)) {
+    // OPT-IN PER SPEC. Without this the branch would arm card resurrection on the LIVE
+    // Work-Management follow-up boards, which run this same code with ENABLE_CRM unset. Their specs
+    // declare no `ownership`, and mayCreateCrmCard opens with `if (!o) return true` — so the
+    // no-import gate is a pass-through there and a rep's deliberate deletion would silently reappear
+    // on a business-critical board. Previously such an event fell through to syncMondayItem and was a
+    // safe no-op ("item not found (deleted)"); that safety has to be preserved explicitly now.
+    if (!spec.restoreOnDelete) {
+      console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type}`
+        + ` action=ignored reason="board does not opt into restore-on-delete"`);
+      return new Response("ok");
+    }
     console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} user=${ev.userId ?? ""} action=received-deletion`);
     const delBudget: Budget = { left: 30 };
     ectx.waitUntil(coalesce(`del:${itemId}`,

@@ -30,6 +30,13 @@ import { syncHubspotObject } from "./sync";
 /** monday delivers deletions under more than one type string; archive is the same intent as delete. */
 export const DELETION_EVENTS = new Set(["item_deleted", "item_archived", "delete_pulse", "archive_pulse"]);
 
+/** spec.object -> the syncHubspotObject argument. Restore is defined for these two objects ONLY;
+ *  anything else (notably "deals") must be refused rather than defaulted onto one of them. */
+export const OBJECT_FOR: Record<string, "contact" | "company" | undefined> = {
+  contacts: "contact",
+  companies: "company",
+};
+
 export function isDeletionEvent(type: string): boolean {
   return DELETION_EVENTS.has(type);
 }
@@ -72,7 +79,17 @@ export async function restoreDeletedCard(env: Env, spec: ObjectSpec, itemId: str
   await forgetCard(env, board, hubspotId);
   await forgetCardOwner(env, board, itemId);
 
-  const object = spec.object === "contacts" ? "contact" : "company";
+  // EXPLICIT, not a binary. `spec.object === "contacts" ? "contact" : "company"` silently mapped
+  // "deals" — and anything else — onto "company", which would have handed a DEAL id to the companies
+  // sync and searched the wrong board for it. Restore is defined only for the two CRM objects, so an
+  // unrecognised spec must stop rather than pick a default.
+  const object = OBJECT_FOR[spec.object];
+  if (!object) {
+    console.log(`[restore] board=${board} item=${itemId} hs=${hubspotId}`
+      + ` action=skipped reason="restore not defined for object ${spec.object}"`);
+    return "unsupported-object";
+  }
+
   console.log(`[restore] board=${board} item=${itemId} hs=${hubspotId}`
     + ` source=${fromPayload ? "payload" : "registry"} action=restoring`);
 

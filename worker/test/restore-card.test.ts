@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { DELETION_EVENTS, hubspotIdFromPayload, isDeletionEvent, payloadShape } from "../src/restore-card";
+import { DELETION_EVENTS, OBJECT_FOR, hubspotIdFromPayload, isDeletionEvent, payloadShape } from "../src/restore-card";
 import { CRM_CONTACTS, CRM_ACCOUNTS } from "../src/config/crm";
+import { CONTACTS_MYLA, COMPANIES_MYLA, DEALS } from "../src/config";
 import type { ObjectSpec } from "../src/types";
 import { readCode } from "../scripts/read-source.mjs";
 
@@ -120,6 +121,51 @@ describe("every deletion event is both registered and handled", () => {
   it("registers create_update — the branch existed but nothing was subscribed to it", async () => {
     const { CRM_WEBHOOK_EVENTS } = await import("../scripts/register-crm-webhooks.mjs");
     expect(CRM_WEBHOOK_EVENTS).toContain("create_update");
+  });
+});
+
+// THE WM REGRESSION THIS ALMOST SHIPPED. handleMonday's deletion branch sits AFTER specByBoard, so it
+// runs on the LIVE Work-Management deployment too — same code, ENABLE_CRM unset. WM specs declare no
+// `ownership`, and mayCreateCrmCard opens `if (!o) return true`, so the no-import gate is a pass-through
+// there: a rep's deliberate deletion on a live follow-up board would have silently reappeared. It was
+// not firing only because no WM board has a deletion subscription — an external fact no code asserts.
+describe("restore-on-delete is opt-in per spec", () => {
+  it("both CRM specs opt in", () => {
+    expect(CRM_CONTACTS.restoreOnDelete).toBe(true);
+    expect(CRM_ACCOUNTS.restoreOnDelete).toBe(true);
+  });
+
+  it("NO Work-Management spec opts in", () => {
+    for (const s of [CONTACTS_MYLA, COMPANIES_MYLA, DEALS])
+      expect(s.restoreOnDelete).toBeUndefined();
+  });
+
+  // The flag is deliberately NOT `ownership`. Conflating two meanings in one signal is how the
+  // WRITE_HUBSPOT defect happened, so assert they are genuinely independent knobs.
+  it("is a separate flag from ownership, not a synonym for it", () => {
+    const code = readCode("webhooks.ts");
+    expect(code).toContain("spec.restoreOnDelete");
+    expect(code).not.toContain("spec.ownership");
+  });
+
+  it("every spec that opts in also declares ownership, so the no-import gate actually applies", () => {
+    for (const s of [CRM_CONTACTS, CRM_ACCOUNTS])
+      if (s.restoreOnDelete) expect(s.ownership).toBeDefined();
+  });
+});
+
+describe("restore refuses objects it is not defined for", () => {
+  // `spec.object === "contacts" ? "contact" : "company"` mapped EVERYTHING else — notably "deals" —
+  // onto "company", which would have handed a DEAL id to the companies sync and searched the wrong
+  // board for it. An unrecognised object must stop, not pick a default.
+  it("maps only the two CRM objects", () => {
+    expect(OBJECT_FOR.contacts).toBe("contact");
+    expect(OBJECT_FOR.companies).toBe("company");
+  });
+
+  it("yields undefined for deals and anything else, rather than defaulting to company", () => {
+    for (const o of ["deals", "line_items", "tickets", "", "company", "contact"])
+      expect(OBJECT_FOR[o]).toBeUndefined();
   });
 });
 

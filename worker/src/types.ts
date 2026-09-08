@@ -106,6 +106,16 @@ export interface ObjectSpec {
    * WriteAuth — a mutation without one throws rather than writing (see hubspot.ts assertMayWrite).
    * Absent on every production WM spec, so their code path is unchanged. */
   ownership?: OwnershipSpec;
+  /** Deleting or archiving a monday card RESTORES it from HubSpot instead of being a no-op.
+   *
+   * Opt-IN, and deliberately its own flag rather than piggybacking on `ownership`. The two mean
+   * different things — `ownership` is about who may WRITE to HubSpot — and conflating them is exactly
+   * how the WRITE_HUBSPOT bug happened: one signal quietly standing in for another until someone
+   * changed one of them. It must also stay opt-in because the restore path ends in
+   * ensureCardForRecord, and `mayCreateCrmCard` opens with `if (!o) return true` — so on a spec with
+   * no ownership the no-import gate is a pass-through and the card is re-created unconditionally.
+   * On the live WM follow-up boards that would mean a rep's deliberate deletion silently reappearing. */
+  restoreOnDelete?: boolean;
   /** Spec-driven adoption key. Absent on production WM specs, which keep their existing
    * object-specific adoption branches untouched. */
   adoptBy?: AdoptBy;
