@@ -312,10 +312,15 @@ export function companySearchBody(args: { q?: string; after?: string; limit?: nu
   return body;
 }
 
-/** HubSpot owners -> sorted [{id,name}] for the Company-owner filter dropdown. Pure/testable. */
-export function mapOwners(ownersById: Record<string, { name: string; email: string | null }>): { id: string; name: string }[] {
+/** HubSpot owners -> sorted [{id,name}] for the Company-owner filter dropdown. Pure/testable.
+ *
+ *  ARCHIVED OWNERS ARE EXCLUDED HERE, and only here. getOwners now returns them so that a `sales_user`
+ *  pointing at a departed rep still RESOLVES TO A NAME for display; but this list is a CHOICE offered
+ *  in the app, and a rep must not be able to assign work to someone who has left. Keeping the two
+ *  concerns apart is the whole reason getOwners carries the `archived` flag rather than just merging. */
+export function mapOwners(ownersById: Record<string, { name: string; email: string | null; archived?: boolean }>): { id: string; name: string }[] {
   return Object.entries(ownersById)
-    .filter(([, o]) => o.name?.trim())
+    .filter(([, o]) => o.name?.trim() && !o.archived)
     .map(([id, o]) => ({ id, name: o.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -604,16 +609,39 @@ export async function searchCompanyByDomain(env: Env, domain: string):
   return hit ? { id: String(hit.id), modified: hit.properties?.hs_lastmodifieddate ?? "" } : null;
 }
 
-export async function getOwners(env: Env): Promise<Record<string, { name: string; email: string | null }>> {
-  const out: Record<string, { name: string; email: string | null }> = {};
-  let after: string | undefined;
-  do {
-    const path = `/crm/v3/owners/?limit=100${after ? `&after=${after}` : ""}`;
-    const res = await hs(env, "GET", path);
-    for (const o of res.results ?? [])
-      out[String(o.id)] = { name: `${o.firstName ?? ""} ${o.lastName ?? ""}`.trim(), email: o.email ?? null };
-    after = res.paging?.next?.after;
-  } while (after);
+/**
+ * Every HubSpot owner, INCLUDING ARCHIVED ones.
+ *
+ * `/crm/v3/owners/` returns only ACTIVE owners — 42 in this portal. There are also 50 archived owners
+ * (27 with names), and 481 contacts plus 32 companies still carry a `sales_user` pointing at one of
+ * those departed reps (measured live 2026-09-08). Without them the `salesUser` dictionary cannot
+ * resolve the id, so formatValue's `dict[v] ?? v` writes the RAW OWNER ID to monday — and since every
+ * write sets `create_labels_if_missing:true`, monday then creates a dropdown label literally named
+ * "275262201". Reassigning those 481 records is not on the table, so the sync has to read history.
+ *
+ * ACTIVE IS FETCHED SECOND AND THEREFORE WINS. If an archived owner shares an email with an active one,
+ * the active record must be the one that ends up in ownerIdByEmail, or a monday people-column edit
+ * could reverse onto a deactivated owner.
+ *
+ * `archived` is carried through so consumers that offer owners as a CHOICE can exclude them — a rep
+ * must not be able to ASSIGN a departed colleague. Only display resolution wants the full set.
+ */
+export async function getOwners(env: Env): Promise<Record<string, { name: string; email: string | null; archived?: boolean }>> {
+  const out: Record<string, { name: string; email: string | null; archived?: boolean }> = {};
+  for (const archived of [true, false]) {
+    let after: string | undefined;
+    do {
+      const path = `/crm/v3/owners/?limit=100${archived ? "&archived=true" : ""}${after ? `&after=${after}` : ""}`;
+      const res = await hs(env, "GET", path);
+      for (const o of res.results ?? [])
+        out[String(o.id)] = {
+          name: `${o.firstName ?? ""} ${o.lastName ?? ""}`.trim(),
+          email: o.email ?? null,
+          ...(archived ? { archived: true } : {}),
+        };
+      after = res.paging?.next?.after;
+    } while (after);
+  }
   return out;
 }
 
