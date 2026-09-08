@@ -169,6 +169,51 @@ export const CRM_CONTACTS: ObjectSpec = {
     // FORWARD-ONLY: 14 accumulated legacy options including two both numbered 7, plus "N",
     // "Philippines" and "Primed" - not a vocabulary a monday edit should be able to write back into.
     { hs: "leadstatus", col: "color_mm70v2cd", type: "status", labels: "contactStatus" },
+
+    // --- SIDEBAR PARITY, 2026-09-08 -------------------------------------------------------------
+    // Every field pinned to the HubSpot contact's "About this contact" sidebar now has a column, with
+    // a type that matches the HubSpot property. None of these are on the Create Contact form, which is
+    // why they were missing: the earlier pass matched the form, and the sidebar is a different set.
+    //
+    // ALL FORWARD-ONLY, and for the four big enums that is load-bearing rather than cautious.
+    // reverseFieldValue only validates on the DROPDOWN branch; text/long_text fall through to
+    // `rev[text] ?? text` (reconcile.ts), so a two-way TEXT column would push a rep's raw string into a
+    // HubSpot enumeration — "USA" against a property whose only legal value is
+    // "United States of America" — which 400s and drops the edit.
+    //
+    // No `labels` on any of them: verified live that department_3__c, city_1__c, countries and
+    // lead_source_sub__c have value === label for EVERY option, so the raw HubSpot value already reads
+    // correctly. (Contrast sales_user and lifecyclestage, where they differ and the dict is essential.)
+
+    // A SECOND phone, distinct from `phone`/contact_phone above. Both are on the sidebar.
+    { hs: "mobilephone", col: "phone_mm70npah", type: "phone" },
+    // 29 single-select options -> dropdown. A 29-label status column fails outright (bare 500 above ~19).
+    { hs: "department_3__c", col: "dropdown_mm70t68r", type: "dropdown" },
+    // The CONTACT-level `industry` is hsType STRING with an empty options array — genuinely free text,
+    // NOT the ~246-option COMPANY picklist of the same name mapped on CRM_ACCOUNTS below. Same label,
+    // different object, different type; conflating them would have produced an unfillable dropdown.
+    { hs: "industry", col: "text_mm7097s5", type: "text" },
+    // 673 options: ~7.6x the highest dropdown label count verified on this account (88) and far beyond
+    // any picker a rep could use. text is a deliberate, documented exception to "enum -> picker".
+    { hs: "city_1__c", col: "text_mm703scw", type: "text" },
+    // 省份 is a RELABELLED STANDARD PROPERTY — hs_state_code carries that label in this portal.
+    // Deliberately NOT province_1__c, whose label is 省份# WITH a hash and which is a clean 34-option
+    // enum with more data (10,064 rows on 广东省 alone vs 3,552 total here). The sidebar shows the
+    // hash-less one, confirmed from a screenshot, so that is what is mapped. Worth revisiting with the
+    // sales team: they are pinning the messier, less-populated of the two province fields.
+    { hs: "hs_state_code", col: "text_mm709ars", type: "text" },
+    // 198 options (12 pinned APAC + 185 alphabetical + a hand-added "Dubai UAE"), 2.25x the ceiling.
+    { hs: "countries", col: "text_mm705t8j", type: "text" },
+    // Free-text "Specific Requirement" from the dkmeco.com web form. Prose -> long_text.
+    { hs: "concrete_demand", col: "long_text_mm70scva", type: "long_text" },
+    { hs: "utm_term", col: "text_mm70vzzy", type: "text" },
+    // LONG_TEXT, not text, and the reason is measured: 19,504 populated values, of which only 1,008 are
+    // URLs — the other 18,496 are Chinese page TITLES ("产品下载"). The longest live URL is 365 chars
+    // (a percent-encoded Chinese utm_campaign). monday's text column cannot be widened AND cannot be
+    // retyped, so a truncation discovered later would be unrecoverable without losing the column.
+    { hs: "registration_page__c", col: "long_text_mm70smr5", type: "long_text" },
+    // 558 options — 6.3x the ceiling, hopeless as a picker.
+    { hs: "lead_source_sub__c", col: "text_mm70a5c2", type: "text" },
   ],
 };
 
@@ -240,6 +285,13 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     // the OWNER list because `sales_user` has no static options, and forward-only because two owner ids
     // share the name "Rick Antonio". See the Contacts mapping for the full note.
     { hs: "sales_user", col: "dropdown_mm704kf4", type: "dropdown", labels: "salesUser" },
+    // SIDEBAR PARITY, 2026-09-08. The only field on the company sidebar with no column.
+    // TEXT despite being an enumeration, which looks like a rule violation and is not: the property
+    // returns `options: []` from the API (dynamic/external options, exactly like sales_user), so a
+    // dropdown cannot be SEEDED — and an unseeded one would grow without bound past the 88-label
+    // ceiling via create_labels_if_missing, because HubSpot adds record sources on its own schedule.
+    // Read-only system metadata ("CRM UI", "Import", "Integration"), so forward-only regardless.
+    { hs: "hs_object_source_label", col: "text_mm707cf3", type: "text" },
   ],
 };
 
