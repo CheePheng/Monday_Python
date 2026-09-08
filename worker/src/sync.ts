@@ -59,6 +59,7 @@ const LABEL_SOURCE: Record<LabelDict, { object: string; prop: string } | "dealPi
   contactVendor: { object: "contacts", prop: "manufacturer__c" },
   contactPriority: { object: "contacts", prop: "priority__c" },
   lifecycleStage: { object: "contacts", prop: "lifecyclestage" },
+  contactStatus:  { object: "contacts", prop: "leadstatus" },
   industry:      { object: "companies", prop: "industry" },
   companyType:   { object: "companies", prop: "type" },
   partnerWith:   { object: "companies", prop: "partner_with" },

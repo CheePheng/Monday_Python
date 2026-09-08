@@ -81,6 +81,10 @@ export const CRM_CONTACTS: ObjectSpec = {
     // write (text_mm6sdvkq) was deleted from the board, and the real company link is the native
     // `contact_account` relation below. A field pointing at a deleted column id makes monday reject the
     // whole change_multiple_column_values mutation, so the card would stop updating entirely.
+    // HubSpot's free-text `company`, re-created in Create-Contact-form order after its original column
+    // was deleted from the board. This is the plain company NAME the rep typed; the real, linked
+    // company is the native Accounts relation below. Forward-only - HubSpot owns it.
+    { hs: "company", col: "text_mm70apjj", type: "text" },
     { hs: "phone", col: "contact_phone", type: "phone", reverse: true },
     // Owner: app-save-only. A plain `reverse` reassigned owners unattended on the WM side (2026-08-28).
     { hs: "hubspot_owner_id", col: "multiple_person_mm6zap53", type: "people", appReverse: true },
@@ -91,6 +95,8 @@ export const CRM_CONTACTS: ObjectSpec = {
     // Event Name — the marketing/event a contact came in from (e.g. "Reimagine - For HB/Aircall").
     // Verified `type: "string"` (free text), and the monday column was already text, so no retype was
     // needed. FORWARD-ONLY: HubSpot owns it and it is set at import/form time, not edited by reps.
+    // Registration Date - verified type `date` in HubSpot, so it maps to a real date column.
+    { hs: "registration_date", col: "date_mm70x5xn", type: "date", oneWay: true },
     { hs: "event_name", col: "text_mm6t8bxb", type: "text" },
     { hs: "createdate", col: "date_mm6z33nk", type: "date", oneWay: true },
     // --- added 2026-09-08 from the reviewed mapping sheet ---
@@ -125,6 +131,13 @@ export const CRM_CONTACTS: ObjectSpec = {
     // edit pushing someone to "8.The customer generating the transaction" could fire real business
     // process. HubSpot stays the authority.
     { hs: "lifecyclestage", col: "color_mm70k2wk", type: "status", labels: "lifecycleStage" },
+    // 状态 - the LEGACY custom status field, internal name `leadstatus`. NOT HubSpot's built-in
+    // `hs_lead_status`: the names differ by a single underscore and the two hold different data, which
+    // is why this one took several attempts to locate (the API property search matches internal names,
+    // not Chinese labels). Values differ from labels (1New -> 1新增) so the dictionary is load-bearing.
+    // FORWARD-ONLY: 14 accumulated legacy options including two both numbered 7, plus "N",
+    // "Philippines" and "Primed" - not a vocabulary a monday edit should be able to write back into.
+    { hs: "leadstatus", col: "color_mm70v2cd", type: "status", labels: "contactStatus" },
   ],
 };
 

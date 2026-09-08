@@ -20,6 +20,15 @@ const CONTACTS = "5028000495";
 /** HubSpot `sales_person` - all 4 options, verified live. Value == label for every one, so no label
  *  dictionary is needed and no extra schema fetch is added. */
 /** HubSpot `lifecyclestage` for THIS portal - the exact 10 customised stages, verified live. */
+/** HubSpot `leadstatus` (label 状态) - a LEGACY custom field, NOT HubSpot's built-in hs_lead_status.
+ *  The two internal names differ by one underscore, which is why this took so long to find. Values
+ *  differ from labels (1New -> 1新增), so the label dictionary is required. */
+const CONTACT_STATUS_LABELS = [
+  "1新增", "2信息错误或不全/发邮件推广", "3竞争对手", "4老客户/已购其他渠道", "5无意向",
+  "6未取得联系/待后续联系", "7购买有意向", "7活动意向", "8虚假或垃圾信息",
+  "N", "Philippines", "电话email都错", "Primed", "Open",
+];
+
 const LIFECYCLE_LABELS = [
   "1.NEW",
   "2.Information error or incomplete/Send email for promotion",
@@ -53,6 +62,18 @@ export const PLANNED = [
   {
     title: "Lifecycle Stage", type: "status", after: "color_mm6zb4tc", labels: LIFECYCLE_LABELS,
     why: "lifecyclestage - this portal has a heavily customised Chinese pipeline (生命周期阶段管道). Populated on real records and previously unmapped. Its option VALUES are a mix of semantic strings (lead/opportunity/customer) and raw numeric ids (1028988526), so a label dictionary is REQUIRED or monday would display the ids",
+  },
+  {
+    title: "Company name", type: "text", after: "text_mm6szy4q",
+    why: "HubSpot `company` - a free-text company name on the Create Contact form. The column that used to hold it was deleted from the board, so it is re-created here in form order. Distinct from the native Accounts RELATION, which carries the real link",
+  },
+  {
+    title: "Registration Date", type: "date", after: "text_mm6sc26t",
+    why: "HubSpot `registration_date` - verified type date, on the Create Contact form, previously unmapped",
+  },
+  {
+    title: "状态", type: "status", after: "color_mm6zb4tc", labels: CONTACT_STATUS_LABELS,
+    why: "leadstatus (label 状态) - the custom legacy status field from the Create Contact form. Distinct from hs_lead_status despite the near-identical internal name",
   },
   {
     title: "Sales Person", type: "status", after: "text_mm6sakj3", labels: SALES_PERSON_LABELS,

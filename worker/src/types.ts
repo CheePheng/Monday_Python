@@ -28,7 +28,7 @@ export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" |
 export type LabelDict =
   | "stage" | "dealtype" | "priority" | "vendor" | "pipeline"
   | "industry" | "companyType" | "leadStatus" | "salesUser"
-  | "contactSource" | "contactVendor" | "partnerWith" | "contactPriority" | "lifecycleStage";
+  | "contactSource" | "contactVendor" | "partnerWith" | "contactPriority" | "lifecycleStage" | "contactStatus";
 
 export interface FieldSpec {
   hs: string;            // HubSpot property name

@@ -171,10 +171,14 @@ describe("CRM_CONTACTS", () => {
       expect(CRM_CONTACTS.fields.some(f => f.col === col)).toBe(false);
   });
 
-  // The board column this used to write was deleted; the real company link is the native relation.
-  it("does NOT map HubSpot `company` — its column no longer exists on the board", () => {
-    expect(CRM_CONTACTS.fields.some(f => f.hs === "company")).toBe(false);
-    expect(CRM_CONTACTS.fields.some(f => f.col === "text_mm6sdvkq")).toBe(false);
+  // `company` is mapped again since 2026-09-08, into a NEWLY created column in Create-Contact-form
+  // order. The property that mattered is unchanged: the DELETED column id must never reappear, because
+  // monday rejects an entire column-values mutation naming an unknown column.
+  it("maps HubSpot `company` to the re-created column, never the deleted one", () => {
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "company")!;
+    expect(f).toMatchObject({ col: "text_mm70apjj", type: "text" });
+    expect(f.reverse).toBeUndefined();
+    expect(CRM_CONTACTS.fields.some(x => x.col === "text_mm6sdvkq")).toBe(false);
   });
 
   it("associates ONLY to companies, via the native relation, and maps no deal column", () => {

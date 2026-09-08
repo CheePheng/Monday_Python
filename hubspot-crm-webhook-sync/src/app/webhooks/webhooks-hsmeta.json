@@ -229,6 +229,18 @@
           "objectType": "company",
           "propertyName": "sales_user",
           "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "leadstatus",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "registration_date",
+          "active": true
         }
       ]
     }
