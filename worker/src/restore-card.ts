@@ -73,22 +73,27 @@ export async function restoreDeletedCard(env: Env, spec: ObjectSpec, itemId: str
     return "unattributable";
   }
 
-  // The registry still maps this record to the DEAD card id. Clear it, or ensureCardForRecord hands the
-  // dead id straight back as "existing" and nothing is re-created. (Its own stale-id check would also
-  // catch this, but only after a wasted getItem round-trip.)
-  await forgetCard(env, board, hubspotId);
-  await forgetCardOwner(env, board, itemId);
-
   // EXPLICIT, not a binary. `spec.object === "contacts" ? "contact" : "company"` silently mapped
   // "deals" — and anything else — onto "company", which would have handed a DEAL id to the companies
   // sync and searched the wrong board for it. Restore is defined only for the two CRM objects, so an
   // unrecognised spec must stop rather than pick a default.
+  //
+  // Checked BEFORE the registry is cleared. Refusing after the forgets would destroy the only record of
+  // the card->record pairing on the way out, so a spec we cannot restore would also lose the ability to
+  // ever attribute that card again — the same "touch nothing when we cannot act" rule the
+  // unattributable branch above follows.
   const object = OBJECT_FOR[spec.object];
   if (!object) {
     console.log(`[restore] board=${board} item=${itemId} hs=${hubspotId}`
       + ` action=skipped reason="restore not defined for object ${spec.object}"`);
     return "unsupported-object";
   }
+
+  // The registry still maps this record to the DEAD card id. Clear it, or ensureCardForRecord hands the
+  // dead id straight back as "existing" and nothing is re-created. (Its own stale-id check would also
+  // catch this, but only after a wasted getItem round-trip.)
+  await forgetCard(env, board, hubspotId);
+  await forgetCardOwner(env, board, itemId);
 
   console.log(`[restore] board=${board} item=${itemId} hs=${hubspotId}`
     + ` source=${fromPayload ? "payload" : "registry"} action=restoring`);
@@ -97,5 +102,7 @@ export async function restoreDeletedCard(env: Env, spec: ObjectSpec, itemId: str
   // (or refuses it, for a pre-cutover record). It also handles the case where the record is gone from
   // HubSpot too — getRecord returns null and it logs a skip, so a legitimate HubSpot-side deletion that
   // raced the monday one does not resurrect anything.
-  return syncHubspotObject(env, object, hubspotId, opts, budget);
+  // Pass the dead item id: the column search is eventually consistent and would otherwise hand back
+  // the very card that was just deleted, turning the restore into a write against a dead id.
+  return syncHubspotObject(env, object, hubspotId, opts, budget, itemId);
 }

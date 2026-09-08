@@ -3,12 +3,31 @@ import type { Ctx, FieldSpec, HsRecord, ObjectSpec } from "./types";
 const dict = (f: FieldSpec, ctx: Ctx): Record<string, string> =>
   (f.labels ? ctx.labels[f.labels] : undefined) ?? {};
 
+/** monday's long-text column holds exactly 2000 characters. MEASURED on this account, not assumed:
+ *  1990 and 2000 store exactly; 2001, 2500 and 5000 are all ACCEPTED and then silently truncated to
+ *  2000. So an over-length value does not fail the write — it produces a PERMANENTLY DIRTY DIFF.
+ *  HubSpot holds 2400 characters, monday stores 2000, expectedText predicts 2400, colText reads 2000,
+ *  they never compare equal, and the card is rewritten on EVERY subsequent webhook forever.
+ *
+ *  Predicting monday's own truncation is what clears the diff, so this must slice to exactly 2000 with
+ *  no ellipsis: appending "..." would make our stored value differ from what monday stores when any
+ *  other path writes the raw string, reintroducing the same permanent diff from the other side.
+ *
+ *  `concrete_demand` (Requirement-具体需求) is the live exposure: unbounded free text from the public
+ *  dkmeco.com web form, capped by nothing on either side. */
+export const LONG_TEXT_MAX = 2000;
+
+export function clampLongText(s: string): string {
+  return s.length > LONG_TEXT_MAX ? s.slice(0, LONG_TEXT_MAX) : s;
+}
+
 export function formatValue(f: FieldSpec, value: string | null | undefined, ctx: Ctx): unknown {
   if (value === null || value === undefined || value === "") return null;
   const v = String(value);
   switch (f.type) {
     case "text": return dict(f, ctx)[v] ?? v;
-    case "long_text": return { text: v };   // monday long-text columns need { text } not a bare string
+    // { text }, not a bare string — and clamped, so the stored value equals what expectedText predicts.
+    case "long_text": return { text: clampLongText(v) };
     case "numbers": return v;
     case "status": return { label: dict(f, ctx)[v] ?? v };
     case "dropdown": {
@@ -93,7 +112,10 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
     case "numbers": { const n = Number(v); return Number.isFinite(n) ? String(n) : v; }
     // A monday link column echoes its TEXT part, which formatValue sets equal to the url.
     case "link": return v;
-    case "status": case "text": case "long_text": return (dict(f, ctx)[v] ?? v).trim();
+    case "status": case "text": return (dict(f, ctx)[v] ?? v).trim();
+    // Must predict monday's OWN 2000-char truncation, or the diff never clears and the card is
+    // rewritten on every webhook. Clamp before trim, matching formatValue's order.
+    case "long_text": return clampLongText(dict(f, ctx)[v] ?? v).trim();
     case "dropdown":
       return v.split(";").map(s => s.trim()).filter(Boolean).map(s => (dict(f, ctx)[s] ?? s).trim()).join(", ");
     default: return v;

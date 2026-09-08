@@ -215,19 +215,36 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
       // ONLY NOW is a HubSpot business write actually required, so only now may ownership be claimed.
       const auth = await ensureHubspotWriteAuth(env, spec, budget, rec, opts);
       if (auth && !auth.allowed) {
-        // Refused (wm-owned, parked, historical, or a claim that could not be made). Leave HubSpot
-        // alone and do NOT stamp the sync state — the next tick must re-evaluate, not treat this as done.
+        // Refused (wm-owned, parked, historical, or a claim that could not be made). HubSpot is left
+        // alone — but we FALL THROUGH to the forward write rather than returning.
+        //
+        // Returning here froze the whole card. On the CRM deployment the claim can never succeed
+        // today (WRITE_HUBSPOT=false makes claimOwnership a no-op, so the record stays unstamped and
+        // authorizeWrite denies), which meant ONE reversible monday-side diff — a rep fixing a typo in
+        // Job Title — starved every FORWARD-only field on that card indefinitely: all 11 new sidebar
+        // columns, Lifecycle Stage, 状态, everything. And because Sync State was left unstamped,
+        // decideDirection kept choosing "toHubspot" on every later webhook, so the card never healed
+        // except by someone editing the record in HubSpot. With skipFullReconcile and no crons, nothing
+        // else ever retried it.
+        //
+        // Falling through is also the correct SEMANTIC: if monday may not write to HubSpot, then
+        // HubSpot is the authority and the card should be brought back into line with it. The rep's
+        // edit visibly snaps back, which is honest, rather than silently sitting in a frozen card.
+        console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+          + ` action=refused-forward-instead fields=${Object.keys(patch).join(",")}`
+          + ` reason="${auth.reason}"`);
         stats.skipped++;
+        // no return — the forward write below reconciles the card to HubSpot
+      } else {
+        const filled = diffs.filter(d => d.backfill && d.f && patch[d.f.hs] !== undefined);
+        const newMod = await patchRecord(env, spec, rec.id, patch, opts, auth);
+        // Audit trail for the controlled backfill (a failed patch throws and is logged by the caller).
+        for (const d of filled)
+          console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} field=${d.f!.hs} previous="" value="${patch[d.f!.hs]}" result=${newMod === null ? "dry-run" : "written"}`);
+        await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: newMod ?? recModified }, opts);
+        stats.toHubspot++; budget.left--;
         return;
       }
-      const filled = diffs.filter(d => d.backfill && d.f && patch[d.f.hs] !== undefined);
-      const newMod = await patchRecord(env, spec, rec.id, patch, opts, auth);
-      // Audit trail for the controlled backfill (a failed patch throws and is logged by the caller).
-      for (const d of filled)
-        console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} field=${d.f!.hs} previous="" value="${patch[d.f!.hs]}" result=${newMod === null ? "dry-run" : "written"}`);
-      await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: newMod ?? recModified }, opts);
-      stats.toHubspot++; budget.left--;
-      return;
     }
     // nothing reversible differs -> fall through to a forward write
   }
@@ -604,7 +621,7 @@ export function recInScope(spec: ObjectSpec, rec: { properties: Record<string, s
 /** HubSpot contact/company changed -> reconcile the one matching card on its single board.
  * (Deals use syncHubspotDeal, which also routes across the Myla/Unassigned boards.) */
 export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, opts: RunOpts,
-    budget: Budget): Promise<string> {
+    budget: Budget, ignoreItemId?: string): Promise<string> {
   const ctx = await getCtxCached(env);
   // Always fetch sales_user + createdate so we can scope-check even when they aren't mapped fields.
   const props = [...new Set([...propertiesForSpec(spec), "sales_user", "createdate",
@@ -618,6 +635,16 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
   // record (and its card), HubSpot's creation webhook lands here within seconds — before monday has
   // indexed the card — and creating again would produce a DUPLICATE card. Fall back to the registry.
   let existing: MondayItem | undefined = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  // A card the CALLER already knows is dead must never be adopted from this search. The search index is
+  // eventually consistent, so a card deleted a second ago is still returned — and reconcileRecord would
+  // then happily issue change_multiple_column_values against a dead item id, which errors out of the
+  // waitUntil with the registry already cleared and nothing scheduled to retry. Only the restore path
+  // passes this, so every other caller keeps its single lookup and pays nothing.
+  if (existing && ignoreItemId && String(existing.id) === String(ignoreItemId)) {
+    console.log(`${spec.object}/${id} column search returned the just-deleted card ${ignoreItemId}`
+      + ` — ignoring a stale index hit and creating instead`);
+    existing = undefined;
+  }
   if (!existing) {
     const known = await lookupCard(env, spec.boardId, id);
     if (known) {
@@ -633,7 +660,7 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
 
 /** Dispatch a HubSpot object event to the right sync path. */
 export async function syncHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
-    id: string, opts: RunOpts, budget: Budget): Promise<string> {
+    id: string, opts: RunOpts, budget: Budget, ignoreItemId?: string): Promise<string> {
   // Deals exist ONLY in the WM deployment. specByObject returns undefined for "deals" on the CRM
   // deployment, so a stray deal webhook there is a logged no-op rather than an accidental Deal sync.
   if (objectType === "deal") {
@@ -642,7 +669,7 @@ export async function syncHubspotObject(env: Env, objectType: "deal" | "contact"
   }
   const spec = specByObject(env, objectType === "contact" ? "contacts" : "companies");
   if (!spec) return wlog(objectType, id, "skipped", 'reason="object not in scope for this deployment"');
-  return syncHubspotRecord(env, spec, id, opts, budget);
+  return syncHubspotRecord(env, spec, id, opts, budget, ignoreItemId);
 }
 
 /** A HubSpot record was DELETED -> delete the linked monday card. HubSpot is the source of truth,
