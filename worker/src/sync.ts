@@ -275,7 +275,13 @@ async function writeSafeBackfills(env: Env, spec: ObjectSpec, ctx: Ctx, opts: Ru
   // behaviour is adequate — routing them here too would turn every toMonday pass (including the nightly
   // sweep over every deal) into an unannounced bulk HubSpot write. Contacts need it precisely because they
   // are skipFullReconcile and nothing else would ever retry the fill.
-  if (!INDEPENDENT_BACKFILL_OBJECTS.has(spec.object)) return null;
+  // Object-name allowlist OR the per-spec opt-in. The set is keyed on "contacts"/"companies", which the
+  // live WM specs also use, so it must not grow; `fillEmptyFromMonday` reaches the same outcome for the
+  // CRM specs alone. Without this branch a fill would only happen when the monday edit is itself the
+  // trigger (decideDirection returns "toHubspot"); a HubSpot-triggered pass over a company whose monday
+  // card holds a value HubSpot lacks would leave it unfilled forever, because CRM specs are
+  // skipFullReconcile on a Worker with no crons and nothing else ever revisits them.
+  if (!INDEPENDENT_BACKFILL_OBJECTS.has(spec.object) && !spec.fillEmptyFromMonday) return null;
   const fills = diffs.filter(d => d.kind === "field" && d.backfill && d.f?.reverse);
   if (!fills.length) return null;
   const patch: Record<string, string> = {};

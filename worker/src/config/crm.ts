@@ -60,6 +60,7 @@ export const CRM_CONTACTS: ObjectSpec = {
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,
   restoreOnDelete: true,                     // monday delete/archive -> restore the card from HubSpot
+  fillEmptyFromMonday: true,                 // a monday value may FILL an empty HubSpot field (never clear one)
   createFromMonday: false,                   // HubSpot is the creation source for Contacts
   // no createDefaults, no adoptBy
   // CONTACT <-> COMPANY, HUBSPOT -> MONDAY ONLY. Fills the board's NATIVE `contact_account` relation
@@ -240,6 +241,7 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   skipFullReconcile: true,
   ownership: OWN_ACCOUNTS,
   restoreOnDelete: true,                     // monday delete/archive -> restore the card from HubSpot
+  fillEmptyFromMonday: true,                 // a monday value may FILL an empty HubSpot field (never clear one)
   createFromMonday: true,
   adoptBy: { kind: "domain", col: "company_domain" },   // native Domain link column, NOT the name column
   // The mirror image of the Contacts relation, into the native `account_contact` column. HubSpot ->

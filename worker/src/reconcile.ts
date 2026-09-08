@@ -64,7 +64,11 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       // real-but-digitless value like "N/A"/"none"/"ask reception" normalizes to "" and would otherwise look
       // empty — backfilling over it would DESTROY real HubSpot data while logging previous="".
       const rawHs = String(rec.properties[f.hs] ?? "").trim();
-      const allowed = fillEmpty || (f.backfill && BACKFILL_OBJECTS.has(spec.object));
+      // `spec.fillEmptyFromMonday` is opt-in per SPEC, so the CRM boards can fill an empty HubSpot
+      // field from any reverse field while the live WM specs — which share these object NAMES and so
+      // would have been caught by any change to BACKFILL_OBJECTS — behave exactly as before.
+      const allowed = fillEmpty || (f.backfill && BACKFILL_OBJECTS.has(spec.object))
+        || !!spec.fillEmptyFromMonday;
       if (rawHs === "" && allowed && f.reverse && colText(item, spec.idCol) === rec.id) {
         const md = colText(item, f.col);
         // Only raise the diff if the value would actually SURVIVE the reverse mapping. A monday value that

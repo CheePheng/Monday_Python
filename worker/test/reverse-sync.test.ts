@@ -489,18 +489,27 @@ describe("an empty monday value never clears HubSpot", () => {
     expect("jobtitle" in patch).toBe(false);
   });
 
-  // The other half of "never clears": an EMPTY HubSpot value is not filled from monday on a passive
-  // reconcile unless the field is on the `backfill` allowlist AND the object is (reconcile.ts:27,67).
-  // No CRM field carries `backfill`, so the passive path fills nothing at all.
-  it("no CRM field is on the backfill allowlist", () => {
-    for (const spec of [CRM_CONTACTS, CRM_ACCOUNTS])
+  // The rule is ASYMMETRIC on purpose, and the other half CHANGED on 2026-09-08. A blank monday cell
+  // still never clears HubSpot (above). But a monday VALUE now DOES fill a blank HubSpot field, because
+  // reps work in monday: a salesperson typing Annual Revenue into an empty field watched it silently
+  // revert, which is not two-way sync. Opt-in via `spec.fillEmptyFromMonday`, never via the object-name
+  // allowlists, which the live WM specs share.
+  it("no CRM field needs `backfill` — the spec-level flag carries it instead", () => {
+    for (const spec of [CRM_CONTACTS, CRM_ACCOUNTS]) {
       expect(spec.fields.filter(f => f.backfill)).toEqual([]);
+      expect(spec.fillEmptyFromMonday).toBe(true);
+    }
   });
 
-  it.each(ROWS)("$object $hs — an empty HubSpot value is NOT filled on a passive reconcile", (row) => {
+  it.each(ROWS)("$object $hs — a monday value DOES fill an empty HubSpot value", (row) => {
     const rec = recFor(row, { [row.hs]: "" });
     const card = cardFor(row.spec, recFor(row), { [fieldOf(row.spec, row.hs).col]: row.md });
-    expect(fieldDiffsOnly(rec, card, row.spec, false)).toEqual([]);
+    const diffs = fieldDiffsOnly(rec, card, row.spec, false);
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]).toMatchObject({ hsText: "", mdText: row.md, backfill: true });
+    // And it reaches the patch, so the fill is real rather than a diff that goes nowhere.
+    expect(buildReversePatch(fieldDiffs(rec, card, row.spec, ctx), card, row.spec, ctx))
+      .toHaveProperty(row.hs);
   });
 
   /**

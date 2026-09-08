@@ -108,6 +108,22 @@ export interface ObjectSpec {
    * WriteAuth — a mutation without one throws rather than writing (see hubspot.ts assertMayWrite).
    * Absent on every production WM spec, so their code path is unchanged. */
   ownership?: OwnershipSpec;
+  /** A non-empty monday value may FILL an empty HubSpot value, for any `reverse: true` field.
+   *
+   * The engine's default is the opposite: an empty HubSpot value is left alone, so monday and HubSpot
+   * never fight and no loop can form. That default was written when monday was the SECONDARY surface.
+   * It is wrong once reps work in monday: a salesperson typing Annual Revenue into a blank field
+   * watched it silently revert on the next HubSpot change, which is not what anyone would call two-way.
+   *
+   * Opt-IN PER SPEC, and deliberately NOT keyed on `spec.object`. The pre-existing allowlists
+   * (BACKFILL_OBJECTS in reconcile.ts, INDEPENDENT_BACKFILL_OBJECTS in sync.ts) are sets of object
+   * NAMES — "contacts", "companies" — which the live Work-Management specs share. Adding "companies"
+   * to either would have changed WM behaviour silently. A spec flag cannot.
+   *
+   * THE OPPOSITE RULE IS UNCHANGED AND MUST STAY: an EMPTY monday value never clears a non-empty
+   * HubSpot value. reverseFieldValue returns "" for a blank cell and buildReversePatch drops it, so
+   * clearing requires an explicit per-field decision that does not exist yet. */
+  fillEmptyFromMonday?: boolean;
   /** Deleting or archiving a monday card RESTORES it from HubSpot instead of being a no-op.
    *
    * Opt-IN, and deliberately its own flag rather than piggybacking on `ownership`. The two mean
