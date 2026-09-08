@@ -247,8 +247,13 @@ describe("CRM_ACCOUNTS", () => {
     expect(CRM_ACCOUNTS.fields.find(f => f.hs === "hubspot_owner_id"))
       .toMatchObject({ col: "multiple_person_mm6z8mwy", type: "people", appReverse: true }));
 
-  it("maps no sales_user, and associates ONLY to contacts", () => {
-    expect(CRM_ACCOUNTS.fields.some(f => f.hs === "sales_user")).toBe(false);
+  // sales_user is now DISPLAYED here too (it is on the Create Company form), forward-only and never
+  // a scope input - the same split as on Contacts.
+  it("shows sales_user display-only, and associates ONLY to contacts", () => {
+    const su = CRM_ACCOUNTS.fields.find(f => f.hs === "sales_user")!;
+    expect(su).toMatchObject({ col: "text_mm6twxwe", type: "text", labels: "salesUser" });
+    expect(su.reverse).toBeUndefined();
+    expect(recInScope(CRM_ACCOUNTS, { properties: {} })).toBe(true);
     expect(CRM_ACCOUNTS.associations).toEqual([
       { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: "account_contact" },
     ]);

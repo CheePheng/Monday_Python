@@ -112,6 +112,11 @@ export const CRM_CONTACTS: ObjectSpec = {
     // semicolon-joined value. A seeded multi-select dropdown is the proper form and the prerequisite
     // for ever making it two-way — until then a monday edit must not reach the HubSpot enum.
     { hs: "manufacturer__c", col: "text_mm6s40ew", type: "text", labels: "contactVendor" },
+    // Sales Person - a distinct property from sales_user, and a picker on the Create Contact form with
+    // no monday home until now. Its 4 option VALUES equal their labels, so no label dictionary is
+    // needed (and no extra HubSpot schema fetch). Forward-only for now; because value == label and the
+    // column is seeded with exactly those 4, it is the one enum here that COULD safely go two-way.
+    { hs: "sales_person", col: "color_mm701ff2", type: "status" },
   ],
 };
 
@@ -177,6 +182,10 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     { hs: "numberofemployees", col: "employee_count", type: "text" },
     { hs: "hubspot_owner_id", col: "multiple_person_mm6z8mwy", type: "people", appReverse: true },
     { hs: "createdate", col: "date_mm6zmtf8", type: "date", oneWay: true },
+    // Sales User, DISPLAY-ONLY - the only field on the HubSpot Create Company form that had no monday
+    // mapping. Same treatment as on Contacts: `labels: "salesUser"` turns the raw owner id into the
+    // person's name, forward-only so a monday edit can never reassign it, and it plays no part in scope.
+    { hs: "sales_user", col: "text_mm6twxwe", type: "text", labels: "salesUser" },
   ],
 };
 

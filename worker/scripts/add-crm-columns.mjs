@@ -14,6 +14,10 @@ const CONTACTS = "5028000495";
 /** HubSpot `priority__c` (优先级) — the exact 4 SLA options, verified live 2026-09-08.
  *  Deliberately its OWN column: monday's native Priority is High/Medium/Low, a different concept
  *  with ZERO label overlap. Mapping HubSpot's SLA into it would be the industry mistake again. */
+/** HubSpot `sales_person` - all 4 options, verified live. Value == label for every one, so no label
+ *  dictionary is needed and no extra schema fetch is added. */
+const SALES_PERSON_LABELS = ["Elaine Rivera", "Emily You", "Myla Mestiola", "Rick Avery Antonio"];
+
 const PRIORITY_LABELS = ["P1_2小时内", "P2_1周内", "P3_2周内", "P4_持续跟进"];
 
 export const PLANNED = [
@@ -28,6 +32,10 @@ export const PLANNED = [
   {
     title: "Priority (HubSpot)", type: "status", after: "color_mm6zb4tc", labels: PRIORITY_LABELS,
     why: "priority__c, seeded with its exact 4 SLA labels. Native Priority (High/Medium/Low) stays untouched",
+  },
+  {
+    title: "Sales Person", type: "status", after: "text_mm6sakj3", labels: SALES_PERSON_LABELS,
+    why: "sales_person - a 4-option picker on the HubSpot Create Contact form with no monday home. Its option VALUES equal its labels, so the seeded list is exact",
   },
 ];
 
