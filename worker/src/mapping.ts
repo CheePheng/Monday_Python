@@ -122,6 +122,23 @@ export function linkText(v: string | null | undefined): string {
 }
 
 /**
+ * Canonical numeric form, or "" when the text is not a number. Used on BOTH sides and in the reverse
+ * write, so all three agree.
+ *
+ * monday renders a numbers column as it pleases — "1500000.50", or with thousands separators once a
+ * column unit/format is set — while HubSpot stores a number. Comparing those raw produced the same
+ * permanently-dirty diff class as the link loop, and on a `reverse: true` numbers field it also shipped
+ * whatever the cell said straight into a HubSpot NUMBER property, which 400s on anything non-numeric.
+ * Separators are stripped before parsing precisely because a formatted column is the common case.
+ */
+export function numText(v: string | null | undefined): string {
+  const t = String(v ?? "").trim();
+  if (!t) return "";
+  const n = Number(t.replace(/,/g, ""));
+  return Number.isFinite(n) ? String(n) : "";
+}
+
+/**
  * What to send to HubSpot for a link column edited in monday. Different job from linkText: that one
  * canonicalises for COMPARISON and deliberately drops the scheme; this one must produce a value a
  * HubSpot URL property will accept, so the scheme is kept.
@@ -152,7 +169,8 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
   if (f.type === "email") return v.toLowerCase();
   switch (f.type) {
     case "date": return v.slice(0, 10);
-    case "numbers": { const n = Number(v); return Number.isFinite(n) ? String(n) : v; }
+    // numText, so the diff, the forward write and the reverse write all canonicalise identically.
+    case "numbers": return numText(v) || v;
     // A monday link column echoes its TEXT part, which formatValue sets equal to the url.
     case "link": return v;
     case "status": case "text": return (dict(f, ctx)[v] ?? v).trim();

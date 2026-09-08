@@ -392,7 +392,19 @@ describe("controlled deals-only backfill of EMPTY HubSpot values (every reverse 
   // A dropdown needs its label dict to reverse-map (buildCtx always loads these in production). Without it
   // reverseFieldValue yields "" and the backfill diff is correctly suppressed — writing nothing is what
   // buildReversePatch would do anyway, so raising the diff would just churn every pass.
-  const bctx: Ctx = { labels: { vendor: { "37Docusign": "37Docusign" } }, ownersById: {},
+  // dealtype and priority dictionaries are REQUIRED here, not decoration. Status reverse now refuses a
+  // label it cannot resolve to a HubSpot internal value (an unresolvable label used to be sent raw and
+  // earned a 400 that wedged the card), and the backfill branch only raises a diff for a value that
+  // would survive the reverse mapping. buildCtx loads both dictionaries in production — LABEL_SOURCE
+  // lists them and the WM deal spec references them — so a fixture without them was unrealistic, and
+  // the old permissive behaviour was the only thing hiding that.
+  const bctx: Ctx = {
+    labels: {
+      vendor: { "37Docusign": "37Docusign" },
+      dealtype: { newbusiness: "New Business", existingbusiness: "Existing Business" },
+      priority: { high: "High", medium: "Medium", low: "Low" },
+    },
+    ownersById: {},
     mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1 };
   // monday card carrying the matching HubSpot Deal ID (numeric_mm4nz332 = 9001).
   const bItem = (over: Partial<{ id: string; amount: string; close: string; type: string }> = {}) => item({

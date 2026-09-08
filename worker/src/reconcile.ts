@@ -1,5 +1,5 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
-import { expectedText, formatValue, itemName, linkReverse, linkText, phoneDigits } from "./mapping";
+import { expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits } from "./mapping";
 import { colText } from "./dedup";
 import { reverseGroup, targetGroup } from "./routing";
 
@@ -85,6 +85,8 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
     const same = f.type === "phone" ? phoneDigits(mdText) === hsText
       : f.type === "email" ? mdText.trim().toLowerCase() === hsText
       : f.type === "link" ? linkText(mdText) === linkText(hsText)
+      // numbers: monday may render "1500000.50" or add thousands separators; hsText is already canonical.
+      : f.type === "numbers" ? numText(mdText) === hsText
       : hsText === mdText;
     if (!same) out.push({ kind: "field", f, hsText, mdText });
   }
@@ -150,6 +152,28 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
   }
   // A link column's monday text is "<text> - <url>"; send the URL half, never the concatenation.
   if (f.type === "link") return linkReverse(text);
+  // STATUS: only ever send a value HubSpot's enumeration actually accepts.
+  //
+  // This fell through to `rev[text] ?? text`, shipping whatever label the monday column held into a
+  // HubSpot enum. A label a rep renamed or added — or a dictionary that has drifted — earned a 400, and
+  // because Sync State is not stamped on a throw, that card's webhooks wedged PERMANENTLY. Refusing
+  // (returning "") makes buildReversePatch omit the field; if the patch is then empty the engine falls
+  // through to a FORWARD write, so HubSpot's value overwrites the invalid cell and the card self-heals.
+  //
+  // No `labels` means value === label by construction (deal_currency_code "USD", sales_person
+  // "Emily You"), so the raw text is already a legal value and must still pass unchanged.
+  if (f.type === "status") {
+    if (!f.labels) return text;
+    if (rev[text] !== undefined) return rev[text];              // monday shows the LABEL — the normal case
+    // monday's cell may already hold the INTERNAL VALUE: every write sets create_labels_if_missing, so a
+    // value the dictionary could not resolve at write time became a label spelled as that raw value.
+    // Accepting it keeps the function a fixed point on its own output, and refusing it would have
+    // blocked exactly the records that most need repairing.
+    if ((ctx.labels[f.labels] ?? {})[text] !== undefined) return text;
+    return "";                                                   // genuinely unknown -> refuse
+  }
+  // NUMBERS: canonicalise, and refuse non-numeric rather than 400 on a HubSpot number property.
+  if (f.type === "numbers") return numText(text);
   return rev[text] ?? text;
 }
 
@@ -167,6 +191,13 @@ export function buildReversePatch(
     if (d.kind === "field" && (d.f?.reverse || d.f?.appReverse)) {   // the diff only exists when allowed
       const v = reverseFieldValue(d.f, d.mdText, ctx);
       if (v) patch[d.f.hs] = v;
+      // A NON-EMPTY cell that yields nothing was REFUSED (unknown status label, non-numeric number).
+      // Logged, because the alternative is a value that silently never syncs. An empty cell is not a
+      // refusal — that is the deliberate "a monday blank never clears HubSpot" rule.
+      else if (d.mdText.trim())
+        console.log(`[reverse] field=${d.f.hs} type=${d.f.type} action=refused`
+          + ` reason="monday value is not valid for this HubSpot property"`
+          + ` value=${JSON.stringify(d.mdText.slice(0, 60))}`);
     }
   }
   return patch;

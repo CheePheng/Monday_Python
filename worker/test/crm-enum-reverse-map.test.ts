@@ -122,10 +122,18 @@ describe("unknown monday labels: dropdown refuses, status falls through raw", ()
     expect(reverseFieldValue(partnerWith, "Tableau, Nonsense", ctx)).toBe("Tableau");
   });
 
-  // Documented, not endorsed: this is the asymmetry that makes an unvalidated status/text column
-  // unsafe for an enum, and is why manufacturer__c (89 options) stays DEFER until it is a dropdown.
-  it("status sends an unknown label RAW — the reason a text/status enum column is unsafe", () => {
-    expect(reverseFieldValue(companyType, "Not A Real Type", ctx)).toBe("Not A Real Type");
+  // FIXED 2026-09-08. status used to send an unknown label RAW into the HubSpot enumeration, which
+  // 400s — and because Sync State is not stamped on a throw, that card's webhooks wedged permanently.
+  // It now refuses, matching the dropdown branch above, so the asymmetry that made a status enum
+  // unsafe for two-way is gone. A refused field is omitted from the patch; if the patch ends up empty
+  // the engine falls through to a forward write and the invalid cell is overwritten from HubSpot.
+  it("status REFUSES an unknown label, like dropdown does", () => {
+    expect(reverseFieldValue(companyType, "Not A Real Type", ctx)).toBe("");
+  });
+
+  it("status still accepts a valid label, and a raw internal value", () => {
+    expect(reverseFieldValue(companyType, "Partner", ctx)).toBe("PARTNER");
+    expect(reverseFieldValue(companyType, "PARTNER", ctx)).toBe("PARTNER");
   });
 
   it("a plain text column has no validation at all", () => {

@@ -337,24 +337,38 @@ describe("numbers: Number() normalisation, and the one-sided gap in it", () => {
    *
    * This asserts the CURRENT behaviour, not the desired one.
    */
-  it("PINS A DEFECT: a non-canonical monday number diffs forever (D3)", () => {
-    const d = withRevenue("1500000.5", "1500000.50");
-    expect(d).toHaveLength(1);
-    expect(d[0].hsText).toBe("1500000.5");
-    expect(d[0].mdText).toBe("1500000.50");
-    // And the "fix" it sends is the same non-canonical string, so the next pass diffs identically.
-    const rec = companyRec({ annualrevenue: "1500000.5" });
-    const card = cardFor(CRM_ACCOUNTS, companyRec(), { [f.col]: "1500000.50" });
-    expect(buildReversePatch(fieldDiffs(rec, card, CRM_ACCOUNTS, ctx), card, CRM_ACCOUNTS, ctx))
-      .toEqual({ annualrevenue: "1500000.50" });
+  // FIXED (D3): numbers are canonicalised on BOTH sides via numText, exactly as phone is via
+  // phoneDigits, so a non-canonical monday rendering no longer diffs forever.
+  it("a non-canonical monday number no longer diffs — 1500000.50 == 1500000.5", () => {
+    expect(withRevenue("1500000.5", "1500000.50")).toEqual([]);
+    expect(withRevenue("1500000", "1,500,000")).toEqual([]);
+    expect(withRevenue("1500000", "1500000.00")).toEqual([]);
   });
 
-  // FINDING D4: the numbers branch of reverseFieldValue has NO validation — it falls through to
-  // `rev[text] ?? text` (reconcile.ts:146). Anything the monday cell holds is sent verbatim to a
-  // HubSpot NUMBER property. Pinned, not endorsed.
-  it.each(["1,500,000", "approx 500", "1.5M", "500-1000"])(
-    "PINS A DEFECT: monday %j is sent to the HubSpot number property verbatim (D4)", (md) =>
-      expect(reverseFieldValue(f, md, ctx)).toBe(md));
+  it("but a genuinely different number still diffs", () => {
+    const d = withRevenue("1500000", "2000000");
+    expect(d).toHaveLength(1);
+    expect(d[0].mdText).toBe("2000000");
+  });
+
+  // FIXED (D4): the numbers branch canonicalises what it can and REFUSES the rest, rather than
+  // shipping free text into a HubSpot NUMBER property and earning a 400 that wedges the card.
+  it.each([["1,500,000", "1500000"], ["1500000.50", "1500000.5"], ["  42  ", "42"], ["-3.5", "-3.5"]])(
+    "canonicalises monday %j to %j before writing", (md, want) =>
+      expect(reverseFieldValue(f, md, ctx)).toBe(want));
+
+  it.each(["approx 500", "1.5M", "500-1000", "N/A", "unknown"])(
+    "REFUSES non-numeric monday value %j instead of 400ing on a HubSpot number field", (md) =>
+      expect(reverseFieldValue(f, md, ctx)).toBe(""));
+
+  // A refusal must not wedge the card: buildReversePatch omits the field, the patch is empty, and the
+  // engine falls through to a FORWARD write, so HubSpot's value overwrites the invalid cell.
+  it("a refused number leaves the patch empty, so the card reconciles forward instead of freezing", () => {
+    const rec = companyRec({ annualrevenue: "1500000" });
+    const card = cardFor(CRM_ACCOUNTS, companyRec(), { [f.col]: "approx 500" });
+    expect(buildReversePatch(fieldDiffs(rec, card, CRM_ACCOUNTS, ctx), card, CRM_ACCOUNTS, ctx))
+      .toEqual({});
+  });
 });
 
 describe("status: label <-> internal value, in both directions", () => {
@@ -399,9 +413,31 @@ describe("status: label <-> internal value, in both directions", () => {
    * write sets create_labels_if_missing:true (monday.ts), and a rep can add a label in the board UI —
    * so a status column CAN hold a label HubSpot has never heard of.
    */
-  it.each(["Totally New Label", "in progress", "IN_PROGRESS"])(
-    "PINS A DEFECT: unknown status label %j is sent to the HubSpot enum RAW (D5)", (md) =>
-      expect(reverseFieldValue(lead, md, ctx)).toBe(md));
+  // FIXED (D5): status now resolves the label, accepts a raw INTERNAL VALUE, and refuses anything else.
+  it.each(["Totally New Label", "in progress", "New Businessss"])(
+    "REFUSES unknown status label %j instead of sending it raw to the HubSpot enum", (md) =>
+      expect(reverseFieldValue(lead, md, ctx)).toBe(""));
+
+  // An internal value must still pass: every monday write sets create_labels_if_missing, so a value the
+  // dictionary could not resolve at write time became a label spelled as that raw value. Refusing it
+  // would block exactly the records that most need repairing, and it keeps the function a fixed point
+  // on its own output.
+  it("ACCEPTS a monday cell that already holds a valid HubSpot internal value", () => {
+    for (const value of Object.keys(LEAD_STATUS))
+      expect(reverseFieldValue(lead, value, ctx)).toBe(value);
+  });
+
+  it("still maps a known label to its internal value", () => {
+    for (const [value, label] of Object.entries(LEAD_STATUS))
+      expect(reverseFieldValue(lead, label, ctx)).toBe(value);
+  });
+
+  // A status field with NO label dictionary means value === label by construction (deal_currency_code
+  // "USD", sales_person "Emily You"), so the raw text is already legal and must pass unchanged.
+  it("passes raw text through for a status field with no dictionary", () => {
+    const noDict: FieldSpec = { ...lead, labels: undefined };
+    expect(reverseFieldValue(noDict, "Anything At All", ctx)).toBe("Anything At All");
+  });
 
   // Contrast — the dropdown branch DROPS an unknown label. This is why the two-way enum plan should be
   // dropdown-shaped, and it is asserted here so the asymmetry is visible next to the status tests.
@@ -757,9 +793,11 @@ describe("blanking a monday column: HubSpot keeps its value and the card snaps b
 // ---------------------------------------------------------------------------------------------------
 
 describe("an unknown status label reaches HubSpot and the webhook fails", () => {
-  it("PINS A DEFECT: the raw label is sent, HubSpot 400s, and the error escapes (D5)", async () => {
-    hubspot.patchRecord.mockRejectedValue(
-      new Error('hubspot PATCH contacts/301: 400 {"message":"Totally New Label was not one of the allowed options"}'));
+  // FIXED (D5), at the engine. The unknown label is refused before any HubSpot call, so there is no
+  // 400 to escape and no wedged card: patchRecord is never reached, and the engine falls through to a
+  // FORWARD write that overwrites the invalid cell with HubSpot's value. Self-healing, not frozen.
+  it("an unknown status label never reaches HubSpot, and the card reconciles forward", async () => {
+    hubspot.patchRecord.mockRejectedValue(new Error("patchRecord must not be called"));
     const rec = contactRec({ sync_owner: "crm", createdate: PRE });
     const card = cardFor(CRM_CONTACTS, contactRec(),
       { [fieldOf(CRM_CONTACTS, "hs_lead_status").col]: "Totally New Label" });
@@ -767,9 +805,10 @@ describe("an unknown status label reaches HubSpot and the webhook fails", () => 
     hubspot.getRecord.mockResolvedValue(rec);
 
     await expect(syncMondayItem(env, CRM_CONTACTS.boardId, "CARD1", live, { left: 30 }))
-      .rejects.toThrow(/400/);
-    expect(hubspot.patchRecord).toHaveBeenCalledWith(env, expect.anything(), "301",
-      { hs_lead_status: "Totally New Label" }, live, expect.anything());
+      .resolves.toBeDefined();
+    expect(hubspot.patchRecord).not.toHaveBeenCalled();
+    // The forward write is what repairs the cell.
+    expect(monday.updateItem).toHaveBeenCalled();
     // And no Sync State baseline was stamped, so the card re-enters "toHubspot" on every later webhook.
     expect(monday.setColumns).not.toHaveBeenCalled();
   });
