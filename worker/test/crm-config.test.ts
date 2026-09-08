@@ -12,6 +12,10 @@ const DEAD_STUBS = [
   "text_mm6t6w6n", "text_mm6t8r57", "text_mm6t7rpd", "text_mm6t1n5g",
   "numeric_mm6swz9c", "12849070_last_name", "text_mm6t40d7", "text_mm6s7db3",
   "text_mm6t68sz", "text_mm6tyx9z", "text_mm6thg86", "text_mm6t638", "text_mm6tvb8q", "text_mm6t5nqt",
+  // Deleted from the Contacts board on 2026-09-08 by someone working directly in monday, while the spec
+  // still mapped `company` to it. monday rejects an entire change_multiple_column_values mutation that
+  // names an unknown column, so that one dead reference would have stopped every Contact card updating.
+  "text_mm6sdvkq",
 ];
 
 const colsOf = (s: typeof CRM_CONTACTS) =>
@@ -132,6 +136,12 @@ describe("CRM_CONTACTS", () => {
       expect(CRM_CONTACTS.fields.some(f => f.col === col)).toBe(false);
   });
 
+  // The board column this used to write was deleted; the real company link is the native relation.
+  it("does NOT map HubSpot `company` — its column no longer exists on the board", () => {
+    expect(CRM_CONTACTS.fields.some(f => f.hs === "company")).toBe(false);
+    expect(CRM_CONTACTS.fields.some(f => f.col === "text_mm6sdvkq")).toBe(false);
+  });
+
   it("associates ONLY to companies, via the native relation, and maps no deal column", () => {
     expect(CRM_CONTACTS.associations).toEqual([
       { toObject: "companies", nameProps: ["name"], relationCol: "contact_account" },
@@ -148,6 +158,21 @@ describe("CRM_ACCOUNTS", () => {
     expect(CRM_ACCOUNTS.linkCol).toBe("link_mm6zyad8");
     expect(CRM_ACCOUNTS.groupBy).toEqual({ singleGroup: "topics" });
     expect(CRM_ACCOUNTS.modifiedProp).toBe("hs_lastmodifieddate");
+  });
+
+  // DOMAIN MUST BE WRITTEN, not just read. adoptBy READS this column to match an existing HubSpot
+  // company; for a while nothing WROTE it, so every HubSpot-originated Account landed in monday with an
+  // empty Domain - the single field the whole matching design depends on.
+  it("WRITES domain into the native Domain column, forward-only", () => {
+    const f = CRM_ACCOUNTS.fields.find(x => x.hs === "domain")!;
+    expect(f).toMatchObject({ col: "company_domain", type: "link" });
+    expect(f.reverse).toBeUndefined();      // the dedup key, like email on contacts
+    expect(f.backfill).toBeUndefined();
+  });
+
+  it("the adoption key and the written column are the SAME column", () => {
+    expect(CRM_ACCOUNTS.adoptBy!.col)
+      .toBe(CRM_ACCOUNTS.fields.find(f => f.hs === "domain")!.col);
   });
 
   it("adopts by DOMAIN on the native link column, never by company name", () => {

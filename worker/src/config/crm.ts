@@ -77,8 +77,10 @@ export const CRM_CONTACTS: ObjectSpec = {
     // never rewrite it (the WM spec excludes email from backfill for the same reason).
     { hs: "email", col: "contact_email", type: "email" },
     { hs: "jobtitle", col: "text_mm6szy4q", type: "text", reverse: true },
-    // `company` is HubSpot's free-text company name, NOT the association. Forward-only.
-    { hs: "company", col: "text_mm6sdvkq", type: "text" },
+    // HubSpot's free-text `company` is deliberately NOT mapped: the "Company name" column it used to
+    // write (text_mm6sdvkq) was deleted from the board, and the real company link is the native
+    // `contact_account` relation below. A field pointing at a deleted column id makes monday reject the
+    // whole change_multiple_column_values mutation, so the card would stop updating entirely.
     { hs: "phone", col: "contact_phone", type: "phone", reverse: true },
     // Owner: app-save-only. A plain `reverse` reassigned owners unattended on the WM side (2026-08-28).
     { hs: "hubspot_owner_id", col: "multiple_person_mm6zap53", type: "people", appReverse: true },
@@ -125,6 +127,11 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   ],
   fields: [
     { hs: "name", col: "text_mm6t1q4h", type: "text", reverse: true },
+    // DOMAIN IS THE COMPANY'S IDENTITY, and it was missing. `adoptBy` READS this column to match an
+    // existing HubSpot company; nothing WROTE it, so every HubSpot-originated Account arrived with an
+    // empty Domain — the one field the whole matching design depends on. Forward-only: the domain is
+    // the dedup key, exactly as `email` is for contacts, so a monday edit must never rewrite it.
+    { hs: "domain", col: "company_domain", type: "link" },
     // industry -> the RENAMED custom text stub "Industry (HubSpot)". The board's NATIVE `industry`
     // dropdown is deliberately UNMAPPED: HubSpot's enumeration carries ~250 options (English plus a
     // parallel Chinese taxonomy, heavily duplicated) against monday's 47, with 8 matching (audit F9).
