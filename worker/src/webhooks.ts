@@ -8,6 +8,7 @@ import { actorLabel } from "./actor-label";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
+import { isDeletionEvent, restoreDeletedCard } from "./restore-card";
 
 /** Columns whose monday-side change must NOT trigger a reconcile:
  *  - our own bookkeeping (Sync State / HubSpot ID / Link) — echoes of our own writes;
@@ -131,6 +132,19 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
     console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=create_update action=received`);
     ectx.waitUntil(coalesce(`upd:${ev.updateId ?? itemId}`, () => syncMondayUpdate(env, spec, ev))
       .catch(e => console.log(`[webhook] source=monday-update item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
+    return new Response("ok");
+  }
+  // A rep DELETED or ARCHIVED the card. monday is never allowed to delete the HubSpot record — the card
+  // is restored from HubSpot instead. Must be intercepted HERE: the generic path below calls
+  // syncMondayItem, whose getItem returns null for a deleted item, so it logged "item not found" and the
+  // card stayed gone forever. Restoration still goes through mayCreateCrmCard, so a pre-cutover record
+  // is refused and this cannot become a historical import.
+  if (isDeletionEvent(type)) {
+    console.log(`[webhook] source=monday board=${boardId} item=${itemId} type=${type} user=${ev.userId ?? ""} action=received-deletion`);
+    const delBudget: Budget = { left: 30 };
+    ectx.waitUntil(coalesce(`del:${itemId}`,
+      () => restoreDeletedCard(env, spec, itemId, ev, webhookOpts(env), delBudget))
+      .catch(e => console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
     return new Response("ok");
   }
   // LOOP GUARD: value columns still flow through (value-diff no-ops an echo), but bookkeeping and

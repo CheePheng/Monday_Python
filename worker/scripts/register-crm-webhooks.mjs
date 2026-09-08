@@ -29,6 +29,19 @@ export const CRM_WEBHOOK_EVENTS = [
   "change_column_value",
   "change_name",
   "item_deleted",
+  // A rep who ARCHIVES a card instead of deleting it means the same thing and expects the same
+  // outcome, but this fired nothing at all: unsubscribed AND unhandled. restore-card treats archive
+  // and delete identically.
+  "item_archived",
+  // The activity channel. Sales users are moving to monday and will log follow-ups in each card's
+  // Updates thread — the board's "Activities timeline" column CANNOT serve: monday types it
+  // `unsupported` and reading it returns text:"" value:null on every card, because its data lives in
+  // the owning app rather than on the item (verified live, scripts/probe-activity-source.mjs).
+  // handleMonday has had a create_update branch all along (-> a HubSpot Note via createNote); it never
+  // fired because nothing was subscribed. That Note advances notes_last_contacted, which is also the
+  // property the follow-up reminder measures, so the activity log and the reminder clock are the same
+  // data and cannot disagree.
+  "create_update",
 ];
 
 /** Delivered payload names the handler must accept for the events above. Documentation + tests only. */
@@ -36,7 +49,9 @@ export const DELIVERED_EVENT_ALIASES = {
   create_item: ["create_pulse", "create_item"],
   change_column_value: ["change_column_value", "update_column_value"],
   change_name: ["change_name", "update_name"],
-  item_deleted: ["item_deleted"],
+  item_deleted: ["item_deleted", "delete_pulse"],
+  item_archived: ["item_archived", "archive_pulse"],
+  create_update: ["create_update"],
 };
 
 const API = "https://api.monday.com/v2";

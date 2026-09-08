@@ -55,6 +55,15 @@ export class CreateIdempotency extends DurableObject {
     await this.ctx.storage.put("card", { itemId });
     await this.ctx.storage.setAlarm(nowMs + RETENTION_MS);
   }
+  /** Like finishCard but with a caller-chosen retention, for entries that must OUTLIVE a quiet day.
+   *  The reverse card index (monday item id -> HubSpot id) is the case: it is read when a rep DELETES a
+   *  card, which can be weeks after the card was last touched. The 24h RETENTION_MS that suits a
+   *  creation reservation would have expired long before, and the deleted card could then never be
+   *  matched back to its record. Same "card" key and shape, so getCard/forgetCard still apply. */
+  async rememberOwner(hubspotId: string, nowMs: number, retentionMs: number): Promise<void> {
+    await this.ctx.storage.put("card", { itemId: hubspotId });
+    await this.ctx.storage.setAlarm(nowMs + retentionMs);
+  }
   /** Drop the reservation (create failed / card turned out to be gone) so the next pass may retry. */
   async forgetCard(): Promise<void> { await this.ctx.storage.delete("card"); }
   async getCard(): Promise<string | null> {

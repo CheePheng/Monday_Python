@@ -154,10 +154,14 @@ describe("monday webhook registration events", () => {
     for (let i = 0; i < 3; i++) expect(missingEvents(hooks)).toEqual([]);
   });
 
+  // Derived from CRM_WEBHOOK_EVENTS, not hardcoded: this asserts the BEHAVIOUR ("return exactly the
+  // absent ones, in registration order"), so adding an event does not require editing the expectation.
+  // A frozen literal here broke when item_archived and create_update were added, which is noise, not
+  // a real regression signal.
   it("missingEvents returns only what is absent", async () => {
-    const { missingEvents } = await import("../scripts/register-crm-webhooks.mjs");
+    const { missingEvents, CRM_WEBHOOK_EVENTS } = await import("../scripts/register-crm-webhooks.mjs");
     expect(missingEvents(live(["change_name"])))
-      .toEqual(["create_item", "change_column_value", "item_deleted"]);
+      .toEqual(CRM_WEBHOOK_EVENTS.filter((e: string) => e !== "change_name"));
   });
 
   it("missingEvents returns everything for a board with no hooks", async () => {
@@ -167,8 +171,8 @@ describe("monday webhook registration events", () => {
 
   // A hook whose config is null/absent must also count as present.
   it("tolerates a missing config field", async () => {
-    const { missingEvents } = await import("../scripts/register-crm-webhooks.mjs");
+    const { missingEvents, CRM_WEBHOOK_EVENTS } = await import("../scripts/register-crm-webhooks.mjs");
     expect(missingEvents([{ id: "1", event: "create_item" }] as never))
-      .toEqual(["change_column_value", "change_name", "item_deleted"]);
+      .toEqual(CRM_WEBHOOK_EVENTS.filter((e: string) => e !== "create_item"));
   });
 });
