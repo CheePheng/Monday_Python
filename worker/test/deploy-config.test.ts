@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readWranglerConfig } from "../scripts/read-wrangler.mjs";
-import { writeModeFor, maxWritesFor } from "../src/run-opts";
+import { scanWriteMode } from "../scripts/scan-write-mode.mjs";
+import { writeModeFor, maxWritesFor, webhookOpts } from "../src/run-opts";
 import { labelDictsFor } from "../src/sync";
 import { specsFor, specByBoard, specByObject, ALL_SPECS } from "../src/config";
 import { CRM_SPECS } from "../src/config/crm";
@@ -92,6 +93,28 @@ describe("write mode — every combination", () => {
 
   it("an unset DRY_RUN is dry — a missing var never turns writes on", () =>
     expect(mode(undefined, undefined)).toMatchObject({ dryRun: true, writeHubspot: false }));
+
+  // REGRESSION, found 2026-09-08. run-opts.ts calls itself "THE SINGLE PLACE that decides whether
+  // writes actually happen" and it was not: webhooks.ts computed its own `{ writeHubspot: live }` and
+  // never read WRITE_HUBSPOT. That is the ONLY live path on the CRM deployment — no crons, and both
+  // CRM specs set skipFullReconcile — so Phase B's HubSpot kill switch was inert exactly where it
+  // mattered, and the sole thing refusing reverse writes was the ownership gate.
+  it("the WEBHOOK path honours WRITE_HUBSPOT — it is the only live path on the CRM worker", () => {
+    expect(webhookOpts({ DRY_RUN: "false", WRITE_HUBSPOT: "false" }))
+      .toMatchObject({ dryRun: false, writeHubspot: false });
+    expect(webhookOpts({ DRY_RUN: "false" }))
+      .toMatchObject({ dryRun: false, writeHubspot: true });   // WM production, unchanged
+    expect(webhookOpts({ DRY_RUN: "true", WRITE_HUBSPOT: "false" }))
+      .toMatchObject({ dryRun: true, writeHubspot: false });
+  });
+
+  it("a webhook gets a per-event write budget, not a cron-sized one", () =>
+    expect(webhookOpts({ DRY_RUN: "false" }).maxWrites).toBe(30));
+
+  // Belt and braces: no module may re-derive writeHubspot for itself again. A duplicate is invisible
+  // to every behavioural test — each copy is individually correct — so only a source scan finds it.
+  it("no source file computes writeHubspot outside run-opts.ts", () =>
+    expect(scanWriteMode()).toEqual([]));
 
   it("maxWrites falls back safely on junk input", () => {
     expect(maxWritesFor({ MAX_WRITES: "50" })).toBe(50);

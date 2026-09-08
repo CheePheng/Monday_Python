@@ -31,6 +31,22 @@ export function writeModeFor(env: WriteEnv, maxWrites: number): RunOpts {
   return { dryRun: !live, writeHubspot: live && env.WRITE_HUBSPOT !== "false", maxWrites };
 }
 
+/**
+ * Write mode for a single inbound webhook.
+ *
+ * Exists so the webhook path cannot drift from the table above — it did. webhooks.ts used to carry its
+ * own `liveOpts` returning `{ writeHubspot: live }`, which ignored WRITE_HUBSPOT entirely. On the CRM
+ * deployment that is not a cosmetic duplicate: there are no crons and both CRM specs set
+ * `skipFullReconcile`, so webhooks are the ONLY live path, and Phase B's HubSpot kill switch was
+ * therefore inert precisely where every real write happens. The one thing still refusing reverse
+ * writes was the ownership gate — a second line of defence being mistaken for the first.
+ *
+ * The budget is per EVENT (one record), not per cron tick, so it does not read MAX_WRITES.
+ */
+export function webhookOpts(env: WriteEnv): RunOpts {
+  return writeModeFor(env, 30);
+}
+
 /** Writes/records per cron tick. 25 keeps subrequests under the free-plan 50 cap; raise via MAX_WRITES. */
 export function maxWritesFor(env: WriteEnv, fallback = 25): number {
   const n = Number(env.MAX_WRITES ?? String(fallback));

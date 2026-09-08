@@ -3,6 +3,7 @@ import { LINE_ITEM_SUBITEMS, specByBoard } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
+import { webhookOpts } from "./run-opts";
 import { actorLabel } from "./actor-label";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 import { reverseSubitemEdit } from "./associations";
@@ -17,12 +18,6 @@ export function ignoredColumns(spec: ObjectSpec): Set<string> {
   const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol].filter(Boolean) as string[]);
   for (const f of spec.fields) if (f.oneWay) out.add(f.col);
   return out;
-}
-
-// Webhooks write for real when the Worker is live; a small per-webhook budget is plenty (1 record).
-function liveOpts(env: Env): RunOpts {
-  const live = env.DRY_RUN === "false";
-  return { dryRun: !live, writeHubspot: live, maxWrites: 30 };
 }
 
 async function hmacB64(secret: string, msg: string): Promise<string> {
@@ -84,7 +79,7 @@ async function syncMondayUpdate(env: Env, spec: ObjectSpec, ev: any): Promise<vo
     if (mu) { if (mu.name) author = mu.name; ownerId = mu.email ? ctx.ownerIdByEmail[mu.email.toLowerCase()] : undefined; }
   }
   const noteId = await createNote(env, `Update by ${author} (via monday): ${u.text}`,
-    Date.now(), ownerId, spec.object, hsId, liveOpts(env));
+    Date.now(), ownerId, spec.object, hsId, webhookOpts(env));
   console.log(`[webhook] source=monday-update item=${u.itemId} object=${spec.object}/${hsId} note=${noteId} action=created`);
 }
 
@@ -121,7 +116,7 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
       ectx.waitUntil(actorLabel(env, actorId).then(a =>
         console.log(`[actor] source=monday subitem=${s.subitemId} col=${s.columnId} ${a}`)).catch(() => {}));
       const coKey = s.columnId ? `sub:${s.subitemId}:${s.columnId}` : `sub:${s.subitemId}:name`;
-      ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, liveOpts(env), { left: 30 }))
+      ectx.waitUntil(coalesce(coKey, () => reverseSubitemEdit(env, ev, webhookOpts(env), { left: 30 }))
         .catch(e => console.log(`[webhook] source=monday subitem=${s.subitemId} action=error reason="${String(e).slice(0, 160)}"`)));
       return new Response("ok");
     }
@@ -154,7 +149,7 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
     console.log(`[actor] source=monday board=${boardId} item=${itemId}${columnId ? ` col=${columnId}` : ""} ${a}`)).catch(() => {}));
   const budget: Budget = { left: 30 };
   // coalesce by item id so rapid edits (or our own write-back echoes) can't race into a duplicate.
-  ectx.waitUntil(coalesce(`md:${itemId}`, () => syncMondayItem(env, boardId, itemId, liveOpts(env), budget))
+  ectx.waitUntil(coalesce(`md:${itemId}`, () => syncMondayItem(env, boardId, itemId, webhookOpts(env), budget))
     .catch(e => console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
   return new Response("ok"); // respond fast so monday doesn't retry
 }
@@ -259,7 +254,7 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
   }
 
   console.log(`[webhook] source=hubspot events=${events.map(e => `${e.deleted ? "del:" : ""}${e.type}:${e.id}`).join(",")}${liIds.length ? ` line_items=${liIds.join(",")}` : ""} action=received`);
-  const opts = liveOpts(env);
+  const opts = webhookOpts(env);
   const budget: Budget = { left: 30 };
   // Subrequest safety: a large import can batch many events into one webhook. Process a bounded slice
   // per invocation (each event costs a few subrequests); the 10-min backup reconcile sweeps overflow.
