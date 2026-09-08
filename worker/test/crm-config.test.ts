@@ -11,7 +11,7 @@ const DEAD_STUBS = [
   "text_mm6t8x04", "text_mm6sdc3b", "text_mm6tqwyw", "text_mm6t4jp", "text_mm6tghg4",
   "text_mm6t6w6n", "text_mm6t8r57", "text_mm6t7rpd", "text_mm6t1n5g",
   "numeric_mm6swz9c", "12849070_last_name", "text_mm6t40d7", "text_mm6s7db3",
-  "text_mm6t68sz", "text_mm6tyx9z", "text_mm6thg86", "text_mm6t638", "text_mm6tvb8q", "text_mm6t5nqt",
+  "text_mm6s40ew", "text_mm6t68sz", "text_mm6tyx9z", "text_mm6thg86", "text_mm6t638", "text_mm6tvb8q", "text_mm6t5nqt",
   // Deleted from the Contacts board on 2026-09-08 by someone working directly in monday, while the spec
   // still mapped `company` to it. monday rejects an entire change_multiple_column_values mutation that
   // names an unknown column, so that one dead reference would have stopped every Contact card updating.
@@ -117,7 +117,7 @@ describe("CRM_CONTACTS", () => {
   // prerequisite for two-way; until then `reverse` must stay absent.
   it("maps manufacturer__c FORWARD-ONLY — no unvalidated write into an 89-option enum", () => {
     const f = CRM_CONTACTS.fields.find(x => x.hs === "manufacturer__c")!;
-    expect(f).toMatchObject({ col: "text_mm6s40ew", type: "text", labels: "contactVendor" });
+    expect(f).toMatchObject({ col: "dropdown_mm70zvnw", type: "dropdown", labels: "contactVendor" });
     expect(f.reverse).toBeUndefined();
     expect(f.appReverse).toBeUndefined();
     expect(f.backfill).toBeUndefined();

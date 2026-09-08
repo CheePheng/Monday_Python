@@ -113,11 +113,17 @@ export const CRM_CONTACTS: ObjectSpec = {
     // This does NOT reintroduce sales_user into SCOPE — scope is includeAll + mayCreateCrmCard, and
     // recInScope still ignores it for CRM. Forward-only, so a monday edit can never reassign it.
     { hs: "sales_user", col: "text_mm6sakj3", type: "text", labels: "salesUser" },
-    // Vendors. manufacturer__c is MULTI-VALUE (a live record holds "49HubSpot;55Aircall") across 89
-    // options, so this is interim: forward-only into the existing TEXT column, which shows the raw
-    // semicolon-joined value. A seeded multi-select dropdown is the proper form and the prerequisite
-    // for ever making it two-way — until then a monday edit must not reach the HubSpot enum.
-    { hs: "manufacturer__c", col: "text_mm6s40ew", type: "text", labels: "contactVendor" },
+    // Vendors. manufacturer__c is genuinely MULTI-VALUE (a live record holds "49HubSpot;55Aircall"),
+    // so this is a MULTI-SELECT DROPDOWN, not text and not status:
+    //   - formatValue's dropdown branch SPLITS on ";", so each vendor becomes a real tag rather than
+    //     one unfilterable string;
+    //   - a status column is impossible — monday rejects 20+ labels with a bare 500 (verified: 16 ok,
+    //     20/24/26/27 fail) and this needs 88;
+    //   - dropdown is also the only enum type whose REVERSE branch validates: it drops an unknown
+    //     label instead of passing it raw to the HubSpot enum, which is the prerequisite for two-way.
+    // Still forward-only until that two-way step is explicitly approved. Labels were seeded from the
+    // HubSpot property itself (scripts/convert-vendors-dropdown.mjs) so they cannot drift.
+    { hs: "manufacturer__c", col: "dropdown_mm70zvnw", type: "dropdown", labels: "contactVendor" },
     // Sales Person - a distinct property from sales_user, and a picker on the Create Contact form with
     // no monday home until now. Its 4 option VALUES equal their labels, so no label dictionary is
     // needed (and no extra HubSpot schema fetch). Forward-only for now; because value == label and the
