@@ -96,10 +96,14 @@ describe("editing a monday CRM relation produces ZERO HubSpot association mutati
       expect(hs.putAssociation).not.toHaveBeenCalled();
     });
 
-  it("it does not even READ the monday relation — it returns before any work", async () => {
+  // CHANGED 2026-09-08 (P2-1 retired). The blanket "return before any work" refusal is gone:
+  // putAssociation is now ownership-guarded per call, so the pass READS the relation and then refuses
+  // at the ownership check. Reading is free and side-effect-free; the guard is what matters.
+  it("READS the relation but refuses at the ownership check, writing nothing", async () => {
     await reverseAssociations({} as never, CRM_CONTACTS, rec, item, live, { left: 30 });
-    expect(monday.getLinkedItemIds).not.toHaveBeenCalled();
-    expect(hs.getAssociatedIds).not.toHaveBeenCalled();
+    expect(monday.getLinkedItemIds).toHaveBeenCalled();
+    expect(hs.getAssociatedIds).toHaveBeenCalled();
+    expect(hs.putAssociation).not.toHaveBeenCalled();
   });
 
   it("spends no budget, so a refusal cannot starve the rest of the tick", async () => {
@@ -108,12 +112,43 @@ describe("editing a monday CRM relation produces ZERO HubSpot association mutati
     expect(budget.left).toBe(30);
   });
 
-  // The gate keys on `ownership`, not on the spec identity, so it holds for ANY future ownership spec.
+  // The gate keys on `ownership`, not on the spec identity, so it holds for ANY ownership spec.
   it("the gate is keyed on ownership, so it covers any spec that declares it", async () => {
     const anyOwned: ObjectSpec = {
       ...DEALS, ownership: { prop: "sync_owner", createdProp: "createdate", owner: "crm", cutoverAtMs: 0 },
     };
     await reverseAssociations({} as never, anyOwned, rec, item, live, { left: 30 });
+    expect(hs.putAssociation).not.toHaveBeenCalled();
+  });
+
+  // THE BUG THIS TEST FOUND, kept as a regression. DEALS declares TWO associations. The auth is resolved
+  // once so a second relation column cannot trigger a second claim — but the allow-check must be
+  // RE-EVALUATED per association. Caching both together let a refusal on the first association fall
+  // through to a write on the second, because `!auth` was false by then. assertMayWrite inside
+  // putAssociation would have thrown in production, but the logic was still wrong.
+  it("a refusal on the FIRST association does not leak a write on the second", async () => {
+    const twoAssoc: ObjectSpec = {
+      ...DEALS, ownership: { prop: "sync_owner", createdProp: "createdate", owner: "crm", cutoverAtMs: 0 },
+    };
+    expect((twoAssoc.associations ?? []).filter(a => a.relationCol).length).toBeGreaterThan(1);
+    await reverseAssociations({} as never, twoAssoc, rec, item, live, { left: 30 });
+    expect(hs.putAssociation).not.toHaveBeenCalled();
+  });
+
+  // And the positive case: a CRM record the ownership rules DO permit gets its association written,
+  // with the initiating spec + auth handed to putAssociation so assertMayWrite can enforce it.
+  it("a crm-OWNED record DOES get its association written, guarded", async () => {
+    const owned: HsRecord = { id: "9001", properties: { sync_owner: "crm", createdate: "2026-09-05T00:00:00Z" } };
+    await reverseAssociations({} as never, CRM_CONTACTS, owned, item, live, { left: 30 });
+    expect(hs.putAssociation).toHaveBeenCalledWith(
+      {}, "contacts", "9001", "companies", "5555", live, CRM_CONTACTS,
+      expect.objectContaining({ allowed: true }));
+  });
+
+  it("and is skipped without a write when HubSpot already has the association", async () => {
+    hs.getAssociatedIds.mockResolvedValue(["5555"]);
+    const owned: HsRecord = { id: "9001", properties: { sync_owner: "crm", createdate: "2026-09-05T00:00:00Z" } };
+    await reverseAssociations({} as never, CRM_CONTACTS, owned, item, live, { left: 30 });
     expect(hs.putAssociation).not.toHaveBeenCalled();
   });
 

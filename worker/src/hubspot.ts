@@ -130,8 +130,25 @@ export async function getAssociatedIds(env: Env, fromObject: string, id: string,
 
 /** Create a DEFAULT association (idempotent PUT) between two records — used to reverse a monday
  * Connect-Boards link into a HubSpot association. Additive: callers never delete. */
+/**
+ * Link two HubSpot records. Idempotent PUT, so it converges with the forward pass.
+ *
+ * OWNERSHIP-GUARDED since 2026-09-08, which is what retires the P2-1 blanket refusal in
+ * associations.ts. `fromSpec` + `auth` are the same fail-closed contract patchRecord has: for a spec
+ * declaring ownership, a call without a matching WriteAuth THROWS rather than writing, and
+ * assertMayWrite runs BEFORE the dry-run branch so a refusal can never be mistaken for a skip.
+ *
+ * THE AUTH IS ON THE INITIATING RECORD ONLY, and that is a deliberate decision rather than an
+ * oversight. Requiring write ownership of BOTH ends sounds safer and would in fact kill the feature:
+ * 51,024 contacts in this portal are associated to companies created before the cutover, which
+ * `canClaimCrmOwnership` can never claim — so a two-ended rule would refuse essentially every
+ * association the business actually has. An association is a link, not a field on the far record, so
+ * the rule matches a field write: you must own the record whose monday card was edited. The far end
+ * only has to exist.
+ */
 export async function putAssociation(env: Env, fromObject: string, fromId: string,
-    toObject: string, toId: string, opts: RunOpts): Promise<void> {
+    toObject: string, toId: string, opts: RunOpts, fromSpec?: ObjectSpec, auth?: WriteAuth): Promise<void> {
+  if (fromSpec) assertMayWrite(fromSpec, fromId, auth);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
     return;

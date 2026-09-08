@@ -1,4 +1,4 @@
-import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, SubitemSpec } from "./types";
+import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, SubitemSpec, WriteAuth } from "./types";
 import { createLineItem, getAssociatedIds, getRecord, getRecordsByIds, patchLineItem, propertiesForSpec, putAssociation } from "./hubspot";
 import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItem, getItemsColumnText, getLinkedItemIds, getParentItemId, getSubitems, setColumns, updateItem } from "./monday";
 import { DEALS, LINE_ITEM_SUBITEMS, specByObject } from "./config";
@@ -7,6 +7,7 @@ import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { buildColumnValues, formatValue, itemName } from "./mapping";
 import { targetGroup } from "./routing";
 import { colText } from "./dedup";
+import { ensureHubspotWriteAuth } from "./write-auth";
 
 /** HubSpot -> monday association pass. One-directional: it reflects HubSpot associations onto the monday
  * item (name columns) and deal line items onto subitems. It NEVER writes HubSpot. Each association is
@@ -32,20 +33,22 @@ export async function syncAssociations(env: Env, spec: ObjectSpec, rec: HsRecord
  * can't re-add a HubSpot-removed link. */
 export async function reverseAssociations(env: Env, spec: ObjectSpec, rec: HsRecord, item: MondayItem,
     opts: RunOpts, budget: Budget): Promise<void> {
-  // OWNERSHIP ACTIVATION GATE for the association path (P2-1 / HIGH-3). putAssociation and
-  // deleteAssociation take no `spec`, so they cannot consult ownership and are NOT covered by the
-  // fail-closed guard on patchRecord/createRecord. Until they are, no ownership-declaring spec may
-  // write HubSpot associations at all.
+  // P2-1 RETIRED, 2026-09-08. The blanket refusal existed because putAssociation took no `spec` and so
+  // could not consult ownership — it was outside the fail-closed guard that covers patchRecord. It now
+  // takes `fromSpec` + `auth` and calls the same assertMayWrite, so an ownership-declaring spec is
+  // guarded per call instead of banned wholesale.
   //
-  // This is a BLANKET refusal rather than a per-field flag on purpose: "remember not to declare
-  // associations" is not a safety property. Note also that this function is NOT deals-only —
-  // sync.ts:567 sits in syncMondayItem's generic "already linked" branch and /app/sync-contact routes
-  // contacts through it — so a CRM spec declaring associations would otherwise reach putAssociation on
-  // any monday relation edit. Inert for every WM spec: none declares ownership.
-  if (spec.ownership) {
-    console.log(`source=monday object=${spec.object} id=${rec.id} action=reverse-assoc-refused reason="ownership-declaring spec: HubSpot association writes are not guarded yet (P2-1)"`);
-    return;
-  }
+  // The auth is claimed LAZILY, exactly like the field path: only once there is a real association to
+  // write. Discovering associations, or finding them already in sync, must never stamp ownership.
+  //
+  // STILL ADDITIVE-ONLY — this function has never deleted and still does not. Removal is deliberately
+  // NOT implemented here: the only mechanism that could prove a deliberate unlink is an explicit app
+  // save, and no CRM board can produce one (the appSave call sites hardcode WM boards, so a CRM board
+  // id does not even resolve). Inferring intent from an empty relation read instead would risk
+  // deleting real associations whenever monday's read lags a click, which is unrecoverable across many
+  // records. So an unlink in monday is currently re-linked by the next forward pass, and that is the
+  // honest trade rather than a silent one.
+  let auth: WriteAuth | undefined;
   for (const a of spec.associations ?? []) {
     if (!a.relationCol) continue;
     try {
@@ -57,11 +60,29 @@ export async function reverseAssociations(env: Env, spec: ObjectSpec, rec: HsRec
       const want = [...new Set(Object.values(hsIdByCard).filter(id => /^\d+$/.test(id)))];
       if (!want.length) continue;
       const current = new Set(await getAssociatedIds(env, spec.object, rec.id, a.toObject));
+      const missing = want.filter(hsId => !current.has(hsId));
+      if (!missing.length) {
+        console.log(`source=monday object=${spec.object} id=${rec.id} reverse=${a.toObject} linked=${want.length} added=0 action=already-associated`);
+        continue;
+      }
+      // Claim ONLY now, with a real link to write. Resolved once and reused across associations so a
+      // second relation column cannot trigger a second claim — but RE-CHECKED every iteration, which is
+      // the part that matters: caching the auth AND its allow-check together let a refusal on the first
+      // association fall through to a write on the second, because `!auth` was then false. Caught by
+      // test/crm-associations.test.ts on a two-association spec.
+      if (spec.ownership) {
+        if (!auth) auth = await ensureHubspotWriteAuth(env, spec, budget, rec, opts);
+        if (auth && !auth.allowed) {
+          console.log(`source=monday object=${spec.object} id=${rec.id} reverse=${a.toObject}`
+            + ` action=reverse-assoc-refused reason="${auth.reason}"`);
+          continue;
+        }
+      }
       let added = 0;
-      for (const hsId of want) {
-        if (current.has(hsId)) continue;
+      for (const hsId of missing) {
         if (budget.left <= 0) break;
-        await putAssociation(env, spec.object, rec.id, a.toObject, hsId, opts); budget.left--; added++;
+        await putAssociation(env, spec.object, rec.id, a.toObject, hsId, opts, spec, auth);
+        budget.left--; added++;
       }
       console.log(`source=monday object=${spec.object} id=${rec.id} reverse=${a.toObject} linked=${want.length} added=${added} action=reverse-associated`);
     } catch (e) {
