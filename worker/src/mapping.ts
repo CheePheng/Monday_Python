@@ -97,6 +97,49 @@ export function phoneDigits(v: string | null | undefined): string {
   return String(v ?? "").replace(/[^\d]/g, "");
 }
 
+/**
+ * Canonical comparison form for a LINK column. Applied to BOTH sides, like phoneDigits.
+ *
+ * A monday link column does NOT echo back what you wrote. formatValue sends
+ * `{ url: v, text: v }`; monday canonicalises the url (a bare domain becomes `https://domain`) and its
+ * `text` field then renders as `"<text> - <url>"` because the two now differ. So HubSpot's
+ * `reversetest-company.example.com` was compared against monday's
+ * `reversetest-company.example.com - https://reversetest-company.example.com` and could never match.
+ *
+ * That is a PERMANENTLY DIRTY DIFF, and for a link column it does not merely rewrite the card — it
+ * LOOPS. Each forward write fires monday's own change_column_value webhook, which reconciles, which
+ * writes again. Observed live on 2026-09-08: 76 iterations on `company_domain` from a single company,
+ * the first one with a domain ever to sync. Nothing capped it.
+ *
+ * Normalises three real differences: the `" - url"` suffix monday appends, the scheme monday adds, and
+ * a trailing slash. Case-folded because a host is case-insensitive.
+ */
+export function linkText(v: string | null | undefined): string {
+  const s = String(v ?? "").trim();
+  const dash = s.indexOf(" - ");
+  const head = (dash >= 0 ? s.slice(0, dash) : s).trim();
+  return head.replace(/^https?:\/\//i, "").replace(/\/+$/, "").toLowerCase();
+}
+
+/**
+ * What to send to HubSpot for a link column edited in monday. Different job from linkText: that one
+ * canonicalises for COMPARISON and deliberately drops the scheme; this one must produce a value a
+ * HubSpot URL property will accept, so the scheme is kept.
+ *
+ * monday's `text` for a link column renders as `"<text> - <url>"` once the two differ. Sending that
+ * whole string is what `reverse: true` did — `companies.linkedin_company_page` would have pushed
+ * `"MyCo - https://linkedin.com/company/myco"` into a HubSpot URL field. Prefer the URL half, and fall
+ * back to the raw string when the tail does not look like one (a display label may itself contain
+ * " - ", so this cannot be a blind split).
+ */
+export function linkReverse(v: string | null | undefined): string {
+  const s = String(v ?? "").trim();
+  const at = s.lastIndexOf(" - ");
+  if (at < 0) return s;
+  const tail = s.slice(at + 3).trim();
+  return /^https?:\/\//i.test(tail) || /^[\w-]+(\.[\w-]+)+/.test(tail) ? tail : s;
+}
+
 export function expectedText(f: FieldSpec, value: string | null | undefined, ctx: Ctx): string | null {
   if (f.type === "people") return null;
   if (value === null || value === undefined || value === "") return "";

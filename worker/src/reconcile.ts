@@ -1,5 +1,5 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
-import { expectedText, formatValue, itemName, phoneDigits } from "./mapping";
+import { expectedText, formatValue, itemName, linkReverse, linkText, phoneDigits } from "./mapping";
 import { colText } from "./dedup";
 import { reverseGroup, targetGroup } from "./routing";
 
@@ -78,8 +78,13 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
     // Phone compares DIGITS on both sides (hsText is already digits from expectedText): monday re-formats
     // a phone column by country, so a raw compare would diff every tick and loop. The diff still carries the
     // RAW monday text so the reverse write keeps the user's "+"/formatting.
+    // LINK is normalised on BOTH sides for the same reason phone is: monday does not echo back what we
+    // wrote. It canonicalises the url and renders `text` as "<text> - <url>", so a raw compare never
+    // matched and the forward write fired on every reconcile — and because that write triggers monday's
+    // own change_column_value webhook, it LOOPED (76 iterations observed live on company_domain).
     const same = f.type === "phone" ? phoneDigits(mdText) === hsText
       : f.type === "email" ? mdText.trim().toLowerCase() === hsText
+      : f.type === "link" ? linkText(mdText) === linkText(hsText)
       : hsText === mdText;
     if (!same) out.push({ kind: "field", f, hsText, mdText });
   }
@@ -143,6 +148,8 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
     }
     return out.join(";");
   }
+  // A link column's monday text is "<text> - <url>"; send the URL half, never the concatenation.
+  if (f.type === "link") return linkReverse(text);
   return rev[text] ?? text;
 }
 
