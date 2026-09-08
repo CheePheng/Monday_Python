@@ -183,14 +183,21 @@ describe("CRM_CONTACTS", () => {
       expect(CRM_CONTACTS.fields.some(f => f.col === col)).toBe(false);
   });
 
-  // `company` is mapped again since 2026-09-08, into a NEWLY created column in Create-Contact-form
-  // order. The property that mattered is unchanged: the DELETED column id must never reappear, because
-  // monday rejects an entire column-values mutation naming an unknown column.
-  it("maps HubSpot `company` to the re-created column, never the deleted one", () => {
-    const f = CRM_CONTACTS.fields.find(x => x.hs === "company")!;
-    expect(f).toMatchObject({ col: "text_mm70apjj", type: "text" });
-    expect(f.reverse).toBeUndefined();
-    expect(CRM_CONTACTS.fields.some(x => x.col === "text_mm6sdvkq")).toBe(false);
+  // `company` is NOT mapped as of 2026-09-08 (meeting decision). The free-text company name sat next
+  // to a Connect Boards relation carrying the real, clickable Account link — two columns answering
+  // "which company", one of them unlinkable. The relation is now the single answer, renamed
+  // "Company name". HubSpot's `company` property is untouched; only the monday mirror is gone.
+  it("does NOT map HubSpot `company` — the Connect Boards relation is the single answer", () => {
+    expect(CRM_CONTACTS.fields.some(f => f.hs === "company")).toBe(false);
+    // Neither the retired text column nor the earlier deleted one may be referenced: monday rejects an
+    // entire column-values mutation naming an unknown column, which freezes every card on the board.
+    for (const dead of ["text_mm70apjj", "text_mm6sdvkq"])
+      expect(CRM_CONTACTS.fields.some(f => f.col === dead)).toBe(false);
+  });
+
+  it("carries the company link ONLY as the relation, never as text", () => {
+    expect(CRM_CONTACTS.associations)
+      .toEqual([{ toObject: "companies", nameProps: ["name"], relationCol: "contact_account" }]);
   });
 
   it("associates ONLY to companies, via the native relation, and maps no deal column", () => {

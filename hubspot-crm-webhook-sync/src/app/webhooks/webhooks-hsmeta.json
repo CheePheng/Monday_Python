@@ -50,12 +50,6 @@
         {
           "subscriptionType": "object.propertyChange",
           "objectType": "contact",
-          "propertyName": "company",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "contact",
           "propertyName": "phone",
           "active": true
         },

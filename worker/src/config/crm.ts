@@ -79,14 +79,21 @@ export const CRM_CONTACTS: ObjectSpec = {
     // never rewrite it (the WM spec excludes email from backfill for the same reason).
     { hs: "email", col: "contact_email", type: "email" },
     { hs: "jobtitle", col: "text_mm6szy4q", type: "text", reverse: true },
-    // HubSpot's free-text `company` is deliberately NOT mapped: the "Company name" column it used to
-    // write (text_mm6sdvkq) was deleted from the board, and the real company link is the native
-    // `contact_account` relation below. A field pointing at a deleted column id makes monday reject the
-    // whole change_multiple_column_values mutation, so the card would stop updating entirely.
-    // HubSpot's free-text `company`, re-created in Create-Contact-form order after its original column
-    // was deleted from the board. This is the plain company NAME the rep typed; the real, linked
-    // company is the native Accounts relation below. Forward-only - HubSpot owns it.
-    { hs: "company", col: "text_mm70apjj", type: "text" },
+    // HubSpot's free-text `company` is DELIBERATELY NOT MAPPED (removed 2026-09-08, meeting decision).
+    //
+    // It was a plain string the rep typed, in a monday TEXT column, sitting next to a Connect Boards
+    // relation that carries the real, clickable link to the Account card. Two columns showing "which
+    // company", one of them unlinkable, is the confusion the meeting asked to remove: the relation is
+    // renamed "Company name" and becomes the single answer.
+    //
+    // The HubSpot `company` PROPERTY is untouched — HubSpot still owns and populates it, and it is
+    // still what auto-creates companies from an email domain. Only the monday mirror is gone.
+    //
+    // ORDER MATTERS on the way out, and this repo has the scar: monday rejects an entire
+    // change_multiple_column_values mutation that names an unknown column, so a spec field pointing at
+    // a deleted column stops EVERY card on the board from updating (the text_mm6sdvkq incident,
+    // 2026-09-08). The mapping is therefore removed and deployed FIRST; the column is deleted only
+    // after the live worker no longer references it.
     { hs: "phone", col: "contact_phone", type: "phone", reverse: true },
     // Owner: app-save-only. A plain `reverse` reassigned owners unattended on the WM side (2026-08-28).
     { hs: "hubspot_owner_id", col: "multiple_person_mm6zap53", type: "people", appReverse: true },
