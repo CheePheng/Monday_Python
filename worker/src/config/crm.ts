@@ -93,6 +93,25 @@ export const CRM_CONTACTS: ObjectSpec = {
     // needed. FORWARD-ONLY: HubSpot owns it and it is set at import/form time, not edited by reps.
     { hs: "event_name", col: "text_mm6t8bxb", type: "text" },
     { hs: "createdate", col: "date_mm6z33nk", type: "date", oneWay: true },
+    // --- added 2026-09-08 from the reviewed mapping sheet ---
+    // Owner assigned date. HubSpot RESETS this on reassignment, which is exactly the semantics the
+    // future 24-hour follow-up reminder needs, so it is the trigger field rather than a custom counter.
+    { hs: "hubspot_owner_assigneddate", col: "date_mm70pa4c", type: "date", oneWay: true },
+    // Last Activity Date into a real DATE column. HubSpot sets notes_last_updated automatically from
+    // calls/chats/LinkedIn/mail/meetings/notes/email/SMS/WhatsApp, so monday must never write it back.
+    { hs: "notes_last_updated", col: "date_mm7054jz", type: "date", oneWay: true },
+    // HubSpot priority in its OWN status column, labels seeded from the exact 4 SLA options. The board's
+    // native Priority (High/Medium/Low) stays UNMAPPED — same concept name, different meaning.
+    { hs: "priority__c", col: "color_mm70ahh7", type: "status", labels: "contactPriority" },
+    // Sales User, DISPLAY-ONLY. `labels: "salesUser"` resolves the raw owner id to the person's name.
+    // This does NOT reintroduce sales_user into SCOPE — scope is includeAll + mayCreateCrmCard, and
+    // recInScope still ignores it for CRM. Forward-only, so a monday edit can never reassign it.
+    { hs: "sales_user", col: "text_mm6sakj3", type: "text", labels: "salesUser" },
+    // Vendors. manufacturer__c is MULTI-VALUE (a live record holds "49HubSpot;55Aircall") across 89
+    // options, so this is interim: forward-only into the existing TEXT column, which shows the raw
+    // semicolon-joined value. A seeded multi-select dropdown is the proper form and the prerequisite
+    // for ever making it two-way — until then a monday edit must not reach the HubSpot enum.
+    { hs: "manufacturer__c", col: "text_mm6s40ew", type: "text", labels: "contactVendor" },
   ],
 };
 

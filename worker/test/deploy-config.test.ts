@@ -111,7 +111,8 @@ describe("spec-driven metadata: the CRM app needs NO Deals scope", () => {
 
   it("CRM loads exactly the contact + company dictionaries its fields reference", () =>
     expect(labelDictsFor(crmEnv).sort())
-      .toEqual(["companyType", "contactSource", "industry", "leadStatus", "partnerWith"]));
+      .toEqual(["companyType", "contactPriority", "contactSource", "contactVendor",
+                "industry", "leadStatus", "partnerWith", "salesUser"]));
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.
   it("WM still loads every dictionary it used to fetch unconditionally", () => {

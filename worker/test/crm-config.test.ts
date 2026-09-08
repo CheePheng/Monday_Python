@@ -46,9 +46,21 @@ describe("CRM_CONTACTS", () => {
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
   });
 
-  it("never manufactures or maps sales_user", () => {
+  // sales_user is now DISPLAYED (mapping sheet, 2026-09-08) but the two properties that actually
+  // mattered are unchanged: it is never FABRICATED, and it never decides scope.
+  it("never manufactures sales_user, and shows it display-only", () => {
+    expect(CRM_CONTACTS.createDefaults).toBeUndefined();
     expect(CRM_CONTACTS.createDefaults?.sales_user).toBeUndefined();
-    expect(CRM_CONTACTS.fields.some(f => f.hs === "sales_user")).toBe(false);
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "sales_user")!;
+    expect(f).toMatchObject({ col: "text_mm6sakj3", type: "text", labels: "salesUser" });
+    expect(f.reverse).toBeUndefined();      // a monday edit must never reassign it
+    expect(f.appReverse).toBeUndefined();
+    expect(f.backfill).toBeUndefined();
+  });
+
+  it("and sales_user still plays NO part in CRM scope", () => {
+    expect(recInScope(CRM_CONTACTS, { properties: {} })).toBe(true);
+    expect(recInScope(CRM_CONTACTS, { properties: { sales_user: "" } })).toBe(true);
   });
 
   it("declares crm ownership with the inert Phase-1 cutover", () => {
@@ -100,8 +112,16 @@ describe("CRM_CONTACTS", () => {
   // Vendors stays DEFER: manufacturer__c is a MULTI-VALUE enum (a live record holds
   // "49HubSpot;55Aircall") with 89 options, and an unvalidated text/status reverse would send a typo
   // straight into the enumeration. It may only go two-way as a seeded multi-select dropdown.
-  it("does NOT map manufacturer__c yet", () =>
-    expect(CRM_CONTACTS.fields.some(f => f.hs === "manufacturer__c")).toBe(false));
+  // Now mapped, but FORWARD-ONLY. The hazard was never "showing it" — it was an unvalidated monday
+  // edit reaching an 89-option multi-value HubSpot enum. A seeded multi-select dropdown is the
+  // prerequisite for two-way; until then `reverse` must stay absent.
+  it("maps manufacturer__c FORWARD-ONLY — no unvalidated write into an 89-option enum", () => {
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "manufacturer__c")!;
+    expect(f).toMatchObject({ col: "text_mm6s40ew", type: "text", labels: "contactVendor" });
+    expect(f.reverse).toBeUndefined();
+    expect(f.appReverse).toBeUndefined();
+    expect(f.backfill).toBeUndefined();
+  });
 
   // Approved 2026-09-07 from the mapping sheet. HubSpot `event_name` is verified free text and the
   // monday column was already `text`, so no retype was needed.
@@ -115,14 +135,29 @@ describe("CRM_CONTACTS", () => {
 
   // DECISIONS HELD FROM THE 2026-09-07 REQUIREMENTS REVIEW. Each of these must stay unmapped; the
   // mapping sheet lists some of them and they must not be wired up on name similarity alone.
-  it("priority__c stays UNMAPPED — HubSpot 优先级 is a follow-up SLA (P1_2小时内 …) while monday's native Priority is High/Medium/Low. Different concepts, zero label overlap", () => {
-    expect(CRM_CONTACTS.fields.some(f => f.hs === "priority__c")).toBe(false);
+  // priority__c now has its OWN column. The property that mattered is unchanged and is the real
+  // guard: HubSpot's SLA (P1_2小时内 …) must never be written into monday's NATIVE Priority column,
+  // which holds High/Medium/Low — same name, different concept, zero label overlap.
+  it("priority__c goes to its OWN status column, never monday's native Priority", () => {
+    expect(CRM_CONTACTS.fields.find(x => x.hs === "priority__c"))
+      .toMatchObject({ col: "color_mm70ahh7", type: "status", labels: "contactPriority" });
     expect(CRM_CONTACTS.fields.some(f => f.col === "status5")).toBe(false);
   });
 
-  it("notes_last_updated stays deferred to the 24-hour reminder feature", () => {
-    expect(CRM_CONTACTS.fields.some(f => f.hs === "notes_last_updated")).toBe(false);
-    expect(CRM_CONTACTS.fields.some(f => f.col === "text_mm6tmzgq")).toBe(false);
+  // Now mapped into a real DATE column created for it. The old TEXT column stays unmapped: a datetime
+  // in a text column renders a raw ISO string, which is what deferred this in the first place.
+  it("notes_last_updated maps to a DATE column, one-way, not the old text column", () => {
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "notes_last_updated")!;
+    expect(f).toMatchObject({ col: "date_mm7054jz", type: "date", oneWay: true });
+    expect(f.reverse).toBeUndefined();      // HubSpot sets it automatically from real activity
+    expect(CRM_CONTACTS.fields.some(x => x.col === "text_mm6tmzgq")).toBe(false);
+  });
+
+  // The trigger field for the future 24-hour reminder. HubSpot resets it on reassignment.
+  it("hubspot_owner_assigneddate maps to a DATE column, one-way", () => {
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "hubspot_owner_assigneddate")!;
+    expect(f).toMatchObject({ col: "date_mm70pa4c", type: "date", oneWay: true });
+    expect(f.reverse).toBeUndefined();
   });
 
   it("num_notes / activity COUNTS stay unmapped — a number cannot represent an activity timeline", () => {

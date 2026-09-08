@@ -172,7 +172,10 @@ describe("D. creation behaviour — Contacts", () => {
 
   it("no createDefaults at all, so no sales_user can be fabricated", () => {
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
-    expect(CRM_CONTACTS.fields.some(f => f.hs === "sales_user")).toBe(false);
+    // sales_user IS displayed since 2026-09-08, but forward-only and never as a scope input.
+    const f = CRM_CONTACTS.fields.find(x => x.hs === "sales_user")!;
+    expect(f.reverse).toBeUndefined();
+    expect(recInScope(CRM_CONTACTS, { properties: {} })).toBe(true);
   });
 });
 
