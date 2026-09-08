@@ -16,6 +16,20 @@ const CONTACTS = "5028000495";
  *  with ZERO label overlap. Mapping HubSpot's SLA into it would be the industry mistake again. */
 /** HubSpot `sales_person` - all 4 options, verified live. Value == label for every one, so no label
  *  dictionary is needed and no extra schema fetch is added. */
+/** HubSpot `lifecyclestage` for THIS portal - the exact 10 customised stages, verified live. */
+const LIFECYCLE_LABELS = [
+  "1.NEW",
+  "2.Information error or incomplete/Send email for promotion",
+  "3.Competitors",
+  "4.Returning customers/Have purchased from other channels",
+  "5.No intention",
+  "6.Not in contact/Pending further contact",
+  "7.Intention to purchase",
+  "8.The customer generating the transaction",
+  "9.False or spam information",
+  "10.Other",
+];
+
 const SALES_PERSON_LABELS = ["Elaine Rivera", "Emily You", "Myla Mestiola", "Rick Avery Antonio"];
 
 const PRIORITY_LABELS = ["P1_2小时内", "P2_1周内", "P3_2周内", "P4_持续跟进"];
@@ -32,6 +46,10 @@ export const PLANNED = [
   {
     title: "Priority (HubSpot)", type: "status", after: "color_mm6zb4tc", labels: PRIORITY_LABELS,
     why: "priority__c, seeded with its exact 4 SLA labels. Native Priority (High/Medium/Low) stays untouched",
+  },
+  {
+    title: "Lifecycle Stage", type: "status", after: "color_mm6zb4tc", labels: LIFECYCLE_LABELS,
+    why: "lifecyclestage - this portal has a heavily customised Chinese pipeline (生命周期阶段管道). Populated on real records and previously unmapped. Its option VALUES are a mix of semantic strings (lead/opportunity/customer) and raw numeric ids (1028988526), so a label dictionary is REQUIRED or monday would display the ids",
   },
   {
     title: "Sales Person", type: "status", after: "text_mm6sakj3", labels: SALES_PERSON_LABELS,

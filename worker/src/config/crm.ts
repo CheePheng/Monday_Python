@@ -117,6 +117,14 @@ export const CRM_CONTACTS: ObjectSpec = {
     // needed (and no extra HubSpot schema fetch). Forward-only for now; because value == label and the
     // column is seeded with exactly those 4, it is the one enum here that COULD safely go two-way.
     { hs: "sales_person", col: "color_mm701ff2", type: "status" },
+    // Lifecycle Stage. This portal replaced HubSpot's defaults with a 10-stage Chinese pipeline
+    // (生命周期阶段管道), and its option VALUES are a mix of semantic strings (lead/opportunity/customer)
+    // and raw numeric ids (1028988526) - so the label dictionary is load-bearing, not cosmetic: without
+    // it monday would display "1028988526" instead of "3.Competitors".
+    // FORWARD-ONLY, deliberately. Lifecycle stage drives HubSpot workflows and automation, so a monday
+    // edit pushing someone to "8.The customer generating the transaction" could fire real business
+    // process. HubSpot stays the authority.
+    { hs: "lifecyclestage", col: "color_mm70k2wk", type: "status", labels: "lifecycleStage" },
   ],
 };
 
