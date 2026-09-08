@@ -59,11 +59,27 @@ export async function existingHooks(token, boardId) {
   return d.webhooks ?? [];
 }
 
-/** What is missing on this board: the events with no existing hook pointing at `url`. */
-export function missingEvents(hooks, url) {
-  const have = new Set(hooks
-    .filter(h => !url || String(h.config ?? "").includes(url) || !h.config)
-    .map(h => h.event));
+/**
+ * Which of CRM_WEBHOOK_EVENTS have no existing hook on this board.
+ *
+ * MATCHED ON EVENT NAME ALONE, and that is a real limitation rather than a shortcut: monday's
+ * `webhooks` query returns only { id, event, board_id, config }, and `config` comes back as the literal
+ * string "{}" — **the target URL is not exposed by the API at all**. So this cannot distinguish a hook
+ * pointing at our Worker from one pointing somewhere else; it assumes an existing hook for the same
+ * event on the same board is ours and leaves it alone.
+ *
+ * That is the safe direction to be wrong in: the failure mode is "declines to add a hook that already
+ * exists for that event", not "creates a duplicate". Duplicates are the expensive error, because monday
+ * would then deliver every change twice.
+ *
+ * If a hook ever needs repointing at a different URL, delete it in the monday UI and re-run — this
+ * script deliberately never mutates an existing hook.
+ *
+ * (An earlier version filtered on `config.includes(url) || !config`. With the real value "{}" that
+ * matched nothing, so every event looked missing and a second --apply would have doubled every hook.)
+ */
+export function missingEvents(hooks) {
+  const have = new Set(hooks.map(h => h.event));
   return CRM_WEBHOOK_EVENTS.filter(e => !have.has(e));
 }
 
@@ -79,7 +95,7 @@ async function main() {
 
   for (const [boardId, label] of Object.entries(CRM_BOARDS)) {
     const hooks = await existingHooks(token, boardId);
-    const missing = missingEvents(hooks, url);
+    const missing = missingEvents(hooks);
     console.log(`\nboard ${boardId} (${label}): ${hooks.length} existing hook(s)`);
     for (const h of hooks) console.log(`   have  ${h.event}  id=${h.id}`);
     if (!missing.length) { console.log("   nothing to add — already registered"); continue; }

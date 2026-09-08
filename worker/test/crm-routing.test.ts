@@ -135,21 +135,40 @@ describe("monday webhook registration events", () => {
     for (const b of WM_BOARDS) expect(boards[b]).toBeUndefined();
   });
 
-  // Idempotence: re-running must not create duplicate hooks.
+  // IDEMPOTENCE. These use config: "{}" because that is what monday ACTUALLY returns — verified live
+  // 2026-09-08. The previous version of this test used config: "" and passed against a filter that was
+  // broken for real data: `config.includes(url) || !config` matched nothing when config was "{}", so
+  // every event looked missing and a second --apply would have DOUBLED every hook. The fake data hid
+  // the bug. monday's webhooks query exposes no target URL, so matching is on event name alone.
+  const live = (events: string[]) =>
+    events.map(e => ({ id: "1", event: e, board_id: "5028000495", config: "{}" }));
+
   it("missingEvents returns nothing when every event is already registered", async () => {
     const { missingEvents, CRM_WEBHOOK_EVENTS } = await import("../scripts/register-crm-webhooks.mjs");
-    const hooks = CRM_WEBHOOK_EVENTS.map((e: string) => ({ id: "1", event: e, config: "" }));
-    expect(missingEvents(hooks, "")).toEqual([]);
+    expect(missingEvents(live(CRM_WEBHOOK_EVENTS))).toEqual([]);
+  });
+
+  it("is idempotent across repeated runs — the duplicate-delivery guard", async () => {
+    const { missingEvents, CRM_WEBHOOK_EVENTS } = await import("../scripts/register-crm-webhooks.mjs");
+    const hooks = live(CRM_WEBHOOK_EVENTS);
+    for (let i = 0; i < 3; i++) expect(missingEvents(hooks)).toEqual([]);
   });
 
   it("missingEvents returns only what is absent", async () => {
     const { missingEvents } = await import("../scripts/register-crm-webhooks.mjs");
-    expect(missingEvents([{ id: "1", event: "change_name", config: "" }], ""))
+    expect(missingEvents(live(["change_name"])))
       .toEqual(["create_item", "change_column_value", "item_deleted"]);
   });
 
   it("missingEvents returns everything for a board with no hooks", async () => {
     const { missingEvents, CRM_WEBHOOK_EVENTS } = await import("../scripts/register-crm-webhooks.mjs");
-    expect(missingEvents([], "")).toEqual(CRM_WEBHOOK_EVENTS);
+    expect(missingEvents([])).toEqual(CRM_WEBHOOK_EVENTS);
+  });
+
+  // A hook whose config is null/absent must also count as present.
+  it("tolerates a missing config field", async () => {
+    const { missingEvents } = await import("../scripts/register-crm-webhooks.mjs");
+    expect(missingEvents([{ id: "1", event: "create_item" }] as never))
+      .toEqual(["change_column_value", "change_name", "item_deleted"]);
   });
 });

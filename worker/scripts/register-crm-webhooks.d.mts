@@ -18,5 +18,6 @@ export interface MondayWebhook {
 
 export declare function existingHooks(token: string, boardId: string): Promise<MondayWebhook[]>;
 
-/** Which of CRM_WEBHOOK_EVENTS have no matching hook yet — the basis of idempotent registration. */
-export declare function missingEvents(hooks: MondayWebhook[], url: string): string[];
+/** Which of CRM_WEBHOOK_EVENTS have no matching hook yet — the basis of idempotent registration.
+ *  Matches on EVENT NAME only: monday's webhooks query does not expose the target URL. */
+export declare function missingEvents(hooks: MondayWebhook[]): string[];
