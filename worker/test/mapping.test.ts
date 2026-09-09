@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { formatValue, buildColumnValues, itemName, expectedText } from "../src/mapping";
+import {
+  formatValue, buildColumnValues, itemName, expectedText, phoneStorable, PHONE_MAX_DIGITS,
+} from "../src/mapping";
 import type { Ctx, FieldSpec, ObjectSpec } from "../src/types";
 
 const ctx: Ctx = {
@@ -182,5 +184,65 @@ describe("expectedText (canonical comparison value)", () => {
   it("trims text and number-normalizes so it round-trips against monday", () => {
     expect(expectedText(f({ type: "text" }), "Austin ", ctx)).toBe("Austin");
     expect(expectedText(f({ type: "numbers" }), "1500000.50", ctx)).toBe("1500000.5");
+  });
+});
+
+/**
+ * OVER-LENGTH PHONE NUMBERS, found by the live Contacts import on 2026-09-09.
+ *
+ * 14 of the first 10,100 contacts failed with monday's "invalid value ... for this column", and the
+ * cause was phone strings holding TWO numbers concatenated: "+8522713691235547427415" (23 digits,
+ * plainly +85223506974 then 85290675945), "8522382645695287557558" (22), "+656880519571223742" (18).
+ * monday's phone column enforces E.164's 15-digit maximum.
+ *
+ * The severity is the point. A create sends every column in ONE mutation, so monday rejecting one
+ * cell failed the ENTIRE card — all 30 other fields lost, not just the phone. At that rate about 130
+ * of 94,318 contacts would have been dropped completely, and the only evidence would have been a
+ * failure count.
+ */
+describe("phone values monday cannot store", () => {
+  const phone: FieldSpec = { hs: "phone", col: "c_phone", type: "phone" };
+
+  it("the limit is E.164's 15 digits", () => expect(PHONE_MAX_DIGITS).toBe(15));
+
+  it.each([
+    ["+60123456789", true],
+    ["+601234567890123", true],      // exactly 15
+    ["+6012345678901234", false],    // 16
+    ["+8522713691235547427415", false],
+    ["8522382645695287557558", false],
+    ["+656880519571223742", false],
+    ["", false],
+    ["no digits at all", false],
+  ])("phoneStorable(%s) === %s", (v, want) => expect(phoneStorable(v)).toBe(want));
+
+  it("OMITS the column rather than failing the whole card", () => {
+    expect(formatValue(phone, "+8522713691235547427415", ctx)).toBeNull();
+    expect(formatValue(phone, "+60123456789", ctx)).toEqual({ phone: "+60123456789" });
+  });
+
+  /**
+   * THE INVARIANT THAT KEEPS THIS FROM BECOMING A CHURN BUG. Omitting the write is only half a fix: if
+   * expectedText still predicted the digits, fieldDiffs would raise a diff on a value the cell can
+   * never hold, and the card would be rewritten on every webhook forever. Both sides must agree that
+   * an unstorable number is simply absent.
+   */
+  it("expectedText agrees, so no diff is ever raised for a value the cell cannot hold", () => {
+    expect(expectedText(phone, "+8522713691235547427415", ctx)).toBe("");
+    expect(formatValue(phone, "+8522713691235547427415", ctx)).toBeNull();
+    // And a storable number still round-trips as digits on both sides.
+    expect(expectedText(phone, "+60 12-345 6789", ctx)).toBe("60123456789");
+  });
+
+  it("leaves the rest of the card intact when the phone is dropped", () => {
+    const s: ObjectSpec = {
+      ...spec,
+      fields: [{ hs: "dealtype", col: "c_type", type: "dropdown", labels: "dealtype" }, phone],
+    };
+    const cv = buildColumnValues(
+      { id: "1", properties: { dealtype: "newbusiness", phone: "+8522713691235547427415" } }, s, ctx);
+    expect(cv.c_phone).toBeUndefined();          // dropped
+    expect(cv.c_type).toEqual({ labels: ["New Business"] });  // everything else survives
+    expect(cv.c_id).toBe("1");
   });
 });

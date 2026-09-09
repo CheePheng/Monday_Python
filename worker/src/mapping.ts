@@ -55,6 +55,10 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
     case "phone": {
       const digits = v.replace(/[^\d]/g, "");
       if (!digits) return null;
+      // Over monday's E.164 limit -> omit the column entirely. Sending it fails the whole mutation,
+      // and on a create that means losing every other field on the card. expectedText applies the
+      // same test so no diff is ever raised for a value the cell cannot hold. See phoneStorable.
+      if (digits.length > PHONE_MAX_DIGITS) return null;
       // International (leading +): keep the + so monday reads the country from the code.
       // Local (no +): raw digits, NO country — the contacts are multi-country and HubSpot's own country
       // detection is unreliable, so any forced country would mis-flag the number.
@@ -113,6 +117,34 @@ export function buildColumnValues(rec: HsRecord, spec: ObjectSpec, ctx: Ctx): Re
  * otherwise every reconcile tick sees a phantom diff and the sync fights itself. */
 export function phoneDigits(v: string | null | undefined): string {
   return String(v ?? "").replace(/[^\d]/g, "");
+}
+
+/**
+ * The most digits monday's phone column will accept: E.164 allows 15, and monday enforces it.
+ *
+ * Over-length values are not hypothetical bad data — they are two numbers typed into one HubSpot
+ * field. Real examples from this portal: "+8522713691235547427415" (23 digits, plainly
+ * +85223506974 followed by 85290675945) and "8522382645695287557558" (22).
+ */
+export const PHONE_MAX_DIGITS = 15;
+
+/**
+ * Is this phone value one monday can actually store?
+ *
+ * Consulted by BOTH formatValue and expectedText, which is the whole point. monday rejects an
+ * over-length phone with "invalid value ... for this column", and because a create sends every column
+ * in one mutation that error fails the ENTIRE card — all 30 other fields lost, not just the phone.
+ * Measured live during the 2026-09-09 Contacts import: 14 of the first 10,100 records (0.14%), which
+ * extrapolates to roughly 130 contacts that would have been dropped completely.
+ *
+ * So an unstorable number is OMITTED rather than sent. It must then also be invisible to the diff, or
+ * expectedText would keep predicting a value the cell can never hold and the card would be rewritten
+ * on every webhook forever — the same permanently-dirty-diff failure the long_text clamp exists for.
+ * The value stays intact in HubSpot; only monday declines to display it.
+ */
+export function phoneStorable(v: string | null | undefined): boolean {
+  const d = phoneDigits(v);
+  return d.length > 0 && d.length <= PHONE_MAX_DIGITS;
 }
 
 /**
@@ -180,7 +212,10 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
   if (value === null || value === undefined || value === "") return "";
   const v = String(value).trim();
   // Phone: diffable, but only as digits (see phoneDigits). fieldDiffs normalizes the monday side to match.
-  if (f.type === "phone") return phoneDigits(v);
+  // An UNSTORABLE number reports "" so it is treated exactly like an empty HubSpot value: no diff, no
+  // write, no churn. Must stay in lockstep with formatValue's identical check — if the two ever
+  // disagreed, the card would be rewritten on every webhook chasing a value monday cannot accept.
+  if (f.type === "phone") return phoneStorable(v) ? phoneDigits(v) : "";
   // Email: compared CASE-INSENSITIVELY. HubSpot stores what was typed ("Bob@X.com") while monday's email
   // column may echo a normalised form, and a raw compare would diff every tick and loop. fieldDiffs
   // lowercases the monday side to match.
