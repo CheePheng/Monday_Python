@@ -69,6 +69,37 @@ function parseArgs(argv) {
   return a;
 }
 
+// ---------------------------------------------------------------- credentials
+
+/**
+ * Read the two tokens from the environment, falling back to worker/.dev.vars.
+ *
+ * The fallback exists because `$env:MONDAY_API_TOKEN="…"` typed into an interactive PowerShell session
+ * is NOT inherited by a separately spawned process, so an agent running this script cannot see it —
+ * the variable is real, just not where the script looks. `.dev.vars` is Cloudflare's own convention for
+ * local Worker secrets, is already listed in worker/.gitignore, and is what `wrangler dev` reads, so
+ * one file serves both. It never enters git and never has to be pasted into a chat.
+ *
+ * Format is KEY=VALUE per line; `#` comments and surrounding quotes are tolerated.
+ */
+function readCredentials() {
+  const out = {
+    MONDAY_API_TOKEN: process.env.MONDAY_API_TOKEN ?? "",
+    HUBSPOT_ACCESS_TOKEN: process.env.HUBSPOT_ACCESS_TOKEN ?? "",
+  };
+  const path = join(ROOT, ".dev.vars");
+  if ((!out.MONDAY_API_TOKEN || !out.HUBSPOT_ACCESS_TOKEN) && existsSync(path)) {
+    for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
+      if (!m) continue;
+      const key = m[1];
+      if (!(key in out) || out[key]) continue;          // env wins over the file
+      out[key] = m[2].trim().replace(/^["']|["']$/g, "");
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- the worker's own code
 
 /**
@@ -622,10 +653,19 @@ async function main() {
   try {
     if (args.selftest) return selftest(mod);
 
-    const M = process.env.MONDAY_API_TOKEN;
-    const H = process.env.HUBSPOT_ACCESS_TOKEN;
+    const creds = readCredentials();
+    const M = creds.MONDAY_API_TOKEN;
+    const H = creds.HUBSPOT_ACCESS_TOKEN;
     if (!M || !H) {
-      console.error("MONDAY_API_TOKEN and HUBSPOT_ACCESS_TOKEN are both required.");
+      console.error("Missing credentials:");
+      console.error(`  MONDAY_API_TOKEN     ${M ? "ok" : "MISSING"}`);
+      console.error(`  HUBSPOT_ACCESS_TOKEN ${H ? "ok" : "MISSING"}`);
+      console.error("");
+      console.error("Provide them EITHER as environment variables in the same process that runs this");
+      console.error("script, OR in worker/.dev.vars (git-ignored, Cloudflare's own local-secret file):");
+      console.error("  MONDAY_API_TOKEN=eyJ...");
+      console.error("  HUBSPOT_ACCESS_TOKEN=pat-na2-...");
+      console.error("");
       console.error("(--selftest needs neither: it shows the payload one record produces, offline.)");
       process.exit(1);
     }
