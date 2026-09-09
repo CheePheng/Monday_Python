@@ -140,3 +140,52 @@ describe("the CRM specs use the mechanism as approved", () => {
     expect(adoptionKey(item([{ id: "company_domain", text: "acme.com",
       value: JSON.stringify({ url: "https://www.acme.com/" }) }]), CRM_ACCOUNTS)).toBe("acme.com"));
 });
+
+/**
+ * THE 2026-09-09 ADOPTION FAILURE — six live Accounts cards (example.com, ukmarketreport.com,
+ * qk.ilongyu.com.cn, hubspot.com, vml.com, zkqcip.com) each showed a FILLED Company domain, a filled
+ * Contacts relation, a BLANK HubSpot ID, a BLANK HubSpot Link, and a Sync State reading
+ * "not synced — needs domain".
+ *
+ * The cause was a test fixture, not a hard diagnosis. Every existing domain case above passes a `value`
+ * JSON — and `ITEM_FIELDS` in monday.ts selects `column_values { id text ... }` WITHOUT `value`, so
+ * production never has it. The suite was therefore exercising a branch the deployed code cannot reach,
+ * while the branch it does reach — the `text` fallback — received monday's link RENDERING
+ * ("example.com - https://example.com"), which is not a hostname, so adoptionKey returned "" and every
+ * card was stamped "needs domain" regardless of what a rep typed.
+ *
+ * These cases deliberately pass NO `value`, which is the only shape production ever sees.
+ */
+describe("adoptionKey on the shape production actually receives (no value JSON)", () => {
+  const domainOnly = (text: string) => adoptionKey(item([{ id: "company_domain", text }]), CRM_ACCOUNTS);
+
+  // monday renders a link column's text as "<label> - <url>". All six live cards looked like this.
+  it.each([
+    ["example.com - https://example.com", "example.com"],
+    ["ukmarketreport.com - https://ukmarketreport.com", "ukmarketreport.com"],
+    ["qk.ilongyu.com.cn - http://qk.ilongyu.com.cn", "qk.ilongyu.com.cn"],
+    ["vml.com - https://www.vml.com/", "vml.com"],
+  ])("adopts from monday's link rendering %s", (text, want) => expect(domainOnly(text)).toBe(want));
+
+  it("still adopts a bare domain, the shape a plain text column gives", () =>
+    expect(domainOnly("zkqcip.com")).toBe("zkqcip.com"));
+
+  // A LABELLED link: the url half is the domain and the label half is not. Taking the wrong half would
+  // adopt on a company NAME, which is the one thing this key must never do.
+  it("takes the url half of a labelled link, never the label", () =>
+    expect(domainOnly("Acme Corporate Site - https://acme.com")).toBe("acme.com"));
+
+  // The refusals must SURVIVE the fix — this is the half that could have regressed. A company name that
+  // happens to contain " - " must not have its tail treated as a domain.
+  it.each(["ABC Trading Sdn Bhd", "ABC Trading - Sdn Bhd", "", "   ", "no-tld", "gmail.com",
+    "Some Co - not a url"])(
+    "still refuses %s", (text) => expect(domainOnly(text)).toBe(""));
+
+  it("still refuses a public provider presented as a link render", () =>
+    expect(domainOnly("gmail.com - https://gmail.com")).toBe(""));
+
+  // The `value` branch is kept for the day ITEM_FIELDS selects it; it must keep winning when present.
+  it("prefers value.url when it IS present, so adding value to ITEM_FIELDS changes nothing", () =>
+    expect(adoptionKey(item([{ id: "company_domain", text: "Acme Corporate Site - https://wrong.example",
+      value: JSON.stringify({ url: "https://www.acme.com/" }) }]), CRM_ACCOUNTS)).toBe("acme.com"));
+});

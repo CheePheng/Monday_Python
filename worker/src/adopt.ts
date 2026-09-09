@@ -1,5 +1,6 @@
 import type { MondayItem, ObjectSpec } from "./types";
 import { normalizeDomain } from "./normalize";
+import { linkReverse } from "./mapping";
 
 /**
  * The key a monday-originated create uses to ADOPT an existing HubSpot record instead of duplicating it.
@@ -26,9 +27,26 @@ export function adoptionKey(item: MondayItem, spec: ObjectSpec): string {
     return at > 0 && at < e.length - 1 && !/\s/.test(e) ? e : "";
   }
 
-  // A monday LINK column keeps the address in its value JSON; `text` is a human label that may be empty
-  // or may read "Acme Corporate Site". Prefer the url, fall back to text, never the item name.
-  let raw = text;
+  // A monday LINK column keeps the address in its value JSON, so prefer the url when we have it.
+  //
+  // BUT WE USUALLY DO NOT HAVE IT, AND THAT IS THE BUG THIS COMMENT EXISTS FOR. `ITEM_FIELDS` in
+  // monday.ts selects `column_values { id text ... }` and NOT `value`, so for every item the sync
+  // fetches this branch is unreachable and `text` is the operative input. That made the fallback the
+  // real path while it was written as the exception — and monday renders a link column's `text` as
+  // "<label> - <url>" ("example.com - https://example.com"), which normalizeDomain turns into a string
+  // full of spaces and a dash, isHostname rejects, and adoptionKey returns "". The card is then stamped
+  // "not synced — needs domain" no matter what a rep types into the Domain column. Observed live on
+  // 2026-09-09: six Accounts cards with a filled Domain, a blank HubSpot ID and a blank HubSpot Link.
+  //
+  // This is the SAME monday rendering that caused the 76-iteration company_domain sync loop (fixed by
+  // linkText in the diff path). `linkReverse` is that fix's counterpart — it takes the half after the
+  // last " - " only when that half is URL-shaped, so "Acme Corporate Site - https://acme.com" yields
+  // the url while a company whose name simply contains " - " is left intact and still refused by the
+  // hostname check below.
+  //
+  // The `value` branch is kept rather than deleted: it is correct whenever the url IS present, and
+  // keeping it means adding `value` to ITEM_FIELDS later needs no change here.
+  let raw = linkReverse(text);
   const json = (cv as { value?: string | null } | undefined)?.value;
   if (json) {
     try {
