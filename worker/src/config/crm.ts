@@ -54,6 +54,11 @@ export const CRM_CONTACTS: ObjectSpec = {
   // one entry turns that many placeholder cards into searchable ones. Set before the historical import
   // because a rename only reaches an existing card on its next webhook.
   nameFallbackProps: ["email"],
+  // matthew.ng@gmail.com -> "matthew.ng"; the full address stays in the Email column. Costs 221 of
+  // those 3,598 cards a non-unique name (16 read "info", 9 "support") against 0 collisions for the
+  // full address — accepted deliberately, because 3,377 cards gain a readable one and the ambiguous
+  // ones are still separable by the Email column beside them.
+  nameFallbackTransform: "emailLocalPart",
   // nameReverse deliberately omitted: renaming a card must not rewrite a HubSpot name.
   boardId: "5028000495",
   idCol: "text_mm6t71dj",                    // "HubSpot ID"

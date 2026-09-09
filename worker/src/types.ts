@@ -146,6 +146,23 @@ export interface ObjectSpec {
    * bulk import rather than after: afterwards, most placeholder cards would simply never be renamed.
    */
   nameFallbackProps?: string[];
+  /**
+   * How to shorten a `nameFallbackProps` value for display. Applies ONLY to fallback values, never to
+   * a real `nameProps` name.
+   *
+   * "emailLocalPart" — matthew.ng@gmail.com becomes "matthew.ng". The full address is untouched in the
+   * Email column, so nothing is lost; this is purely about what the card is labelled.
+   *
+   * MEASURED COST, so it is a choice rather than an assumption: across the 3,598 nameless Contacts
+   * that do carry an email, the local part is NOT unique for 221 of them (6.1%) — 16 read "info",
+   * 9 "support", 5 "sales". The full address collides zero times. It is still the better trade, since
+   * 3,377 cards gain a readable name and the ambiguous ones remain separable by the adjacent Email
+   * column, but the ambiguity is real and deliberate.
+   *
+   * Characters are NEVER rewritten: no dots to spaces, no title-casing. "sales.apac_01" is not
+   * necessarily a person, and guessing a human name out of an address invents information.
+   */
+  nameFallbackTransform?: "emailLocalPart";
   nameReverse?: string;  // HubSpot property to receive a renamed item (omit = name not reversible)
   boardId: string;
   idCol: string;         // numbers column storing the HubSpot record id (dedup key)

@@ -67,10 +67,19 @@ export function itemName(rec: HsRecord, spec: ObjectSpec): string {
   const name = spec.nameProps.map(p => rec.properties[p] ?? "").join(" ").trim();
   if (name) return name;
   // Every nameProp was empty. Try the spec's declared fallbacks (e.g. email) before resorting to the
-  // id, which is traceable but unsearchable — see FieldSpec-adjacent note on ObjectSpec.nameFallbackProps.
+  // id, which is traceable but unsearchable — see ObjectSpec.nameFallbackProps.
   for (const p of spec.nameFallbackProps ?? []) {
     const v = String(rec.properties[p] ?? "").trim();
-    if (v) return v;
+    if (!v) continue;
+    if (spec.nameFallbackTransform === "emailLocalPart") {
+      // The part before the FIRST "@". Falls through to the whole value when there is no "@" or the
+      // local part is empty ("@x.com"), which is the "use it as-is if it does not parse" rule — a
+      // malformed address is still a better card name than a bare id.
+      const at = v.indexOf("@");
+      const local = at > 0 ? v.slice(0, at).trim() : "";
+      return local || v;
+    }
+    return v;
   }
   // Last resort. monday rejects an empty item name, so SOMETHING must be returned; the id at least
   // identifies which HubSpot record the card belongs to.
