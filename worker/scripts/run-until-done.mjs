@@ -53,10 +53,20 @@ const readState = () => {
   try { return JSON.parse(readFileSync(statePath, "utf8")); } catch { return null; }
 };
 
+// Anything after the object that is not one of THIS script's own flags is forwarded to
+// backfill-crm.mjs, so tuning (--concurrency, --batch) can be set without teaching this driver about
+// each option. Kept deliberately dumb: the driver must not develop opinions about import settings.
+const OWN_FLAGS = new Set(["--max-failures", "--max-passes"]);
+const passThrough = [];
+for (let i = 3; i < process.argv.length; i++) {
+  if (OWN_FLAGS.has(process.argv[i])) { i++; continue; }
+  passThrough.push(process.argv[i]);
+}
+
 /** Run backfill-crm.mjs once, streaming its output through. Resolves with its exit code. */
 const onePass = () => new Promise(resolve => {
   const child = spawn(process.execPath,
-    [join(HERE, "backfill-crm.mjs"), "--object", object, "--apply"],
+    [join(HERE, "backfill-crm.mjs"), "--object", object, "--apply", ...passThrough],
     { cwd: join(HERE, ".."), stdio: ["ignore", "inherit", "inherit"] });
   child.on("exit", code => resolve(code ?? 0));
   child.on("error", e => { log(`spawn error: ${String(e)}`); resolve(1); });
