@@ -65,7 +65,16 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
 
 export function itemName(rec: HsRecord, spec: ObjectSpec): string {
   const name = spec.nameProps.map(p => rec.properties[p] ?? "").join(" ").trim();
-  return name || `${spec.object} ${rec.id}`;
+  if (name) return name;
+  // Every nameProp was empty. Try the spec's declared fallbacks (e.g. email) before resorting to the
+  // id, which is traceable but unsearchable — see FieldSpec-adjacent note on ObjectSpec.nameFallbackProps.
+  for (const p of spec.nameFallbackProps ?? []) {
+    const v = String(rec.properties[p] ?? "").trim();
+    if (v) return v;
+  }
+  // Last resort. monday rejects an empty item name, so SOMETHING must be returned; the id at least
+  // identifies which HubSpot record the card belongs to.
+  return `${spec.object} ${rec.id}`;
 }
 
 export function buildColumnValues(rec: HsRecord, spec: ObjectSpec, ctx: Ctx): Record<string, unknown> {

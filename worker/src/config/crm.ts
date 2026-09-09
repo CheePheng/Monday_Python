@@ -50,6 +50,10 @@ export const CRM_CONTACTS: ObjectSpec = {
   searchFilters: [],
   modifiedProp: "lastmodifieddate",          // contacts, NOT hs_lastmodifieddate
   nameProps: ["firstname", "lastname"],
+  // 3,841 of 94,318 Contacts (4.1%) carry neither name, and 3,598 of those do have an email — so this
+  // one entry turns that many placeholder cards into searchable ones. Set before the historical import
+  // because a rename only reaches an existing card on its next webhook.
+  nameFallbackProps: ["email"],
   // nameReverse deliberately omitted: renaming a card must not rewrite a HubSpot name.
   boardId: "5028000495",
   idCol: "text_mm6t71dj",                    // "HubSpot ID"

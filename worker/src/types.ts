@@ -132,6 +132,20 @@ export interface ObjectSpec {
   searchFilters: Record<string, unknown>[]; // one HubSpot filterGroup's filters
   modifiedProp: string;  // hs_lastmodifieddate | lastmodifieddate
   nameProps: string[];   // properties composing the monday item name
+  /**
+   * Tried in order when every `nameProps` value is empty, BEFORE falling back to
+   * `"<object> <id>"`.
+   *
+   * Measured on this portal before the 2026-09-09 historical import: 3,841 of 94,318 Contacts
+   * (4.1%) have neither firstname nor lastname, so they would each land on the board reading
+   * "contacts 548911732425" — unsearchable by name, on a board whose entire purpose is finding a
+   * contact. 3,598 of those 3,841 do carry an email, so one fallback property recovers 94% of them.
+   *
+   * OPT-IN PER SPEC so the live Work-Management boards keep their existing names exactly. A rename
+   * only reaches an existing card on its next webhook, which is why this has to be decided before a
+   * bulk import rather than after: afterwards, most placeholder cards would simply never be renamed.
+   */
+  nameFallbackProps?: string[];
   nameReverse?: string;  // HubSpot property to receive a renamed item (omit = name not reversible)
   boardId: string;
   idCol: string;         // numbers column storing the HubSpot record id (dedup key)

@@ -71,6 +71,41 @@ describe("buildColumnValues / itemName", () => {
     expect(itemName({ id: "1", properties: {} }, spec)).toBe("deals 1");
   });
 
+  /**
+   * nameFallbackProps, added 2026-09-09 for the historical import. 3,841 of 94,318 Contacts have
+   * neither firstname nor lastname and would otherwise each read "contacts <hubspot id>" — traceable
+   * but unsearchable, on a board whose whole purpose is finding a contact. 3,598 of them carry an
+   * email, so one fallback property recovers 94%.
+   */
+  describe("nameFallbackProps", () => {
+    const withFallback: ObjectSpec = { ...spec, nameFallbackProps: ["email", "phone"] };
+
+    it("is not consulted while a nameProp has a value", () =>
+      expect(itemName({ id: "1", properties: { dealname: "Acme", email: "a@x.com" } }, withFallback))
+        .toBe("Acme"));
+
+    it("is used when every nameProp is empty", () =>
+      expect(itemName({ id: "1", properties: { email: "a@x.com" } }, withFallback)).toBe("a@x.com"));
+
+    it("tries fallbacks IN ORDER, so a later one only applies when the earlier is empty", () => {
+      expect(itemName({ id: "1", properties: { email: "", phone: "+60123" } }, withFallback)).toBe("+60123");
+      expect(itemName({ id: "1", properties: { email: "a@x.com", phone: "+60123" } }, withFallback)).toBe("a@x.com");
+    });
+
+    it("treats whitespace-only as empty, or the card gets a blank name monday would reject", () =>
+      expect(itemName({ id: "1", properties: { email: "   " } }, withFallback)).toBe("deals 1"));
+
+    it("still reaches the id when every fallback is empty too", () =>
+      expect(itemName({ id: "77", properties: {} }, withFallback)).toBe("deals 77"));
+
+    // THE REGRESSION THAT MATTERS: the live Work-Management specs declare no fallback, so their card
+    // names must be byte-for-byte what they were. A rename would churn every card on those boards.
+    it("changes NOTHING for a spec that does not declare it", () => {
+      expect(spec.nameFallbackProps).toBeUndefined();
+      expect(itemName({ id: "1", properties: { email: "a@x.com" } }, spec)).toBe("deals 1");
+    });
+  });
+
   it("stamps the all-members team on the Shared column when the deal has NO sales_user", () => {
     const shared: ObjectSpec = { ...spec, unassignedShared: { col: "c_shared", teamId: "999" } };
     expect(buildColumnValues({ id: "1", properties: {} }, shared, ctx).c_shared)

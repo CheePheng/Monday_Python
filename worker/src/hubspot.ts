@@ -62,7 +62,11 @@ function assertMayWrite(spec: ObjectSpec, id: string, auth: WriteAuth | undefine
 }
 
 function propertiesFor(spec: ObjectSpec): string[] {
-  const props = new Set<string>([...spec.nameProps, spec.modifiedProp]);
+  // nameFallbackProps must be FETCHED or the fallback silently never fires: an unfetched property is
+  // simply absent from rec.properties, which itemName cannot distinguish from empty. On CRM Contacts
+  // `email` happens to be a mapped field too, but relying on that coincidence would break the moment
+  // a spec named a fallback it does not otherwise map.
+  const props = new Set<string>([...spec.nameProps, ...(spec.nameFallbackProps ?? []), spec.modifiedProp]);
   for (const f of spec.fields) props.add(f.hs);
   if ("prop" in spec.groupBy) props.add(spec.groupBy.prop);
   // Ownership metadata is INFRASTRUCTURE, not a mapped field: it must be fetched even though no
