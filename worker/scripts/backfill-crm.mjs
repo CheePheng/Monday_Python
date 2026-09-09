@@ -391,12 +391,34 @@ async function runImport(M, H, mod, spec, args) {
   const { index } = await indexBoard(M, spec, args.itemsPage);
   console.log(`  ${index.size} records already carded`);
 
-  let after = result.after, batch = [], pages = 0;
+  let after = result.after, batch = [], pages = 0, stop = false;
   const t0 = Date.now();
+
+  /**
+   * Send whatever is queued, in chunks of exactly args.batch.
+   *
+   * ALWAYS chunked, never "flush the array". The first version flushed `batch` whole, and a defect in
+   * the limit check let it grow to 271 — which monday rejected as one 271-alias mutation, so the
+   * isolate path then created all 271 one at a time. A batch is a request-size decision and must be
+   * enforced here rather than depending on the caller having queued a sane number.
+   */
+  const drain = async (final = false) => {
+    while (batch.length >= args.batch || (final && batch.length)) {
+      const chunk = batch.splice(0, args.batch);
+      if (args.apply) await flush(M, spec, chunk, result);
+      else result.created += chunk.length;
+    }
+  };
+
   do {
+    // The cursor that FETCHED this page, kept so an early stop does not skip the rest of it.
+    const pageCursor = after;
     const page = await hsPage(H, spec.object, props, after);
     pages++;
     for (const rec of page.records) {
+      // CHECKED BEFORE CONSUMING THE RECORD, so --limit lands exactly on the limit and the record
+      // that would have exceeded it is left for the next run rather than half-processed.
+      if (result.created + batch.length >= args.limit) { stop = true; break; }
       result.scanned++;
       if (index.has(rec.id)) { result.skipped++; continue; }
       const group = targetGroup(rec, spec);
@@ -408,30 +430,24 @@ async function runImport(M, H, mod, spec, args) {
       // webhook — which would make the import look like 120k monday-side edits.
       cv[spec.syncStateCol] = rec.properties[spec.modifiedProp] ?? "";
       batch.push({ hsId: rec.id, name: itemName(rec, spec), group, cv });
-
-      if (result.created + batch.length >= args.limit) break;
-      if (batch.length >= args.batch) {
-        if (args.apply) await flush(M, spec, batch, result);
-        else result.created += batch.length;
-        batch = [];
-      }
+      await drain();
     }
-    after = page.after;
-    result.after = after;
+    // Drain the page's remainder BEFORE saving the cursor, so a saved cursor always means "everything
+    // up to here is really in monday". Without that, a crash between the two loses records silently.
+    await drain(true);
+
+    // An early stop rewinds to this page's own cursor. Advancing would strand the records we did not
+    // consume: nothing else scans them, and only a from-scratch re-run would ever pick them up.
+    result.after = stop ? pageCursor : page.after;
     if (args.apply) saveState(args.state, result);
 
     const rate = result.scanned / Math.max(1, (Date.now() - t0) / 1000);
     console.log(`  page ${pages}: scanned ${result.scanned}, ${args.apply ? "created" : "would create"} ${result.created},`
       + ` skipped ${result.skipped}, failed ${result.failed.length}  (${rate.toFixed(0)}/s)`);
 
-    if (result.created >= args.limit) { console.log(`  reached --limit ${args.limit}`); break; }
+    after = page.after;
+    if (stop) { console.log(`  reached --limit ${args.limit} — stopping with the cursor rewound to this page`); break; }
   } while (after);
-
-  if (batch.length) {
-    if (args.apply) await flush(M, spec, batch, result);
-    else result.created += batch.length;
-  }
-  if (args.apply) { result.after = after; saveState(args.state, result); }
 
   console.log(`\n--- ${spec.object} ${args.apply ? "IMPORTED" : "PLANNED"} ---`);
   console.log(`  scanned in HubSpot : ${result.scanned}`);
@@ -442,7 +458,9 @@ async function runImport(M, H, mod, spec, args) {
   for (const f of result.failed.slice(0, 20))
     console.log(`      ${f.hsId} ${f.name ? JSON.stringify(f.name) + " " : ""}${f.reason}`);
   if (result.failed.length > 20) console.log(`      … and ${result.failed.length - 20} more (see ${args.state})`);
-  if (!after) console.log(`  HubSpot pagination COMPLETE (no further cursor)`);
+  // `stop` matters here: a --limit run that happens to stop on the final page still has more to do.
+  if (!after && !stop) console.log(`  HubSpot pagination COMPLETE (no further cursor)`);
+  else console.log(`  MORE REMAINS — re-run the same command to continue from the saved cursor`);
   return result;
 }
 
@@ -505,6 +523,13 @@ async function runRelations(M, H, mod, args) {
     multiCompany: 0, failed: [], missingCompanyIds: new Set(),
   };
   const pending = [];
+  const drainRelations = async (final = false) => {
+    while (pending.length >= args.batch || (final && pending.length)) {
+      const chunk = pending.splice(0, args.batch);
+      if (args.apply) await flushRelations(M, CRM_CONTACTS, rel, chunk, result);
+      else result.written += chunk.length;
+    }
+  };
 
   for (let i = 0; i < cards.length; i += 100) {
     const chunk = cards.slice(i, i + 100);
@@ -541,19 +566,16 @@ async function runRelations(M, H, mod, args) {
       pending.push({ itemId: card.itemId, want });
     }
 
-    if (pending.length >= args.batch) {
-      if (args.apply) await flushRelations(M, CRM_CONTACTS, rel, pending.splice(0, pending.length), result);
-      else { result.written += pending.length; pending.length = 0; }
-    }
+    // Chunked to exactly args.batch, for the same reason the create path is: monday rejects an
+    // over-large aliased mutation document outright, and `pending` can hold a whole 100-contact chunk.
+    await drainRelations();
+
     if ((i / 100) % 10 === 0)
       console.log(`  ${Math.min(i + 100, cards.length)}/${cards.length} contacts checked,`
         + ` ${args.apply ? "linked" : "would link"} ${result.written}`);
     if (result.written >= args.limit) { console.log(`  reached --limit ${args.limit}`); break; }
   }
-  if (pending.length) {
-    if (args.apply) await flushRelations(M, CRM_CONTACTS, rel, pending, result);
-    else result.written += pending.length;
-  }
+  await drainRelations(true);
 
   console.log(`\n--- RELATIONS ${args.apply ? "WRITTEN" : "PLANNED"} ---`);
   console.log(`  contacts with a HubSpot company association : ${result.withAssociations}`);
