@@ -53,6 +53,12 @@ function parseArgs(argv) {
   const a = {
     object: "", apply: false, preflight: false, selftest: false, reset: false,
     limit: Infinity, batch: 10, itemsPage: 500, state: "",
+    // 6 create-batches in flight. Chosen from the live measurement rather than guessed: the sequential
+    // run held at 102 cards/min with the throttle never once widening, so monday's limiter was not the
+    // constraint — its per-mutation latency was. 6 is deliberately short of the ~10 that would clear a
+    // 100-record HubSpot page in a single round, leaving room for the adaptive throttle to react
+    // before we are anywhere near the complexity budget.
+    concurrency: 6,
   };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
@@ -63,6 +69,7 @@ function parseArgs(argv) {
     else if (k === "--object") a.object = argv[++i];
     else if (k === "--limit") a.limit = Number(argv[++i]);
     else if (k === "--batch") a.batch = Number(argv[++i]);
+    else if (k === "--concurrency") a.concurrency = Math.max(1, Number(argv[++i]));
     else if (k === "--state") a.state = argv[++i];
   }
   if (!a.state && a.object) a.state = join(ROOT, "scripts", `.backfill-${a.object}.json`);
@@ -375,6 +382,7 @@ async function runImport(M, H, mod, spec, args) {
 
   console.log(`\n=== ${args.apply ? "IMPORT" : "PLAN"} ${spec.object} -> board ${spec.boardId} ===`);
   console.log(`  fetching ${props.length} HubSpot properties per record`);
+  console.log(`  ${args.batch} creates per request, ${args.concurrency} request(s) in flight`);
 
   if (args.reset && existsSync(args.state)) { unlinkSync(args.state); console.log("  progress reset"); }
   const prior = loadState(args.state);
@@ -395,18 +403,33 @@ async function runImport(M, H, mod, spec, args) {
   const t0 = Date.now();
 
   /**
-   * Send whatever is queued, in chunks of exactly args.batch.
+   * Send whatever is queued, in chunks of exactly args.batch, up to args.concurrency chunks at once.
    *
    * ALWAYS chunked, never "flush the array". The first version flushed `batch` whole, and a defect in
    * the limit check let it grow to 271 — which monday rejected as one 271-alias mutation, so the
    * isolate path then created all 271 one at a time. A batch is a request-size decision and must be
    * enforced here rather than depending on the caller having queued a sane number.
+   *
+   * WHY CONCURRENCY AND NOT A BIGGER BATCH. Measured on the live Companies run: 102 cards/minute,
+   * which projects to 15.4 hours for 94,318 Contacts. The bottleneck is not HTTP round-trips —
+   * monday executes the aliases inside one mutation SEQUENTIALLY, so a 10-alias create costs about
+   * ten creates' worth of server time (~6s observed). Enlarging the batch therefore buys almost
+   * nothing, while running several batches at once multiplies throughput directly.
+   *
+   * Safe to parallelise because creates are independent: each card is keyed by its own HubSpot ID, no
+   * chunk reads what another writes, and nothing depends on ordering. The counters and the failure
+   * list are plain single-threaded mutations. `pace()` spaces request STARTS rather than serialising
+   * them, so it caps the launch rate without capping how many are in flight — and the adaptive
+   * throttle still widens that spacing the moment monday pushes back. It never has: zero throttle
+   * events across 4,406 creates, so there is real headroom under monday's complexity budget.
    */
   const drain = async (final = false) => {
-    while (batch.length >= args.batch || (final && batch.length)) {
-      const chunk = batch.splice(0, args.batch);
-      if (args.apply) await flush(M, spec, chunk, result);
-      else result.created += chunk.length;
+    const ready = () => batch.length >= args.batch || (final && batch.length > 0);
+    while (ready()) {
+      const chunks = [];
+      while (chunks.length < args.concurrency && ready()) chunks.push(batch.splice(0, args.batch));
+      if (args.apply) await Promise.all(chunks.map(c => flush(M, spec, c, result)));
+      else result.created += chunks.reduce((n, c) => n + c.length, 0);
     }
   };
 
@@ -524,10 +547,12 @@ async function runRelations(M, H, mod, args) {
   };
   const pending = [];
   const drainRelations = async (final = false) => {
-    while (pending.length >= args.batch || (final && pending.length)) {
-      const chunk = pending.splice(0, args.batch);
-      if (args.apply) await flushRelations(M, CRM_CONTACTS, rel, chunk, result);
-      else result.written += chunk.length;
+    const ready = () => pending.length >= args.batch || (final && pending.length > 0);
+    while (ready()) {
+      const chunks = [];
+      while (chunks.length < args.concurrency && ready()) chunks.push(pending.splice(0, args.batch));
+      if (args.apply) await Promise.all(chunks.map(c => flushRelations(M, CRM_CONTACTS, rel, c, result)));
+      else result.written += chunks.reduce((n, c) => n + c.length, 0);
     }
   };
 
