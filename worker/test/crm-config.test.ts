@@ -226,11 +226,24 @@ describe("CRM_ACCOUNTS", () => {
   // DOMAIN MUST BE WRITTEN, not just read. adoptBy READS this column to match an existing HubSpot
   // company; for a while nothing WROTE it, so every HubSpot-originated Account landed in monday with an
   // empty Domain - the single field the whole matching design depends on.
-  it("WRITES domain into the native Domain column, forward-only", () => {
+  // TWO-WAY from 2026-09-09, and `canonicalDomain` is the condition that made it safe. Forward-only was
+  // justified as "it is the dedup key", but that protected the wrong thing: a rep CORRECTING a wrong
+  // domain is the edit we want, and the card can never be re-pointed at another company anyway (a
+  // linked card returns before the adoption branch is reachable). What actually needed protecting is
+  // the SPELLING — companies enforce no unique domain, so HubSpot stores any string verbatim and a URL
+  // would break searchCompanyByDomain's EQ match with no error anywhere.
+  it("WRITES domain both ways, canonicalised because it doubles as the search key", () => {
     const f = CRM_ACCOUNTS.fields.find(x => x.hs === "domain")!;
-    expect(f).toMatchObject({ col: "company_domain", type: "link" });
-    expect(f.reverse).toBeUndefined();      // the dedup key, like email on contacts
+    expect(f).toMatchObject({ col: "company_domain", type: "link", reverse: true, canonicalDomain: true });
     expect(f.backfill).toBeUndefined();
+  });
+
+  // Being reversible is ALSO what stops a monday-originated Account creating a domainless company:
+  // buildCreateProperties emits only `reverse` fields, so a forward-only key is omitted from the
+  // create payload entirely. Asserted here because the two facts have to move together.
+  it("the adoption key is reversible, so a create can actually carry it", () => {
+    const key = CRM_ACCOUNTS.fields.find(f => f.col === CRM_ACCOUNTS.adoptBy!.col)!;
+    expect(key.reverse).toBe(true);
   });
 
   it("the adoption key and the written column are the SAME column", () => {

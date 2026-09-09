@@ -381,6 +381,31 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   // atomically in the create payload. Categorically different from claimOwnership(), whose only permitted
   // mutation is the ownership property of an EXISTING record. Inert for specs without ownership.
   const props = withBirthOwnership(buildCreateProperties(item, spec, ctx), spec.ownership);
+  // NEVER CREATE A RECORD THIS SYNC COULD NOT FIND AGAIN.
+  //
+  // A spec with `adoptBy` matches cards to records by one key property. buildCreateProperties only
+  // emits fields marked `reverse` (reconcile.ts:305), so if that key property is not reversible the
+  // create silently omits it — and mints a record with an EMPTY dedup key. That is not a cosmetic
+  // gap: the next lookup for it misses, so a later card creates a second copy, and nothing errors at
+  // any point. Live on 2026-09-09: four Accounts cards carried real domains with no HubSpot match,
+  // and `domain` was forward-only, so each was one webhook away from creating a domainless company.
+  //
+  // Refusing is safe and visible where creating is neither: the card keeps its data, the reason lands
+  // on Sync State for the rep, and nothing irreversible happens in HubSpot — monday deletion never
+  // deletes a HubSpot record, so a junk record created here would have to be cleaned up by hand.
+  if (spec.adoptBy) {
+    const keyField = spec.fields.find(f => f.col === spec.adoptBy!.col);
+    if (!keyField || !props[keyField.hs]) {
+      stats.skipped++;
+      await forgetHubspotForItem(env, spec.boardId, item.id);
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.syncStateCol]: `not synced — ${spec.adoptBy.kind} is not writable to HubSpot` }, opts).catch(() => {});
+      console.log(`${spec.object} card ${item.id} action=skip-create`
+        + ` reason="would create a record with no ${spec.adoptBy.kind}, which nothing could match again"`
+        + ` key_field=${keyField?.hs ?? "UNMAPPED"} key_reversible=${!!keyField?.reverse}`);
+      return;
+    }
+  }
   let created: { id: string; modified: string } | null;
   try {
     created = await createRecord(env, spec, props, opts,

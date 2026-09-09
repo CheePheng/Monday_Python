@@ -54,6 +54,19 @@ export function adoptionKey(item: MondayItem, spec: ObjectSpec): string {
       if (url) raw = url;
     } catch { /* malformed value JSON: keep the text fallback */ }
   }
+  return companyDomainKey(raw);
+}
+
+/**
+ * THE ONE DEFINITION of a usable company domain in this system — used both to MATCH a card to a
+ * HubSpot company and to decide what a monday edit may STORE as a company's domain.
+ *
+ * Shared deliberately. If the two ever disagreed, a rep's edit could store a value that this system's
+ * own matcher then refuses to find, which is the state that manufactures duplicate companies.
+ *
+ * Returns "" for anything unusable, which every caller must treat as "do nothing".
+ */
+export function companyDomainKey(raw: string): string {
   const d = normalizeDomain(raw);
   // PA-1. A consumer email provider is not a company domain. Blocked BEFORE the hostname check so the
   // reason is unambiguous in the logs.
@@ -61,8 +74,10 @@ export function adoptionKey(item: MondayItem, spec: ObjectSpec): string {
   // SHAPE-CHECK, because this is the trust boundary for free-typed rep input. normalizeDomain only
   // CANONICALISES (lowercase, strip scheme/www/path) — it does not validate, and correctly so: the WM
   // path feeds it a column that already is a domain. Here a rep may type anything, and "ABC Trading Sdn
-  // Bhd" would otherwise normalise to "abc trading sdn bhd", match no HubSpot company, and then be used
-  // to CREATE one with a garbage domain. Requiring a real hostname makes that impossible.
+  // Bhd" would otherwise normalise to "abc trading sdn bhd" — which would match no HubSpot company, and
+  // was then used both to CREATE one with a garbage domain and (once Domain went two-way on 2026-09-09)
+  // to overwrite a real company's dedup key with a company NAME. Requiring a real hostname makes both
+  // impossible. Caught by a test, not by review: normalizeDomain looks like it validates and does not.
   return isHostname(d) ? d : "";
 }
 

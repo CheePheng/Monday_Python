@@ -281,7 +281,24 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     // existing HubSpot company; nothing WROTE it, so every HubSpot-originated Account arrived with an
     // empty Domain — the one field the whole matching design depends on. Forward-only: the domain is
     // the dedup key, exactly as `email` is for contacts, so a monday edit must never rewrite it.
-    { hs: "domain", col: "company_domain", type: "link" },
+    // TWO-WAY 2026-09-09, and `canonicalDomain` is what makes that safe rather than reckless.
+    //
+    // The earlier "forward-only because it is the dedup key" reasoning had a real point but drew the
+    // wrong conclusion. The danger was never that a rep may CORRECT a wrong domain — that is exactly
+    // the edit we want — it is that a monday edit must not (a) retarget the card at some other HubSpot
+    // company, or (b) store a value the search cannot find.
+    //
+    // (a) is already structurally impossible: syncMondayItem branches on the HubSpot ID column
+    // (sync.ts:704) and a linked card returns after reconcileRecord (sync.ts:707-717), so the adoption
+    // branch inside createFromMonday is simply unreachable once a card carries an id. An edited domain
+    // updates THIS company and can never re-point the card.
+    // (b) is what canonicalDomain handles: companies do not enforce unique domains, so HubSpot stores
+    // any string verbatim and a URL would silently break the EQ lookup forever.
+    //
+    // Being reversible also fixes a live hazard in the CREATE path: buildCreateProperties skips every
+    // non-reverse field (reconcile.ts:305), so while this was forward-only a monday-originated Account
+    // was created with NO domain — the one field the whole matching design needs.
+    { hs: "domain", col: "company_domain", type: "link", reverse: true, canonicalDomain: true },
     // COMPANY `industry` IS NOT MAPPED, as of 2026-09-08. It pointed at a custom text column
     // "Industry (HubSpot)" (text_mm6tafj5) which has since been DELETED from the board — and a spec
     // field naming a column monday does not have makes monday reject the ENTIRE

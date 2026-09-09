@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reverseFieldValue, buildReversePatch, fieldDiffs } from "../src/reconcile";
+import { reverseFieldValue, buildReversePatch, buildCreateProperties, fieldDiffs } from "../src/reconcile";
 import { CRM_CONTACTS, CRM_ACCOUNTS } from "../src/config/crm";
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "../src/types";
 
@@ -81,8 +81,26 @@ describe("the batch is enabled, and only the batch", () => {
   it.each(["email", "createdate", "registration_date", "hubspot_owner_assigneddate", "notes_last_updated"])(
     "contacts.%s stays one-way", (hs) => expect(f(CRM_CONTACTS, hs).reverse).toBeUndefined());
 
-  it.each(["domain", "createdate", "hs_object_source_label"])(
+  it.each(["createdate", "hs_object_source_label"])(
     "accounts.%s stays one-way", (hs) => expect(f(CRM_ACCOUNTS, hs).reverse).toBeUndefined());
+
+  // accounts.domain LEFT this set on 2026-09-09 — see the canonicalDomain note in crm.ts. Its reverse
+  // value must be a BARE domain, not the URL linkReverse would otherwise hand back, because the same
+  // string is what searchCompanyByDomain filters on.
+  it("accounts.domain is two-way and reverses to a bare, searchable domain", () => {
+    const d = f(CRM_ACCOUNTS, "domain");
+    expect(d).toMatchObject({ type: "link", reverse: true, canonicalDomain: true });
+    // monday's link rendering, a bare host, and a full URL must all reduce to the same key.
+    for (const cell of ["acme.com - https://www.acme.com/", "acme.com", "https://www.acme.com/path"])
+      expect(reverseFieldValue(d, cell, ctx)).toBe("acme.com");
+    // Nothing usable -> "" -> omitted from the patch and healed forward, never stored as junk.
+    // A COMPANY NAME is the case that matters and the one a first attempt got wrong: normalizeDomain
+    // only canonicalises, so "ABC Trading Sdn Bhd" became "abc trading sdn bhd" and would have been
+    // written over a real company's dedup key. The reverse path now shares adoptionKey's own
+    // hostname/provider validation (companyDomainKey), so matching and storing cannot disagree.
+    for (const junk of ["   ", "ABC Trading Sdn Bhd", "no-tld", "gmail.com"])
+      expect(reverseFieldValue(d, junk, ctx)).toBe("");
+  });
 
   // Deliberate holds, each for its own stated reason.
   it("lifecyclestage stays one-way — it fires HubSpot workflows, so it is a business decision", () =>
@@ -227,6 +245,42 @@ describe("the patch carries exactly the edited field", () => {
       ...Object.entries(cells).map(([id, text]) => ({ id, text, value: null })),
     ],
   } as unknown as MondayItem);
+
+  /**
+   * THE CREATE PAYLOAD, which is where the domain fix actually bites.
+   *
+   * Four live Accounts cards on 2026-09-09 held real domains that matched no HubSpot company, so the
+   * next webhook would have CREATED one. buildCreateProperties emits only `reverse` fields, and
+   * `domain` was forward-only — so each create would have minted a company with no domain at all,
+   * leaving the dedup key empty, the next lookup missing, and a duplicate waiting to be made. Nothing
+   * would have errored. Creating in HubSpot is also not undoable from monday, since a monday deletion
+   * deliberately never deletes a HubSpot record.
+   */
+  it("an Accounts create now CARRIES the domain, canonicalised", () => {
+    const item = {
+      id: "CARD9", name: "UK Market Report", group: { id: "topics" },
+      column_values: [
+        { id: CRM_ACCOUNTS.idCol, text: "", value: null },
+        { id: "text_mm6t1q4h", text: "UK Market Report", value: null },   // Company name
+        { id: "company_domain", text: "ukmarketreport.com - https://ukmarketreport.com", value: null },
+      ],
+    } as unknown as MondayItem;
+    const props = buildCreateProperties(item, CRM_ACCOUNTS, ctx);
+    expect(props.domain).toBe("ukmarketreport.com");
+    expect(props.name).toBe("UK Market Report");
+  });
+
+  it("and a card with no usable domain contributes none, so the create guard can refuse it", () => {
+    const item = {
+      id: "CARD9", name: "Some Prospect", group: { id: "topics" },
+      column_values: [
+        { id: CRM_ACCOUNTS.idCol, text: "", value: null },
+        { id: "text_mm6t1q4h", text: "Some Prospect", value: null },
+        { id: "company_domain", text: "ABC Trading Sdn Bhd", value: null },
+      ],
+    } as unknown as MondayItem;
+    expect(buildCreateProperties(item, CRM_ACCOUNTS, ctx).domain).toBeUndefined();
+  });
 
   it("a 优先级 edit sends priority__c and nothing else", () => {
     const pri = f(CRM_CONTACTS, "priority__c");

@@ -1,6 +1,7 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
 import { LONG_TEXT_MAX, expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits } from "./mapping";
 import { colText } from "./dedup";
+import { companyDomainKey } from "./adopt";
 import { reverseGroup, targetGroup } from "./routing";
 
 export interface Diff {
@@ -192,7 +193,10 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
     return out.join(";");
   }
   // A link column's monday text is "<text> - <url>"; send the URL half, never the concatenation.
-  if (f.type === "link") return linkReverse(text);
+  // `canonicalDomain` additionally strips it to a bare registrable domain, because that value doubles
+  // as the record's search key — see FieldSpec.canonicalDomain. "" when nothing usable survives, so
+  // an unparseable cell is refused and healed forward rather than stored as junk.
+  if (f.type === "link") return f.canonicalDomain ? companyDomainKey(linkReverse(text)) : linkReverse(text);
   // STATUS: only ever send a value HubSpot's enumeration actually accepts.
   //
   // This fell through to `rev[text] ?? text`, shipping whatever label the monday column held into a

@@ -60,6 +60,22 @@ export interface FieldSpec {
    * on 2026-09-09; both now carry dictionaries.
    */
   unvalidatedEnum?: boolean;
+  /**
+   * ON REVERSE, WRITE THE CANONICAL DOMAIN — because this value is also a SEARCH KEY.
+   *
+   * For `company_domain` the reverse path is not just "get the value back to HubSpot", it has to get
+   * it back in the one spelling `searchCompanyByDomain` can find, since that function filters
+   * `domain EQ normalizeDomain(x)`. Companies do NOT enforce a unique domain (verified live: 57
+   * companies share qcc.com), so HubSpot accepts and stores whatever string it is sent — four
+   * companies in this portal already hold values like "https://www.aliyun.com/". Sending
+   * linkReverse's output would therefore store a URL, no error anywhere, and the next lookup for that
+   * company would miss and manufacture a duplicate instead.
+   *
+   * Only the REVERSE direction changes. Forward formatting and the diff comparison stay exactly as
+   * `link`, which is already scheme-insensitive on both sides via linkText — that is what stopped the
+   * 76-iteration loop and must not be disturbed.
+   */
+  canonicalDomain?: boolean;
   /** Reverse ONLY on an explicit app save (a rep pressing Save in a drawer), never on a passive
    * webhook/cron reconcile. For business-critical assignment fields — record OWNERSHIP — where letting a
    * monday column silently win reassigns records: monday's people column is populated BY the sync and can
