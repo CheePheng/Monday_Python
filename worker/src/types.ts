@@ -30,7 +30,10 @@ export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" |
 export type LabelDict =
   | "stage" | "dealtype" | "priority" | "vendor" | "pipeline"
   | "industry" | "companyType" | "leadStatus" | "salesUser"
-  | "contactSource" | "contactVendor" | "partnerWith" | "contactPriority" | "lifecycleStage" | "contactStatus";
+  | "contactSource" | "contactVendor" | "partnerWith" | "contactPriority" | "lifecycleStage" | "contactStatus"
+  // Added 2026-09-09 so a reversible field on a HubSpot ENUMERATION can validate membership. Every one
+  // of these properties was verified live against portal 39939588; see LABEL_SOURCE in sync.ts.
+  | "contactSalesPerson" | "contactDepartment" | "contactCountries" | "contactCity" | "contactLeadSourceSub";
 
 export interface FieldSpec {
   hs: string;            // HubSpot property name
@@ -38,6 +41,25 @@ export interface FieldSpec {
   type: ColType;
   labels?: LabelDict;    // enum label dictionary (HubSpot internal value -> display label)
   reverse?: boolean;     // monday edits may be written back to HubSpot
+  /**
+   * SEND THE MONDAY TEXT TO A HUBSPOT ENUMERATION WITHOUT CHECKING IT IS AN OPTION.
+   *
+   * Required to reverse a `status`/`dropdown` field that carries no `labels`, because the default for
+   * that combination is now to REFUSE. It exists for exactly one field — the live Work-Management
+   * `deal_currency_code` — so that spec keeps behaving byte-for-byte as it did; do not add it to
+   * anything else, give the field a dictionary instead.
+   *
+   * The reasoning it replaces was wrong and cost two live fields today. The old comment argued that
+   * "no dictionary means value === label by construction, so the raw text is already a legal value".
+   * value === label removes the need to TRANSLATE a label; it says nothing about MEMBERSHIP. monday
+   * lets a user rename or add a status/dropdown label, and every write we make sets
+   * create_labels_if_missing:true — so a cell can easily hold text that is not an option at all.
+   * HubSpot 400s on that, patchRecord throws before Sync State is stamped, and with
+   * skipFullReconcile:true and no CRM cron the card stops syncing every field until a human edits it
+   * in HubSpot. `sales_person` (4 options) and `department_3__c` (29 options) shipped in that state
+   * on 2026-09-09; both now carry dictionaries.
+   */
+  unvalidatedEnum?: boolean;
   /** Reverse ONLY on an explicit app save (a rep pressing Save in a drawer), never on a passive
    * webhook/cron reconcile. For business-critical assignment fields — record OWNERSHIP — where letting a
    * monday column silently win reassigns records: monday's people column is populated BY the sync and can

@@ -137,8 +137,13 @@ describe("spec-driven metadata: the CRM app needs NO Deals scope", () => {
       // `industry` dropped out when company industry was unmapped (its text column was deleted from the
       // board). CRM_CONTACTS still maps a contact-level `industry`, but that one is free text with no
       // dictionary, so nothing references the dict any more — one fewer HubSpot schema fetch per run.
-      .toEqual(["companyType", "contactPriority", "contactSource", "contactStatus",
-                "contactVendor", "leadStatus", "lifecycleStage", "partnerWith",
+      // The five contact* dictionaries added 2026-09-09 are each a HubSpot ENUMERATION whose monday
+      // column is text/status/dropdown, so the dictionary is what lets the reverse write validate
+      // membership instead of 400ing. They cost one HubSpot schema fetch each, which is why they are
+      // pinned here: an accidental addition should show up as a deliberate change to this list.
+      .toEqual(["companyType", "contactCity", "contactCountries", "contactDepartment",
+                "contactLeadSourceSub", "contactPriority", "contactSalesPerson", "contactSource",
+                "contactStatus", "contactVendor", "leadStatus", "lifecycleStage", "partnerWith",
                 "salesUser"]));
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.

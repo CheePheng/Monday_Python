@@ -127,10 +127,26 @@ export function decideDirection(
   return hs > synced ? "toMonday" : "toHubspot";
 }
 
+/** label -> internal value. NULL-PROTOTYPE: see `has` below. */
 function invert(dictionary: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
+  const out: Record<string, string> = Object.create(null);
   for (const [value, label] of Object.entries(dictionary)) out[label] = value;
   return out;
+}
+
+/**
+ * Is `key` a real entry in `d`, as opposed to something inherited from Object.prototype?
+ *
+ * `d[text] !== undefined` was truthy for "constructor", "toString", "valueOf", "hasOwnProperty" and
+ * "__proto__" — so a monday cell reading "constructor" passed validation and put
+ * Object.prototype.constructor (a Function) into the PATCH body. No live option is spelled that way
+ * today, but "Other"/"Support/Service"/free-typed city names are exactly the kind of column where a
+ * user types a word of their choosing, and the failure would be a 400 that wedges the card. The
+ * dictionaries reaching here come from HubSpot property options and from ctx.labels, so this is a
+ * boundary between user text and a lookup — the one place the check belongs.
+ */
+function has(d: Record<string, string>, key: string): boolean {
+  return Object.hasOwn(d, key);
 }
 
 /** monday display text -> HubSpot internal value for one reversible field ("" if empty). */
@@ -148,15 +164,18 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
     if (!digits) return "";
     return text.startsWith("+") ? "+" + digits : digits;
   }
-  const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : {};
+  const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : Object.create(null);
   if (f.type === "dropdown") {
-    // NO DICTIONARY means value === label by construction (department_3__c, verified live: every option
-    // has value === label), so the monday text IS already a legal HubSpot value and must pass through.
-    // Without this the scan below runs against an EMPTY label list, finds nothing, and returns "" —
-    // silently refusing every edit on such a field. That is the same trap the status branch had, and it
-    // would have shipped the moment department_3__c was made reverse:true.
-    if (!f.labels) return text.split(",").map(s => s.trim()).filter(Boolean).join(";");
-    if (rev[text] !== undefined) return rev[text]; // whole-label match first (single value)
+    // NO DICTIONARY -> REFUSE, unless the field explicitly opts out (see FieldSpec.unvalidatedEnum).
+    //
+    // This used to comma-split and pass monday's text through raw, on the reasoning that a property
+    // whose option values equal their labels needs no translation. True, and beside the point: nothing
+    // was checking the text was an OPTION. monday lets a user add or rename a dropdown label and every
+    // write we make sets create_labels_if_missing:true, so `department_3__c` (29 options) shipped able
+    // to send an arbitrary label into a HubSpot enumeration — a 400 that throws before Sync State is
+    // stamped and, with no CRM cron, freezes that card's every field. It now carries a dictionary.
+    if (!f.labels) return f.unvalidatedEnum ? text.split(",").map(s => s.trim()).filter(Boolean).join(";") : "";
+    if (has(rev, text)) return rev[text]; // whole-label match first (single value)
     // Multi-select: monday joins labels with ", ", and a label can itself contain a comma, so don't
     // blindly split on ",". Greedily consume the longest known label at a comma/end boundary; an unknown
     // label stops the scan (a raw monday label is not a valid HubSpot enum value -> 400 every tick).
@@ -182,21 +201,47 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
   // (returning "") makes buildReversePatch omit the field; if the patch is then empty the engine falls
   // through to a FORWARD write, so HubSpot's value overwrites the invalid cell and the card self-heals.
   //
-  // No `labels` means value === label by construction (deal_currency_code "USD", sales_person
-  // "Emily You"), so the raw text is already a legal value and must still pass unchanged.
+  // NO DICTIONARY -> REFUSE, unless the field explicitly opts out (FieldSpec.unvalidatedEnum). The
+  // old text was "value === label by construction, so the raw text is already a legal value" — which
+  // conflates translation with membership. `sales_person` is a 4-option enumeration (Elaine Rivera,
+  // Emily You, Myla Mestiola, Rick Avery Antonio); a rep setting it to "Ada" or "Heifer" — the very
+  // reassignment the 2026-09-09 requirements meeting is about — would have 400'd and wedged the card.
   if (f.type === "status") {
-    if (!f.labels) return text;
-    if (rev[text] !== undefined) return rev[text];              // monday shows the LABEL — the normal case
+    if (!f.labels) return f.unvalidatedEnum ? text : "";
+    if (has(rev, text)) return rev[text];                        // monday shows the LABEL — the normal case
     // monday's cell may already hold the INTERNAL VALUE: every write sets create_labels_if_missing, so a
     // value the dictionary could not resolve at write time became a label spelled as that raw value.
     // Accepting it keeps the function a fixed point on its own output, and refusing it would have
     // blocked exactly the records that most need repairing.
-    if ((ctx.labels[f.labels] ?? {})[text] !== undefined) return text;
+    if (has(ctx.labels[f.labels] ?? {}, text)) return text;
     return "";                                                   // genuinely unknown -> refuse
   }
   // NUMBERS: canonicalise, and refuse non-numeric rather than 400 on a HubSpot number property.
   if (f.type === "numbers") return numText(text);
-  return rev[text] ?? text;
+  // VALIDATED TEXT: a monday TEXT column standing in for a HubSpot ENUMERATION.
+  //
+  // Four Contact fields are shaped this way — leadsource (210 options), countries (198),
+  // lead_source_sub__c (558), city_1__c (673) — because monday cannot hold option sets that size: a
+  // column cannot be retyped, the verified label ceiling on this account is 88, and
+  // create_labels_if_missing:true on every write would grow a second permanent vocabulary in the
+  // column. A text column shows the label and this branch validates it on the way back, which gets
+  // two-way editing with none of that.
+  //
+  // Same two-clause shape as the status branch above, and the same reason for each clause: the cell
+  // normally holds the LABEL, but it may already hold the internal VALUE for a record whose label the
+  // dictionary could not resolve when it was written. Unknown text is REFUSED, which makes
+  // buildReversePatch omit the field; an otherwise-empty patch then falls through to a forward write,
+  // so HubSpot's value overwrites the invalid cell and the card self-heals instead of churning.
+  //
+  // Note this is fail-closed under my own uncertainty: if a dictionary is empty because its fetch
+  // failed, every edit is refused and the field behaves exactly as it did while it was one-way. The
+  // failure mode of being wrong here is a rejected edit, never a 400.
+  if (f.type === "text" && f.labels) {
+    if (has(rev, text)) return rev[text];
+    if (has(ctx.labels[f.labels] ?? {}, text)) return text;
+    return "";
+  }
+  return has(rev, text) ? rev[text] : text;
 }
 
 /** HubSpot PATCH body from monday-side values. Only reversible diffs are included. */

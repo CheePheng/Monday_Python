@@ -64,6 +64,19 @@ const LABEL_SOURCE: Record<LabelDict, { object: string; prop: string } | "dealPi
   industry:      { object: "companies", prop: "industry" },
   companyType:   { object: "companies", prop: "type" },
   partnerWith:   { object: "companies", prop: "partner_with" },
+  // Added 2026-09-09. Each of these is a HubSpot ENUMERATION whose monday column is a plain text or
+  // status/dropdown column, so the reverse write must check membership or HubSpot 400s and wedges the
+  // card. Option counts verified live against portal 39939588 on 2026-09-09:
+  //   sales_person 4, department_3__c 29, countries 198, city_1__c 673, lead_source_sub__c 558.
+  // The large ones are deliberately NOT retyped to monday dropdowns: monday cannot retype a column,
+  // 198/558/673 all exceed the 88-label ceiling verified on this account, and every write sets
+  // create_labels_if_missing:true so the column would accumulate a second vocabulary permanently.
+  // A text column plus a validated reverse gets two-way editing with none of that.
+  contactSalesPerson:   { object: "contacts", prop: "sales_person" },
+  contactDepartment:    { object: "contacts", prop: "department_3__c" },
+  contactCountries:     { object: "contacts", prop: "countries" },
+  contactCity:          { object: "contacts", prop: "city_1__c" },
+  contactLeadSourceSub: { object: "contacts", prop: "lead_source_sub__c" },
 };
 
 /** The label dictionaries THIS deployment's specs actually reference. */

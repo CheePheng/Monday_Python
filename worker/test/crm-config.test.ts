@@ -103,10 +103,14 @@ describe("CRM_CONTACTS", () => {
       .toMatchObject({ col: "color_mm70v2cd", type: "status", labels: "contactStatus" });
   });
 
-  it("leadsource is forward-only (~200 legacy options)", () => {
+  // Two-way from 2026-09-09. The 210 legacy options were never an argument against reversing it, only
+  // against putting them in a monday dropdown — the column stays TEXT and the validated-text branch
+  // checks membership on the way back. It is also the one field of the four text-enums where the
+  // dictionary genuinely TRANSLATES rather than only validating ("Others" -> "其他").
+  it("leadsource is two-way, validated against its 210-option dictionary", () => {
     const f = CRM_CONTACTS.fields.find(x => x.hs === "leadsource")!;
-    expect(f).toMatchObject({ col: "text_mm6sc26t", type: "text" });
-    expect(f.reverse).toBeUndefined();
+    expect(f).toMatchObject({ col: "text_mm6sc26t", type: "text", labels: "contactSource", reverse: true });
+    expect(f.unvalidatedEnum).toBeUndefined();
   });
 
   it("createdate is one-way and never reversible", () => {

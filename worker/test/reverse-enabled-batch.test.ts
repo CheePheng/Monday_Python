@@ -22,15 +22,30 @@ import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "../src/ty
  *     the same way the four text-enum fields need a dictionary guard.
  */
 
+// Dictionaries are HubSpot INTERNAL VALUE -> monday DISPLAY LABEL, matching getPropertyOptions.
 const LEAD_STATUS = { NEW: "New", IN_PROGRESS: "In Progress" };
 const CONTACT_PRIORITY = { "P1_2小时内": "P1_2小时内", "P2_1周内": "P2_1周内" };
 const CONTACT_STATUS = { "1New": "1新增", "7购买有意向": "7购买有意向" };
 const CONTACT_VENDOR = { HubSpot: "HubSpot", Tableau: "Tableau", Aircall: "Aircall" };
+// The real 4 options, verified live 2026-09-09. Ada and Heifer are deliberately NOT here — they are
+// real reps who are not options on this property, which is the whole point of the refusal test.
+const SALES_PERSON = {
+  "Elaine Rivera": "Elaine Rivera", "Emily You": "Emily You",
+  "Myla Mestiola": "Myla Mestiola", "Rick Avery Antonio": "Rick Avery Antonio",
+};
+// A representative slice of the live 29; value === label for every one of them.
+const DEPARTMENT = { Finance: "Finance", IT: "IT", "Engineering/R&D": "Engineering/R&D" };
+// A slice of leadsource's 210. "Others" -> "其他" is the ONE option where label != value, so it is the
+// only case where the dictionary does real translation work rather than membership checking.
+const CONTACT_SOURCE = { Others: "其他", "Web Form": "Web Form", "Trade Show": "Trade Show" };
+const CONTACT_CITY = { Shanghai: "Shanghai", "Kuala Lumpur": "Kuala Lumpur" };
 
 const ctx = {
   labels: {
     leadStatus: LEAD_STATUS, contactPriority: CONTACT_PRIORITY,
     contactStatus: CONTACT_STATUS, contactVendor: CONTACT_VENDOR,
+    contactSalesPerson: SALES_PERSON, contactDepartment: DEPARTMENT,
+    contactSource: CONTACT_SOURCE, contactCity: CONTACT_CITY,
   },
   ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: "1",
 } as unknown as Ctx;
@@ -81,9 +96,35 @@ describe("the batch is enabled, and only the batch", () => {
     expect(f(CRM_CONTACTS, "hubspot_owner_id").reverse).toBeUndefined();
   });
 
-  it.each(["countries", "lead_source_sub__c", "city_1__c", "leadsource"])(
-    "%s stays one-way pending text-enum validation", (hs) =>
-      expect(f(CRM_CONTACTS, hs).reverse).toBeUndefined());
+  // THE FOUR TEXT-ENUMS ARE NOW TWO-WAY (2026-09-09), which is what "pending text-enum validation"
+  // was waiting for. Each is a monday TEXT column standing in for a large HubSpot enumeration
+  // (leadsource 210 options, countries 198, lead_source_sub__c 558, city_1__c 673), and each now
+  // carries a dictionary so the validated-text branch can check membership. The dictionary is the
+  // enabling condition, so it is asserted together with `reverse` rather than separately.
+  it.each([
+    ["countries", "contactCountries"],
+    ["lead_source_sub__c", "contactLeadSourceSub"],
+    ["city_1__c", "contactCity"],
+    ["leadsource", "contactSource"],
+  ])("%s is two-way, validated against %s", (hs, dict) => {
+    const spec = f(CRM_CONTACTS, hs);
+    expect(spec).toMatchObject({ type: "text", labels: dict, reverse: true });
+    expect(spec.unvalidatedEnum).toBeUndefined();
+  });
+
+  // The invariant that makes this class of field safe, stated once over BOTH specs: a reversible
+  // status/dropdown/validated-text field must be able to check what it sends. Anything reversible on
+  // one of those types either has a dictionary or has explicitly opted out — and nothing on the CRM
+  // boards is allowed to opt out, because opting out is what wedged sales_person and department_3__c.
+  it("no CRM field reverses into an enum-shaped column without a dictionary", () => {
+    for (const spec of [CRM_CONTACTS, CRM_ACCOUNTS])
+      for (const fs of spec.fields) {
+        if (!fs.reverse) continue;
+        if (fs.type !== "status" && fs.type !== "dropdown") continue;
+        expect(fs.labels, `${spec.object}.${fs.hs} reverses with no dictionary`).toBeTruthy();
+        expect(fs.unvalidatedEnum, `${spec.object}.${fs.hs} opts out of validation`).toBeUndefined();
+      }
+  });
 });
 
 describe("each newly-enabled type reverses correctly", () => {
@@ -97,10 +138,20 @@ describe("each newly-enabled type reverses correctly", () => {
     expect(reverseFieldValue(st, "made up", ctx)).toBe("");
   });
 
-  it("status WITHOUT a dictionary passes through — sales_person has value === label", () => {
+  // CORRECTED 2026-09-09, and this is the assertion that was actively wrong rather than merely stale.
+  // It asserted a PASSTHROUGH and justified it with "sales_person has value === label" — which is
+  // true and irrelevant. sales_person is a 4-option HubSpot ENUMERATION (Elaine Rivera, Emily You,
+  // Myla Mestiola, Rick Avery Antonio), so value === label removes the need to translate a label but
+  // does nothing to check the text is an option. The requirements meeting is entirely about
+  // reassigning leads between reps named Ada and Heifer; either of those in this cell would have gone
+  // straight to HubSpot, 400'd, thrown before Sync State was stamped, and — with skipFullReconcile
+  // and no CRM cron — frozen every one of that card's 29 fields until someone edited it in HubSpot.
+  it("status maps a real option, and REFUSES a rep who is not one", () => {
     const sp = f(CRM_CONTACTS, "sales_person");
-    expect(sp.labels).toBeUndefined();
+    expect(sp.labels).toBe("contactSalesPerson");
     expect(reverseFieldValue(sp, "Emily You", ctx)).toBe("Emily You");
+    expect(reverseFieldValue(sp, "Ada", ctx)).toBe("");
+    expect(reverseFieldValue(sp, "Heifer", ctx)).toBe("");
   });
 
   it("dropdown WITH a dictionary validates and drops the unknown part", () => {
@@ -110,14 +161,40 @@ describe("each newly-enabled type reverses correctly", () => {
     expect(reverseFieldValue(v, "Nonsense", ctx)).toBe("");
   });
 
-  // THE BUG THIS BATCH WOULD HAVE SHIPPED. Without the no-dictionary branch this returned "" for
-  // every value, so department_3__c would have looked enabled and silently synced nothing.
-  it("dropdown WITHOUT a dictionary passes through instead of refusing everything", () => {
+  // THE OTHER HALF OF THE SAME MISTAKE. The original problem was real — with no dictionary the
+  // dropdown branch returned "" for every value, so department_3__c looked enabled and synced
+  // nothing — but the fix chosen was a raw passthrough, which traded a silent no-op for a card-
+  // freezing 400. The actual fix is a dictionary: multi-select still joins with ";" and an unknown
+  // label is still DROPPED rather than sent, so a rep who adds a monday label loses that one label
+  // instead of losing the whole card.
+  it("dropdown maps real options, joins multi-select, and drops an unknown label", () => {
     const d = f(CRM_CONTACTS, "department_3__c");
-    expect(d.labels).toBeUndefined();
+    expect(d.labels).toBe("contactDepartment");
     expect(reverseFieldValue(d, "Engineering/R&D", ctx)).toBe("Engineering/R&D");
     expect(reverseFieldValue(d, "Finance, IT", ctx)).toBe("Finance;IT");
+    expect(reverseFieldValue(d, "Finance, Invented Dept", ctx)).toBe("Finance");
+    expect(reverseFieldValue(d, "Invented Dept", ctx)).toBe("");
     expect(reverseFieldValue(d, "", ctx)).toBe("");
+  });
+
+  // The validated-text branch, on the shape that motivated it: monday shows the LABEL, and a cell that
+  // already holds the internal VALUE must also be accepted, or records written before the dictionary
+  // resolved could never be repaired. Unknown text is refused so the forward write heals the cell.
+  it("validated text accepts a label, accepts an internal value, refuses anything else", () => {
+    const ls = f(CRM_CONTACTS, "leadsource");
+    expect(reverseFieldValue(ls, "其他", ctx)).toBe("Others");        // label -> value (the one that differs)
+    expect(reverseFieldValue(ls, "Others", ctx)).toBe("Others");      // already the internal value
+    expect(reverseFieldValue(ls, "Web Form", ctx)).toBe("Web Form");  // label === value, the common case
+    expect(reverseFieldValue(ls, "Typed By Hand", ctx)).toBe("");     // refused, not sent
+  });
+
+  // An unvalidatable field must behave as though it were still one-way, never as a passthrough: if a
+  // dictionary fetch fails, ctx.labels is empty and every edit is refused. Being wrong about an option
+  // set therefore costs a rejected edit, never a wedged card.
+  it("an empty dictionary refuses everything rather than sending it raw", () => {
+    const emptyCtx = { ...ctx, labels: {} } as unknown as Ctx;
+    for (const hs of ["leadsource", "sales_person", "department_3__c", "city_1__c"])
+      expect(reverseFieldValue(f(CRM_CONTACTS, hs), "Anything", emptyCtx)).toBe("");
   });
 
   it("phone canonicalises, keeping a leading +", () => {

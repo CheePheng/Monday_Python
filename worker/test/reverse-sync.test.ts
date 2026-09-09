@@ -432,12 +432,33 @@ describe("status: label <-> internal value, in both directions", () => {
       expect(reverseFieldValue(lead, label, ctx)).toBe(value);
   });
 
-  // A status field with NO label dictionary means value === label by construction (deal_currency_code
-  // "USD", sales_person "Emily You"), so the raw text is already legal and must pass unchanged.
-  it("passes raw text through for a status field with no dictionary", () => {
+  // REVERSED ON 2026-09-09. This used to assert a passthrough, on the reasoning that a status field
+  // with no dictionary has value === label by construction so the raw text is already legal. That
+  // conflates TRANSLATION with MEMBERSHIP: value === label only means no mapping step is needed, and
+  // says nothing about whether the text is an option at all. monday lets a user rename or add a status
+  // label and every write we make sets create_labels_if_missing:true, so "Anything At All" really can
+  // reach the cell — and a HubSpot enumeration 400s on it, which throws before Sync State is stamped
+  // and freezes the whole card. Two live CRM fields (sales_person, department_3__c) shipped in that
+  // state for a few hours; both now carry dictionaries.
+  it("REFUSES raw text for a status field with no dictionary", () => {
     const noDict: FieldSpec = { ...lead, labels: undefined };
-    expect(reverseFieldValue(noDict, "Anything At All", ctx)).toBe("Anything At All");
+    expect(reverseFieldValue(noDict, "Anything At All", ctx)).toBe("");
   });
+
+  // The one escape hatch, and it exists only to keep the LIVE Work-Management deal_currency_code
+  // behaving exactly as it did — the flag preserves a behaviour, it does not grant a new one.
+  it("unless the field explicitly opts out with unvalidatedEnum", () => {
+    const optedOut: FieldSpec = { ...lead, labels: undefined, unvalidatedEnum: true };
+    expect(reverseFieldValue(optedOut, "Anything At All", ctx)).toBe("Anything At All");
+  });
+
+  // The prototype-key hole in the membership check itself: `dict[text] !== undefined` is truthy for
+  // keys inherited from Object.prototype, so a cell reading "constructor" validated and put
+  // Object.prototype.constructor — a Function — into the PATCH body. Now checked with Object.hasOwn.
+  it.each(["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"])(
+    "refuses the inherited Object key %s instead of returning a Function", (key) => {
+      expect(reverseFieldValue(lead, key, ctx)).toBe("");
+    });
 
   // Contrast — the dropdown branch DROPS an unknown label. This is why the two-way enum plan should be
   // dropdown-shaped, and it is asserted here so the asymmetry is visible next to the status tests.

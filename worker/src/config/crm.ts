@@ -106,7 +106,10 @@ export const CRM_CONTACTS: ObjectSpec = {
     { hs: "hs_lead_status", col: "color_mm6zb4tc", type: "status", labels: "leadStatus", reverse: true },
     // leadsource is FORWARD-ONLY into text: ~200 legacy options (Tableau/Alteryx webinar history), far
     // too many for a rep-facing dropdown. `labels` renders the friendly label, not the internal value.
-    { hs: "leadsource", col: "text_mm6sc26t", type: "text", labels: "contactSource" },
+    // TWO-WAY 2026-09-09 via the validated-text branch. 210 options, and the ONLY one of these four
+    // where label != value (a single option, "Others" -> "其他"), so the dictionary genuinely translates
+    // here rather than only checking membership.
+    { hs: "leadsource", col: "text_mm6sc26t", type: "text", labels: "contactSource", reverse: true },
     // Event Name — the marketing/event a contact came in from (e.g. "Reimagine - For HB/Aircall").
     // Verified `type: "string"` (free text), and the monday column was already text, so no retype was
     // needed. FORWARD-ONLY: HubSpot owns it and it is set at import/form time, not edited by reps.
@@ -162,7 +165,11 @@ export const CRM_CONTACTS: ObjectSpec = {
     // no monday home until now. Its 4 option VALUES equal their labels, so no label dictionary is
     // needed (and no extra HubSpot schema fetch). Forward-only for now; because value == label and the
     // column is seeded with exactly those 4, it is the one enum here that COULD safely go two-way.
-    { hs: "sales_person", col: "color_mm701ff2", type: "status", reverse: true },
+    // `labels` IS THE SAFETY MECHANISM here, not decoration. sales_person is a HubSpot ENUMERATION with
+    // exactly 4 options (Elaine Rivera, Emily You, Myla Mestiola, Rick Avery Antonio). It shipped
+    // reverse:true with NO dictionary on 2026-09-09, so the status branch sent whatever label the monday
+    // column held: setting it to any other rep would have 400'd and frozen every field on that card.
+    { hs: "sales_person", col: "color_mm701ff2", type: "status", labels: "contactSalesPerson", reverse: true },
     // Lifecycle Stage. This portal replaced HubSpot's defaults with a 10-stage Chinese pipeline
     // (生命周期阶段管道), and its option VALUES are a mix of semantic strings (lead/opportunity/customer)
     // and raw numeric ids (1028988526) - so the label dictionary is load-bearing, not cosmetic: without
@@ -197,14 +204,20 @@ export const CRM_CONTACTS: ObjectSpec = {
     // A SECOND phone, distinct from `phone`/contact_phone above. Both are on the sidebar.
     { hs: "mobilephone", col: "phone_mm70npah", type: "phone", reverse: true },
     // 29 single-select options -> dropdown. A 29-label status column fails outright (bare 500 above ~19).
-    { hs: "department_3__c", col: "dropdown_mm70t68r", type: "dropdown", reverse: true },
+    // The same 2026-09-09 fix as sales_person: a 29-option HubSpot enumeration that was reversing with
+    // no membership check. Its option values DO equal their labels, which is why no translation is needed
+    // and why the earlier reasoning looked sound — but monday lets a user add a dropdown label and every
+    // write sets create_labels_if_missing:true, so "already a legal value" was never actually true.
+    { hs: "department_3__c", col: "dropdown_mm70t68r", type: "dropdown", labels: "contactDepartment", reverse: true },
     // The CONTACT-level `industry` is hsType STRING with an empty options array — genuinely free text,
     // NOT the ~246-option COMPANY picklist of the same name mapped on CRM_ACCOUNTS below. Same label,
     // different object, different type; conflating them would have produced an unfillable dropdown.
     { hs: "industry", col: "text_mm7097s5", type: "text", reverse: true },
     // 673 options: ~7.6x the highest dropdown label count verified on this account (88) and far beyond
     // any picker a rep could use. text is a deliberate, documented exception to "enum -> picker".
-    { hs: "city_1__c", col: "text_mm703scw", type: "text" },
+    // 673 options — far past the 88-label ceiling monday tolerates on this account, so it stays a TEXT
+    // column and the reverse write validates against the dictionary instead of retyping the column.
+    { hs: "city_1__c", col: "text_mm703scw", type: "text", labels: "contactCity", reverse: true },
     // 省份 is a RELABELLED STANDARD PROPERTY — hs_state_code carries that label in this portal.
     // Deliberately NOT province_1__c, whose label is 省份# WITH a hash and which is a clean 34-option
     // enum with more data (10,064 rows on 广东省 alone vs 3,552 total here). The sidebar shows the
@@ -212,7 +225,7 @@ export const CRM_CONTACTS: ObjectSpec = {
     // sales team: they are pinning the messier, less-populated of the two province fields.
     { hs: "hs_state_code", col: "text_mm709ars", type: "text", reverse: true },
     // 198 options (12 pinned APAC + 185 alphabetical + a hand-added "Dubai UAE"), 2.25x the ceiling.
-    { hs: "countries", col: "text_mm705t8j", type: "text" },
+    { hs: "countries", col: "text_mm705t8j", type: "text", labels: "contactCountries", reverse: true },
     // Free-text "Specific Requirement" from the dkmeco.com web form. Prose -> long_text.
     { hs: "concrete_demand", col: "long_text_mm70scva", type: "long_text", reverse: true },
     { hs: "utm_term", col: "text_mm70vzzy", type: "text", reverse: true },
@@ -222,7 +235,12 @@ export const CRM_CONTACTS: ObjectSpec = {
     // retyped, so a truncation discovered later would be unrecoverable without losing the column.
     { hs: "registration_page__c", col: "long_text_mm70smr5", type: "long_text", reverse: true },
     // 558 options — 6.3x the ceiling, hopeless as a picker.
-    { hs: "lead_source_sub__c", col: "text_mm70a5c2", type: "text" },
+    // 558 options. NOTE for whoever debugs a refused edit here: 163 of those option VALUES contain a
+    // DOUBLE space, and "14 Day  Desktop Trial Request" coexists with its single-spaced spelling. If
+    // monday collapses internal whitespace in a text cell, those particular labels can never match and
+    // the edit is refused — safely, since the forward write then heals the cell, but confusingly.
+    // Unmeasured; the test file records the exact experiment that would settle it.
+    { hs: "lead_source_sub__c", col: "text_mm70a5c2", type: "text", labels: "contactLeadSourceSub", reverse: true },
   ],
 };
 
