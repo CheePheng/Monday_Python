@@ -45,9 +45,13 @@ const monday = async (query, variables = {}, attempt = 0) => {
     });
     b = await r.json().catch(() => ({}));
   } catch { /* network blip: fall through to the retry below */ }
-  if (!b.data) {
+  // `boards: null` with a 200 is a real monday response under load, so checking only for a missing
+  // `data` is not enough — the first version passed that guard and then died on `data.boards[0]`.
+  // Anything that is not a usable payload is treated as retryable.
+  const usable = b.data && (b.data.boards ? Array.isArray(b.data.boards) && b.data.boards[0] : true);
+  if (!usable) {
     if (attempt < 6) { await sleep(2000 * 2 ** attempt); return monday(query, variables, attempt + 1); }
-    throw new Error(`monday returned no data after retries: ${JSON.stringify(b.errors ?? b).slice(0, 200)}`);
+    throw new Error(`monday returned no usable data after retries: ${JSON.stringify(b.errors ?? b).slice(0, 200)}`);
   }
   return b.data;
 };

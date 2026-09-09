@@ -152,12 +152,24 @@ async function pace() {
   lastCall = Date.now();
 }
 
-/** True for the errors that mean "slow down" rather than "this request is wrong". */
-function isThrottleError(status, body) {
-  if (status === 429 || status === 503 || status === 502) return true;
+/**
+ * True for errors that mean "try again" rather than "this request is wrong".
+ *
+ * Covers two different things deliberately:
+ *  - THROTTLING (429/503/502, complexity, budget) — back off and the same request will succeed.
+ *  - monday's own INTERNAL ERRORS. These arrive as HTTP **200** with {"message":"Internal Server
+ *    Error"} inside the GraphQL errors array, which is why the first version missed them entirely: it
+ *    only inspected the status for server faults. 21 contacts were recorded as permanent failures
+ *    during the 2026-09-09 import for a fault that had nothing to do with their data — they would
+ *    have succeeded on a retry. A transient server fault must never be indistinguishable from
+ *    "monday rejected this value".
+ */
+function isRetryableError(status, body) {
+  if (status === 429 || status === 503 || status === 502 || status === 500) return true;
   const s = JSON.stringify(body ?? "").toLowerCase();
   return s.includes("complexity") || s.includes("rate limit") || s.includes("too many requests")
-    || s.includes("budget exhausted");
+    || s.includes("budget exhausted") || s.includes("internal server error")
+    || s.includes("service unavailable") || s.includes("timeout");
 }
 
 async function monday(token, query, variables = {}, attempt = 0) {
@@ -176,11 +188,12 @@ async function monday(token, query, variables = {}, attempt = 0) {
     return monday(token, query, variables, attempt + 1);
   }
   if (!res.ok || body.errors || body.error_message) {
-    if (isThrottleError(res.status, body) && attempt < 6) {
+    if (isRetryableError(res.status, body) && attempt < 6) {
       throttle.gapMs = Math.min(throttle.max, Math.max(throttle.gapMs * 2, 500));
       const backoff = Number(body?.error_data?.retry_in_seconds ?? 0) * 1000 || 2000 * 2 ** attempt;
-      console.log(`  [throttle] monday pushed back (http ${res.status}); waiting ${Math.round(backoff / 1000)}s,`
-        + ` request gap now ${throttle.gapMs}ms`);
+      const why = JSON.stringify(body.errors ?? body.error_message ?? "").slice(0, 80);
+      console.log(`  [retry ${attempt + 1}/6] monday http ${res.status} ${why}; waiting`
+        + ` ${Math.round(backoff / 1000)}s, request gap now ${throttle.gapMs}ms`);
       await sleep(backoff);
       return monday(token, query, variables, attempt + 1);
     }
