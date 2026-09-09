@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { LONG_TEXT_MAX, clampLongText, formatValue, expectedText } from "../src/mapping";
+import { buildReversePatch, fieldDiffs } from "../src/reconcile";
 import { CRM_CONTACTS, CRM_ACCOUNTS } from "../src/config/crm";
-import type { Ctx, FieldSpec } from "../src/types";
+import type { Ctx, FieldSpec, HsRecord, MondayItem } from "../src/types";
 
 /**
  * monday's long-text column holds EXACTLY 2000 characters, measured on this account rather than assumed:
@@ -23,6 +24,9 @@ const ctx = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByU
   ownerIdByEmail: {}, portalId: "1" } as unknown as Ctx;
 
 const LT: FieldSpec = { hs: "concrete_demand", col: "long_text_mm70scva", type: "long_text" };
+
+/** ctx with the 优先级 dictionary, for the "refusal does not starve the card" test at the bottom. */
+const priCtx = { ...ctx, labels: { contactPriority: { "P1_2小时内": "P1_2小时内", "P2_1周内": "P2_1周内" } } } as unknown as Ctx;
 
 describe("the clamp matches monday's measured 2000-character limit", () => {
   it("is exactly 2000 — the number monday actually stores", () =>
@@ -92,10 +96,85 @@ describe("which live mappings this protects", () => {
       .toEqual(["concrete_demand", "description", "registration_page__c"]);
   });
 
-  // All three are forward-only or HubSpot-authored, so the clamp can never truncate something a rep
-  // typed in monday and then push the shortened version back to HubSpot.
-  it("none of them is a plain two-way text field that could push a truncated value back", () => {
-    for (const f of longTextFields)
-      if (f.reverse) expect(f.hs).toBe("description");   // companies.description, HubSpot-authored prose
+  // THIS PREMISE EXPIRED ON 2026-09-09. It used to read "none of them is a plain two-way text field
+  // that could push a truncated value back", and that was true only because `concrete_demand` and
+  // `registration_page__c` were forward-only. The reverse batch made them two-way, which created the
+  // exact hazard the old assertion was watching for: monday shows the first 2000 characters of a
+  // longer HubSpot value, so a rep who edits that cell is editing a PARTIAL VIEW, and a naive reverse
+  // write would replace the full HubSpot text with their 2000-character version — silently deleting
+  // prose they were never shown. The guard is `viewTruncated`, asserted below.
+  it("two of the three are now two-way, which is why the viewTruncated guard exists", () => {
+    const twoWay = longTextFields.filter(f => f.reverse).map(f => f.hs).sort();
+    expect(twoWay).toEqual(["concrete_demand", "description", "registration_page__c"]);
+  });
+});
+
+describe("a two-way long_text refuses the reverse write when monday holds only a partial view", () => {
+  const cd = CRM_CONTACTS.fields.find(f => f.hs === "concrete_demand")!;
+
+  const rec = (v: string): HsRecord =>
+    ({ id: "301", properties: { firstname: "Jane", lastname: "Smith", concrete_demand: v } }) as unknown as HsRecord;
+  const card = (v: string): MondayItem => ({
+    id: "CARD1", name: "Jane Smith", group: { id: "topics" },
+    column_values: [
+      { id: CRM_CONTACTS.idCol, text: "301", value: null },
+      { id: cd.col, text: v, value: null },
+    ],
+  } as unknown as MondayItem);
+
+  // The rep's edit is REALISTIC: they opened a cell holding monday's 2000-character view of a longer
+  // HubSpot value and appended a sentence. Their text is genuinely new, and it is still refused —
+  // because accepting it would drop everything past character 2000 that they never saw.
+  it("refuses, and the card reconciles forward instead", () => {
+    const full = "a".repeat(2500);
+    const repEdit = "a".repeat(2000) + " plus my note";
+    const diffs = fieldDiffs(rec(full), card(repEdit), CRM_CONTACTS, ctx);
+    const d = diffs.find(x => x.f?.hs === "concrete_demand")!;
+    expect(d.viewTruncated).toBe(true);
+    expect(buildReversePatch(diffs, card(repEdit), CRM_CONTACTS, ctx)).toEqual({});
+  });
+
+  // The guard is scoped to the ACTUAL hazard, not to the type. A HubSpot value that fits in monday is
+  // fully visible on the card, so the rep is authoritative and the edit must go through — otherwise
+  // "Requirement" would be dead in monday for every normal-length record, which is the common case.
+  it("allows the write when the whole HubSpot value fits in monday", () => {
+    const item = card("需要 40 个席位，预算已批");
+    const diffs = fieldDiffs(rec("需要 20 个席位"), item, CRM_CONTACTS, ctx);
+    expect(diffs.find(x => x.f?.hs === "concrete_demand")!.viewTruncated).toBeUndefined();
+    expect(buildReversePatch(diffs, item, CRM_CONTACTS, ctx))
+      .toEqual({ concrete_demand: "需要 40 个席位，预算已批" });
+  });
+
+  // Boundary: exactly 2000 is stored EXACTLY by monday (measured above), so the card is complete and
+  // the write is allowed. 2001 is the first length monday cannot hold.
+  it("draws the line at 2001, not 2000", () => {
+    const at = card("b".repeat(1500));
+    expect(fieldDiffs(rec("a".repeat(2000)), at, CRM_CONTACTS, ctx)
+      .find(x => x.f?.hs === "concrete_demand")!.viewTruncated).toBeUndefined();
+    expect(fieldDiffs(rec("a".repeat(2001)), at, CRM_CONTACTS, ctx)
+      .find(x => x.f?.hs === "concrete_demand")!.viewTruncated).toBe(true);
+  });
+
+  // The refusal must not starve the OTHER fields on the same card. An earlier version of this code
+  // returned early on a refused reverse write, which froze every forward-only field on that card
+  // indefinitely; here the truncated long_text is skipped while a normal edit on the same card still
+  // reaches HubSpot in the same patch.
+  it("skips only the truncated field, leaving the rest of the patch intact", () => {
+    const pri = CRM_CONTACTS.fields.find(f => f.hs === "priority__c")!;
+    const item = {
+      id: "CARD1", name: "Jane Smith", group: { id: "topics" },
+      column_values: [
+        { id: CRM_CONTACTS.idCol, text: "301", value: null },
+        { id: cd.col, text: "a".repeat(2000) + " edited", value: null },
+        { id: pri.col, text: "P2_1周内", value: null },
+      ],
+    } as unknown as MondayItem;
+    const r = {
+      id: "301",
+      properties: { firstname: "Jane", lastname: "Smith",
+        concrete_demand: "a".repeat(2500), priority__c: "P1_2小时内" },
+    } as unknown as HsRecord;
+    const patch = buildReversePatch(fieldDiffs(r, item, CRM_CONTACTS, priCtx), item, CRM_CONTACTS, priCtx);
+    expect(patch).toEqual({ priority__c: "P2_1周内" });
   });
 });

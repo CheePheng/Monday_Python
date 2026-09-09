@@ -1,5 +1,5 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
-import { expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits } from "./mapping";
+import { LONG_TEXT_MAX, expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits } from "./mapping";
 import { colText } from "./dedup";
 import { reverseGroup, targetGroup } from "./routing";
 
@@ -9,6 +9,12 @@ export interface Diff {
   hsText: string;
   mdText: string;
   backfill?: boolean;
+  /** The monday cell is only a TRUNCATED VIEW of the HubSpot value, so it must never be written back.
+   *  monday's long-text column holds exactly 2000 characters and a longer HubSpot value is clamped on
+   *  the way in. Once such a field is two-way, a rep editing that cell would push their 2000-character
+   *  version over the longer original and destroy text they were never shown. Set in fieldDiffs,
+   *  honoured in buildReversePatch. */
+  viewTruncated?: boolean;
 }
 
 /** monday first-person in a people column -> HubSpot owner id (via email), or "" if none/unmapped. */
@@ -92,7 +98,13 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       // numbers: monday may render "1500000.50" or add thousands separators; hsText is already canonical.
       : f.type === "numbers" ? numText(mdText) === hsText
       : hsText === mdText;
-    if (!same) out.push({ kind: "field", f, hsText, mdText });
+    if (!same) {
+      // A long_text whose HubSpot value exceeds monday's 2000-character column is only PARTIALLY
+      // visible on the card, so the card cannot be authoritative for it.
+      const rawLen = String(rec.properties[f.hs] ?? "").length;
+      const viewTruncated = f.type === "long_text" && rawLen > LONG_TEXT_MAX;
+      out.push({ kind: "field", f, hsText, mdText, ...(viewTruncated ? { viewTruncated } : {}) });
+    }
   }
   const wantName = itemName(rec, spec);
   if (wantName !== item.name.trim()) out.push({ kind: "name", hsText: wantName, mdText: item.name.trim() });
@@ -138,6 +150,12 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
   }
   const rev = f.labels ? invert(ctx.labels[f.labels] ?? {}) : {};
   if (f.type === "dropdown") {
+    // NO DICTIONARY means value === label by construction (department_3__c, verified live: every option
+    // has value === label), so the monday text IS already a legal HubSpot value and must pass through.
+    // Without this the scan below runs against an EMPTY label list, finds nothing, and returns "" —
+    // silently refusing every edit on such a field. That is the same trap the status branch had, and it
+    // would have shipped the moment department_3__c was made reverse:true.
+    if (!f.labels) return text.split(",").map(s => s.trim()).filter(Boolean).join(";");
     if (rev[text] !== undefined) return rev[text]; // whole-label match first (single value)
     // Multi-select: monday joins labels with ", ", and a label can itself contain a comma, so don't
     // blindly split on ",". Greedily consume the longest known label at a comma/end boundary; an unknown
@@ -193,6 +211,12 @@ export function buildReversePatch(
       if (v) patch[spec.groupBy.prop] = v;
     }
     if (d.kind === "field" && (d.f?.reverse || d.f?.appReverse)) {   // the diff only exists when allowed
+      if (d.viewTruncated) {
+        console.log(`[reverse] field=${d.f.hs} type=${d.f.type} action=refused`
+          + ` reason="monday shows only the first ${LONG_TEXT_MAX} chars of a longer HubSpot value;`
+          + ` writing back would destroy the remainder"`);
+        continue;
+      }
       const v = reverseFieldValue(d.f, d.mdText, ctx);
       if (v) patch[d.f.hs] = v;
       // A NON-EMPTY cell that yields nothing was REFUSED (unknown status label, non-numeric number).

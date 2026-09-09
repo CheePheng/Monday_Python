@@ -121,26 +121,27 @@ describe("CRM_CONTACTS", () => {
     expect(CRM_CONTACTS.nameReverse).toBeUndefined();
   });
 
-  // Vendors stays DEFER: manufacturer__c is a MULTI-VALUE enum (a live record holds
-  // "49HubSpot;55Aircall") with 89 options, and an unvalidated text/status reverse would send a typo
-  // straight into the enumeration. It may only go two-way as a seeded multi-select dropdown.
-  // Now mapped, but FORWARD-ONLY. The hazard was never "showing it" — it was an unvalidated monday
-  // edit reaching an 89-option multi-value HubSpot enum. A seeded multi-select dropdown is the
-  // prerequisite for two-way; until then `reverse` must stay absent.
-  it("maps manufacturer__c FORWARD-ONLY — no unvalidated write into an 89-option enum", () => {
+  // Vendors is TWO-WAY as of 2026-09-09. The hazard was never "showing it" — it was an unvalidated
+  // monday edit reaching an 89-option MULTI-VALUE HubSpot enum (a live record holds
+  // "49HubSpot;55Aircall"), so a typo would have entered the enumeration. The stated prerequisite was
+  // a seeded multi-select dropdown, and that is exactly what this now is: a `dropdown` carrying the
+  // `contactVendor` dictionary, which makes the reverse path VALIDATE — each comma-separated label is
+  // looked up and an unknown one is DROPPED rather than sent. `labels` is therefore not cosmetic here;
+  // it is the safety mechanism, so the assertion keeps it pinned alongside `reverse`.
+  it("maps manufacturer__c TWO-WAY, and only because the dropdown dictionary validates the write", () => {
     const f = CRM_CONTACTS.fields.find(x => x.hs === "manufacturer__c")!;
-    expect(f).toMatchObject({ col: "dropdown_mm70zvnw", type: "dropdown", labels: "contactVendor" });
-    expect(f.reverse).toBeUndefined();
-    expect(f.appReverse).toBeUndefined();
+    expect(f).toMatchObject({
+      col: "dropdown_mm70zvnw", type: "dropdown", labels: "contactVendor", reverse: true,
+    });
     expect(f.backfill).toBeUndefined();
   });
 
-  // Approved 2026-09-07 from the mapping sheet. HubSpot `event_name` is verified free text and the
-  // monday column was already `text`, so no retype was needed.
-  it("event_name is mapped FORWARD-ONLY onto the existing Event Name column", () => {
+  // Approved 2026-09-07 from the mapping sheet; two-way from 2026-09-09. HubSpot `event_name` is
+  // verified FREE TEXT with no enumeration to corrupt, so there is nothing for a reverse write to
+  // violate — a rep correcting an event name is exactly the intent of "monday is the working system".
+  it("event_name is mapped TWO-WAY onto the existing Event Name column — free text, no enum", () => {
     const f = CRM_CONTACTS.fields.find(x => x.hs === "event_name")!;
-    expect(f).toMatchObject({ col: "text_mm6t8bxb", type: "text" });
-    expect(f.reverse).toBeUndefined();
+    expect(f).toMatchObject({ col: "text_mm6t8bxb", type: "text", reverse: true });
     expect(f.appReverse).toBeUndefined();
     expect(f.backfill).toBeUndefined();
   });

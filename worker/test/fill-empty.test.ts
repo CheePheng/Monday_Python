@@ -96,13 +96,31 @@ describe("monday value + blank HubSpot -> FILL", () => {
     expect(d.filter(x => x.f?.hs === "type")).toEqual([]);
   });
 
-  // Forward-only fields must NOT be filled from monday, however tempting — HubSpot owns them.
+  // Forward-only fields must NOT be filled from monday, however tempting — HubSpot owns them. The
+  // example is deliberately `hs_object_source_label`, a plain TEXT field: text always survives the
+  // reverse mapping, so nothing else can be doing the refusing. That isolates the guard to the
+  // `reverse` flag itself rather than to a dictionary lookup or a numeric parse further down.
+  // (This used to use `timezone`, which went two-way in the 2026-09-09 reverse batch.)
   it("only fills reverse:true fields, never a forward-only one", () => {
-    const fwd = CRM_ACCOUNTS.fields.find(f => f.hs === "timezone")!;
+    const fwd = CRM_ACCOUNTS.fields.find(f => f.hs === "hs_object_source_label")!;
     expect(fwd.reverse).toBeUndefined();
-    const d = fieldDiffs(rec({ timezone: "" }),
-      card(CRM_ACCOUNTS, "344965792487", { [fwd.col]: "Asia/Kuala_Lumpur" }), CRM_ACCOUNTS, ctx);
-    expect(d.filter(x => x.f?.hs === "timezone")).toEqual([]);
+    expect(fwd.type).toBe("text");
+    const d = fieldDiffs(rec({ hs_object_source_label: "" }),
+      card(CRM_ACCOUNTS, "344965792487", { [fwd.col]: "CRM_UI" }), CRM_ACCOUNTS, ctx);
+    expect(d.filter(x => x.f?.hs === "hs_object_source_label")).toEqual([]);
+  });
+
+  // The counterpart, so the test above cannot pass for the wrong reason (e.g. the card id failing to
+  // match, or the fill rule being off entirely). Same shape, same object, same TEXT type — the only
+  // difference is `reverse: true`, and this one DOES fill.
+  it("and the same shape with reverse:true DOES fill, proving the flag is what decides", () => {
+    const rev = CRM_ACCOUNTS.fields.find(f => f.hs === "timezone")!;
+    expect(rev.reverse).toBe(true);
+    expect(rev.type).toBe("text");
+    const item = card(CRM_ACCOUNTS, "344965792487", { [rev.col]: "Asia/Kuala_Lumpur" });
+    const d = fieldDiffs(rec({ timezone: "" }), item, CRM_ACCOUNTS, ctx);
+    expect(d.filter(x => x.f?.hs === "timezone")).toMatchObject([{ backfill: true }]);
+    expect(buildReversePatch(d, item, CRM_ACCOUNTS, ctx)).toEqual({ timezone: "Asia/Kuala_Lumpur" });
   });
 });
 

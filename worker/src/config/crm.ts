@@ -112,7 +112,7 @@ export const CRM_CONTACTS: ObjectSpec = {
     // needed. FORWARD-ONLY: HubSpot owns it and it is set at import/form time, not edited by reps.
     // Registration Date - verified type `date` in HubSpot, so it maps to a real date column.
     { hs: "registration_date", col: "date_mm70x5xn", type: "date", oneWay: true },
-    { hs: "event_name", col: "text_mm6t8bxb", type: "text" },
+    { hs: "event_name", col: "text_mm6t8bxb", type: "text", reverse: true },
     { hs: "createdate", col: "date_mm6z33nk", type: "date", oneWay: true },
     // --- added 2026-09-08 from the reviewed mapping sheet ---
     // Owner assigned date. HubSpot RESETS this on reassignment, which is exactly the semantics the
@@ -123,7 +123,7 @@ export const CRM_CONTACTS: ObjectSpec = {
     { hs: "notes_last_updated", col: "date_mm7054jz", type: "date", oneWay: true },
     // HubSpot priority in its OWN status column, labels seeded from the exact 4 SLA options. The board's
     // native Priority (High/Medium/Low) stays UNMAPPED — same concept name, different meaning.
-    { hs: "priority__c", col: "color_mm70ahh7", type: "status", labels: "contactPriority" },
+    { hs: "priority__c", col: "color_mm70ahh7", type: "status", labels: "contactPriority", reverse: true },
     // Sales User, DISPLAY-ONLY, in a SINGLE-SELECT DROPDOWN (was text_mm6sakj3, a text column).
     // `labels: "salesUser"` resolves the raw owner id to the person's name; the column is seeded with
     // all 41 of those names so the value is filterable and groupable instead of an opaque string.
@@ -157,12 +157,12 @@ export const CRM_CONTACTS: ObjectSpec = {
     //     label instead of passing it raw to the HubSpot enum, which is the prerequisite for two-way.
     // Still forward-only until that two-way step is explicitly approved. Labels were seeded from the
     // HubSpot property itself (scripts/convert-vendors-dropdown.mjs) so they cannot drift.
-    { hs: "manufacturer__c", col: "dropdown_mm70zvnw", type: "dropdown", labels: "contactVendor" },
+    { hs: "manufacturer__c", col: "dropdown_mm70zvnw", type: "dropdown", labels: "contactVendor", reverse: true },
     // Sales Person - a distinct property from sales_user, and a picker on the Create Contact form with
     // no monday home until now. Its 4 option VALUES equal their labels, so no label dictionary is
     // needed (and no extra HubSpot schema fetch). Forward-only for now; because value == label and the
     // column is seeded with exactly those 4, it is the one enum here that COULD safely go two-way.
-    { hs: "sales_person", col: "color_mm701ff2", type: "status" },
+    { hs: "sales_person", col: "color_mm701ff2", type: "status", reverse: true },
     // Lifecycle Stage. This portal replaced HubSpot's defaults with a 10-stage Chinese pipeline
     // (生命周期阶段管道), and its option VALUES are a mix of semantic strings (lead/opportunity/customer)
     // and raw numeric ids (1028988526) - so the label dictionary is load-bearing, not cosmetic: without
@@ -177,7 +177,7 @@ export const CRM_CONTACTS: ObjectSpec = {
     // not Chinese labels). Values differ from labels (1New -> 1新增) so the dictionary is load-bearing.
     // FORWARD-ONLY: 14 accumulated legacy options including two both numbered 7, plus "N",
     // "Philippines" and "Primed" - not a vocabulary a monday edit should be able to write back into.
-    { hs: "leadstatus", col: "color_mm70v2cd", type: "status", labels: "contactStatus" },
+    { hs: "leadstatus", col: "color_mm70v2cd", type: "status", labels: "contactStatus", reverse: true },
 
     // --- SIDEBAR PARITY, 2026-09-08 -------------------------------------------------------------
     // Every field pinned to the HubSpot contact's "About this contact" sidebar now has a column, with
@@ -195,13 +195,13 @@ export const CRM_CONTACTS: ObjectSpec = {
     // correctly. (Contrast sales_user and lifecyclestage, where they differ and the dict is essential.)
 
     // A SECOND phone, distinct from `phone`/contact_phone above. Both are on the sidebar.
-    { hs: "mobilephone", col: "phone_mm70npah", type: "phone" },
+    { hs: "mobilephone", col: "phone_mm70npah", type: "phone", reverse: true },
     // 29 single-select options -> dropdown. A 29-label status column fails outright (bare 500 above ~19).
-    { hs: "department_3__c", col: "dropdown_mm70t68r", type: "dropdown" },
+    { hs: "department_3__c", col: "dropdown_mm70t68r", type: "dropdown", reverse: true },
     // The CONTACT-level `industry` is hsType STRING with an empty options array — genuinely free text,
     // NOT the ~246-option COMPANY picklist of the same name mapped on CRM_ACCOUNTS below. Same label,
     // different object, different type; conflating them would have produced an unfillable dropdown.
-    { hs: "industry", col: "text_mm7097s5", type: "text" },
+    { hs: "industry", col: "text_mm7097s5", type: "text", reverse: true },
     // 673 options: ~7.6x the highest dropdown label count verified on this account (88) and far beyond
     // any picker a rep could use. text is a deliberate, documented exception to "enum -> picker".
     { hs: "city_1__c", col: "text_mm703scw", type: "text" },
@@ -210,17 +210,17 @@ export const CRM_CONTACTS: ObjectSpec = {
     // enum with more data (10,064 rows on 广东省 alone vs 3,552 total here). The sidebar shows the
     // hash-less one, confirmed from a screenshot, so that is what is mapped. Worth revisiting with the
     // sales team: they are pinning the messier, less-populated of the two province fields.
-    { hs: "hs_state_code", col: "text_mm709ars", type: "text" },
+    { hs: "hs_state_code", col: "text_mm709ars", type: "text", reverse: true },
     // 198 options (12 pinned APAC + 185 alphabetical + a hand-added "Dubai UAE"), 2.25x the ceiling.
     { hs: "countries", col: "text_mm705t8j", type: "text" },
     // Free-text "Specific Requirement" from the dkmeco.com web form. Prose -> long_text.
-    { hs: "concrete_demand", col: "long_text_mm70scva", type: "long_text" },
-    { hs: "utm_term", col: "text_mm70vzzy", type: "text" },
+    { hs: "concrete_demand", col: "long_text_mm70scva", type: "long_text", reverse: true },
+    { hs: "utm_term", col: "text_mm70vzzy", type: "text", reverse: true },
     // LONG_TEXT, not text, and the reason is measured: 19,504 populated values, of which only 1,008 are
     // URLs — the other 18,496 are Chinese page TITLES ("产品下载"). The longest live URL is 365 chars
     // (a percent-encoded Chinese utm_campaign). monday's text column cannot be widened AND cannot be
     // retyped, so a truncation discovered later would be unrecoverable without losing the column.
-    { hs: "registration_page__c", col: "long_text_mm70smr5", type: "long_text" },
+    { hs: "registration_page__c", col: "long_text_mm70smr5", type: "long_text", reverse: true },
     // 558 options — 6.3x the ceiling, hopeless as a picker.
     { hs: "lead_source_sub__c", col: "text_mm70a5c2", type: "text" },
   ],
@@ -289,7 +289,7 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     { hs: "city", col: "text_mm6tdrdn", type: "text", reverse: true },
     { hs: "state", col: "text_mm6t5tv", type: "text", reverse: true },
     { hs: "zip", col: "text_mm6t7ha4", type: "text", reverse: true },
-    { hs: "timezone", col: "text_mm6tys5f", type: "text" },
+    { hs: "timezone", col: "text_mm6tys5f", type: "text", reverse: true },
     { hs: "annualrevenue", col: "numeric_mm6zj731", type: "numbers", reverse: true },
     { hs: "linkedin_company_page", col: "link_mm6z41s3", type: "link", reverse: true },
     { hs: "description", col: "company_description", type: "long_text", reverse: true },
