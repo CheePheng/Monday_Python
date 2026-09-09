@@ -265,6 +265,11 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   searchFilters: [],                         // see the note on CRM_CONTACTS.searchFilters
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["name"],
+  // 4,315 of 26,206 HubSpot Companies (16.5%) have NO name, and 4,237 of those carry a domain — so
+  // without this that many cards read "companies 37108192909". The full domain stays in the Company
+  // domain name column; only the card label changes. See ObjectSpec.nameFallbackTransform.
+  nameFallbackProps: ["domain"],
+  nameFallbackTransform: "domainStem",
   // nameReverse omitted: a renamed card must not rewrite the HubSpot company name.
   boardId: "5028000496",
   idCol: "text_mm6tsnwx",

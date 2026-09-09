@@ -83,6 +83,10 @@ export function itemName(rec: HsRecord, spec: ObjectSpec): string {
       const local = at > 0 ? v.slice(0, at).trim() : "";
       return local || v;
     }
+    if (spec.nameFallbackTransform === "domainStem") {
+      // Same "use it as-is if it does not parse" rule: an unusable domain still beats a bare id.
+      return domainStem(v) || v;
+    }
     return v;
   }
   // Last resort. monday rejects an empty item name, so SOMETHING must be returned; the id at least
@@ -127,6 +131,45 @@ export function phoneDigits(v: string | null | undefined): string {
  * +85223506974 followed by 85290675945) and "8522382645695287557558" (22).
  */
 export const PHONE_MAX_DIGITS = 15;
+
+/**
+ * Generic second-level labels that sit in front of a two-letter country code in a MULTI-PART public
+ * suffix: com.cn, co.uk, com.sg, edu.cn, net.cn, co.jp …
+ *
+ * A PATTERN rather than a country list, because that is what the data supports: of the 4,237 nameless
+ * HubSpot companies that carry a domain, 698 end this way. A naive "label before the last dot" would
+ * have named all 698 cards "com".
+ *
+ * Deliberately not a full public-suffix list. That would be thousands of entries fetched from the
+ * internet to serve a display name, and being wrong here costs a slightly-off card label — nothing
+ * matches, dedups or syncs on this value.
+ */
+const GENERIC_SLD = /^(com|net|org|co|gov|edu|ac|biz|gob|or|ne|in)$/;
+
+/**
+ * The registrable stem of a domain, for use as a display name. "" when nothing usable is left.
+ *
+ *   hubspot.com                     -> hubspot
+ *   jsgjjn.com.cn                   -> jsgjjn      (com.cn is one suffix, not a label)
+ *   mhllp.co.uk                     -> mhllp
+ *   h.axhome.com.cn                 -> axhome      (subdomain dropped)
+ *   ihpc.astar.edu.sg               -> astar
+ *   reversetest-company.example.com -> example     (the REGISTRABLE name, not the subdomain)
+ *
+ * Characters are never rewritten and nothing is title-cased: the stem is shown exactly as registered.
+ * "jsgjjn" is not a word and prettifying it would only invent something the record never said.
+ */
+export function domainStem(v: string | null | undefined): string {
+  const host = String(v ?? "").trim().toLowerCase()
+    .replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/[/?#].*$/, "").replace(/[.\s]+$/, "");
+  if (!host) return "";
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 1) return parts[0] ?? "";
+  // Two-letter ccTLD behind a generic SLD means the last TWO labels are the suffix.
+  const suffixLabels = parts.length >= 3 && /^[a-z]{2}$/.test(parts[parts.length - 1])
+    && GENERIC_SLD.test(parts[parts.length - 2]) ? 2 : 1;
+  return parts[parts.length - 1 - suffixLabels] ?? parts[0];
+}
 
 /**
  * Is this phone value one monday can actually store?

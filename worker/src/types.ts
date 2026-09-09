@@ -159,10 +159,16 @@ export interface ObjectSpec {
    * 3,377 cards gain a readable name and the ambiguous ones remain separable by the adjacent Email
    * column, but the ambiguity is real and deliberate.
    *
-   * Characters are NEVER rewritten: no dots to spaces, no title-casing. "sales.apac_01" is not
-   * necessarily a person, and guessing a human name out of an address invents information.
+   * "domainStem" — hubspot.com becomes "hubspot", jsgjjn.com.cn becomes "jsgjjn", h.axhome.com.cn
+   * becomes "axhome". 4,315 of 26,206 HubSpot Companies (16.5%) carry no name at all, and 4,237 of
+   * those do have a domain, so this replaces "companies 37108192909" with something a salesperson can
+   * read, on 4,237 cards. The full domain stays in the Company domain name column untouched.
+   *
+   * Characters are NEVER rewritten under either transform: no dots to spaces, no title-casing.
+   * "sales.apac_01" is not necessarily a person and "jsgjjn" is not a word — prettifying either would
+   * invent information the record never contained.
    */
-  nameFallbackTransform?: "emailLocalPart";
+  nameFallbackTransform?: "emailLocalPart" | "domainStem";
   nameReverse?: string;  // HubSpot property to receive a renamed item (omit = name not reversible)
   boardId: string;
   idCol: string;         // numbers column storing the HubSpot record id (dedup key)

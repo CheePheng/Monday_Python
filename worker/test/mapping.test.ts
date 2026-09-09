@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  formatValue, buildColumnValues, itemName, expectedText, phoneStorable, PHONE_MAX_DIGITS,
+  formatValue, buildColumnValues, itemName, expectedText, phoneStorable, PHONE_MAX_DIGITS, domainStem,
 } from "../src/mapping";
 import type { Ctx, FieldSpec, ObjectSpec } from "../src/types";
 
@@ -245,4 +245,77 @@ describe("phone values monday cannot store", () => {
     expect(cv.c_type).toEqual({ labels: ["New Business"] });  // everything else survives
     expect(cv.c_id).toBe("1");
   });
+});
+
+/**
+ * domainStem — the registrable stem of a domain, used to label a Company card that HubSpot has no name
+ * for. 4,315 of 26,206 companies (16.5%) have no name and 4,237 of those carry a domain, so this is
+ * what stands between a salesperson and 4,237 cards reading "companies 37108192909".
+ *
+ * The multi-part public suffix is the case that actually matters here and is easy to get wrong: 698 of
+ * those 4,237 domains end in com.cn / co.uk / com.sg / edu.cn style suffixes, so a naive "label before
+ * the last dot" would have labelled 698 cards "com".
+ */
+describe("domainStem", () => {
+  it.each([
+    ["hubspot.com", "hubspot"],
+    ["example.com", "example"],
+    ["ukmarketreport.com", "ukmarketreport"],
+  ])("plain TLD: %s -> %s", (d, want) => expect(domainStem(d)).toBe(want));
+
+  // The 698-record case. Two-letter ccTLD behind a generic SLD means the last TWO labels are suffix.
+  it.each([
+    ["jsgjjn.com.cn", "jsgjjn"],
+    ["mhllp.co.uk", "mhllp"],
+    ["tathong.com.sg", "tathong"],
+    ["starrail.co.jp", "starrail"],
+    ["gench.edu.cn", "gench"],
+    ["seedtech.net.cn", "seedtech"],
+  ])("multi-part suffix: %s -> %s", (d, want) => expect(domainStem(d)).toBe(want));
+
+  // Subdomains are dropped in favour of the registrable name, with or without a multi-part suffix.
+  it.each([
+    ["h.axhome.com.cn", "axhome"],
+    ["ihpc.astar.edu.sg", "astar"],
+    ["mail.example.com", "example"],
+    ["qk.ilongyu.com.cn", "ilongyu"],
+    ["reversetest-company.example.com", "example"],
+  ])("subdomain dropped: %s -> %s", (d, want) => expect(domainStem(d)).toBe(want));
+
+  it("strips scheme, www and path first", () => {
+    expect(domainStem("https://www.acme.com/path?q=1")).toBe("acme");
+    expect(domainStem("HTTP://ACME.COM")).toBe("acme");
+  });
+
+  it("never rewrites characters or title-cases — jsgjjn is not a word to prettify", () => {
+    expect(domainStem("hong-yin.com.cn")).toBe("hong-yin");
+    expect(domainStem("idea-link.com.cn")).toBe("idea-link");
+  });
+
+  it.each(["", "   ", null, undefined])("unusable input %s -> empty", (d) =>
+    expect(domainStem(d as string)).toBe(""));
+
+  it("degenerates safely on a bare suffix or single label", () => {
+    expect(domainStem("localhost")).toBe("localhost");
+    expect(domainStem("com.cn")).toBe("com");
+  });
+});
+
+describe("Company cards named from their domain", () => {
+  const s: ObjectSpec = {
+    ...spec, object: "companies", nameProps: ["name"],
+    nameFallbackProps: ["domain"], nameFallbackTransform: "domainStem",
+  };
+
+  it("uses the HubSpot company name when there is one", () =>
+    expect(itemName({ id: "1", properties: { name: "HubSpot", domain: "hubspot.com" } }, s)).toBe("HubSpot"));
+
+  it("falls back to the domain stem when the name is blank", () =>
+    expect(itemName({ id: "37108192909", properties: { domain: "example.com" } }, s)).toBe("example"));
+
+  it("reaches the id ONLY when name and domain are both blank (78 such companies)", () =>
+    expect(itemName({ id: "37108192909", properties: {} }, s)).toBe("companies 37108192909"));
+
+  it("an unusable domain falls through to the raw value rather than the id", () =>
+    expect(itemName({ id: "1", properties: { domain: "???" } }, s)).toBe("???"));
 });
