@@ -52,7 +52,7 @@ const HS_API = "https://api.hubapi.com";
 function parseArgs(argv) {
   const a = {
     object: "", apply: false, preflight: false, selftest: false, reset: false,
-    limit: Infinity, batch: 10, itemsPage: 500, state: "",
+    limit: Infinity, batch: 10, itemsPage: 500, state: "", retryFailed: false,
     // 6 create-batches in flight. Chosen from the live measurement rather than guessed: the sequential
     // run held at 102 cards/min with the throttle never once widening, so monday's limiter was not the
     // constraint — its per-mutation latency was. 6 is deliberately short of the ~10 that would clear a
@@ -66,6 +66,7 @@ function parseArgs(argv) {
     else if (k === "--preflight") a.preflight = true;
     else if (k === "--selftest") a.selftest = true;
     else if (k === "--reset") a.reset = true;
+    else if (k === "--retry-failed") a.retryFailed = true;
     else if (k === "--object") a.object = argv[++i];
     else if (k === "--limit") a.limit = Number(argv[++i]);
     else if (k === "--batch") a.batch = Number(argv[++i]);
@@ -374,6 +375,86 @@ async function preflight(M, H, mod, specs) {
 }
 
 // ---------------------------------------------------------------- import
+
+/**
+ * Re-create only the records a previous pass RECORDED AS FAILED.
+ *
+ * The alternative is a full re-scan: the import skips already-carded records, so re-running from a
+ * reset cursor would eventually reach the failures — after paging all 94,318 contacts out of HubSpot
+ * again for the sake of ~130 records. This reads their ids straight from the state file instead.
+ *
+ * Needed because a fix that lands mid-run cannot help the run in flight: each pass bundles src/ at
+ * startup, so the process that recorded these failures is still executing the code that caused them.
+ * The 2026-09-09 case was over-length phone numbers failing the entire card.
+ *
+ * Idempotent: anything already carded is skipped, so running it twice creates nothing the second time.
+ */
+async function runRetryFailed(M, H, mod, spec, args) {
+  const { propertiesForSpec, buildColumnValues, itemName, targetGroup } = mod;
+  const prior = loadState(args.state);
+  const ids = [...new Set((prior?.failed ?? []).map(f => String(f.hsId)).filter(Boolean))];
+  console.log(`\n=== ${args.apply ? "RETRY" : "PLAN RETRY"} ${spec.object}: ${ids.length} previously-failed record(s) ===`);
+  if (!ids.length) { console.log("  nothing recorded as failed — nothing to do"); return; }
+
+  const { index } = await indexBoard(M, spec, args.itemsPage);
+  const todo = ids.filter(id => !index.has(id));
+  console.log(`  ${ids.length - todo.length} already carded (a previous retry, or the live Worker), ${todo.length} to create`);
+  if (!todo.length) return;
+
+  const props = propertiesForSpec(spec);
+  const result = { created: 0, failed: [], createdIds: [] };
+  let batch = [];
+  const drain = async (final = false) => {
+    const ready = () => batch.length >= args.batch || (final && batch.length > 0);
+    while (ready()) {
+      const chunks = [];
+      while (chunks.length < args.concurrency && ready()) chunks.push(batch.splice(0, args.batch));
+      if (args.apply) await Promise.all(chunks.map(c => flush(M, spec, c, result)));
+      else result.created += chunks.reduce((n, c) => n + c.length, 0);
+    }
+  };
+
+  for (let i = 0; i < todo.length; i += 100) {
+    const chunk = todo.slice(i, i + 100);
+    const res = await fetch(`${HS_API}/crm/v3/objects/${spec.object}/batch/read`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${H}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ properties: props, inputs: chunk.map(id => ({ id })) }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      result.failed.push({ hsId: chunk.join(","), reason: `hubspot batch http ${res.status}` });
+      continue;
+    }
+    for (const rec of body.results ?? []) {
+      const r = { id: String(rec.id), properties: rec.properties ?? {} };
+      const group = targetGroup(r, spec);
+      if (!group) continue;
+      const cv = buildColumnValues(r, spec, ctxOf(args));
+      cv[spec.syncStateCol] = r.properties[spec.modifiedProp] ?? "";
+      batch.push({ hsId: r.id, name: itemName(r, spec), group, cv });
+      await drain();
+    }
+    // A record HubSpot no longer returns was deleted or archived after the failure was recorded;
+    // that is a legitimate outcome, not an error, so it is simply reported.
+    const returned = new Set((body.results ?? []).map(x => String(x.id)));
+    for (const id of chunk) if (!returned.has(id)) console.log(`  ${id}: no longer in HubSpot — skipped`);
+  }
+  await drain(true);
+
+  console.log(`\n--- RETRY ${args.apply ? "DONE" : "PLANNED"} ---`);
+  console.log(`  ${args.apply ? "created" : "would create"} : ${result.created}`);
+  console.log(`  still failing : ${result.failed.length}`);
+  for (const f of result.failed.slice(0, 20)) console.log(`      ${f.hsId} ${f.reason}`);
+  if (args.apply && result.failed.length === 0 && prior) {
+    // Clear the failure list so a later verification pass does not re-report records that are now fine.
+    prior.failed = [];
+    saveState(args.state, prior);
+    console.log(`  cleared the failure list in ${args.state}`);
+  }
+}
+
+const ctxOf = args => args.ctx;
 
 async function runImport(M, H, mod, spec, args) {
   const { propertiesForSpec, buildColumnValues, itemName, targetGroup } = mod;
@@ -744,7 +825,8 @@ async function main() {
       + ` ${Object.keys(args.ctx.labels).length} label dictionaries`);
 
     if (!args.apply) console.log("\nPLAN MODE — nothing will be written. Add --apply to create cards.");
-    await runImport(M, H, mod, spec, args);
+    if (args.retryFailed) await runRetryFailed(M, H, mod, spec, args);
+    else await runImport(M, H, mod, spec, args);
   } finally {
     cleanup();
   }
