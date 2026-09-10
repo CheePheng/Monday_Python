@@ -289,9 +289,41 @@ async function flush(token, spec, batch, result) {
       result.failed.push({ hsId: batch[0].hsId, name: batch[0].name, reason: String(e).slice(0, 300) });
       return;
     }
-    console.log(`  [isolate] a batch of ${batch.length} failed; retrying individually`);
+    console.log(`  [isolate] a batch of ${batch.length} failed; checking what already landed`);
   }
-  for (const one of batch) await flush(token, spec, [one], result);
+  // THE ISOLATE PATH MUST FIRST ASK WHAT ALREADY LANDED. An aliased mutation is NOT atomic: monday can
+  // create several items and then fail the request, which returns an error for the whole document.
+  // Blindly retrying all ten then re-creates whatever had already committed. That produced 758
+  // duplicate HubSpot ids on the 2026-09-09 Contacts import while recording only 21 failures — most
+  // isolate retries SUCCEEDED, so nothing was logged and the duplicates stayed invisible until the
+  // board was verified. One search per record, on a rare path, is a cheap price for idempotency.
+  const landed = await alreadyCarded(token, spec, batch.map(b => b.hsId));
+  if (landed.size) console.log(`  [isolate] ${landed.size} of ${batch.length} already exist — not re-creating`);
+  for (const one of batch) {
+    if (landed.has(String(one.hsId))) { result.created++; continue; }   // committed by the failed mutation
+    await flush(token, spec, [one], result);
+  }
+}
+
+/**
+ * Which of these HubSpot ids ALREADY have a card? Asked only on the isolate path.
+ *
+ * `items_page_by_column_values` is monday's own search over the HubSpot ID column, so it is
+ * authoritative about what landed — including anything a partially-applied mutation committed.
+ */
+async function alreadyCarded(token, spec, hsIds) {
+  const found = new Set();
+  for (const hsId of hsIds) {
+    try {
+      const data = await monday(token,
+        `query ($b: ID!, $c: String!, $v: [String!]) {
+           items_page_by_column_values(limit: 2, board_id: $b,
+             columns: [{ column_id: $c, column_values: $v }]) { items { id } } }`,
+        { b: spec.boardId, c: spec.idCol, v: [String(hsId)] });
+      if ((data?.items_page_by_column_values?.items ?? []).length) found.add(String(hsId));
+    } catch { /* an unanswerable check falls through to the retry, which is the safe direction */ }
+  }
+  return found;
 }
 
 // ---------------------------------------------------------------- hubspot side
