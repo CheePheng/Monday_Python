@@ -52,7 +52,7 @@ const HS_API = "https://api.hubapi.com";
 function parseArgs(argv) {
   const a = {
     object: "", apply: false, preflight: false, selftest: false, reset: false,
-    limit: Infinity, batch: 10, itemsPage: 500, state: "", retryFailed: false,
+    limit: Infinity, batch: 10, itemsPage: 500, state: "", retryFailed: false, createMissing: false,
     // 6 create-batches in flight. Chosen from the live measurement rather than guessed: the sequential
     // run held at 102 cards/min with the throttle never once widening, so monday's limiter was not the
     // constraint — its per-mutation latency was. 6 is deliberately short of the ~10 that would clear a
@@ -67,6 +67,7 @@ function parseArgs(argv) {
     else if (k === "--selftest") a.selftest = true;
     else if (k === "--reset") a.reset = true;
     else if (k === "--retry-failed") a.retryFailed = true;
+    else if (k === "--create-missing") a.createMissing = true;
     else if (k === "--object") a.object = argv[++i];
     else if (k === "--limit") a.limit = Number(argv[++i]);
     else if (k === "--batch") a.batch = Number(argv[++i]);
@@ -469,6 +470,90 @@ async function runRetryFailed(M, H, mod, spec, args) {
 
 const ctxOf = args => args.ctx;
 
+/**
+ * CREATE EVERY RECORD THAT HAS NO CARD, computed by diffing HubSpot against the board.
+ *
+ * The authoritative close-out for a migration, and deliberately independent of the progress file.
+ * --retry-failed depends on a `failed` list that a successful retry CLEARS (and that a --reset would
+ * discard), so it cannot answer "is the board complete?" — only "did the recorded failures get
+ * another try?". This asks the only question that matters at the end: which HubSpot ids are absent
+ * from the board's HubSpot ID column?
+ *
+ * It also closes the gap the 2026-09-10 close-out exposed: 108 records failed, the retry ran, the
+ * list was cleared, and nothing in the state file could then prove whether those 108 existed.
+ *
+ * Ids are paged with ONE property (hs_object_id), so scanning 94,318 contacts costs ~950 cheap
+ * requests rather than a full property read; only the genuinely missing records are then fetched in
+ * full and created.
+ */
+async function runCreateMissing(M, H, mod, spec, args) {
+  const { propertiesForSpec, buildColumnValues, itemName, targetGroup } = mod;
+  console.log(`\n=== ${args.apply ? "CREATE MISSING" : "PLAN MISSING"} ${spec.object} ===`);
+
+  const { index } = await indexBoard(M, spec, args.itemsPage);
+  console.log(`  board holds ${index.size} distinct HubSpot id(s)`);
+
+  console.log(`  listing every HubSpot ${spec.object} id…`);
+  const all = [];
+  let after;
+  for (let page = 0; page < 2000; page++) {
+    const q = new URLSearchParams({ limit: "100", properties: "hs_object_id", archived: "false" });
+    if (after) q.set("after", after);
+    const body = await hubspot(H, `/crm/v3/objects/${spec.object}?${q}`);
+    for (const r of body.results ?? []) all.push(String(r.id));
+    after = body.paging?.next?.after ?? null;
+    if (all.length % 20000 === 0 && all.length) console.log(`    listed ${all.length}…`);
+    if (!after) break;
+  }
+  console.log(`  HubSpot holds ${all.length} ${spec.object}`);
+
+  const missing = all.filter(id => !index.has(id));
+  console.log(`  MISSING FROM THE BOARD: ${missing.length}`);
+  if (!missing.length) { console.log(`  the board is complete — nothing to create`); return { missing: 0, created: 0, failed: [] }; }
+  for (const id of missing.slice(0, 20)) console.log(`      ${id}`);
+  if (missing.length > 20) console.log(`      … and ${missing.length - 20} more`);
+  if (!args.apply) { console.log(`\n(nothing written — add --apply)`); return { missing: missing.length, created: 0, failed: [] }; }
+
+  const props = propertiesForSpec(spec);
+  const result = { created: 0, failed: [], createdIds: [] };
+  let batch = [];
+  const drain = async (final = false) => {
+    const ready = () => batch.length >= args.batch || (final && batch.length > 0);
+    while (ready()) {
+      const chunks = [];
+      while (chunks.length < args.concurrency && ready()) chunks.push(batch.splice(0, args.batch));
+      await Promise.all(chunks.map(c => flush(M, spec, c, result)));
+    }
+  };
+
+  for (let i = 0; i < missing.length; i += 100) {
+    const chunk = missing.slice(i, i + 100);
+    const res = await fetch(`${HS_API}/crm/v3/objects/${spec.object}/batch/read`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${H}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ properties: props, inputs: chunk.map(id => ({ id })) }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { result.failed.push({ hsId: chunk.join(","), reason: `hubspot batch http ${res.status}` }); continue; }
+    for (const rec of body.results ?? []) {
+      const r = { id: String(rec.id), properties: rec.properties ?? {} };
+      const group = targetGroup(r, spec);
+      if (!group) continue;
+      const cv = buildColumnValues(r, spec, ctxOf(args));
+      cv[spec.syncStateCol] = r.properties[spec.modifiedProp] ?? "";
+      batch.push({ hsId: r.id, name: itemName(r, spec), group, cv });
+      await drain();
+    }
+  }
+  await drain(true);
+
+  console.log(`\n--- MISSING CREATED ---`);
+  console.log(`  created : ${result.created}`);
+  console.log(`  FAILED  : ${result.failed.length}`);
+  for (const f of result.failed.slice(0, 20)) console.log(`      ${f.hsId} ${String(f.reason).slice(0, 160)}`);
+  return { missing: missing.length, created: result.created, failed: result.failed };
+}
+
 async function runImport(M, H, mod, spec, args) {
   const { propertiesForSpec, buildColumnValues, itemName, targetGroup } = mod;
   const props = propertiesForSpec(spec);
@@ -838,7 +923,8 @@ async function main() {
       + ` ${Object.keys(args.ctx.labels).length} label dictionaries`);
 
     if (!args.apply) console.log("\nPLAN MODE — nothing will be written. Add --apply to create cards.");
-    if (args.retryFailed) await runRetryFailed(M, H, mod, spec, args);
+    if (args.createMissing) await runCreateMissing(M, H, mod, spec, args);
+    else if (args.retryFailed) await runRetryFailed(M, H, mod, spec, args);
     else await runImport(M, H, mod, spec, args);
   } finally {
     cleanup();
