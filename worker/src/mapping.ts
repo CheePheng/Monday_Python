@@ -44,7 +44,10 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
     // (the WM contacts board keeps email in a plain text column), so nothing in production changes.
     case "email": {
       const e = v.trim();
-      return e ? { email: e, text: e } : null;
+      // Omit rather than send an address monday's validator rejects: a rejected cell fails the whole
+      // create. expectedText applies the same test so no diff is raised. See emailStorable.
+      if (!emailStorable(e)) return null;
+      return { email: e, text: e };
     }
     // monday LINK column. Needs { url, text }. Distinct from spec.linkCol, which is the fixed
     // "Open in HubSpot" deep link; this carries a HubSpot URL property (e.g. linkedin_company_page).
@@ -191,6 +194,31 @@ export function phoneStorable(v: string | null | undefined): boolean {
 }
 
 /**
+ * Is this address one monday's email column will accept?
+ *
+ * THE SAME HAZARD AS phoneStorable, and the third instance of one pattern worth naming: several monday
+ * column types VALIDATE their input, a create sends every column in a single mutation, so one rejected
+ * cell fails the ENTIRE card. A validated column therefore needs a guard on our side, and the guard has
+ * to be consulted by formatValue AND expectedText or the card churns forever instead.
+ *
+ * monday validates more strictly than HubSpot stores. All 7 rejections in the 2026-09-09 Contacts
+ * import were NON-ASCII local parts, which HubSpot holds happily:
+ *
+ *   doáz.zwhswdp@newlogic.com      vy.xfåuljqnq@flyfrontier.com   tzkyjö.mbbaö@diytrade.com.hk
+ *   eøey@visionsgroup.co.uk        müw.akw@complyadvantage.com    oühvqbr@suntecgroup.com
+ *   hpepn.wâ€™ewofs@gammonconstruction.com   (a mojibake apostrophe, also non-ASCII)
+ *
+ * The address is NOT lost: it stays in HubSpot, and itemName still names the card from the raw
+ * property ("doáz.zwhswdp"), because a text column accepts what an email column will not.
+ */
+export function emailStorable(v: string | null | undefined): boolean {
+  const s = String(v ?? "").trim();
+  if (!s) return false;
+  if (/[^\x00-\x7F]/.test(s)) return false;              // the observed cause, every time
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);        // plus a basic shape check
+}
+
+/**
  * Canonical comparison form for a LINK column. Applied to BOTH sides, like phoneDigits.
  *
  * A monday link column does NOT echo back what you wrote. formatValue sends
@@ -262,7 +290,9 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
   // Email: compared CASE-INSENSITIVELY. HubSpot stores what was typed ("Bob@X.com") while monday's email
   // column may echo a normalised form, and a raw compare would diff every tick and loop. fieldDiffs
   // lowercases the monday side to match.
-  if (f.type === "email") return v.toLowerCase();
+  // An address monday will not store reports "" so it is treated as an empty HubSpot value: no diff,
+  // no write, no churn. Must stay in lockstep with formatValue's identical check.
+  if (f.type === "email") return emailStorable(v) ? v.toLowerCase() : "";
   switch (f.type) {
     case "date": return v.slice(0, 10);
     // numText, so the diff, the forward write and the reverse write all canonicalise identically.

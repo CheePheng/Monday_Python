@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  formatValue, buildColumnValues, itemName, expectedText, phoneStorable, PHONE_MAX_DIGITS, domainStem,
+  formatValue, buildColumnValues, itemName, expectedText, phoneStorable, PHONE_MAX_DIGITS, domainStem, emailStorable,
 } from "../src/mapping";
 import type { Ctx, FieldSpec, ObjectSpec } from "../src/types";
 
@@ -318,4 +318,65 @@ describe("Company cards named from their domain", () => {
 
   it("an unusable domain falls through to the raw value rather than the id", () =>
     expect(itemName({ id: "1", properties: { domain: "???" } }, s)).toBe("???"));
+});
+
+/**
+ * ADDRESSES MONDAY WILL NOT STORE, found by the live Contacts import on 2026-09-10.
+ *
+ * The third instance of one pattern: several monday column types VALIDATE their input, a create sends
+ * every column in a single mutation, so one rejected cell fails the ENTIRE card. All 7 rejections were
+ * NON-ASCII local parts, which HubSpot holds happily and monday refuses.
+ *
+ * The address is not lost — it stays in HubSpot, and itemName still labels the card from the raw
+ * property, because a TEXT column accepts what an EMAIL column will not.
+ */
+describe("email addresses monday cannot store", () => {
+  const email: FieldSpec = { hs: "email", col: "c_email", type: "email" };
+
+  it.each([
+    ["bob@example.com", true],
+    ["a.b-c_d@sub.example.co.uk", true],
+    // The seven live rejections, all non-ASCII.
+    ["doáz.zwhswdp@newlogic.com", false],
+    ["vy.xfåuljqnq@flyfrontier.com", false],
+    ["tzkyjö.mbbaö@diytrade.com.hk", false],
+    ["eøey@visionsgroup.co.uk", false],
+    ["müw.akw@complyadvantage.com", false],
+    ["oühvqbr@suntecgroup.com", false],
+    ["hpepn.wâ€™ewofs@gammonconstruction.com", false],
+    // Shape failures too.
+    ["no-at-sign", false],
+    ["two@@example.com", false],
+    ["missing@tld", false],
+    ["has space@example.com", false],
+    ["", false],
+  ])("emailStorable(%s) === %s", (v, want) => expect(emailStorable(v)).toBe(want));
+
+  it("OMITS the cell rather than failing the whole card", () => {
+    expect(formatValue(email, "müw.akw@complyadvantage.com", ctx)).toBeNull();
+    expect(formatValue(email, "tnf.qov@complyadvantage.com", ctx))
+      .toEqual({ email: "tnf.qov@complyadvantage.com", text: "tnf.qov@complyadvantage.com" });
+  });
+
+  // The half that prevents a churn bug, exactly as for phone: if expectedText still predicted the
+  // address, every such card would be rewritten on every webhook chasing a value monday cannot hold.
+  it("expectedText agrees, so no diff is raised for an address the cell cannot hold", () => {
+    expect(expectedText(email, "müw.akw@complyadvantage.com", ctx)).toBe("");
+    expect(formatValue(email, "müw.akw@complyadvantage.com", ctx)).toBeNull();
+    expect(expectedText(email, "Bob@Example.COM", ctx)).toBe("bob@example.com");
+  });
+
+  it("leaves the rest of the card intact when the email is dropped", () => {
+    const s: ObjectSpec = {
+      ...spec, object: "contacts", nameProps: ["firstname"],
+      nameFallbackProps: ["email"], nameFallbackTransform: "emailLocalPart",
+      fields: [email, { hs: "jobtitle", col: "c_title", type: "text" }],
+    };
+    const rec = { id: "9", properties: { email: "müw.akw@complyadvantage.com", jobtitle: "Analyst" } };
+    const cv = buildColumnValues(rec, s, ctx);
+    expect(cv.c_email).toBeUndefined();        // dropped
+    expect(cv.c_title).toBe("Analyst");        // the rest survives
+    // AND the card is still named from the address, because a text column accepts non-ASCII.
+    expect(itemName(rec, s)).toBe("müw.akw");
+  });
 });
