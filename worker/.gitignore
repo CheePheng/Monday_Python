@@ -2,9 +2,13 @@ node_modules/
 .wrangler/
 .dev.vars
 
-# Historical-import runtime state: resume cursors, progress logs, supervisor output.
+# Historical-import and audit runtime state: resume cursors, progress logs, supervisor output, the
+# JSON/text artifacts each measurement script writes beside itself.
 # Machine-local and rewritten constantly; committing them would create noise and could resurrect a
 # stale cursor on another checkout, making a resumed import skip records it never actually created.
-scripts/.backfill-*.json
-scripts/.migration-log.txt
-scripts/.supervisor.out*
+#
+# Broadened from the three explicit patterns it started as: every one of these scripts writes its
+# output to a dotfile next to itself, so naming them one at a time only ever caught up after the fact
+# (.relations.out, .audit-*.json, .supervisor-contacts.out and a dozen others were all missed). No
+# dotfile under scripts/ is tracked, so the wildcard loses nothing.
+scripts/.*

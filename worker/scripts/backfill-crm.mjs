@@ -731,26 +731,31 @@ async function runRelations(M, H, mod, args) {
   if (!accounts.size) throw new Error("no Accounts cards have HubSpot IDs — run --object companies first");
 
   /**
-   * ACCOUNTS CARDS THAT ARE ALREADY OVERSIZED, and must not be linked to any further.
+   * THE LINK CEILING — where monday actually stops accepting links into a relation cell.
    *
-   * monday's board_relation columns are PAIRED, so every contact -> account write also grows the
-   * account's own cell. Measured live on 2026-09-11: HubSpot company 37258070678 has 2,007 associated
-   * contacts, and its Accounts card accepted links up to 751 before monday began rejecting every
-   * further write. Each rejection then fell to the isolate path, which retried all 10 records
-   * individually with exponential backoff — roughly two minutes burnt per contact. 13 companies in
-   * this portal carry more than 200 contacts (2,007 / 1,581 / 1,105 / 639 / 555 / 423 / 303 / …),
-   * about 7,400 contacts between them, so the pass would have ground for days.
+   * board_relation columns are PAIRED, so every contact -> account write also grows the ACCOUNT's own
+   * cell. Measured live on 2026-09-11: HubSpot company 37258070678 has 2,007 associated contacts, and
+   * its Accounts card accepted links up to 751 before monday began rejecting every further write.
+   * Each rejection fell to the isolate path, which retried all 10 records individually with
+   * exponential backoff — roughly two minutes burnt per contact.
    *
-   * Skipping is also the better product answer, not merely the faster one: a relation cell holding
-   * 751 links is unusable to the salesperson it exists for. The association stays intact in HubSpot,
-   * which is where that many-to-one fact belongs.
+   * THE FIRST VERSION OF THIS GUARD CAPPED AT 200 AND THAT WAS WRONG. 200 was a guess made while the
+   * pass was stalling; the platform's real limit is ~750. Capping at 200 abandoned roughly 2,705
+   * relations monday would have accepted without complaint — a self-inflicted data gap, not a
+   * platform one. 740 sits just under the measured 751 and gives up nothing real.
    *
-   * The cap is on what the account ALREADY holds, read once up front, so this costs no extra requests
-   * per record.
+   * Only 13 companies in this portal exceed even 200 contacts (2,007 / 1,581 / 1,105 / 639 / 555 /
+   * 423 / 303 / 297 / 250 / 238 / …), so the ceiling now binds on two or three of them rather than 13.
+   * For those, skipping remains the better product answer as well as the faster one: a relation cell
+   * holding 751 links is unusable to the salesperson it exists for, and the association stays intact
+   * in HubSpot, which is where that many-to-one fact belongs.
+   *
+   * The counter starts from ONE up-front read of the whole Accounts board and then tracks our own
+   * queued links, so the ceiling is enforced against the PROJECTED size at no per-record cost.
    */
-  const OVERSIZED_AT = Number(args.relationCap ?? 200);
-  console.log(`  reading current link counts on the Accounts board (cap ${OVERSIZED_AT})…`);
-  const oversized = new Set();
+  const LINK_CEILING = Number(args.relationCap ?? 740);
+  console.log(`  reading current link counts on the Accounts board (ceiling ${LINK_CEILING})…`);
+  const links = new Map();      // HubSpot company id -> links its Accounts card holds, kept live below
   {
     const relAcct = CRM_ACCOUNTS.associations?.find(a => a.relationCol)?.relationCol;
     let cursor = null, checked = 0;
@@ -765,12 +770,13 @@ async function runRelations(M, H, mod, args) {
       for (const it of page.items) {
         const hsId = (it.column_values.find(c => c.id === CRM_ACCOUNTS.idCol)?.text ?? "").trim();
         const n = (it.column_values.find(c => c.id === relAcct)?.linked_item_ids ?? []).length;
-        if (hsId && n >= OVERSIZED_AT) oversized.add(hsId);
+        if (hsId) links.set(hsId, n);
         checked++;
       }
       cursor = page.cursor;
     } while (cursor);
-    console.log(`  ${oversized.size} of ${checked} Accounts cards already hold >= ${OVERSIZED_AT} links`
+    const atCeiling = [...links.values()].filter(n => n >= LINK_CEILING).length;
+    console.log(`  ${atCeiling} of ${checked} Accounts cards already hold >= ${LINK_CEILING} links`
       + ` — contacts for those are skipped`);
   }
 
@@ -800,6 +806,7 @@ async function runRelations(M, H, mod, args) {
   const result = {
     withAssociations: 0, alreadyCorrect: 0, written: 0, noAccountCard: 0,
     multiCompany: 0, failed: [], missingCompanyIds: new Set(), oversizedAccount: 0,
+    cappedOnly: 0, cappedCompanies: new Map(),
   };
   const pending = [];
   const drainRelations = async (final = false) => {
@@ -835,15 +842,33 @@ async function runRelations(M, H, mod, args) {
       if (companyIds.length > 1) result.multiCompany++;
 
       const want = [];
+      let cappedHere = false;
       for (const cid of companyIds) {
-        // An account already at the cap is skipped: monday rejects the write and the paired cell is
-        // unusable at that size anyway. The HubSpot association is untouched. See OVERSIZED_AT.
-        if (oversized.has(cid)) { result.oversizedAccount++; continue; }
+        /**
+         * PROJECTED, not merely current — this is the correction that matters at a ceiling of 740.
+         *
+         * board_relation columns are PAIRED, so every contact -> account link we write also grows the
+         * ACCOUNT's cell. A card holding 600 links today passes a static ">= 740?" test on every one
+         * of its remaining contacts, sails past the real limit mid-pass, and from then on monday
+         * rejects each write — which falls to the isolate path and burns roughly two minutes per
+         * contact. Charging our own queued links against the ceiling is what stops that, and it costs
+         * no extra requests: the counter starts from the one up-front read.
+         */
+        const held = links.get(cid) ?? 0;
+        if (held >= LINK_CEILING) {
+          result.oversizedAccount++;
+          cappedHere = true;
+          result.cappedCompanies.set(cid, (result.cappedCompanies.get(cid) ?? 0) + 1);
+          continue;
+        }
         const acct = accounts.get(cid);
-        if (acct) want.push(acct[0]);            // [0]: duplicates are reported by --preflight
+        if (acct) { want.push(acct[0]); links.set(cid, held + 1); }   // [0]: duplicates are in --preflight
         else result.missingCompanyIds.add(cid);
       }
-      if (!want.length) { result.noAccountCard++; continue; }
+      // Separated deliberately: "their company has no card" is an unfinished import, while "their
+      // company is full" is a permanent platform limit. Reporting both as noAccountCard would have
+      // read as import breakage.
+      if (!want.length) { cappedHere ? result.cappedOnly++ : result.noAccountCard++; continue; }
 
       const same = want.length === card.linked.length && want.every(x => card.linked.includes(x));
       if (same) { result.alreadyCorrect++; continue; }
@@ -868,7 +893,11 @@ async function runRelations(M, H, mod, args) {
   console.log(`  contacts linked to >1 company               : ${result.multiCompany}`);
   console.log(`  skipped: associated company has no Accounts card : ${result.noAccountCard}`);
   console.log(`  distinct HubSpot company ids with no card   : ${result.missingCompanyIds.size}`);
-  console.log(`  skipped: account already at the link cap    : ${result.oversizedAccount}`);
+  console.log(`  skipped: account at monday's link ceiling   : ${result.oversizedAccount} pairs`
+    + ` across ${result.cappedCompanies.size} accounts`);
+  console.log(`  contacts left with NO link solely because of it : ${result.cappedOnly}`);
+  for (const [cid, n] of [...result.cappedCompanies].sort((a, b) => b[1] - a[1]).slice(0, 20))
+    console.log(`      HubSpot company ${cid}: ${n} contacts unlinked (card holds ${links.get(cid) ?? "?"})`);
   console.log(`  FAILED : ${result.failed.length}`);
   for (const f of result.failed.slice(0, 10)) console.log(`      ${f.chunk ?? f.itemId}: ${f.reason}`);
   if (result.missingCompanyIds.size)
