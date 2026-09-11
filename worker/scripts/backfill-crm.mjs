@@ -68,6 +68,7 @@ function parseArgs(argv) {
     else if (k === "--reset") a.reset = true;
     else if (k === "--retry-failed") a.retryFailed = true;
     else if (k === "--create-missing") a.createMissing = true;
+    else if (k === "--relation-cap") a.relationCap = Number(argv[++i]);
     else if (k === "--object") a.object = argv[++i];
     else if (k === "--limit") a.limit = Number(argv[++i]);
     else if (k === "--batch") a.batch = Number(argv[++i]);
@@ -729,6 +730,50 @@ async function runRelations(M, H, mod, args) {
   console.log(`  ${accounts.size} Accounts cards carry a HubSpot ID`);
   if (!accounts.size) throw new Error("no Accounts cards have HubSpot IDs — run --object companies first");
 
+  /**
+   * ACCOUNTS CARDS THAT ARE ALREADY OVERSIZED, and must not be linked to any further.
+   *
+   * monday's board_relation columns are PAIRED, so every contact -> account write also grows the
+   * account's own cell. Measured live on 2026-09-11: HubSpot company 37258070678 has 2,007 associated
+   * contacts, and its Accounts card accepted links up to 751 before monday began rejecting every
+   * further write. Each rejection then fell to the isolate path, which retried all 10 records
+   * individually with exponential backoff — roughly two minutes burnt per contact. 13 companies in
+   * this portal carry more than 200 contacts (2,007 / 1,581 / 1,105 / 639 / 555 / 423 / 303 / …),
+   * about 7,400 contacts between them, so the pass would have ground for days.
+   *
+   * Skipping is also the better product answer, not merely the faster one: a relation cell holding
+   * 751 links is unusable to the salesperson it exists for. The association stays intact in HubSpot,
+   * which is where that many-to-one fact belongs.
+   *
+   * The cap is on what the account ALREADY holds, read once up front, so this costs no extra requests
+   * per record.
+   */
+  const OVERSIZED_AT = Number(args.relationCap ?? 200);
+  console.log(`  reading current link counts on the Accounts board (cap ${OVERSIZED_AT})…`);
+  const oversized = new Set();
+  {
+    const relAcct = CRM_ACCOUNTS.associations?.find(a => a.relationCol)?.relationCol;
+    let cursor = null, checked = 0;
+    do {
+      const page = (await monday(M,
+        `query ($b: ID!, $c: String, $n: Int!, $ids: [String!]) {
+           boards(ids: [$b]) { items_page(limit: $n, cursor: $c) {
+             cursor items { id column_values(ids: $ids) {
+               id text ... on BoardRelationValue { linked_item_ids } } } } } }`,
+        { b: CRM_ACCOUNTS.boardId, c: cursor, n: args.itemsPage, ids: [CRM_ACCOUNTS.idCol, relAcct] }
+      )).boards[0].items_page;
+      for (const it of page.items) {
+        const hsId = (it.column_values.find(c => c.id === CRM_ACCOUNTS.idCol)?.text ?? "").trim();
+        const n = (it.column_values.find(c => c.id === relAcct)?.linked_item_ids ?? []).length;
+        if (hsId && n >= OVERSIZED_AT) oversized.add(hsId);
+        checked++;
+      }
+      cursor = page.cursor;
+    } while (cursor);
+    console.log(`  ${oversized.size} of ${checked} Accounts cards already hold >= ${OVERSIZED_AT} links`
+      + ` — contacts for those are skipped`);
+  }
+
   // Every Contacts card with a HubSpot id, plus whatever it is already linked to.
   const cards = [];
   let cursor = null;
@@ -754,7 +799,7 @@ async function runRelations(M, H, mod, args) {
   const byHsId = new Map(cards.map(c => [c.hsId, c]));
   const result = {
     withAssociations: 0, alreadyCorrect: 0, written: 0, noAccountCard: 0,
-    multiCompany: 0, failed: [], missingCompanyIds: new Set(),
+    multiCompany: 0, failed: [], missingCompanyIds: new Set(), oversizedAccount: 0,
   };
   const pending = [];
   const drainRelations = async (final = false) => {
@@ -791,6 +836,9 @@ async function runRelations(M, H, mod, args) {
 
       const want = [];
       for (const cid of companyIds) {
+        // An account already at the cap is skipped: monday rejects the write and the paired cell is
+        // unusable at that size anyway. The HubSpot association is untouched. See OVERSIZED_AT.
+        if (oversized.has(cid)) { result.oversizedAccount++; continue; }
         const acct = accounts.get(cid);
         if (acct) want.push(acct[0]);            // [0]: duplicates are reported by --preflight
         else result.missingCompanyIds.add(cid);
@@ -820,6 +868,7 @@ async function runRelations(M, H, mod, args) {
   console.log(`  contacts linked to >1 company               : ${result.multiCompany}`);
   console.log(`  skipped: associated company has no Accounts card : ${result.noAccountCard}`);
   console.log(`  distinct HubSpot company ids with no card   : ${result.missingCompanyIds.size}`);
+  console.log(`  skipped: account already at the link cap    : ${result.oversizedAccount}`);
   console.log(`  FAILED : ${result.failed.length}`);
   for (const f of result.failed.slice(0, 10)) console.log(`      ${f.chunk ?? f.itemId}: ${f.reason}`);
   if (result.missingCompanyIds.size)
