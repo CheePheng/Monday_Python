@@ -19,7 +19,7 @@ existing HubSpot Service Key needs `crm.objects.deals.read`, `crm.objects.deals.
 `crm.objects.line_items.read`, `crm.objects.line_items.write`. This is a hard prerequisite, not a
 nice-to-have — the Worker uses that key, not the connector.
 
-**2. `dealstage` has 45 values whose labels are not unique, and the monday status column cannot hold
+**2. `dealstage` has 42 values whose labels are not unique, and the monday status column cannot hold
 them.** Three pipelines each use the same nine Chinese stage labels with different internal ids —
 `赢单` alone exists three times (`cd8b9086…`, `d0e83c62…`, `ea1194fc…`). Our reverse mapping inverts a
 label→value dictionary, so inverting this one would silently collapse three stages into one and a
@@ -125,7 +125,7 @@ monday UI — these are legacy automations and the API cannot toggle them.
 
 ### 2.4 `dealstage` — why Stage must be one-way, and what to build instead
 
-HubSpot's 45 `dealstage` values span 5 pipelines. Grouped by label:
+HubSpot's 42 `dealstage` values span 5 pipelines. Grouped by label:
 
 - **Salesforce × 3 pipelines**, nine labels each, *identical text, different ids*: `1 共同利益 MI`,
   `2 探索 Discover`, `3 验证 Validate`, `4 选择 Select`, `5 决定 Decide`, `6 承诺 Commit`, `暂停`,
