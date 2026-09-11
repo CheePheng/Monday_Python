@@ -259,3 +259,68 @@ describe("shrinksFreshCard — partial association read on a brand-new card", ()
   it("an unparseable created_at is treated as old (fails open, never wedges)", () =>
     expect(shrinksFreshCard("", ["cA"], ["cA", "cB"], NOW)).toBe(false));
 });
+
+/**
+ * CHARACTERIZATION, NOT APPROVAL — a gap the four guards above cannot see.
+ *
+ * This block asserts what the code does TODAY so the gap is visible and pinned. It is deliberately
+ * not a fix: changing it alters the live Work-Management Worker, which runs CONTACTS_MYLA,
+ * COMPANIES_MYLA and DEALS off this same engine, and that needs explicit approval rather than a
+ * quiet edit. When the fifth guard lands, THIS TEST SHOULD FAIL and be rewritten — that failure is
+ * the point of writing it.
+ *
+ * THE GAP. `want` is built by resolving each associated HubSpot id through an index of target cards
+ * keyed by their HubSpot ID column. An Accounts card carrying NO HubSpot ID can therefore never
+ * appear in `want`. Measured 2026-09-11: 414 of the 27,952 Accounts cards are in that state.
+ *
+ * For a contact linked to one of those 414, with HubSpot asserting at least one company:
+ *   - sameSet            -> false (the sets differ)
+ *   - clearsFromEmpty    -> false (HubSpot's set is not empty)
+ *   - shrinksFreshCard   -> false (the card is older than 90s)
+ *   - resolvedAllIds     -> TRUE, because every id HubSpot returned DID resolve
+ * so no guard holds, the write proceeds, and the link is deleted.
+ *
+ * The arithmetic is doing exactly what it was written to do — "a genuine removal still reconciles,
+ * because then every remaining id resolves". The flaw is that the arithmetic cannot distinguish
+ * "this contact left that company" from "this link points at a card HubSpot has never heard of".
+ * HubSpot's silence about a record it does not know is not evidence of removal — it is the same
+ * blind spot resolvedAllIds already exists to respect, in a form resolvedAllIds cannot detect.
+ *
+ * PROPOSED FIFTH GUARD (pending approval): union into `want` any currently-linked card whose own
+ * HubSpot ID column is empty. That closes the hole exactly, and unlike a blanket additive policy it
+ * does not freeze legitimate removals — a card that HAS a HubSpot ID which HubSpot no longer
+ * associates still reconciles away.
+ */
+describe("KNOWN GAP: a link to a target card with no HubSpot ID is removable today", () => {
+  const NOW = Date.parse("2026-09-11T12:00:00Z");
+  const established = new Date(NOW - 3600 * 1000).toISOString();
+
+  // current = [cardA (has a HubSpot id), cardManual (no HubSpot id, linked by a person)]
+  // HubSpot associates company hsA only, which resolves cleanly to cardA.
+  const ids = ["hsA"];
+  const want = ["cardA"];
+  const current = ["cardA", "cardManual"];
+
+  it("none of the four guards holds, so the manual link is written away", () => {
+    expect(sameSet(current, want)).toBe(false);
+    expect(clearsFromEmpty(current, want)).toBe(false);
+    expect(shrinksFreshCard(established, want, current, NOW)).toBe(false);
+    expect(resolvedAllIds(ids, want)).toBe(true);
+
+    // The call site's condition is `!resolvedAllIds(ids, want) && <shrinkage explained>`; with
+    // resolvedAllIds true the whole condition is false, so nothing stops the write.
+    expect(!resolvedAllIds(ids, want)).toBe(false);
+  });
+
+  it("it IS protected only when HubSpot asserts nothing at all", () => {
+    expect(clearsFromEmpty(current, [])).toBe(true);
+  });
+
+  /** The historical backfill took the opposite decision for the same case — see
+   *  scripts/relation-plan.mjs and relation-plan.test.ts, where a bulk pass has no per-record intent
+   *  and is additive-only. The two paths disagreeing is the finding, not an accident of this test. */
+  it("the historical backfill preserves what this path removes", () => {
+    // Asserted as documentation of the divergence; the behaviour itself is tested in relation-plan.
+    expect(resolvedAllIds(ids, want) && !sameSet(current, want)).toBe(true);
+  });
+});

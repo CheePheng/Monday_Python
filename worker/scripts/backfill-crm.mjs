@@ -42,6 +42,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildSync } from "esbuild";
+import { planContactLinks, CAPPED, NO_ACCOUNT_CARD, ALREADY_CORRECT } from "./relation-plan.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MONDAY_API = "https://api.monday.com/v2";
@@ -755,7 +756,10 @@ async function runRelations(M, H, mod, args) {
    */
   const LINK_CEILING = Number(args.relationCap ?? 740);
   console.log(`  reading current link counts on the Accounts board (ceiling ${LINK_CEILING})…`);
-  const links = new Map();      // HubSpot company id -> links its Accounts card holds, kept live below
+  // KEYED BY MONDAY ITEM ID, not HubSpot company id: the thing that fills up is the Accounts CARD's
+  // relation cell. Keying it by what actually has the limit also lets planContactLinks give a slot
+  // back when a replacement write drops a link, with no itemId -> companyId reverse index.
+  const links = new Map();
   {
     const relAcct = CRM_ACCOUNTS.associations?.find(a => a.relationCol)?.relationCol;
     let cursor = null, checked = 0;
@@ -768,9 +772,8 @@ async function runRelations(M, H, mod, args) {
         { b: CRM_ACCOUNTS.boardId, c: cursor, n: args.itemsPage, ids: [CRM_ACCOUNTS.idCol, relAcct] }
       )).boards[0].items_page;
       for (const it of page.items) {
-        const hsId = (it.column_values.find(c => c.id === CRM_ACCOUNTS.idCol)?.text ?? "").trim();
         const n = (it.column_values.find(c => c.id === relAcct)?.linked_item_ids ?? []).length;
-        if (hsId) links.set(hsId, n);
+        links.set(String(it.id), n);
         checked++;
       }
       cursor = page.cursor;
@@ -807,6 +810,7 @@ async function runRelations(M, H, mod, args) {
     withAssociations: 0, alreadyCorrect: 0, written: 0, noAccountCard: 0,
     multiCompany: 0, failed: [], missingCompanyIds: new Set(), oversizedAccount: 0,
     cappedOnly: 0, cappedCompanies: new Map(),
+    preservedExtra: 0, contactsWithExtra: 0,
   };
   const pending = [];
   const drainRelations = async (final = false) => {
@@ -841,38 +845,37 @@ async function runRelations(M, H, mod, args) {
       result.withAssociations++;
       if (companyIds.length > 1) result.multiCompany++;
 
-      const want = [];
-      let cappedHere = false;
-      for (const cid of companyIds) {
-        /**
-         * PROJECTED, not merely current — this is the correction that matters at a ceiling of 740.
-         *
-         * board_relation columns are PAIRED, so every contact -> account link we write also grows the
-         * ACCOUNT's cell. A card holding 600 links today passes a static ">= 740?" test on every one
-         * of its remaining contacts, sails past the real limit mid-pass, and from then on monday
-         * rejects each write — which falls to the isolate path and burns roughly two minutes per
-         * contact. Charging our own queued links against the ceiling is what stops that, and it costs
-         * no extra requests: the counter starts from the one up-front read.
-         */
-        const held = links.get(cid) ?? 0;
-        if (held >= LINK_CEILING) {
-          result.oversizedAccount++;
-          cappedHere = true;
-          result.cappedCompanies.set(cid, (result.cappedCompanies.get(cid) ?? 0) + 1);
-          continue;
-        }
-        const acct = accounts.get(cid);
-        if (acct) { want.push(acct[0]); links.set(cid, held + 1); }   // [0]: duplicates are in --preflight
-        else result.missingCompanyIds.add(cid);
+      /**
+       * ADDITIVE-ONLY, and projected against the ceiling. The arithmetic lives in
+       * scripts/relation-plan.mjs and is unit-tested, because the version written inline here shipped
+       * three defects at once: it charged already-linked associations against the ceiling
+       * (double-counting every existing link), it dropped capped accounts out of `want` — which
+       * DELETES them, since the write replaces the cell rather than appending — and it never gave a
+       * slot back when a replacement removed a link.
+       *
+       * The third of those is now moot: this pass no longer removes anything at all. `item_ids`
+       * replaces the cell, so a `want` built purely from HubSpot's current associations would delete
+       * every link HubSpot does not presently assert — including links to the 320 Accounts cards that
+       * carry no HubSpot ID and therefore CANNOT appear in `want`. Those are salespeople's own work.
+       * See the header of relation-plan.mjs for the full argument.
+       */
+      const plan = planContactLinks({
+        companyIds, linked: card.linked, counts: links, accounts, ceiling: LINK_CEILING,
+      });
+      for (const cid of plan.missing) result.missingCompanyIds.add(cid);
+      for (const cid of plan.capped) {
+        result.oversizedAccount++;
+        result.cappedCompanies.set(cid, (result.cappedCompanies.get(cid) ?? 0) + 1);
       }
+      // Measured, never acted on: links this pass preserves because HubSpot does not assert them.
+      if (plan.extra.length) { result.preservedExtra += plan.extra.length; result.contactsWithExtra++; }
       // Separated deliberately: "their company has no card" is an unfinished import, while "their
       // company is full" is a permanent platform limit. Reporting both as noAccountCard would have
       // read as import breakage.
-      if (!want.length) { cappedHere ? result.cappedOnly++ : result.noAccountCard++; continue; }
-
-      const same = want.length === card.linked.length && want.every(x => card.linked.includes(x));
-      if (same) { result.alreadyCorrect++; continue; }
-      pending.push({ itemId: card.itemId, want });
+      if (plan.outcome === CAPPED) { result.cappedOnly++; continue; }
+      if (plan.outcome === NO_ACCOUNT_CARD) { result.noAccountCard++; continue; }
+      if (plan.outcome === ALREADY_CORRECT) { result.alreadyCorrect++; continue; }
+      pending.push({ itemId: card.itemId, want: plan.want });
     }
 
     // Chunked to exactly args.batch, for the same reason the create path is: monday rejects an
@@ -896,8 +899,15 @@ async function runRelations(M, H, mod, args) {
   console.log(`  skipped: account at monday's link ceiling   : ${result.oversizedAccount} pairs`
     + ` across ${result.cappedCompanies.size} accounts`);
   console.log(`  contacts left with NO link solely because of it : ${result.cappedOnly}`);
+  // This pass is additive-only, so these are PRESERVED, not removed. The figure exists so the size of
+  // the monday/HubSpot divergence is known rather than guessed, should a reconciliation ever be asked
+  // for — it would need its own audited pass and an export of exactly what it intends to drop.
+  console.log(`  links preserved that HubSpot does not assert : ${result.preservedExtra}`
+    + ` on ${result.contactsWithExtra} contacts (NOT removed — this pass never removes)`);
+  // links is keyed by monday item id, so the held count is looked up through the accounts index.
   for (const [cid, n] of [...result.cappedCompanies].sort((a, b) => b[1] - a[1]).slice(0, 20))
-    console.log(`      HubSpot company ${cid}: ${n} contacts unlinked (card holds ${links.get(cid) ?? "?"})`);
+    console.log(`      HubSpot company ${cid}: ${n} contacts unlinked`
+      + ` (card ${accounts.get(cid)?.[0] ?? "?"} holds ${links.get(String(accounts.get(cid)?.[0])) ?? "?"})`);
   console.log(`  FAILED : ${result.failed.length}`);
   for (const f of result.failed.slice(0, 10)) console.log(`      ${f.chunk ?? f.itemId}: ${f.reason}`);
   if (result.missingCompanyIds.size)
