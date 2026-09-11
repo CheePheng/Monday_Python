@@ -174,12 +174,29 @@ if (mode === "verify") {
     return now.length === s.before.length && s.before.every(x => now.includes(x));
   });
   check(`all ${correct.length} already-correct cards were left completely alone`, correctUntouched);
+  /**
+   * NEWLY added, not merely present — and getting this wrong would have failed a correct run.
+   *
+   * The first version asserted that no capped card appears in the after-state at all. But the sample
+   * shows the common capped case is a contact ALREADY linked to the full account (e.g. contact
+   * 2855736455, before=["2855584566"], whose card holds 745). Additive-only retains that link, by
+   * design — retention is not an addition, which is the whole of rule 2. So the naive assertion would
+   * have reported CANARY FAILED on exactly the behaviour we spent four rounds building.
+   *
+   * What must not happen is a capped card being ADDED to a cell that did not have it.
+   */
   const capped = snap.selected.filter(s => s.group === "capped");
-  const cappedUnchanged = capped.every(s => {
+  const cappedNotAdded = capped.every(s => {
+    const beforeSet = new Set(s.before);
     const nowSet = new Set(after.get(s.itemId)?.linked ?? []);
-    return !s.cappedCardIds.some(x => nowSet.has(x));
+    return !s.cappedCardIds.some(x => !beforeSet.has(x) && nowSet.has(x));
   });
-  check(`none of the ${capped.length} capped contacts was linked to a full account`, cappedUnchanged);
+  check(`no capped account was NEWLY linked on any of the ${capped.length} capped contacts`, cappedNotAdded);
+  const cappedRetained = capped.every(s => {
+    const nowSet = new Set(after.get(s.itemId)?.linked ?? []);
+    return s.before.filter(x => s.cappedCardIds.includes(x)).every(x => nowSet.has(x));
+  });
+  check(`existing links to full accounts were RETAINED (rule 2: retention is not an addition)`, cappedRetained);
   const addOnly = snap.selected.filter(s => s.group === "add-only");
   const addOnlyGained = addOnly.filter(s => (after.get(s.itemId)?.linked ?? []).length > s.before.length).length;
   check(`add-only group actually gained links (the pass did real work)`, addOnlyGained > 0,
@@ -191,7 +208,8 @@ if (mode === "verify") {
       console.log(`  contact ${p.itemId} [${p.group}] ${JSON.stringify(p.name).slice(0, 32)}: ${p.problem}`
         + `\n      before: ${JSON.stringify(p.before)}\n      after : ${JSON.stringify(p.nowLinked ?? [])}`);
   }
-  const verdict = lost === 0 && unassertedKept && correctUntouched && cappedUnchanged && addOnlyGained > 0;
+  const verdict = lost === 0 && unassertedKept && correctUntouched
+    && cappedNotAdded && cappedRetained && addOnlyGained > 0;
   console.log(`\n  ${verdict ? "CANARY CLEAN — the full run is justified." : "CANARY FAILED — do not run the full pass."}`);
   writeFileSync(join(ROOT, "scripts", ".canary-relations-verify.json"),
     JSON.stringify({ gained, lost, unchanged, byGroup, problems, verdict }, null, 2), "utf8");
