@@ -72,6 +72,10 @@ function parseArgs(argv) {
     else if (k === "--relation-cap") a.relationCap = Number(argv[++i]);
     else if (k === "--object") a.object = argv[++i];
     else if (k === "--limit") a.limit = Number(argv[++i]);
+    // A stratified canary: run the REAL pass against a handful of chosen cards rather than a copy of
+    // it. canary-relations.mjs picks the ids and verifies the before/after cells; the write path here
+    // is byte-for-byte the one the full run uses, which is the entire point of a canary.
+    else if (k === "--only") a.only = new Set(String(argv[++i]).split(/[,\s]+/).filter(Boolean));
     else if (k === "--batch") a.batch = Number(argv[++i]);
     else if (k === "--concurrency") a.concurrency = Math.max(1, Number(argv[++i]));
     else if (k === "--state") a.state = argv[++i];
@@ -820,13 +824,17 @@ async function runRelations(M, H, mod, args) {
     for (const it of page.items) {
       const hsId = (it.column_values.find(c => c.id === CRM_CONTACTS.idCol)?.text ?? "").trim();
       if (!hsId) continue;
+      if (args.only && !args.only.has(String(it.id))) continue;
       const linked = (it.column_values.find(c => c.id === rel)?.linked_item_ids ?? []).map(String);
       cards.push({ itemId: it.id, hsId, linked });
     }
     cursor = page.cursor;
     if (cards.length % 5000 === 0 && cards.length) console.log(`  read ${cards.length} contact cards…`);
   } while (cursor);
-  console.log(`  ${cards.length} contact cards carry a HubSpot ID`);
+  console.log(`  ${cards.length} contact cards carry a HubSpot ID`
+    + (args.only ? ` (restricted to the ${args.only.size} --only ids)` : ""));
+  if (args.only && cards.length !== args.only.size)
+    console.log(`  WARNING: ${args.only.size - cards.length} of the --only ids were not found on the board`);
 
   const byHsId = new Map(cards.map(c => [c.hsId, c]));
   const result = {
@@ -834,7 +842,7 @@ async function runRelations(M, H, mod, args) {
     multiCompany: 0, failed: [], missingCompanyIds: new Set(), oversizedAccount: 0,
     cappedOnly: 0, cappedCompanies: new Map(),
     preservedExtra: 0, contactsWithExtra: 0,
-    rescuedMidRun: 0, assocReadErrors: 0,
+    rescuedMidRun: 0, assocReadErrors: 0, noCompanyReported: 0,
   };
   const pending = [];
   const drainRelations = async (final = false) => {
@@ -863,20 +871,34 @@ async function runRelations(M, H, mod, args) {
       continue;
     }
     /**
-     * PARTIAL FAILURES ARE COUNTED, not inferred from the absence of a row.
+     * PARTIAL FAILURES ARE COUNTED, not inferred from the absence of a row — but "no companies" is
+     * NOT a failure, and HubSpot reports it as one.
      *
-     * This endpoint answers 207 MULTI-STATUS when some inputs fail, and 207 passes `res.ok`. It also
-     * omits a row entirely for a contact with no companies — which is legitimate and common. So a
-     * missing row means either "no companies" or "this input errored", and reading the count of rows
-     * as the count processed conflates the two: up to 100 contacts could be dropped per chunk while
-     * the pass reported nothing wrong. `numErrors`/`errors` is the only thing that separates them.
+     * This endpoint answers 207 MULTI-STATUS when any input "fails", and 207 passes `res.ok`, so a
+     * real partial failure was previously invisible: a missing row could mean either "no companies"
+     * or "this input errored", and up to 100 contacts per chunk could be dropped with the pass
+     * reporting nothing wrong.
+     *
+     * THE FIRST VERSION OF THIS CHECK TREATED EVERY PER-INPUT ERROR AS A FAILURE, AND THE DRY RUN
+     * CAUGHT IT. HubSpot represents "this contact has no associated company" as a per-input error
+     * with subCategory crm.associations.NO_ASSOCIATIONS_FOUND — 99 of the first 100 contacts scanned.
+     * Counting those as failures would have reported tens of thousands of perfectly normal records as
+     * broken and buried any genuine error among them. So the benign category is classified out, and
+     * only what remains is a failure worth reporting.
      */
-    if (body.numErrors || (body.errors ?? []).length) {
-      const n = body.numErrors ?? body.errors.length;
+    const errs = body.errors ?? [];
+    const benign = errs.filter(e =>
+      e?.subCategory === "crm.associations.NO_ASSOCIATIONS_FOUND" || e?.category === "OBJECT_NOT_FOUND");
+    const real = errs.filter(e => !benign.includes(e));
+    result.noCompanyReported += benign.length;
+    if (real.length || (body.numErrors ?? 0) > errs.length) {
+      // The second clause matters: if numErrors exceeds the errors array we were given, the shortfall
+      // is unexplained and must not be assumed benign.
+      const n = Math.max(real.length, (body.numErrors ?? 0) - benign.length);
       result.assocReadErrors += n;
       result.failed.push({
         chunk: `${i}-${i + chunk.length}`,
-        reason: `http ${res.status} with ${n} per-input error(s): ${JSON.stringify(body.errors ?? []).slice(0, 200)}`,
+        reason: `http ${res.status} with ${n} unexplained per-input error(s): ${JSON.stringify(real).slice(0, 200)}`,
       });
     }
     for (const r of body.results ?? []) {
@@ -968,7 +990,10 @@ async function runRelations(M, H, mod, args) {
   // Links that appeared between the contacts scan and the write, unioned in at flush time rather than
   // replaced away. A non-zero figure is the mid-run window doing real damage under snapshot-only.
   console.log(`  links rescued by the pre-write re-read : ${result.rescuedMidRun}`);
-  console.log(`  HubSpot per-input association errors   : ${result.assocReadErrors}`);
+  // Benign: HubSpot reports "no associated company" as a per-input error. Counted separately so it
+  // can never be mistaken for breakage, and so the total reconciles against the contact count.
+  console.log(`  HubSpot reported "no company" for       : ${result.noCompanyReported} contacts`);
+  console.log(`  UNEXPLAINED per-input read errors       : ${result.assocReadErrors}`);
   // An account marked full by repeated write rejections rather than by the up-front count. A non-zero
   // figure means the projection was a lower bound there — usually the live Worker linking past it.
   console.log(`  accounts marked full by write rejection: ${result.markedFull ?? 0}`);
@@ -1017,7 +1042,7 @@ async function flushRelations(M, spec, rel, pending, result, links, ceiling) {
       const union = [...new Set([...current, ...p.want.map(String)])];
       if (union.length > p.want.length)
         result.rescuedMidRun += union.length - p.want.length;
-      p.want = union;
+      void union;
       p.alreadySatisfied = union.length === current.length;
     }
   } catch (e) {

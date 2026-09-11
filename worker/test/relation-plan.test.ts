@@ -477,6 +477,20 @@ describe("backfill-crm.mjs — the guarantees the planner cannot enforce alone",
   });
 
   /**
+   * ...BUT "NO COMPANIES" IS NOT A FAILURE, and HubSpot reports it as one. Measured in the dry run:
+   * 99 of the first 100 contacts came back as per-input errors with subCategory
+   * crm.associations.NO_ASSOCIATIONS_FOUND, which simply means the contact has no associated company.
+   * Counting those as failures would have reported tens of thousands of normal records as broken and
+   * buried any genuine error among them. The dry run caught this before the pass ran.
+   */
+  it("classifies HubSpot's NO_ASSOCIATIONS_FOUND as benign, not as a failure", () => {
+    expect(src).toContain("crm.associations.NO_ASSOCIATIONS_FOUND");
+    expect(src).toContain("noCompanyReported");
+    // An unexplained shortfall between numErrors and the errors array must NOT be assumed benign.
+    expect(src).toContain("(body.numErrors ?? 0) > errs.length");
+  });
+
+  /**
    * THE MECHANISM BEHIND THE ORIGINAL STALL, which raising the ceiling never fixed — it only made the
    * ceiling less likely to be needed.
    *
