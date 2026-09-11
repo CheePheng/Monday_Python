@@ -209,6 +209,26 @@ export interface ObjectSpec {
    * no ownership the no-import gate is a pass-through and the card is re-created unconditionally.
    * On the live WM follow-up boards that would mean a rep's deliberate deletion silently reappearing. */
   restoreOnDelete?: boolean;
+  /**
+   * SUPPRESS EVERY monday -> HubSpot WRITE ON AN EVENT OUR OWN TOKEN CAUSED.
+   *
+   * An event we produced is an echo, not a user instruction. With this set, a webhook attributed to
+   * the integration's own monday user still reconciles FORWARD (harmless, self-healing) but cannot
+   * create a HubSpot record, patch a field, add an association, or claim ownership.
+   *
+   * Earned by measurement, not caution: during the 2026-09-09/11 historical import the Worker created
+   * 1,207 HubSpot Companies — 1,207 of the 1,213 it has ever created — each within 2-26 seconds of a
+   * monday Accounts card appearing, and monday's activity log attributes every one of those cards to
+   * user 104118038, this integration's token. One of the companies (fake.com) then accumulated 1,581
+   * contact associations. The mechanism is a race: createItem stamps the HubSpot ID column, monday
+   * fires create_item within milliseconds, and the webhook's read of that column comes back empty — so
+   * the card looks monday-originated.
+   *
+   * OPT-IN PER SPEC, and deliberately NOT inferred from `ownership`. The live Work-Management specs
+   * must keep their exact current behaviour, and a test enforces that webhooks.ts does not use
+   * `ownership` as a stand-in for another decision.
+   */
+  suppressSelfOriginWrites?: boolean;
   /** Spec-driven adoption key. Absent on production WM specs, which keep their existing
    * object-specific adoption branches untouched. */
   adoptBy?: AdoptBy;

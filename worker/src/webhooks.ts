@@ -4,7 +4,7 @@ import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
 import { webhookOpts } from "./run-opts";
-import { actorLabel } from "./actor-label";
+import { actorLabel, isIntegrationActor } from "./actor-label";
 import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
 import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
@@ -211,9 +211,17 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
   ectx.waitUntil(actorLabel(env, actorId).then(a =>
     console.log(`[actor] source=monday board=${boardId} item=${itemId}${columnId ? ` col=${columnId}` : ""} ${a}`)).catch(() => {}));
   const budget: Budget = { left: 30 };
+  // PROVENANCE. Resolved BEFORE the sync, not alongside it in waitUntil, because every monday->HubSpot
+  // mutation depends on the answer: an event our own token caused is an echo and carries no user
+  // intent. 1,207 HubSpot Companies were created from such echoes during the historical import. Only
+  // CRM specs are gated — the live Work-Management boards keep their existing behaviour exactly.
   // coalesce by item id so rapid edits (or our own write-back echoes) can't race into a duplicate.
-  ectx.waitUntil(coalesce(`md:${itemId}`, () => syncMondayItem(env, boardId, itemId, webhookOpts(env), budget))
-    .catch(e => console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
+  ectx.waitUntil(coalesce(`md:${itemId}`, async () => {
+    const selfOrigin = !!spec.suppressSelfOriginWrites && await isIntegrationActor(env, actorId);
+    if (selfOrigin) console.log(`[webhook] source=monday item=${itemId}`
+      + ` action=self-origin reason="caused by our own token — HubSpot writes suppressed"`);
+    return syncMondayItem(env, boardId, itemId, webhookOpts(env), budget, false, selfOrigin);
+  }).catch(e => console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
   return new Response("ok"); // respond fast so monday doesn't retry
 }
 

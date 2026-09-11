@@ -69,6 +69,9 @@ export const CRM_CONTACTS: ObjectSpec = {
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,
   restoreOnDelete: true,                     // monday delete/archive -> restore the card from HubSpot
+  // An event caused by our own token is an echo: reconcile forward, never write back. See the
+  // ObjectSpec note — 1,207 HubSpot Companies were created from such echoes during the import.
+  suppressSelfOriginWrites: true,
   fillEmptyFromMonday: true,                 // a monday value may FILL an empty HubSpot field (never clear one)
   createFromMonday: false,                   // HubSpot is the creation source for Contacts
   // no createDefaults, no adoptBy
@@ -280,6 +283,9 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   skipFullReconcile: true,
   ownership: OWN_ACCOUNTS,
   restoreOnDelete: true,                     // monday delete/archive -> restore the card from HubSpot
+  // An event caused by our own token is an echo: reconcile forward, never write back. See the
+  // ObjectSpec note — 1,207 HubSpot Companies were created from such echoes during the import.
+  suppressSelfOriginWrites: true,
   fillEmptyFromMonday: true,                 // a monday value may FILL an empty HubSpot field (never clear one)
   createFromMonday: true,
   adoptBy: { kind: "domain", col: "company_domain" },   // native Domain link column, NOT the name column

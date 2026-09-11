@@ -125,7 +125,7 @@ export async function buildCtx(env: Env): Promise<Ctx> {
 /** HubSpot -> monday for one record, plus monday-edit -> HubSpot when monday is the newer side. */
 async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem | undefined,
-    stats: Stats, appSave = false): Promise<void> {
+    stats: Stats, appSave = false, selfOrigin = false): Promise<void> {
   const group = targetGroup(rec, spec);
   if (!group) { stats.skipped++; return; }
   const recModified = rec.properties[spec.modifiedProp] ?? "";
@@ -149,7 +149,13 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   //    the very edits being saved (drawer still reported success);
   //  - a field HubSpot has never held produced no diff at all, so the edit silently never left monday.
   const diffs = fieldDiffs(rec, existing, spec, ctx, appSave);
-  const dir = appSave && diffs.length ? "toHubspot" : decideDirection(diffs, recModified, lastSynced);
+  // `selfOrigin` PINS THE DIRECTION FORWARD. The event came from our own token, so there is no user
+  // intent behind it and nothing to push back — see isIntegrationActor. Deciding by timestamp instead
+  // would sometimes pick "toHubspot" for a card we had just written ourselves, which is how a bulk
+  // seed turns into a bulk write-back.
+  const dir = selfOrigin ? "toMonday"
+    : appSave && diffs.length ? "toHubspot"
+    : decideDirection(diffs, recModified, lastSynced);
 
   // SAFE BACKFILLS RIDE OUTSIDE THE DIRECTION DECISION. A backfill fills an EMPTY HubSpot field from a
   // non-empty monday value: it can never overwrite or clear real HubSpot data, so it is non-conflicting by
@@ -730,8 +736,20 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
 }
 
 /** monday card changed -> reconcile the one linked HubSpot deal (create / update). */
+/**
+ * @param selfOrigin  THIS EVENT WAS CAUSED BY OUR OWN TOKEN, not a person — see isIntegrationActor.
+ *   Every monday -> HubSpot mutation is suppressed: no record creation, no reverse field patch, no
+ *   reverse associations, no ownership claim. The forward direction still runs, because reconciling
+ *   HubSpot's truth onto a card we just wrote is harmless and self-healing.
+ *
+ *   Without this, a bulk seed becomes a bulk WRITE-BACK. Measured during the historical import: 1,207
+ *   HubSpot Companies created from our own echoes, one of which (fake.com) then accumulated 1,581
+ *   contact associations. The cause is a race, not a logic error — createItem stamps the HubSpot ID,
+ *   monday fires create_item within milliseconds, and the webhook's read of that column comes back
+ *   empty, so the card looks monday-originated.
+ */
 export async function syncMondayItem(env: Env, boardId: string, itemId: string, opts: RunOpts,
-    budget: Budget, appSave = false): Promise<string> {
+    budget: Budget, appSave = false, selfOrigin = false): Promise<string> {
   // EXCLUSIVE routing: a board this deployment does not own resolves to undefined and the event is a
   // no-op. That is what stops the CRM Worker from becoming a second processor for the WM boards.
   const spec = specByBoard(env, boardId);
@@ -745,9 +763,14 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
   if (dealId) { // already linked -> update that HubSpot record, never create a duplicate
     const deal = await getRecord(env, spec.object, dealId, propertiesForSpec(spec));
     if (!deal) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${dealId} not in HubSpot"`);
-    await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave);
+    // `selfOrigin` forces the FORWARD direction: reconcileRecord's reverse path is gated on the same
+    // flag, so our own echo cannot push a value back into HubSpot.
+    await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave, selfOrigin);
     // Reverse Connect-Boards links -> HubSpot associations (monday-edit path only; additive/set-only).
-    if (budget.left > 0) await reverseAssociations(env, spec, deal, item, opts, budget);
+    // Skipped entirely for our own echoes: this is the path that gave fake.com 1,581 associations.
+    if (budget.left > 0 && !selfOrigin) await reverseAssociations(env, spec, deal, item, opts, budget);
+    else if (selfOrigin) console.log(`[webhook] source=monday item=${itemId} action=reverse-assoc-skipped`
+      + ` reason="event caused by our own token, not a person"`);
     // Reverse monday subitems -> HubSpot line items (id-keyed; only when the write scope is enabled).
     const liSub = spec.associations?.find(a => a.subitems)?.subitems;
     if (env.LINE_ITEM_WRITE === "true" && liSub && budget.left > 0)
@@ -756,6 +779,14 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
   }
 
   // new card -> create a HubSpot record (guards match the cron's createFromMonday path)
+  //
+  // THE PROVENANCE GATE, and it comes FIRST because it is the one that was missing. A card with no
+  // HubSpot ID in this read is not proof a person made one: our own createItem stamps that column, and
+  // the create_item webhook can arrive before monday serves it back. 1,207 HubSpot Companies were
+  // created from exactly that misreading during the historical import.
+  if (selfOrigin)
+    return wlog("monday", itemId, "skipped",
+      'reason="no HubSpot id yet, but this event came from our own token — refusing to create"');
   if (!spec.createFromMonday) return wlog("monday", itemId, "skipped", 'reason="board not create-enabled"');
   if ((Date.parse(item.created_at) || 0) <= CREATE_CUTOFF_MS)
     return wlog("monday", itemId, "skipped", 'reason="card created before go-live cutoff"');
