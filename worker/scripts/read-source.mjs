@@ -25,7 +25,22 @@ export function readSource(relPath) {
 /** The same file with block and line comments removed, so an assertion can target executable code.
  *  Comments are where the reasoning belongs; forbidding a WORD outright would punish documenting it. */
 export function readCode(relPath) {
-  return readSource(relPath)
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^\s*\/\/.*$/gm, "");
+  return strip(readSource(relPath));
 }
+
+const SCRIPTS = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The same, for the one-off migration scripts in this directory.
+ *
+ * They need structural cover for the same reason src/ does, and more urgently: a script that writes to
+ * 94,000 production records has guarantees that live in its SHAPE — that flushRelations re-reads each
+ * cell before replacing it, that an invalid --relation-cap throws instead of disabling the ceiling —
+ * and neither is reachable from a unit test, because the script is a top-level-await program that
+ * bundles the Worker with esbuild and needs live credentials to do anything at all.
+ */
+export function readScript(relPath) {
+  return strip(readFileSync(join(SCRIPTS, relPath), "utf8"));
+}
+
+const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

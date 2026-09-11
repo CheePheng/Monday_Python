@@ -92,15 +92,29 @@ export function planContactLinks({ companyIds, linked, counts, accounts, ceiling
 
   // Deduplicated: HubSpot returning the same company twice would otherwise charge it twice.
   for (const cid of new Set((companyIds ?? []).map(String))) {
-    const acct = accounts.get(cid);
-    if (!acct || !acct.length) { missing.push(cid); continue; }
-    const itemId = String(acct[0]);          // [0]: duplicate cards are reported by --preflight
+    const acct = (accounts.get(cid) ?? []).map(String);
+    if (!acct.length) { missing.push(cid); continue; }
+
+    /**
+     * WHEN ONE COMPANY HAS SEVERAL ACCOUNTS CARDS, PREFER THE ONE THIS CONTACT IS ALREADY LINKED TO.
+     *
+     * Taking acct[0] blindly was defensible while the pass replaced cells — it was merely wrong — but
+     * under additive-only it is worse: the card the contact already holds is retained AND acct[0] is
+     * added, so the contact ends up showing two Accounts cards for one company. Whichever card lands
+     * at index 0 depends on board read order, so the duplication is not even deterministic.
+     *
+     * Duplicates are a live possibility rather than a hypothetical: reconcile-orphan-accounts.mjs
+     * adopts an orphan card by stamping it with a HubSpot ID that an import-created twin may already
+     * carry, and it deliberately REFUSES to delete a twin holding relations (--delete-twins is
+     * opt-in). Preferring the linked card means this pass never fights that script's decision.
+     */
+    const itemId = acct.find(x => existingSet.has(x)) ?? acct[0];
 
     if (existingSet.has(itemId)) { backed.add(itemId); continue; }   // already there, nothing to do
     if (wantSet.has(itemId)) continue;                               // two company ids, one card
 
     // RULE 1: only a genuinely NEW link is charged against the ceiling.
-    if ((counts.get(itemId) ?? 0) >= 740) { capped.push(cid); continue; }
+    if ((counts.get(itemId) ?? 0) >= ceiling) { capped.push(cid); continue; }
     want.push(itemId);
     wantSet.add(itemId);
     added.push(itemId);

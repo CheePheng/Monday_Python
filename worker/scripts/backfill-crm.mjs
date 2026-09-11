@@ -726,10 +726,17 @@ async function runRelations(M, H, mod, args) {
 
   console.log(`\n=== ${args.apply ? "RELATIONS" : "PLAN RELATIONS"} — contacts.${rel} -> Accounts cards ===`);
 
-  console.log("  indexing Accounts cards by HubSpot company id…");
-  const { index: accounts } = await indexBoard(M, CRM_ACCOUNTS, args.itemsPage);
-  console.log(`  ${accounts.size} Accounts cards carry a HubSpot ID`);
-  if (!accounts.size) throw new Error("no Accounts cards have HubSpot IDs — run --object companies first");
+  /**
+   * ONE PASS OVER THE ACCOUNTS BOARD, building both maps it needs.
+   *
+   * This used to be two full paginations of the same 27,952 cards, taken minutes apart: indexBoard for
+   * the HubSpot-ID index, then a second walk for the relation-cell counts. The second read already
+   * selects everything the first does, so the split bought nothing and cost consistency — a card
+   * created between the two reads landed in one map and not the other, and the two maps then disagreed
+   * about whether an account existed. It also doubled the window in which the live Worker can create
+   * cards this pass will never see. Measured: ~70 new Accounts cards in a ten-minute window.
+   */
+  console.log("  indexing Accounts cards and their relation-cell sizes (one pass)…");
 
   /**
    * THE LINK CEILING — where monday actually stops accepting links into a relation cell.
@@ -754,15 +761,25 @@ async function runRelations(M, H, mod, args) {
    * The counter starts from ONE up-front read of the whole Accounts board and then tracks our own
    * queued links, so the ceiling is enforced against the PROJECTED size at no per-record cost.
    */
+  /**
+   * VALIDATED, because `Number(undefined)` is NaN and `n >= NaN` is ALWAYS FALSE — so a bare
+   * `--relation-cap` with no value, or a typo'd one, silently disabled the ceiling completely rather
+   * than failing. That is the worst possible failure mode for a guard: the flag that exists to make
+   * it stricter is the flag that removes it. `??` does not catch it either, since NaN is not nullish.
+   */
   const LINK_CEILING = Number(args.relationCap ?? 740);
+  if (!Number.isFinite(LINK_CEILING) || LINK_CEILING <= 0)
+    throw new Error(`--relation-cap must be a positive number; got ${JSON.stringify(args.relationCap)}`
+      + ` (an invalid value would disable the link ceiling entirely, not tighten it)`);
   console.log(`  reading current link counts on the Accounts board (ceiling ${LINK_CEILING})…`);
   // KEYED BY MONDAY ITEM ID, not HubSpot company id: the thing that fills up is the Accounts CARD's
   // relation cell. Keying it by what actually has the limit also lets planContactLinks give a slot
   // back when a replacement write drops a link, with no itemId -> companyId reverse index.
   const links = new Map();
+  const accounts = new Map();            // HubSpot company id -> Accounts card item ids
   {
     const relAcct = CRM_ACCOUNTS.associations?.find(a => a.relationCol)?.relationCol;
-    let cursor = null, checked = 0;
+    let cursor = null, checked = 0, blank = 0;
     do {
       const page = (await monday(M,
         `query ($b: ID!, $c: String, $n: Int!, $ids: [String!]) {
@@ -775,12 +792,18 @@ async function runRelations(M, H, mod, args) {
         const n = (it.column_values.find(c => c.id === relAcct)?.linked_item_ids ?? []).length;
         links.set(String(it.id), n);
         checked++;
+        const hsId = (it.column_values.find(c => c.id === CRM_ACCOUNTS.idCol)?.text ?? "").trim();
+        if (!hsId) { blank++; continue; }
+        if (!accounts.has(hsId)) accounts.set(hsId, []);
+        accounts.get(hsId).push(String(it.id));
       }
       cursor = page.cursor;
     } while (cursor);
     const atCeiling = [...links.values()].filter(n => n >= LINK_CEILING).length;
-    console.log(`  ${atCeiling} of ${checked} Accounts cards already hold >= ${LINK_CEILING} links`
-      + ` — contacts for those are skipped`);
+    console.log(`  ${checked} Accounts cards, ${accounts.size} distinct HubSpot ids, ${blank} with none`);
+    console.log(`  ${atCeiling} of ${checked} already hold >= ${LINK_CEILING} links`
+      + ` — NEW links to those are skipped (existing ones are always kept)`);
+    if (!accounts.size) throw new Error("no Accounts cards have HubSpot IDs — run --object companies first");
   }
 
   // Every Contacts card with a HubSpot id, plus whatever it is already linked to.
@@ -811,6 +834,7 @@ async function runRelations(M, H, mod, args) {
     multiCompany: 0, failed: [], missingCompanyIds: new Set(), oversizedAccount: 0,
     cappedOnly: 0, cappedCompanies: new Map(),
     preservedExtra: 0, contactsWithExtra: 0,
+    rescuedMidRun: 0, assocReadErrors: 0,
   };
   const pending = [];
   const drainRelations = async (final = false) => {
@@ -818,7 +842,7 @@ async function runRelations(M, H, mod, args) {
     while (ready()) {
       const chunks = [];
       while (chunks.length < args.concurrency && ready()) chunks.push(pending.splice(0, args.batch));
-      if (args.apply) await Promise.all(chunks.map(c => flushRelations(M, CRM_CONTACTS, rel, c, result)));
+      if (args.apply) await Promise.all(chunks.map(c => flushRelations(M, CRM_CONTACTS, rel, c, result, links, LINK_CEILING)));
       else result.written += chunks.reduce((n, c) => n + c.length, 0);
     }
   };
@@ -830,12 +854,30 @@ async function runRelations(M, H, mod, args) {
       headers: { Authorization: `Bearer ${H}`, "Content-Type": "application/json" },
       body: JSON.stringify({ inputs: chunk.map(c => ({ id: c.hsId })) }),
     });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    if (!res.ok || body === null) {
       // A whole chunk failing is a transport problem, not a data problem: record it and continue so
-      // one bad chunk cannot abandon the other 93,900 contacts.
+      // one bad chunk cannot abandon the other 93,900 contacts. An UNPARSEABLE body counts too — it
+      // used to fall through as `{}` and silently drop all 100 contacts as if they had no companies.
       result.failed.push({ chunk: `${i}-${i + chunk.length}`, reason: `http ${res.status} ${JSON.stringify(body).slice(0, 200)}` });
       continue;
+    }
+    /**
+     * PARTIAL FAILURES ARE COUNTED, not inferred from the absence of a row.
+     *
+     * This endpoint answers 207 MULTI-STATUS when some inputs fail, and 207 passes `res.ok`. It also
+     * omits a row entirely for a contact with no companies — which is legitimate and common. So a
+     * missing row means either "no companies" or "this input errored", and reading the count of rows
+     * as the count processed conflates the two: up to 100 contacts could be dropped per chunk while
+     * the pass reported nothing wrong. `numErrors`/`errors` is the only thing that separates them.
+     */
+    if (body.numErrors || (body.errors ?? []).length) {
+      const n = body.numErrors ?? body.errors.length;
+      result.assocReadErrors += n;
+      result.failed.push({
+        chunk: `${i}-${i + chunk.length}`,
+        reason: `http ${res.status} with ${n} per-input error(s): ${JSON.stringify(body.errors ?? []).slice(0, 200)}`,
+      });
     }
     for (const r of body.results ?? []) {
       const card = byHsId.get(String(r.from?.id ?? ""));
@@ -855,7 +897,7 @@ async function runRelations(M, H, mod, args) {
        *
        * The third of those is now moot: this pass no longer removes anything at all. `item_ids`
        * replaces the cell, so a `want` built purely from HubSpot's current associations would delete
-       * every link HubSpot does not presently assert — including links to the 320 Accounts cards that
+       * every link HubSpot does not presently assert — including links to the 414 Accounts cards that
        * carry no HubSpot ID and therefore CANNOT appear in `want`. Those are salespeople's own work.
        * See the header of relation-plan.mjs for the full argument.
        */
@@ -884,8 +926,23 @@ async function runRelations(M, H, mod, args) {
 
     if ((i / 100) % 10 === 0)
       console.log(`  ${Math.min(i + 100, cards.length)}/${cards.length} contacts checked,`
-        + ` ${args.apply ? "linked" : "would link"} ${result.written}`);
+        + ` ${args.apply ? "linked" : "would link"} ${result.written}`
+        + `${result.failed.length ? `, ${result.failed.length} failed` : ""}`);
     if (result.written >= args.limit) { console.log(`  reached --limit ${args.limit}`); break; }
+
+    /**
+     * STOP ON SYSTEMATIC FAILURE rather than grinding through 94,000 records against a broken write
+     * path. Each isolated failure costs ~126s of retry backoff and ratchets the global throttle, so
+     * "keep going and report at the end" is not a cheap default — 40 consecutive failures is already
+     * over an hour spent learning nothing. A run that stops here is trivially resumable: the pass is
+     * idempotent and re-reads real state.
+     *
+     * Consecutive, not cumulative: isolated failures scattered across a long run are the isolate path
+     * working as intended, while an unbroken streak means the write itself is wrong.
+     */
+    if ((result.consecutiveFailures ?? 0) >= 40)
+      throw new Error(`${result.consecutiveFailures} consecutive relation writes failed —`
+        + ` stopping rather than continuing. Last: ${result.failed.at(-1)?.reason ?? "?"}`);
   }
   await drainRelations(true);
 
@@ -908,6 +965,13 @@ async function runRelations(M, H, mod, args) {
   for (const [cid, n] of [...result.cappedCompanies].sort((a, b) => b[1] - a[1]).slice(0, 20))
     console.log(`      HubSpot company ${cid}: ${n} contacts unlinked`
       + ` (card ${accounts.get(cid)?.[0] ?? "?"} holds ${links.get(String(accounts.get(cid)?.[0])) ?? "?"})`);
+  // Links that appeared between the contacts scan and the write, unioned in at flush time rather than
+  // replaced away. A non-zero figure is the mid-run window doing real damage under snapshot-only.
+  console.log(`  links rescued by the pre-write re-read : ${result.rescuedMidRun}`);
+  console.log(`  HubSpot per-input association errors   : ${result.assocReadErrors}`);
+  // An account marked full by repeated write rejections rather than by the up-front count. A non-zero
+  // figure means the projection was a lower bound there — usually the live Worker linking past it.
+  console.log(`  accounts marked full by write rejection: ${result.markedFull ?? 0}`);
   console.log(`  FAILED : ${result.failed.length}`);
   for (const f of result.failed.slice(0, 10)) console.log(`      ${f.chunk ?? f.itemId}: ${f.reason}`);
   if (result.missingCompanyIds.size)
@@ -915,9 +979,61 @@ async function runRelations(M, H, mod, args) {
   return result;
 }
 
-/** Write several relation columns in one request, degrading to one-at-a-time on failure. */
-async function flushRelations(M, spec, rel, pending, result) {
+/**
+ * Write several relation columns in one request, degrading to one-at-a-time on failure.
+ *
+ * RE-READS EACH CELL IMMEDIATELY BEFORE WRITING IT, and this is what makes "additive-only" true in
+ * the strong sense rather than only against a stale snapshot.
+ *
+ * `card.linked` is read during the contacts scan, which takes tens of minutes, and the write lands at
+ * the end of it. In that window the live Worker is creating cards and linking relations, and a human
+ * may add one in the UI — and because the write REPLACES the cell, any link that appeared after our
+ * read is absent from `want` and would be destroyed. Preserving what we READ is not the same as
+ * preserving what is THERE; only a read at write time gets that right.
+ *
+ * The cost is one query per batch, not per record — roughly 10% overhead at --batch 10 — and it pays
+ * for itself whenever the re-read shows the cell already holds everything we wanted, which skips the
+ * write and the webhook it would have produced.
+ *
+ * Links discovered here are deliberately NOT charged against the projection: they were made by
+ * someone else, and the up-front counter never saw them. The projection is already a lower bound for
+ * exactly this reason — the live Worker links without any ceiling of its own — so the ceiling is
+ * best-effort by nature. Overshooting it costs a monday rejection that the isolate path already
+ * handles; undershooting costs real relations, which it does not.
+ */
+async function flushRelations(M, spec, rel, pending, result, links, ceiling) {
   if (!pending.length) return;
+
+  try {
+    const fresh = await monday(M,
+      `query ($i: [ID!], $c: [String!]) { items(ids: $i) {
+         id column_values(ids: $c) { id ... on BoardRelationValue { linked_item_ids } } } }`,
+      { i: pending.map(p => p.itemId), c: [rel] });
+    const nowLinked = new Map((fresh.items ?? []).map(it =>
+      [String(it.id), (it.column_values?.[0]?.linked_item_ids ?? []).map(String)]));
+    for (const p of pending) {
+      const current = nowLinked.get(String(p.itemId));
+      if (!current) continue;                       // item unreadable; write what we planned
+      const union = [...new Set([...current, ...p.want.map(String)])];
+      if (union.length > p.want.length)
+        result.rescuedMidRun += union.length - p.want.length;
+      p.want = union;
+      p.alreadySatisfied = union.length === current.length;
+    }
+  } catch (e) {
+    // A failed re-read must not abandon the batch: fall through and write the planned set. That is the
+    // pre-existing behaviour, so this can only ever be as good as before, never worse.
+    console.log(`  [flush] pre-write re-read failed, writing the planned set: ${String(e).slice(0, 120)}`);
+  }
+
+  // Nothing left to do for cells that already contain everything we intended.
+  const satisfied = pending.filter(p => p.alreadySatisfied);
+  if (satisfied.length) {
+    result.alreadyCorrect += satisfied.length;
+    pending = pending.filter(p => !p.alreadySatisfied);
+    if (!pending.length) return;
+  }
+
   const decls = pending.map((_, i) => `$i${i}: ID!, $v${i}: JSON!`).join(", ");
   const calls = pending.map((_, i) =>
     `r${i}: change_multiple_column_values(board_id: $b, item_id: $i${i}, column_values: $v${i}) { id }`).join("\n    ");
@@ -929,13 +1045,52 @@ async function flushRelations(M, spec, rel, pending, result) {
   try {
     await monday(M, `mutation ($b: ID!, ${decls}) {\n    ${calls}\n  }`, vars);
     result.written += pending.length;
+    result.consecutiveFailures = 0;
   } catch (e) {
     if (pending.length === 1) {
-      result.failed.push({ itemId: pending[0].itemId, reason: String(e).slice(0, 300) });
+      const one = pending[0];
+      result.failed.push({ itemId: one.itemId, reason: String(e).slice(0, 300) });
+      result.consecutiveFailures = (result.consecutiveFailures ?? 0) + 1;
+
+      /**
+       * A REJECTED WRITE NOW FEEDS BACK INTO THE PROJECTION. This is the mechanism behind the original
+       * stall, and it was never fixed by raising the ceiling — only by not needing it.
+       *
+       * The projection can be too LOW as well as too high: the live Worker links into these same cells
+       * with no ceiling of its own, so our read-once counter is a lower bound. When it is low we write
+       * into a full cell, and monday answers HTTP **200** with {"message":"Internal Server Error"} —
+       * indistinguishable from a transient fault, so isRetryableError correctly treats it as retryable
+       * and spends 2+4+8+16+32+64 = 126s of backoff. That is precisely the measured "~2 minutes per
+       * contact". The batch then isolates and pays it again per item.
+       *
+       * The damage was never the 126s; it was that NOTHING RECORDED THE CELL AS FULL, so every one of
+       * that account's remaining contacts repeated the penalty — days, for the 2,007-contact account,
+       * with no abort. Each retry also ratchets the GLOBAL throttle x2 toward 8s, decaying only 10%
+       * per success, so one full cell drags the entire pass down with it.
+       *
+       * Since the full-cell error is indistinguishable from a transient one, this does not try to
+       * parse it. It counts failures per account and, on the third, marks the account unavailable.
+       * Three strikes bounds the cost at ~6 minutes per full account instead of days, and a
+       * transient fault has to be unlucky three times on the same account to trip it — at which
+       * point declining to add more links to that one account is the right call anyway.
+       */
+      if (links) {
+        result.failuresByAccount ??= new Map();
+        for (const itemId of one.want.map(String)) {
+          const n = (result.failuresByAccount.get(itemId) ?? 0) + 1;
+          result.failuresByAccount.set(itemId, n);
+          if (n >= 3 && Number.isFinite(links.get(itemId) ?? 0)) {
+            links.set(itemId, Infinity);
+            result.markedFull = (result.markedFull ?? 0) + 1;
+            console.log(`  [ceiling] account card ${itemId} failed ${n} writes in a row —`
+              + ` treating its cell as full; no further links will be added to it`);
+          }
+        }
+      }
       return;
     }
     console.log(`  [isolate] a relation batch of ${pending.length} failed; retrying individually`);
-    for (const one of pending) await flushRelations(M, spec, rel, [one], result);
+    for (const one of pending) await flushRelations(M, spec, rel, [one], result, links, ceiling);
   }
 }
 
