@@ -33,7 +33,14 @@ export type LabelDict =
   | "contactSource" | "contactVendor" | "partnerWith" | "contactPriority" | "lifecycleStage" | "contactStatus"
   // Added 2026-09-09 so a reversible field on a HubSpot ENUMERATION can validate membership. Every one
   // of these properties was verified live against portal 39939588; see LABEL_SOURCE in sync.ts.
-  | "contactSalesPerson" | "contactDepartment" | "contactCountries" | "contactCity" | "contactLeadSourceSub";
+  | "contactSalesPerson" | "contactDepartment" | "contactCountries" | "contactCity" | "contactLeadSourceSub"
+  // Added 2026-09-14 for the CRM Deals + Line Items phase. `crmStage` is PIPELINE-QUALIFIED and is not
+  // interchangeable with `stage`: the WM `stage` dictionary covers the default pipeline only, and this
+  // portal's 42 stage values across 5 pipelines contain duplicate labels (`赢单` is three distinct ids),
+  // so an unqualified dictionary cannot be inverted. See getCrmStageDicts.
+  | "crmStage" | "crmPipeline"
+  | "liBrand" | "liFamily" | "liSubcategory" | "liPricingModel" | "liBillingFreq" | "liTaxRate"
+  | "liIsActive" | "liCurrency";
 
 export interface FieldSpec {
   hs: string;            // HubSpot property name
@@ -88,6 +95,20 @@ export interface FieldSpec {
   /** HubSpot -> monday only. A monday-side edit has nothing to push back, so its webhook is ignored
    * instead of triggering a full single-record reconcile. The daily sweep still heals a manual edit. */
   oneWay?: boolean;
+  /**
+   * UNIT CONVERSION between HubSpot's stored number and what the monday column displays.
+   * Forward: monday = hs * scale. Reverse: hs = monday / scale.
+   *
+   * Exists for `hs_deal_stage_probability`, which HubSpot stores as a FRACTION (0.2) while the monday
+   * column renders a percent symbol. Without the conversion a 20% deal reads "0.2%" — a plausible
+   * number, wrong by two orders of magnitude, and one that survives a casual look at the board. The
+   * forecast column multiplies by it, so the error propagates into money.
+   *
+   * Applied in BOTH formatValue and expectedText. That pairing is not optional: a transform applied
+   * on only one of them makes every comparison differ, so the record is rewritten on every single
+   * pass forever. Contacts learned that with the phone and email storable checks.
+   */
+  scale?: number;
 }
 
 /** Which sync owns WRITE access to a HubSpot record. */
@@ -242,6 +263,22 @@ export interface ObjectSpec {
   // "restricted to assigned people" board permissions, Unassigned deals stay viewable by that team;
   // the column is cleared once the record gets a sales_user. teamId "" = disabled (no-op).
   unassignedShared?: { col: string; teamId: string };
+  /**
+   * WRITE THE STAGE AND ITS PIPELINE IN ONE PATCH, ALWAYS.
+   *
+   * HubSpot rejects a `dealstage` that does not belong to the record's CURRENT `pipeline`. So moving
+   * a deal to a stage in another pipeline fails if the stage is sent alone, and sending the two in
+   * separate PATCHes leaves a window in which the record holds an invalid pair. Neither is
+   * acceptable for a field a rep edits from a dropdown that spans all five pipelines.
+   *
+   * When the reverse patch contains `stageProp`, `pipelineProp` is set from the stage's own pipeline
+   * (ctx.pipelineByStage) whether or not the Pipeline column itself changed — because the common case
+   * is exactly that: the rep picks "SF-Maint / 赢单" on a deal currently in SF-Sales and touches
+   * nothing else.
+   *
+   * OPT-IN PER SPEC. The live Work-Management DEALS spec does not set it and is unaffected.
+   */
+  stagePipelinePairing?: { stageProp: string; pipelineProp: string };
 }
 
 // A HubSpot association synced onto the parent monday item (HubSpot -> monday only, no reverse).
@@ -278,6 +315,9 @@ export interface Ctx {
   mondayUsersByEmail: Record<string, string>;
   mondayEmailByUserId: Record<string, string>; // monday user id -> email (reverse of mondayUsersByEmail)
   ownerIdByEmail: Record<string, string>;       // email (lowercased) -> HubSpot owner id
+  /** deal stage id -> the pipeline id it belongs to. Populated only when a spec declares the
+   *  `crmStage` dictionary, and used by stagePipelinePairing. See getCrmStageDicts. */
+  pipelineByStage?: Record<string, string>;
   portalId: number;
 }
 

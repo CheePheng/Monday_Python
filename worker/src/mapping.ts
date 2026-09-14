@@ -23,7 +23,7 @@ export function clampLongText(s: string): string {
 
 export function formatValue(f: FieldSpec, value: string | null | undefined, ctx: Ctx): unknown {
   if (value === null || value === undefined || value === "") return null;
-  const v = String(value);
+  const v = applyScale(f, String(value));
   switch (f.type) {
     case "text": return dict(f, ctx)[v] ?? v;
     // { text }, not a bare string — and clamped, so the stored value equals what expectedText predicts.
@@ -260,6 +260,43 @@ export function numText(v: string | null | undefined): string {
 }
 
 /**
+ * HubSpot value -> the number the monday column DISPLAYS. See FieldSpec.scale.
+ *
+ * `hs_deal_stage_probability` is stored as a fraction (0.2) against a column rendering `%`, so
+ * without this a 20% deal reads "0.2%" — wrong by two orders of magnitude, plausible enough to pass
+ * a glance, and multiplied into money by the Forecast Value formula.
+ *
+ * Called from BOTH formatValue and expectedText, which is the part that matters: a transform applied
+ * to only one of them makes every comparison differ, so the record is rewritten on every pass
+ * forever. reverseFieldValue divides by the same factor.
+ *
+ * A non-numeric value is returned untouched rather than becoming NaN — the existing numText path
+ * already decides what to do with garbage, and scaling must not turn a recoverable value into one.
+ */
+export function applyScale(f: FieldSpec, v: string): string {
+  if (!f.scale || f.type !== "numbers") return v;
+  // EMPTY STAYS EMPTY. `Number("")` is 0, which is finite, so without this an absent probability would
+  // scale to "0" and be written to the board as a real zero. Both callers happen to return early on an
+  // empty value today, so this is unreachable in production — which is exactly why it is worth
+  // pinning: the next caller will not know that, and a 0% forecast reads as a decision, not a blank.
+  if (!String(v).trim()) return v;
+  const n = Number(String(v).replace(/,/g, ""));
+  if (!Number.isFinite(n)) return v;
+  // Rounded to 10 dp before stringifying: 0.07 * 100 is 7.000000000000001 in binary floating point,
+  // which would differ from monday's stored "7" on every comparison and rewrite the card forever.
+  return String(Math.round(n * f.scale * 1e10) / 1e10);
+}
+
+/** The inverse of applyScale: what monday's displayed number means in HubSpot's units. */
+export function unapplyScale(f: FieldSpec, v: string): string {
+  if (!f.scale || f.type !== "numbers") return v;
+  if (!String(v).trim()) return v;          // see applyScale: an empty cell must not become 0
+  const n = Number(String(v).replace(/,/g, ""));
+  if (!Number.isFinite(n)) return v;
+  return String(Math.round((n / f.scale) * 1e10) / 1e10);
+}
+
+/**
  * What to send to HubSpot for a link column edited in monday. Different job from linkText: that one
  * canonicalises for COMPARISON and deliberately drops the scheme; this one must produce a value a
  * HubSpot URL property will accept, so the scheme is kept.
@@ -281,7 +318,7 @@ export function linkReverse(v: string | null | undefined): string {
 export function expectedText(f: FieldSpec, value: string | null | undefined, ctx: Ctx): string | null {
   if (f.type === "people") return null;
   if (value === null || value === undefined || value === "") return "";
-  const v = String(value).trim();
+  const v = applyScale(f, String(value).trim());
   // Phone: diffable, but only as digits (see phoneDigits). fieldDiffs normalizes the monday side to match.
   // An UNSTORABLE number reports "" so it is treated exactly like an empty HubSpot value: no diff, no
   // write, no churn. Must stay in lockstep with formatValue's identical check — if the two ever

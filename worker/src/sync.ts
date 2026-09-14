@@ -21,7 +21,7 @@ import {
   setColumns, updateItem,
 } from "./monday";
 import {
-  claimOwnership, createRecord, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
+  claimOwnership, createRecord, getCrmStageDicts, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
   propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
@@ -77,6 +77,19 @@ const LABEL_SOURCE: Record<LabelDict, { object: string; prop: string } | "dealPi
   contactCountries:     { object: "contacts", prop: "countries" },
   contactCity:          { object: "contacts", prop: "city_1__c" },
   contactLeadSourceSub: { object: "contacts", prop: "lead_source_sub__c" },
+  // CRM Deals + Line Items, 2026-09-14. crmStage and crmPipeline are "derived" only in the sense that
+  // buildCtx fills them from ONE call to getCrmStageDicts rather than from the generic property
+  // loader — the `dealstage` PROPERTY carries no options at all, stages live on the pipelines.
+  crmStage:      "derived",
+  crmPipeline:   "derived",
+  liBrand:       { object: "line_items", prop: "brand_isv" },
+  liFamily:      { object: "line_items", prop: "family" },
+  liSubcategory: { object: "line_items", prop: "product_subcategory" },
+  liPricingModel:{ object: "line_items", prop: "hs_pricing_model" },
+  liBillingFreq: { object: "line_items", prop: "recurringbillingfrequency" },
+  liTaxRate:     { object: "line_items", prop: "hs_tax_rate_group_id" },
+  liIsActive:    { object: "line_items", prop: "is_active" },
+  liCurrency:    { object: "line_items", prop: "hs_line_item_currency_code" },
 };
 
 /** The label dictionaries THIS deployment's specs actually reference. */
@@ -114,12 +127,31 @@ export async function buildCtx(env: Env): Promise<Ctx> {
   labels.salesUser = salesUser;
   labels.pipeline = { default: "Sales Pipeline" };
 
+  /**
+   * THE CRM STAGE DICTIONARIES, fetched only when a spec asks for them — so the Work-Management
+   * deployment makes exactly the calls it made before, and in particular still makes NOTHING under
+   * /deals when running as CRM without them.
+   *
+   * One call fills three maps: the pipeline labels, the PIPELINE-QUALIFIED stage labels, and the
+   * stage -> pipeline index that stagePipelinePairing needs to send a stage together with its own
+   * pipeline. They come from one fetch because they come from one API response; splitting them would
+   * triple the requests for no benefit.
+   */
+  let pipelineByStage: Record<string, string> | undefined;
+  if (wanted.includes("crmStage") || wanted.includes("crmPipeline")) {
+    const d = await getCrmStageDicts(env);
+    labels.crmStage = d.stages;
+    labels.crmPipeline = d.pipelines;
+    pipelineByStage = d.pipelineByStage;
+  }
+
   // Reverse lookups for people-column reverse-sync: monday person id -> email -> HubSpot owner id.
   const mondayEmailByUserId: Record<string, string> = {};
   for (const [email, id] of Object.entries(mondayUsersByEmail)) mondayEmailByUserId[id] = email;
   const ownerIdByEmail: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.email) ownerIdByEmail[o.email.toLowerCase()] = id;
-  return { labels, ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, portalId: PORTAL_ID };
+  return { labels, ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail,
+    pipelineByStage, portalId: PORTAL_ID };
 }
 
 /** HubSpot -> monday for one record, plus monday-edit -> HubSpot when monday is the newer side. */

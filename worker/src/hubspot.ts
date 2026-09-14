@@ -676,6 +676,60 @@ export async function getDealStageLabels(env: Env, pipelineId = "default"): Prom
   return out;
 }
 
+/**
+ * THE CRM STAGE DICTIONARIES — every pipeline, with PIPELINE-QUALIFIED stage labels.
+ *
+ * getDealStageLabels above reads ONE pipeline (default) and is what the Work-Management sync uses.
+ * That is unusable for CRM, for a reason that is a property of this portal's data rather than a
+ * preference: `dealstage` has 42 values across 5 pipelines, and THE LABELS ARE NOT UNIQUE. The three
+ * Salesforce pipelines each use the same nine Chinese stage names, so `赢单` alone is three different
+ * stage ids. Our reverse mapping inverts a label -> value dictionary, so an unqualified dictionary
+ * would collapse those three into one and a monday-side edit could move a deal into ANOTHER
+ * PIPELINE's stage — which is what reporting, forecasting and the Won automations key off. A wrong
+ * stage write does not fail loudly; it silently relocates the deal.
+ *
+ * Qualifying each label with its pipeline restores uniqueness, which is what makes the inverse a
+ * function and the reverse write safe.
+ *
+ * PREFIXES ARE KEYED BY PIPELINE ID, NOT BY LABEL, because a pipeline can be renamed in the HubSpot
+ * UI and ids cannot. An unknown pipeline falls back to its own label rather than being dropped, so a
+ * pipeline added later still produces a unique, if longer, label instead of silently colliding.
+ */
+const CRM_PIPELINE_PREFIX: Record<string, string> = {
+  "default": "Sales",
+  "551f4f6c-ced0-4069-b1be-f0d3dc33bf2d": "SF-Sales",
+  "d10159b0-bab4-487a-a11f-55f3a682a170": "SF-Maint",
+  "08554d8d-265d-4fbf-94e2-7002cb1ecbca": "SF-Train",
+  "81ee3345-1b0f-42aa-9e78-580614546602": "Shared",
+};
+
+export interface CrmStageDicts {
+  /** pipeline id -> pipeline label */
+  pipelines: Record<string, string>;
+  /** stage id -> "<prefix> / <stage label>", unique across all pipelines */
+  stages: Record<string, string>;
+  /** stage id -> the pipeline id that stage belongs to */
+  pipelineByStage: Record<string, string>;
+}
+
+/** One call to the pipelines API yields all three maps; splitting them would triple the requests. */
+export async function getCrmStageDicts(env: Env): Promise<CrmStageDicts> {
+  const res = await hs(env, "GET", "/crm/v3/pipelines/deals");
+  const out: CrmStageDicts = { pipelines: {}, stages: {}, pipelineByStage: {} };
+  for (const p of res.results ?? []) {
+    const pid = String(p.id);
+    const plabel = String(p.label ?? pid);
+    out.pipelines[pid] = plabel;
+    const prefix = CRM_PIPELINE_PREFIX[pid] ?? plabel;
+    for (const s of p.stages ?? []) {
+      const sid = String(s.id);
+      out.stages[sid] = `${prefix} / ${String(s.label)}`;
+      out.pipelineByStage[sid] = pid;
+    }
+  }
+  return out;
+}
+
 export async function getPropertyOptions(env: Env, object: string, prop: string):
     Promise<Record<string, string>> {
   const res = await hs(env, "GET", `/crm/v3/properties/${object}/${prop}`);

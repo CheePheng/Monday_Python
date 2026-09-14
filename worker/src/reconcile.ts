@@ -1,5 +1,5 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
-import { LONG_TEXT_MAX, expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits } from "./mapping";
+import { LONG_TEXT_MAX, expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits, unapplyScale } from "./mapping";
 import { colText } from "./dedup";
 import { companyDomainKey } from "./adopt";
 import { reverseGroup, targetGroup } from "./routing";
@@ -221,7 +221,10 @@ export function reverseFieldValue(f: FieldSpec, mdText: string, ctx: Ctx): strin
     return "";                                                   // genuinely unknown -> refuse
   }
   // NUMBERS: canonicalise, and refuse non-numeric rather than 400 on a HubSpot number property.
-  if (f.type === "numbers") return numText(text);
+  // unapplyScale FIRST, so a scaled field (hs_deal_stage_probability: monday shows 20, HubSpot stores
+  // 0.2) goes back in HubSpot's units. numText then canonicalises and rejects non-numeric exactly as
+  // before, so an unscaled field is byte-for-byte unchanged.
+  if (f.type === "numbers") return numText(unapplyScale(f, text));
   // VALIDATED TEXT: a monday TEXT column standing in for a HubSpot ENUMERATION.
   //
   // Four Contact fields are shaped this way — leadsource (210 options), countries (198),
@@ -276,6 +279,28 @@ export function buildReversePatch(
           + ` reason="monday value is not valid for this HubSpot property"`
           + ` value=${JSON.stringify(d.mdText.slice(0, 60))}`);
     }
+  }
+
+  /**
+   * THE STAGE AND ITS PIPELINE TRAVEL TOGETHER. See ObjectSpec.stagePipelinePairing.
+   *
+   * HubSpot rejects a dealstage that does not belong to the record's current pipeline, so the common
+   * edit — a rep picking "SF-Maint / 赢单" on a deal currently in SF-Sales — fails if the stage goes
+   * alone, and two PATCHes would leave the record holding an invalid pair in between. The pipeline is
+   * therefore derived from the stage itself and always sent with it, whether or not the Pipeline
+   * column changed.
+   *
+   * Deliberately AFTER the loop, so it cannot be skipped by a `continue` in any refusal branch, and
+   * only when the stage actually survived validation into the patch.
+   */
+  const pair = spec.stagePipelinePairing;
+  if (pair && patch[pair.stageProp]) {
+    const pipelineId = ctx.pipelineByStage?.[patch[pair.stageProp]];
+    if (pipelineId) patch[pair.pipelineProp] = pipelineId;
+    else
+      // Refusing the whole write is the safe direction: a stage with no known pipeline is one this
+      // Worker has never seen, and sending it alone is the failure mode this pairing exists to stop.
+      delete patch[pair.stageProp];
   }
   return patch;
 }
