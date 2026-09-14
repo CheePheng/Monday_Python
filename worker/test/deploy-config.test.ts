@@ -64,8 +64,11 @@ describe("the deployable CRM Wrangler config", () => {
     expect(opts.writeHubspot).toBe(false);
   });
 
-  it("and resolve to exactly the two CRM boards", () => {
-    expect(specsFor(vars).map(s => s.boardId).sort()).toEqual(["5028000495", "5028000496"]);
+  // Four boards since 2026-09-14 (Deals 5028000494 and Line Items 5028000489 joined). Pinned so a new
+  // board is a deliberate edit here, and so a WM board appearing in this list fails loudly.
+  it("and resolve to exactly the four CRM boards", () => {
+    expect(specsFor(vars).map(s => s.boardId).sort())
+      .toEqual(["5028000489", "5028000494", "5028000495", "5028000496"]);
   });
 });
 
@@ -122,29 +125,43 @@ describe("write mode — every combination", () => {
   });
 });
 
-describe("spec-driven metadata: the CRM app needs NO Deals scope", () => {
+/**
+ * The point of this block was never "CRM avoids Deals" — it is that a deployment fetches ONLY the
+ * metadata its own specs reference, so neither app needs a scope it has no business holding. That
+ * property is unchanged; what changed on 2026-09-14 is which specs CRM owns. The four Deals and Line
+ * Items scopes were granted for exactly this, and verified live the same day.
+ */
+describe("spec-driven metadata: each deployment fetches only what its specs reference", () => {
   const prod = {} as { ENABLE_CRM?: string };
   const crmEnv = { ENABLE_CRM: "true" };
 
-  it("CRM loads no deal-backed label dictionary", () => {
+  it("CRM now loads the deal + line-item dictionaries, because it owns those objects", () => {
     const dicts = labelDictsFor(crmEnv);
-    for (const dealDict of ["stage", "dealtype", "priority", "vendor"])
-      expect(dicts).not.toContain(dealDict);
+    for (const d of ["crmStage", "crmPipeline", "dealtype", "priority", "vendor", "liBrand"])
+      expect(dicts).toContain(d);
   });
 
-  it("CRM loads exactly the contact + company dictionaries its fields reference", () =>
+  /**
+   * `crmStage` is NOT interchangeable with `stage`, and this is the assertion that keeps them apart:
+   * `stage` covers the default pipeline only, while this portal has 42 stages across 5 pipelines with
+   * DUPLICATE labels (赢单 is three distinct ids). CRM must carry the pipeline-qualified dictionary or
+   * a reverse write can move a deal into the wrong pipeline.
+   */
+  it("CRM carries the pipeline-qualified stage dictionary, not just the default-pipeline one", () => {
+    expect(labelDictsFor(crmEnv)).toContain("crmStage");
+  });
+
+  it("CRM loads exactly the dictionaries its fields reference", () =>
     expect(labelDictsFor(crmEnv).sort())
-      // `industry` dropped out when company industry was unmapped (its text column was deleted from the
-      // board). CRM_CONTACTS still maps a contact-level `industry`, but that one is free text with no
-      // dictionary, so nothing references the dict any more — one fewer HubSpot schema fetch per run.
-      // The five contact* dictionaries added 2026-09-09 are each a HubSpot ENUMERATION whose monday
-      // column is text/status/dropdown, so the dictionary is what lets the reverse write validate
-      // membership instead of 400ing. They cost one HubSpot schema fetch each, which is why they are
-      // pinned here: an accidental addition should show up as a deliberate change to this list.
+      // Pinned so an accidental addition shows up as a deliberate change to this list — each entry
+      // costs one HubSpot schema fetch per run. `industry` is absent because company industry is
+      // unmapped and the contact-level one is free text with no dictionary.
       .toEqual(["companyType", "contactCity", "contactCountries", "contactDepartment",
                 "contactLeadSourceSub", "contactPriority", "contactSalesPerson", "contactSource",
-                "contactStatus", "contactVendor", "leadStatus", "lifecycleStage", "partnerWith",
-                "salesUser"]));
+                "contactStatus", "contactVendor", "crmPipeline", "crmStage", "dealtype", "leadStatus",
+                "liBillingFreq", "liBrand", "liCurrency", "liFamily", "liIsActive", "liPricingModel",
+                "liSubcategory", "liTaxRate", "lifecycleStage", "partnerWith", "pipeline", "priority",
+                "salesUser", "stage", "vendor"]));
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.
   it("WM still loads every dictionary it used to fetch unconditionally", () => {
@@ -206,6 +223,7 @@ describe("CRM_CUTOVER_AT is deployment config, and fails closed", () => {
     const env = { ENABLE_CRM: "true", CRM_CUTOVER_AT: "2026-09-07T11:00:00Z" };
     expect(specByBoard(env, "5028000495")?.object).toBe("contacts");
     expect(specByObject(env, "companies")?.boardId).toBe("5028000496");
-    expect(specByObject(env, "deals")).toBeUndefined();
+    // Deals resolve on CRM since 2026-09-14 — to the CRM board, never the WM one.
+    expect(specByObject(env, "deals")?.boardId).toBe("5028000494");
   });
 });

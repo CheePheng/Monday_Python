@@ -578,7 +578,7 @@ const monday = vi.hoisted(() => ({
   updateItem: vi.fn(),
 }));
 const hubspot = vi.hoisted(() => ({
-  claimOwnership: vi.fn(), createRecord: vi.fn(), getDealStageLabels: vi.fn(), getOwners: vi.fn(),
+  claimOwnership: vi.fn(), createRecord: vi.fn(), getDealStageLabels: vi.fn(), getCrmStageDicts: vi.fn(), getOwners: vi.fn(),
   getPropertyOptions: vi.fn(), getRecord: vi.fn(), patchRecord: vi.fn(),
   searchCompanyByDomain: vi.fn(), propertiesForSpec: vi.fn(), searchAll: vi.fn(),
   searchContactByEmail: vi.fn(), searchModifiedIds: vi.fn(),
@@ -611,6 +611,8 @@ beforeEach(() => {
   monday.moveItem.mockResolvedValue(undefined);
   hubspot.getOwners.mockResolvedValue({});
   hubspot.getDealStageLabels.mockResolvedValue({});
+  // buildCtx fetches this only when a spec declares crmStage/crmPipeline, which the CRM Deals spec does.
+  hubspot.getCrmStageDicts.mockResolvedValue({ pipelines: {}, stages: {}, pipelineByStage: {} });
   hubspot.propertiesForSpec.mockReturnValue([]);
   hubspot.patchRecord.mockResolvedValue(NEW_MOD);
   hubspot.claimOwnership.mockResolvedValue(NEW_MOD);
@@ -849,13 +851,25 @@ describe("an unknown status label reaches HubSpot and the webhook fails", () => 
 // ---------------------------------------------------------------------------------------------------
 
 describe("the WM deployment is untouched by any of this", () => {
-  it.each(["5029639630", "5029639440", "5029480547", "5028000494"])(
+  /**
+   * 5028000494 USED TO BE IN THIS LIST AND WAS NEVER A WM BOARD. It is the monday CRM template's
+   * Deals board, listed here only because Phase 1 kept Deals out of CRM scope; the WM deal board is
+   * 5029480547. Since 2026-09-14 CRM owns 5028000494, so asserting it is unroutable would now be
+   * asserting the opposite of the design. The three boards below are the genuine WM ones and the
+   * isolation guarantee for them is unchanged.
+   */
+  it.each(["5029639630", "5029639440", "5029480547"])(
     "WM board %s is not routable on the CRM deployment", async (boardId) => {
       const out = await syncMondayItem(env, boardId, "CARD1", live, { left: 30 });
       expect(out).toContain("not configured");
       expect(hubspot.patchRecord).not.toHaveBeenCalled();
       expect(monday.getItem).not.toHaveBeenCalled();
     });
+
+  it("the CRM Deals board IS routable on the CRM deployment", async () => {
+    const out = await syncMondayItem(env, "5028000494", "CARD1", live, { left: 30 });
+    expect(out).not.toContain("not configured");
+  });
 
   // And with ENABLE_CRM unset, the CRM boards are not routable either — exclusive both ways.
   it.each([CRM_CONTACTS.boardId, CRM_ACCOUNTS.boardId])(

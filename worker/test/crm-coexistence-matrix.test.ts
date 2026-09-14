@@ -40,9 +40,12 @@ const withCutover = (s: ObjectSpec, ms: number): ObjectSpec =>
 describe("A. runtime isolation", () => {
   it("WM deployment resolves only WM specs", () => expect(specsFor(prod)).toEqual(ALL_SPECS));
 
-  it("CRM deployment resolves only CRM Contacts + CRM Accounts", () => {
+  // Deals and Line Items joined the CRM scope on 2026-09-14. The isolation property is unchanged and
+  // is asserted by the two tests below: neither deployment can resolve the other's boards.
+  it("CRM deployment resolves only the CRM specs", () => {
     expect(specsFor(crmEnv)).toEqual(CRM_SPECS);
-    expect(specsFor(crmEnv).map(s => s.object).sort()).toEqual(["companies", "contacts"]);
+    expect(specsFor(crmEnv).map(s => s.object).sort())
+      .toEqual(["companies", "contacts", "deals", "line_items"]);
   });
 
   it("CRM cannot resolve any WM board", () => {
@@ -56,10 +59,12 @@ describe("A. runtime isolation", () => {
     }
   });
 
-  it("CRM cannot resolve Deals, and neither deployment routes the CRM Deals board", () => {
-    expect(specByObject(crmEnv, "deals")).toBeUndefined();
-    expect(specByBoard(crmEnv, CRM_DEALS_BOARD)).toBeUndefined();
+  /** CRM owns the CRM Deals board; WM must still not see it, and the two deal boards must differ.
+   *  That mutual blindness is the coexistence guarantee — not the absence of deals from CRM. */
+  it("each deployment routes its OWN deals board and is blind to the other's", () => {
+    expect(specByBoard(crmEnv, CRM_DEALS_BOARD)?.object).toBe("deals");
     expect(specByBoard(prod, CRM_DEALS_BOARD)).toBeUndefined();
+    expect(specByObject(crmEnv, "deals")!.boardId).not.toBe(specByObject(prod, "deals")!.boardId);
   });
 
   it("ALL_KNOWN_SPECS is never what routing returns", () => {
@@ -220,8 +225,14 @@ describe("E. delete direction", () => {
   });
 
   // A HubSpot DEAL deletion on the CRM deployment must not delete a WM deal card.
-  it("a HubSpot deal deletion is a no-op on the CRM deployment", () =>
-    expect(specByObject(crmEnv, "deals")).toBeUndefined());
+  /** A deal deletion now REACHES the CRM deployment, so the guarantee shifts from "unroutable" to
+   *  "restores the card rather than deleting anything in HubSpot" — restoreOnDelete, as for every
+   *  other CRM spec. The monday -> HubSpot delete direction stays structurally impossible below. */
+  it("a deal deletion is routable on CRM and restores rather than deletes", () => {
+    const s = specByObject(crmEnv, "deals")!;
+    expect(s.restoreOnDelete).toBe(true);
+    expect(s.createFromMonday).toBe(false);
+  });
 
   // monday -> HubSpot deletion is STRUCTURALLY impossible for Contacts/Companies: the worker exposes no
   // helper that can delete a HubSpot contact, company or deal RECORD at all.
@@ -302,26 +313,37 @@ describe("G. Phase B: dryRun=false, writeHubspot=false", () => {
 // ------------------------------------------------------- H. No Deals / association safety
 
 describe("H. no Deals, no associations", () => {
-  it("no CRM spec is a deals spec", () => {
-    for (const s of CRM_SPECS) expect(s.object).not.toBe("deals");
+  it("every CRM spec is crm-owned and sits on a non-WM board", () => {
+    for (const s of CRM_SPECS) {
+      expect(s.ownership?.owner).toBe("crm");
+      expect(WM_BOARDS).not.toContain(s.boardId);
+    }
   });
 
   // SUPERSEDED by the association task: CRM specs now DO declare the Contact<->Company relation. The
   // safety property moved from "declares nothing" to "declares only this, and the reverse is code-blocked"
   // (reverseAssociations returns immediately for any ownership-declaring spec - crm-associations.test.ts).
-  it("CRM associations are Contact<->Company ONLY, never deals", () => {
+  /**
+   * CRM associations now span Contact<->Company, Deal<->Contact, Deal<->Company and Deal<->LineItem —
+   * the four relationships the business asked to see from both boards. The safety property was never
+   * the COUNT but the DIRECTION: the reverse is code-blocked for any ownership-declaring spec
+   * (reverseAssociations returns immediately — crm-associations.test.ts), so none of these can delete
+   * a HubSpot association.
+   */
+  it("CRM associations cover only CRM objects, and every spec declares ownership", () => {
     for (const s of CRM_SPECS) {
-      expect(s.associations).toHaveLength(1);
-      for (const a of s.associations!) expect(["companies", "contacts"]).toContain(a.toObject);
+      for (const a of s.associations ?? [])
+        expect(["companies", "contacts", "deals", "line_items"]).toContain(a.toObject);
+      expect(s.ownership).toBeDefined();
     }
   });
 
-  it("no CRM field maps a deal relation or the CRM Deals board", () => {
+  /** A field must never be pointed at a BOARD id — that was the real hazard behind the old
+   *  name-shaped check, and it survives the scope change unchanged. */
+  it("no CRM field maps a board id as if it were a column", () => {
+    const boards = new Set(CRM_SPECS.map(s => s.boardId));
     for (const s of CRM_SPECS)
-      for (const f of s.fields) {
-        expect(f.col).not.toMatch(/deal/i);
-        expect(f.col).not.toBe(CRM_DEALS_BOARD);
-      }
+      for (const f of s.fields) expect(boards.has(f.col)).toBe(false);
   });
 
   it("contact_deal and account_deal are mapped by nothing", () => {

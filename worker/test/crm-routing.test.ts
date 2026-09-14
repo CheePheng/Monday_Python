@@ -24,9 +24,12 @@ describe("CRM specs are invisible to a production deploy", () => {
 
   // EXCLUSIVE, not a union. A union would make the CRM Worker a second processor for the WM boards,
   // writing the same monday records twice. Ownership guards HubSpot writes only — it would not help.
-  it("the CRM deployment resolves ONLY the two CRM specs", () => {
+  // FOUR since 2026-09-14: Deals and Line Items joined the CRM scope by decision. The assertion that
+  // matters is unchanged — CRM resolves the CRM specs EXCLUSIVELY and every one is crm-owned. The
+  // count stays pinned so adding a spec is a deliberate edit here rather than silent drift.
+  it("the CRM deployment resolves ONLY the CRM specs", () => {
     expect(specsFor(crmEnv)).toEqual(CRM_SPECS);
-    expect(specsFor(crmEnv)).toHaveLength(2);
+    expect(specsFor(crmEnv)).toHaveLength(4);
     expect(specsFor(crmEnv).every(s => s.ownership?.owner === "crm")).toBe(true);
   });
 
@@ -71,8 +74,17 @@ describe("object resolution keeps Deals out of CRM", () => {
     expect(specByObject(crmEnv, "companies")).toBe(CRM_ACCOUNTS);
   });
 
-  it("CRM resolves DEALS to nothing — a stray deal webhook is a no-op there", () =>
-    expect(specByObject(crmEnv, "deals")).toBeUndefined());
+  /**
+   * CRM now OWNS deals — but on its own board. The isolation property was never "CRM has no deals";
+   * it was "the two deployments never claim the same board", which is what this asserts. WM keeps
+   * board 5029480547; CRM uses the monday CRM template's 5028000494.
+   */
+  it("CRM resolves deals to the CRM Deals board, never to the WM one", () => {
+    const s = specByObject(crmEnv, "deals");
+    expect(s?.boardId).toBe("5028000494");
+    expect(s?.boardId).not.toBe(DEALS.boardId);
+    expect(s?.ownership?.owner).toBe("crm");
+  });
 
   it("WM resolves all three of its own objects", () => {
     expect(specByObject(prod, "deals")).toBe(DEALS);
@@ -80,11 +92,11 @@ describe("object resolution keeps Deals out of CRM", () => {
     expect(specByObject(prod, "companies")).toBe(COMPANIES_MYLA);
   });
 
-  it("no CRM spec is a deals spec, and none carries deal associations", () => {
-    for (const s of CRM_SPECS) {
-      expect(s.object).not.toBe("deals");
-      for (const a of s.associations ?? []) expect(a.toObject).not.toBe("deals");
-    }
+  /** Every CRM spec stays on a CRM board. This is the check that would catch a spec accidentally
+   *  pointed at a live Work-Management board — the failure that actually matters. */
+  it("no CRM spec touches a WM board", () => {
+    const wm = new Set(ALL_SPECS.map(s => s.boardId));
+    for (const s of CRM_SPECS) expect(wm.has(s.boardId)).toBe(false);
   });
 });
 

@@ -38,12 +38,19 @@ describe("the CRM specs declare exactly the native Contact<->Company relations",
   });
 
   // NO DEALS. contact_deal points at board 5028000494; account_deal is a monday mirror.
-  it("no CRM association targets deals, and no deal relation column is referenced", () => {
+  /**
+   * Deals joined the CRM scope on 2026-09-14, so "no association targets deals" is no longer the
+   * rule. Two things it was really protecting DO survive and are asserted instead:
+   *   - `account_deal` and `deal_account` are monday MIRROR columns, resolved through another
+   *     relation. Writing one directly is meaningless and would fail; they must never be a relationCol.
+   *   - every association relation column must be a real board_relation this config owns.
+   */
+  it("no association is wired to a MIRROR column", () => {
     for (const s of CRM_SPECS)
-      for (const a of s.associations!) {
-        expect(a.toObject).not.toBe("deals");
-        expect(a.relationCol).not.toBe("contact_deal");
+      for (const a of s.associations ?? []) {
         expect(a.relationCol).not.toBe("account_deal");
+        expect(a.relationCol).not.toBe("deal_account");
+        expect(a.relationCol).not.toBe("mirror2");
       }
   });
 

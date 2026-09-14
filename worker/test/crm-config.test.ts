@@ -358,11 +358,14 @@ describe("PRODUCTION WM specs are untouched", () => {
     expect(CRM_ACCOUNTS.boardId).not.toBe(COMPANIES_MYLA.boardId);
   });
 
-  it("CRM_SPECS covers exactly companies + contacts, all crm-owned, none with associations", () => {
-    expect(CRM_SPECS.map(s => s.object).sort()).toEqual(["companies", "contacts"]);
+  // Four objects since 2026-09-14. Each declares ownership and at least one association; the reverse
+  // direction stays code-blocked for every ownership-declaring spec, which is the safety property.
+  it("CRM_SPECS covers the four CRM objects, all crm-owned, each with associations", () => {
+    expect(CRM_SPECS.map(s => s.object).sort())
+      .toEqual(["companies", "contacts", "deals", "line_items"]);
     for (const s of CRM_SPECS) {
       expect(s.ownership?.owner).toBe("crm");
-      expect(s.associations).toHaveLength(1);          // Contact<->Company only; reverse is code-blocked
+      expect((s.associations ?? []).length).toBeGreaterThan(0);
     }
   });
 });

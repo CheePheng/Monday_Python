@@ -148,8 +148,11 @@ export type GroupBy =
   | { singleGroup: string };
 
 export interface ObjectSpec {
-  object: "deals" | "companies" | "contacts";
-  objectTypeId: "0-1" | "0-2" | "0-3"; // for HubSpot record deep links
+  // "line_items" joined 2026-09-14: the CRM phase gives Line Items their own BOARD with a paired Deal
+  // relation, rather than the Work-Management shape where they are subitems of a deal card. 29% of
+  // deals carry more than one line item, so a board is the only shape that shows them all.
+  object: "deals" | "companies" | "contacts" | "line_items";
+  objectTypeId: "0-1" | "0-2" | "0-3" | "0-8"; // for HubSpot record deep links (0-8 = line items)
   searchFilters: Record<string, unknown>[]; // one HubSpot filterGroup's filters
   modifiedProp: string;  // hs_lastmodifieddate | lastmodifieddate
   nameProps: string[];   // properties composing the monday item name

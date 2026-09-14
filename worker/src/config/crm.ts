@@ -372,5 +372,146 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   ],
 };
 
+const OWN_DEALS: OwnershipSpec = { ...OWN_CONTACTS };
+const OWN_LINE_ITEMS: OwnershipSpec = { ...OWN_CONTACTS };
+
+/**
+ * CRM DEALS — board 5028000494, group `topics` ("Active Deals").
+ *
+ * STAGE IS THE WHOLE DESIGN PROBLEM, and it is a property of this portal's data rather than a
+ * preference. `dealstage` holds 42 values across 5 pipelines and THE LABELS ARE NOT UNIQUE: the three
+ * Salesforce pipelines use the same nine Chinese stage names, so `赢单` alone is three distinct ids.
+ * An unqualified dictionary cannot be inverted, and a wrong reverse write does not error — it moves
+ * the deal into another pipeline, which is what reporting, forecasting and the Won automations key
+ * off. So:
+ *
+ *   - `deal_stage` (the native monday status, 6 labels) stays HUBSPOT -> MONDAY ONLY. Many HubSpot
+ *     stages map onto one monday label and a many-to-one map has no inverse.
+ *   - `HubSpot Stage` carries the exact stage two-way, with PIPELINE-QUALIFIED labels
+ *     ("SF-Maint / 赢单") from getCrmStageDicts. Qualifying is what restores uniqueness.
+ *   - `stagePipelinePairing` sends `pipeline` with every `dealstage` write, because HubSpot rejects a
+ *     stage that does not belong to the record's current pipeline and two PATCHes would leave an
+ *     invalid pair in between.
+ *
+ * ASSOCIATIONS LINK ALL, SELECT NOTHING. Measured 2026-09-14: max 2 companies, 9 contacts and 12 line
+ * items per deal, against relation cells holding ~750 elsewhere on this account — so no platform
+ * constraint forces a choice. Selecting one would reproduce on purpose the failure the Contacts phase
+ * spent five rounds removing: monday showing less than HubSpot holds, invisibly, with a rep re-adding
+ * the missing record by hand. `Primary Account` exposes the `Primary`-labelled company separately
+ * (8,462 of 8,466 deals carry that label) WITHOUT discarding the second.
+ *
+ * NO HISTORICAL IMPORT YET. createFromMonday is false and the ownership cutover is still INFINITY, so
+ * nothing here can claim, create or card a record until that is deliberately changed.
+ */
+export const CRM_DEALS: ObjectSpec = {
+  object: "deals",
+  objectTypeId: "0-3",
+  searchFilters: [],
+  modifiedProp: "hs_lastmodifieddate",
+  nameProps: ["dealname"],
+  // nameReverse omitted: renaming a card must not rewrite the HubSpot deal name.
+  boardId: "5028000494",
+  idCol: "text_mm76kxz4",
+  syncStateCol: "text_mm7668db",
+  linkCol: "link_mm76z640",
+  groupBy: { singleGroup: "topics" },
+  includeAll: true,
+  skipFullReconcile: true,
+  ownership: OWN_DEALS,
+  restoreOnDelete: true,
+  suppressSelfOriginWrites: true,
+  fillEmptyFromMonday: true,
+  createFromMonday: false,
+  stagePipelinePairing: { stageProp: "dealstage", pipelineProp: "pipeline" },
+  // All three association directions, into the paired Connect Boards columns created 2026-09-14.
+  // `deal_account` is a monday MIRROR resolving through deal_contact and is never written directly.
+  associations: [
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: "deal_contact" },
+    { toObject: "companies", nameProps: ["name"], relationCol: "board_relation_mm76wp4e" },
+    { toObject: "line_items", nameProps: ["name"], relationCol: "board_relation_mm76btmt" },
+  ],
+  fields: [
+    // ONE-WAY: the coarse summary. See the header — many-to-one has no inverse.
+    { hs: "dealstage", col: "deal_stage", type: "status", labels: "stage", oneWay: true },
+    // TWO-WAY: the exact stage, pipeline-qualified so the inverse is a function.
+    { hs: "dealstage", col: "dropdown_mm7624zd", type: "dropdown", labels: "crmStage", reverse: true },
+    { hs: "pipeline", col: "dropdown_mm76s7kk", type: "dropdown", labels: "crmPipeline", reverse: true },
+    { hs: "amount", col: "deal_value", type: "numbers", reverse: true },
+    { hs: "closedate", col: "deal_expected_close_date", type: "date", reverse: true },
+    // HubSpot stores a FRACTION (0.2); the column renders `%`. Without scale a 20% deal reads 0.2%,
+    // and the board's Forecast Value formula multiplies that error into money.
+    { hs: "hs_deal_stage_probability", col: "deal_close_probability", type: "numbers", reverse: true, scale: 100 },
+    { hs: "dealtype", col: "dropdown_mm76sh6x", type: "dropdown", labels: "dealtype", reverse: true },
+    { hs: "hs_priority", col: "color_mm76tdww", type: "status", labels: "priority", reverse: true },
+    { hs: "deal_currency_code", col: "dropdown_mm76570x", type: "dropdown", labels: "pipeline", reverse: true, unvalidatedEnum: true },
+    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm76dtzq", type: "dropdown", labels: "vendor", reverse: true },
+    { hs: "sales_user", col: "dropdown_mm76ncf5", type: "dropdown", labels: "salesUser", reverse: true },
+    // Record OWNERSHIP: appReverse, so a stale people column cannot silently reassign a deal.
+    { hs: "hubspot_owner_id", col: "deal_owner", type: "people", appReverse: true },
+    // HubSpot-computed: there is nothing to push back.
+    { hs: "notes_last_updated", col: "date__1", type: "date", oneWay: true },
+  ],
+};
+
+/**
+ * CRM LINE ITEMS — board 5028000489 ("Products & Services").
+ *
+ * A BOARD, NOT SUBITEMS, which is the one structural difference from the Work-Management shape. 2,527
+ * of 8,653 deals (29%) carry more than one line item and one carries 12, so a design that shows a
+ * single line item per deal discards data on nearly a third of the board. The Deal link is the paired
+ * counterpart of the Deals board's "Line Items" column, so the relationship is visible from both.
+ *
+ * Unlike `dealstage`, EVERY line-item enumeration here has unique labels, so all of them invert
+ * cleanly and the board is fully two-way.
+ *
+ * The board's own `product_and_service_price` and `product_and_service_type` are monday-CRM template
+ * columns that someone retitled without retyping — a NUMBERS column called "Brand ISV" cannot hold
+ * "Docusign". They are left in place but retitled "(monday template, unused)"; the real values live in
+ * the typed columns created 2026-09-14.
+ */
+export const CRM_LINE_ITEMS: ObjectSpec = {
+  object: "line_items",
+  objectTypeId: "0-8",
+  searchFilters: [],
+  modifiedProp: "hs_lastmodifieddate",
+  nameProps: ["name"],
+  boardId: "5028000489",
+  idCol: "text_mm76qwtw",
+  syncStateCol: "text_mm76kcss",
+  linkCol: "link_mm76mcap",
+  groupBy: { singleGroup: "topics" },
+  includeAll: true,
+  skipFullReconcile: true,
+  ownership: OWN_LINE_ITEMS,
+  restoreOnDelete: true,
+  suppressSelfOriginWrites: true,
+  fillEmptyFromMonday: true,
+  createFromMonday: false,
+  associations: [
+    { toObject: "deals", nameProps: ["dealname"], relationCol: "board_relation_mm76w9y5" },
+  ],
+  fields: [
+    { hs: "hs_sku", col: "text_mm73mvfj", type: "text", reverse: true },
+    { hs: "description", col: "product_and_service_description", type: "long_text", reverse: true },
+    { hs: "note", col: "text_mm7318s1", type: "text", reverse: true },
+    { hs: "quantity", col: "numeric_mm7652yc", type: "numbers", reverse: true },
+    { hs: "price", col: "numeric_mm76w6wc", type: "numbers", reverse: true },
+    { hs: "hs_cost_of_goods_sold", col: "numeric_mm76yzc4", type: "numbers", reverse: true },
+    { hs: "discount", col: "numeric_mm76kfhq", type: "numbers", reverse: true },
+    { hs: "deposit", col: "numeric_mm762vb", type: "numbers", reverse: true },
+    { hs: "service_date", col: "date_mm76shxe", type: "date", reverse: true },
+    { hs: "hs_recurring_billing_start_date", col: "date_mm76qejs", type: "date", reverse: true },
+    { hs: "brand_isv", col: "dropdown_mm76atcg", type: "dropdown", labels: "liBrand", reverse: true },
+    { hs: "family", col: "dropdown_mm769s51", type: "dropdown", labels: "liFamily", reverse: true },
+    { hs: "product_subcategory", col: "dropdown_mm76skb3", type: "dropdown", labels: "liSubcategory", reverse: true },
+    { hs: "hs_pricing_model", col: "dropdown_mm76gfjd", type: "dropdown", labels: "liPricingModel", reverse: true },
+    { hs: "recurringbillingfrequency", col: "dropdown_mm76r942", type: "dropdown", labels: "liBillingFreq", reverse: true },
+    // Stores a tax-rate GROUP ID and displays a label, so the dictionary is mandatory rather than cosmetic.
+    { hs: "hs_tax_rate_group_id", col: "dropdown_mm76ftmq", type: "dropdown", labels: "liTaxRate", reverse: true },
+    { hs: "is_active", col: "color_mm76w1cs", type: "status", labels: "liIsActive", reverse: true },
+    { hs: "hs_line_item_currency_code", col: "dropdown_mm76dqnc", type: "dropdown", labels: "liCurrency", reverse: true },
+  ],
+};
+
 /** The CRM specs, selected EXCLUSIVELY (never unioned with the WM specs) when ENABLE_CRM is set. */
-export const CRM_SPECS: ObjectSpec[] = [CRM_ACCOUNTS, CRM_CONTACTS];
+export const CRM_SPECS: ObjectSpec[] = [CRM_ACCOUNTS, CRM_CONTACTS, CRM_DEALS, CRM_LINE_ITEMS];
