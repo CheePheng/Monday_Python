@@ -30,6 +30,14 @@ contact link.** 5,204 of 8,651 deals have `num_associated_contacts = 0`. `deal_a
 `mirror` column that displays `contact_account` *through* `deal_contact`, so those 5,204 deals would
 show a blank Account no matter what we write. A real Deal→Accounts relation column has to be created.
 
+> **CORRECTED 2026-09-14.** The conclusion above is right; the reasoning is not, and it was wrong
+> because it was *inferred* rather than measured — the Service Key was 403 on deals when this was
+> written, so Deal→Company was read backwards off the monday mirror instead of from HubSpot. With the
+> scopes granted, the real figure is that **98% of deals (8,466 of 8,653) have a direct Company
+> association independent of any contact**, and 8,462 of those carry a `Primary` label. `deal_account`
+> was never an approximation of the deal's company — it measures the company of whichever contact
+> happens to be linked. See `2026-09-14-deals-design.md`, which supersedes §2.5's association design.
+
 ---
 
 ## 1. Volumes
