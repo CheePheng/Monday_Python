@@ -150,7 +150,23 @@ export async function buildCtx(env: Env): Promise<Ctx> {
   for (const [email, id] of Object.entries(mondayUsersByEmail)) mondayEmailByUserId[id] = email;
   const ownerIdByEmail: Record<string, string> = {};
   for (const [id, o] of Object.entries(ownersById)) if (o.email) ownerIdByEmail[o.email.toLowerCase()] = id;
-  return { labels, ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail,
+  /**
+   * Owner NAME -> owner id, for `peopleByName` fields. A name claimed by more than one owner is
+   * REMOVED rather than resolved to the first match: this portal holds two distinct owners both named
+   * "Rick Antonio", and guessing between them would assign contacts to the wrong person. An ambiguous
+   * or unknown name therefore resolves to nothing, which leaves the People cell empty — the correct
+   * outcome, and the one the business already accepted for people with no monday account.
+   */
+  const ownerIdByName: Record<string, string> = {};
+  const nameSeen = new Set<string>();
+  for (const [id, o] of Object.entries(ownersById)) {
+    const n = (o.name ?? "").trim().toLowerCase();
+    if (!n) continue;
+    if (nameSeen.has(n)) { delete ownerIdByName[n]; continue; }
+    nameSeen.add(n);
+    ownerIdByName[n] = id;
+  }
+  return { labels, ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, ownerIdByName,
     pipelineByStage, portalId: PORTAL_ID };
 }
 

@@ -182,6 +182,30 @@ export const CRM_CONTACTS: ObjectSpec = {
     // reverse:true with NO dictionary on 2026-09-09, so the status branch sent whatever label the monday
     // column held: setting it to any other rep would have 400'd and frozen every field on that card.
     { hs: "sales_person", col: "color_mm701ff2", type: "status", labels: "contactSalesPerson", reverse: true },
+    /**
+     * THE SAME PROPERTY AS A PEOPLE COLUMN, and the reason is monday permissions rather than display.
+     *
+     * "Restricted to assigned people" can only be configured against a PEOPLE column, so an
+     * assignment kept in a status column cannot drive visibility at all. The Philippines team's
+     * present workaround is to own every contact as Myla and carry the real rep here; measured
+     * 2026-09-14, 4,015 of Elaine's 4,046 and all 136 of Rick's are owned by Myla, so pairing
+     * Contact Owner with this column gives the leader the whole team and each rep their own.
+     *
+     * peopleByName because sales_person stores an owner's NAME, not an owner id — without it the
+     * ordinary people path looks up ownersById["Elaine Rivera"], finds nothing, and the column
+     * renders empty on all 6,543 contacts.
+     *
+     * FORWARD-ONLY, deliberately. The legacy status column above stays two-way, so nothing is lost
+     * while both exist; a people column's reverse writes an OWNER ID, and sales_person is an
+     * enumeration of names, so a reverse here would 400. Making this two-way is a prerequisite for
+     * deleting the legacy column, not for creating this one.
+     */
+    { hs: "sales_person", col: "multiple_person_mm76qtz7", type: "people", peopleByName: true },
+    /** sales_user stores an owner ID, so the ordinary people path resolves it with no new mechanism.
+     *  Forward-only, matching the legacy dropdown's existing direction exactly. A value whose owner
+     *  has no monday account leaves the cell EMPTY — accepted by the business, and measured: 1,810 of
+     *  a 10,000-contact sample, joan zhang alone accounting for 1,231. */
+    { hs: "sales_user", col: "multiple_person_mm76ygkp", type: "people" },
     // Lifecycle Stage. This portal replaced HubSpot's defaults with a 10-stage Chinese pipeline
     // (生命周期阶段管道), and its option VALUES are a mix of semantic strings (lead/opportunity/customer)
     // and raw numeric ids (1028988526) - so the label dictionary is load-bearing, not cosmetic: without

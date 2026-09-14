@@ -36,7 +36,11 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
     }
     case "date": return { date: v.slice(0, 10) };
     case "people": {
-      const email = ctx.ownersById[v]?.email?.toLowerCase();
+      // peopleByName: the property stores an owner's display NAME (sales_person), so the owner id has
+      // to be looked up first. Everything after that hop is identical — resolution still ends at an
+      // email, never at a name match against monday.
+      const ownerId = f.peopleByName ? (ctx.ownerIdByName?.[v.trim().toLowerCase()] ?? "") : v;
+      const email = ctx.ownersById[ownerId]?.email?.toLowerCase();
       const uid = email ? ctx.mondayUsersByEmail[email] : undefined;
       return uid ? { personsAndTeams: [{ id: Number(uid), kind: "person" }] } : null;
     }

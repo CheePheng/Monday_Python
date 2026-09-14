@@ -1337,10 +1337,18 @@ function selftest(mod) {
       liPricingModel: { flat: "Flat" }, liBillingFreq: { annually: "Annually" },
       liTaxRate: { "15274908": "GST 9%" }, liIsActive: { true: "Yes" }, liCurrency: { USD: "USD" },
     },
-    ownersById: { 12345: { name: "Emily You", email: "emily@dkmeco.com" } },
-    mondayUsersByEmail: { "emily@dkmeco.com": "777" },
+    ownersById: {
+      12345: { name: "Emily You", email: "emily@dkmeco.com" },
+      // Two owners sharing a name, exactly as this portal has for "Rick Antonio". Neither may appear
+      // in ownerIdByName, or a peopleByName field would assign contacts to whichever came first.
+      222: { name: "Rick Antonio", email: "rick1@dkmeco.com" },
+      333: { name: "Rick Antonio", email: "rick2@dkmeco.com" },
+    },
+    mondayUsersByEmail: { "emily@dkmeco.com": "777", "rick1@dkmeco.com": "888" },
     mondayEmailByUserId: { 777: "emily@dkmeco.com" },
     ownerIdByEmail: { "emily@dkmeco.com": "12345" },
+    // Name -> owner id for peopleByName. "rick antonio" is ABSENT because it is ambiguous.
+    ownerIdByName: { "emily you": "12345" },
     portalId: "39939588",
   };
   const cases = [
@@ -1348,7 +1356,15 @@ function selftest(mod) {
       firstname: "Shandy", lastname: "Febiarisma", email: "shandy@example.com", jobtitle: "Analyst",
       phone: "+60123456789", leadstatus: "1New", priority__c: "P1_2小时内", hs_lead_status: "NEW",
       lifecyclestage: "lead", leadsource: "Others", hubspot_owner_id: "12345",
+      // sales_person holds a NAME and resolves via peopleByName; sales_user holds an OWNER ID.
+      sales_person: "Emily You", sales_user: "12345",
       createdate: "2026-09-09T03:13:03.285Z", lastmodifieddate: "2026-09-09T03:40:07.689Z",
+    } }],
+    // THE AMBIGUOUS NAME. "Rick Antonio" belongs to two owners, so it must resolve to NOTHING rather
+    // than to whichever was indexed first — the People cell stays empty, which is the correct answer.
+    [CRM_CONTACTS, { id: "777000", properties: {
+      firstname: "Ambiguous", lastname: "Case", email: "amb@example.com",
+      sales_person: "Rick Antonio", lastmodifieddate: "2026-09-14T00:00:00Z",
     } }],
     [CRM_ACCOUNTS, { id: "21751102241", properties: {
       name: "HubSpot", domain: "hubspot.com", city: "Cambridge", state: "MA",

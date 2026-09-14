@@ -109,6 +109,21 @@ export interface FieldSpec {
    * pass forever. Contacts learned that with the phone and email storable checks.
    */
   scale?: number;
+  /**
+   * THIS PROPERTY HOLDS AN OWNER'S DISPLAY NAME, NOT AN OWNER ID — so a `people` column must resolve
+   * it through the name index rather than through ownersById.
+   *
+   * Needed by `sales_person`, which is a HubSpot ENUMERATION whose four option values are literally
+   * "Elaine Rivera", "Myla Mestiola", "Emily You", "Rick Avery Antonio". The ordinary people path does
+   * `ctx.ownersById[value]`, which for a name is always undefined — so without this the column would
+   * silently render EMPTY on all 6,543 contacts rather than failing loudly.
+   *
+   * Resolution is still by EMAIL at the last hop (name -> owner -> email -> monday user); only the
+   * first hop changes. Ambiguous names are absent from the index by construction, so "Rick Avery
+   * Antonio" — which matches no owner at all — resolves to nothing, which is the correct outcome
+   * until that person has an account.
+   */
+  peopleByName?: boolean;
 }
 
 /** Which sync owns WRITE access to a HubSpot record. */
@@ -318,6 +333,13 @@ export interface HsRecord { id: string; properties: Record<string, string | null
 export interface Ctx {
   labels: Partial<Record<LabelDict, Record<string, string>>>;
   ownersById: Record<string, { name: string; email: string | null }>;
+  /**
+   * Owner display NAME (lowercased) -> owner id, for `peopleByName` fields. AMBIGUOUS NAMES ARE
+   * DELIBERATELY ABSENT: this portal holds two distinct owners both called "Rick Antonio", and
+   * silently picking one would assign contacts to the wrong person. A name that maps to more than one
+   * owner is omitted, so the field resolves to nothing rather than to a guess.
+   */
+  ownerIdByName?: Record<string, string>;
   mondayUsersByEmail: Record<string, string>;
   mondayEmailByUserId: Record<string, string>; // monday user id -> email (reverse of mondayUsersByEmail)
   ownerIdByEmail: Record<string, string>;       // email (lowercased) -> HubSpot owner id
