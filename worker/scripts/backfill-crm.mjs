@@ -45,6 +45,9 @@ import { buildSync } from "esbuild";
 import { planContactLinks, CAPPED, NO_ACCOUNT_CARD, ALREADY_CORRECT } from "./relation-plan.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+/** Set by --only-hs. Module-scoped because hsPage is the one funnel every record passes through, so
+ *  filtering there cannot be bypassed by a code path that forgets to apply it. */
+let ONLY_HS = null;
 const MONDAY_API = "https://api.monday.com/v2";
 const HS_API = "https://api.hubapi.com";
 
@@ -76,11 +79,15 @@ function parseArgs(argv) {
     // it. canary-relations.mjs picks the ids and verifies the before/after cells; the write path here
     // is byte-for-byte the one the full run uses, which is the entire point of a canary.
     else if (k === "--only") a.only = new Set(String(argv[++i]).split(/[,\s]+/).filter(Boolean));
+    // Restrict the CREATE pass to specific HubSpot record ids. `--limit` takes "the first N in list
+    // order", which is not a sample of anything; a canary needs records chosen for what they exercise.
+    else if (k === "--only-hs") a.onlyHs = new Set(String(argv[++i]).split(/[,\s]+/).filter(Boolean));
     else if (k === "--batch") a.batch = Number(argv[++i]);
     else if (k === "--concurrency") a.concurrency = Math.max(1, Number(argv[++i]));
     else if (k === "--state") a.state = argv[++i];
   }
   if (!a.state && a.object) a.state = join(ROOT, "scripts", `.backfill-${a.object}.json`);
+  if (a.onlyHs) ONLY_HS = a.onlyHs;
   return a;
 }
 
@@ -138,7 +145,7 @@ async function loadWorker() {
     `export { propertiesForSpec } from ${JSON.stringify(join(ROOT, "src", "hubspot.ts"))};`,
     `export { buildColumnValues, itemName } from ${JSON.stringify(join(ROOT, "src", "mapping.ts"))};`,
     `export { targetGroup } from ${JSON.stringify(join(ROOT, "src", "routing.ts"))};`,
-    `export { CRM_CONTACTS, CRM_ACCOUNTS } from ${JSON.stringify(join(ROOT, "src", "config", "crm.ts"))};`,
+    `export { CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS, CRM_LINE_ITEMS } from ${JSON.stringify(join(ROOT, "src", "config", "crm.ts"))};`,
   ].join("\n"), "utf8");
   buildSync({ entryPoints: [entry], bundle: true, format: "esm", platform: "node", outfile: out, logLevel: "error" });
   const mod = await import(pathToFileURL(out).href);
@@ -340,7 +347,10 @@ async function hsPage(token, object, props, after, pageSize = 100) {
   if (after) q.set("after", after);
   const body = await hubspot(token, `/crm/v3/objects/${object}?${q}`);
   return {
-    records: (body.results ?? []).map(r => ({ id: String(r.id), properties: r.properties ?? {} })),
+    // ONLY_HS is applied HERE because hsPage is the single funnel every record passes through, so a
+    // caller cannot bypass the canary's record selection by forgetting to filter.
+    records: (body.results ?? []).map(r => ({ id: String(r.id), properties: r.properties ?? {} }))
+      .filter(r => !ONLY_HS || ONLY_HS.has(r.id)),
     after: body.paging?.next?.after ?? null,
   };
 }
@@ -1129,7 +1139,8 @@ async function flushRelations(M, spec, rel, pending, result, links, ceiling) {
  * produces, using the Worker's own mapping code, so it can be eyeballed before any token is involved.
  */
 function selftest(mod) {
-  const { buildColumnValues, itemName, targetGroup, propertiesForSpec, CRM_CONTACTS, CRM_ACCOUNTS } = mod;
+  const { buildColumnValues, itemName, targetGroup, propertiesForSpec,
+          CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS, CRM_LINE_ITEMS } = mod;
   const ctx = {
     labels: {
       contactStatus: { "1New": "1新增" }, contactPriority: { "P1_2小时内": "P1_2小时内" },
@@ -1137,6 +1148,20 @@ function selftest(mod) {
       contactVendor: {}, contactSalesPerson: { "Emily You": "Emily You" }, contactDepartment: {},
       contactCountries: {}, contactCity: {}, contactLeadSourceSub: {}, salesUser: { "12345": "Emily You" },
       companyType: {}, partnerWith: {},
+      // DEALS. Two of the three 赢单 stage ids are included deliberately, so the fixture shows they
+      // render DIFFERENTLY — that qualification is the whole reason a reverse stage write is safe.
+      crmStage: {
+        "cd8b9086-9983-4f82-bdf0-83dfd3fd96ef": "SF-Sales / 赢单",
+        "d0e83c62-647f-4511-bc00-4b92a752c690": "SF-Maint / 赢单",
+        qualifiedtobuy: "Sales / Qualified To Buy",
+      },
+      crmPipeline: { default: "Sales Pipeline", "551f4f6c-ced0-4069-b1be-f0d3dc33bf2d": "Salesforce - Sales" },
+      stage: { "d0e83c62-647f-4511-bc00-4b92a752c690": "Won" },
+      dealtype: { newbusiness: "New Business" }, priority: { high: "High" },
+      vendor: { "37Docusign": "37Docusign" },
+      liBrand: { Docusign: "Docusign" }, liFamily: { "1 产品": "1 产品" }, liSubcategory: {},
+      liPricingModel: { flat: "Flat" }, liBillingFreq: { annually: "Annually" },
+      liTaxRate: { "15274908": "GST 9%" }, liIsActive: { true: "Yes" }, liCurrency: { USD: "USD" },
     },
     ownersById: { 12345: { name: "Emily You", email: "emily@dkmeco.com" } },
     mondayUsersByEmail: { "emily@dkmeco.com": "777" },
@@ -1158,6 +1183,26 @@ function selftest(mod) {
     } }],
     // A contact with NO name at all — common across 94k records, and monday rejects an empty item name.
     [CRM_CONTACTS, { id: "999", properties: { email: "noname@example.com", lastmodifieddate: "2026-09-01T00:00:00Z" } }],
+    // A DEAL in the Salesforce-Maintenance pipeline. Two things to read in the output: the STAGE must
+    // render "SF-Maint / 赢单" and NOT the Sales pipeline's identically-labelled 赢单, and the
+    // PROBABILITY must show 20, not 0.2 — HubSpot stores a fraction against a column rendering `%`,
+    // and the board's Forecast Value formula multiplies that error into money.
+    [CRM_DEALS, { id: "41579845025", properties: {
+      dealname: "早川-分析-新增1minitab3年", pipeline: "551f4f6c-ced0-4069-b1be-f0d3dc33bf2d",
+      dealstage: "d0e83c62-647f-4511-bc00-4b92a752c690", amount: "15600",
+      hs_deal_stage_probability: "0.2", closedate: "2026-12-31T06:07:05.882Z",
+      dealtype: "newbusiness", hs_priority: "high", deal_currency_code: "USD",
+      vendorschang_shang_lai_yuan: "37Docusign", sales_user: "12345", hubspot_owner_id: "12345",
+      hs_lastmodifieddate: "2026-09-11T06:09:27.260Z",
+    } }],
+    [CRM_LINE_ITEMS, { id: "343193001717", properties: {
+      name: "Docusign-Business Pro Edition-Envelope Subscription", hs_sku: "DS-BP-ENV",
+      quantity: "1", price: "2400", hs_cost_of_goods_sold: "1800", discount: "0",
+      brand_isv: "Docusign", family: "1 产品", hs_pricing_model: "flat",
+      recurringbillingfrequency: "annually", hs_tax_rate_group_id: "15274908",
+      is_active: "true", hs_line_item_currency_code: "USD",
+      service_date: "2026-10-01", hs_lastmodifieddate: "2026-09-10T08:02:04.278Z",
+    } }],
   ];
   for (const [spec, rec] of cases) {
     const cv = buildColumnValues(rec, spec, ctx);
@@ -1195,16 +1240,23 @@ async function main() {
       console.error("(--selftest needs neither: it shows the payload one record produces, offline.)");
       process.exit(1);
     }
-    const { CRM_CONTACTS, CRM_ACCOUNTS, buildCtx } = mod;
+    const { CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS, CRM_LINE_ITEMS, buildCtx } = mod;
+    // object name -> spec. Deals and Line Items joined 2026-09-14; the create path is entirely
+    // spec-driven, so they need no code of their own beyond this table.
+    const SPECS = {
+      contacts: CRM_CONTACTS, companies: CRM_ACCOUNTS,
+      deals: CRM_DEALS, line_items: CRM_LINE_ITEMS,
+    };
 
     if (args.preflight) {
       const problems = await preflight(M, H, mod, [CRM_ACCOUNTS, CRM_CONTACTS]);
       process.exitCode = problems ? 1 : 0;
       return;
     }
-    if (!["contacts", "companies", "relations"].includes(args.object)) {
-      console.error('--object must be "companies", "contacts" or "relations".');
-      console.error("Run them IN THAT ORDER: relations can only link to Accounts cards that exist.");
+    if (!["contacts", "companies", "relations", "deals", "line_items"].includes(args.object)) {
+      console.error('--object must be "companies", "contacts", "relations", "deals" or "line_items".');
+      console.error("Run them IN THAT ORDER: relations can only link to Accounts cards that exist,");
+      console.error("and line_items reference the deals they belong to.");
       process.exit(1);
     }
     if (args.object === "relations") {
@@ -1212,7 +1264,7 @@ async function main() {
       await runRelations(M, H, mod, args);
       return;
     }
-    const spec = args.object === "contacts" ? CRM_CONTACTS : CRM_ACCOUNTS;
+    const spec = SPECS[args.object];
 
     // The Worker's own context: owner map (including archived owners, or 481 contacts render a raw
     // owner id as a label), monday users by email, and every label dictionary the specs reference.
