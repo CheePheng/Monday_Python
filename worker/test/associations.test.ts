@@ -3,6 +3,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 // Mirror the in-memory-fake pattern from sync.test.ts, but for the association pass.
 const H = vi.hoisted(() => {
   const assoc = new Map<string, string[]>();      // `${obj}:${id}:${to}` -> associated ids
+  // `${obj}:${id}:${to}` keys whose association read is a PARTIAL page (HubSpot returned a cursor).
+  // Opt-in per fixture, so every pre-existing case behaves exactly as it did.
+  const truncated = new Set<string>();
   const records = new Map<string, any>();          // `${obj}:${id}` -> {id, properties}
   const parentCols = new Map<string, Record<string, any>>();    // parent itemId -> {col: raw value}
   const subitems = new Map<string, any[]>();        // parentId -> [{id,name,column_values}]
@@ -22,15 +25,22 @@ const H = vi.hoisted(() => {
     return "";
   };
   const colText = (it: any, c: string) => (it.column_values.find((x: any) => x.id === c)?.text ?? "").trim();
-  const reset = () => { assoc.clear(); records.clear(); parentCols.clear(); subitems.clear();
+  const reset = () => { assoc.clear(); truncated.clear(); records.clear(); parentCols.clear(); subitems.clear();
     targetItems.clear(); targetHsId.clear(); links.clear(); puts.length = 0; lineItemProps.length = 0;
     next = 900;
     for (const k in counts) counts[k] = 0; };
-  return { assoc, records, parentCols, subitems, targetItems, targetHsId, links, puts, lineItemProps, counts, tt, colText, reset, id: () => "s" + (next++) };
+  return { assoc, truncated, records, parentCols, subitems, targetItems, targetHsId, links, puts, lineItemProps, counts, tt, colText, reset, id: () => "s" + (next++) };
 });
 
 vi.mock("../src/hubspot", () => ({
   getAssociatedIds: async (_e: any, f: string, id: string, t: string) => H.assoc.get(`${f}:${id}:${t}`) ?? [],
+  // The relation path reads through getAssociatedPage so it can see a TRUNCATED page — a capped read
+  // must never drive a full-replacement write of a paired column. `truncated` is opt-in per fixture
+  // via H.truncated, so every existing case keeps its exact previous behaviour.
+  getAssociatedPage: async (_e: any, f: string, id: string, t: string) => ({
+    ids: H.assoc.get(`${f}:${id}:${t}`) ?? [],
+    truncated: H.truncated.has(`${f}:${id}:${t}`),
+  }),
   getRecordsByIds: async (_e: any, o: string, ids: string[]) => ids.map(id => H.records.get(`${o}:${id}`)).filter(Boolean),
   propertiesForSpec: () => [],
   putAssociation: async (_e: any, from: string, fromId: string, to: string, toId: string) => { H.puts.push([from, fromId, to, toId]); },
@@ -152,6 +162,42 @@ describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
     const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
     H.assoc.set("deals:1:companies", ["11", "22"]);
     H.targetItems.set("11", "901"); H.targetItems.set("22", "902"); // matching cards on the company board
+    await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.parentCols.get("100")!["conn_co"]).toEqual({ item_ids: [901, 902] });
+  });
+
+  /**
+   * A TRUNCATED ASSOCIATION READ MUST NOT DRIVE A FULL-REPLACEMENT WRITE.
+   *
+   * getAssociatedPage asks HubSpot for 100 and does not page, so a company with more than 100
+   * contacts returns the first 100 plus a cursor. Writing those as `item_ids` REPLACES the cell, and
+   * board_relation columns are PAIRED — so it also strips the link from every card outside that 100,
+   * on cards this pass never touched.
+   *
+   * OBSERVED LIVE 2026-09-10 to 09-12: contact 2855936605's Company cell was set and cleared on a
+   * cycle, every event under this integration's own token, because the relation backfill (which pages
+   * correctly) kept restoring what the capped read kept removing. One Accounts card measured 39 links
+   * short of HubSpot, with 3,473 more sitting above 100 across 25 cards.
+   *
+   * The other four guards cannot see this: `want` is non-empty, every returned id resolved, the cards
+   * are old, and the sets differ. They catch incomplete RESOLUTION; this is incomplete READING.
+   */
+  it("REFUSES to write a relation column when the association read was truncated", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11", "22"]);
+    H.truncated.add("deals:1:companies");                 // HubSpot returned a cursor: more exist
+    H.targetItems.set("11", "901"); H.targetItems.set("22", "902");
+    H.links.set("100:conn_co", ["901", "902", "903"]);     // 903 is outside the page and must survive
+    await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.counts.setColumns).toBe(0);
+    expect(H.links.get("100:conn_co")).toEqual(["901", "902", "903"]);
+  });
+
+  /** The same read, NOT truncated, must still write — the guard must not simply disable the feature. */
+  it("still writes when the association read is complete", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11", "22"]);
+    H.targetItems.set("11", "901"); H.targetItems.set("22", "902");
     await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
     expect(H.parentCols.get("100")!["conn_co"]).toEqual({ item_ids: [901, 902] });
   });

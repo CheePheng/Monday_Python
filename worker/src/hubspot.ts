@@ -127,9 +127,37 @@ export async function getRecord(env: Env, object: string, id: string, properties
 }
 
 /** Ids of records associated to `id` (HubSpot v4 associations). e.g. deal -> companies/contacts/line_items. */
-export async function getAssociatedIds(env: Env, fromObject: string, id: string, toObject: string): Promise<string[]> {
+/**
+ * One page of associations, WITH whether HubSpot has more it did not return.
+ *
+ * THE CAP IS LOAD-BEARING AND WAS SILENT. This endpoint is called with `limit=100` and does not page,
+ * so for any record with more than 100 associations the caller received the first 100 with no
+ * indication that a tail existed. syncRelationColumn then wrote those 100 as a FULL REPLACEMENT of a
+ * PAIRED board_relation column — and monday's pairing propagated the truncation, clearing the Company
+ * cell of every contact outside that 100.
+ *
+ * Observed live on contact 2855936605: the link was set and cleared on a cycle across 2026-09-10 to
+ * 09-12, every event attributed to this integration's own token, because the relation backfill (which
+ * pages properly) kept re-adding what the capped read kept removing.
+ *
+ * None of the four existing relation guards could see it. `want` held 100 items so it was not empty;
+ * every id the capped read returned DID resolve, so resolvedAllIds passed; the cards were not fresh;
+ * and the sets genuinely differed. Those guards catch incomplete RESOLUTION — this is incomplete
+ * READING, one layer earlier, and it needs its own signal.
+ */
+export interface AssocPage { ids: string[]; truncated: boolean }
+
+export async function getAssociatedPage(env: Env, fromObject: string, id: string, toObject: string): Promise<AssocPage> {
   const res = await hs(env, "GET", `/crm/v4/objects/${fromObject}/${id}/associations/${toObject}?limit=100`, undefined, 3);
-  return (res.results ?? []).map((r: any) => String(r.toObjectId)).filter((x: string) => /^\d+$/.test(x));
+  const ids = (res.results ?? []).map((r: any) => String(r.toObjectId)).filter((x: string) => /^\d+$/.test(x));
+  // HubSpot offers a cursor only when more remain, so this is its own statement that the read is partial.
+  return { ids, truncated: !!res.paging?.next?.after };
+}
+
+/** Ids only. Kept so every existing caller is byte-for-byte unchanged; callers that would DESTROY data
+ *  on a partial read must use getAssociatedPage and honour `truncated`. */
+export async function getAssociatedIds(env: Env, fromObject: string, id: string, toObject: string): Promise<string[]> {
+  return (await getAssociatedPage(env, fromObject, id, toObject)).ids;
 }
 
 /** Create a DEFAULT association (idempotent PUT) between two records — used to reverse a monday

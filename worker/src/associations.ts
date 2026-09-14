@@ -1,5 +1,5 @@
 import type { AssocSpec, Budget, Ctx, Env, HsRecord, MondayItem, ObjectSpec, RunOpts, SubitemSpec, WriteAuth } from "./types";
-import { createLineItem, getAssociatedIds, getRecord, getRecordsByIds, patchLineItem, propertiesForSpec, putAssociation } from "./hubspot";
+import { createLineItem, getAssociatedIds, getAssociatedPage, getRecord, getRecordsByIds, patchLineItem, propertiesForSpec, putAssociation } from "./hubspot";
 import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItem, getItemsColumnText, getLinkedItemIds, getParentItemId, getSubitems, setColumns, updateItem } from "./monday";
 import { DEALS, LINE_ITEM_SUBITEMS, specByObject } from "./config";
 import { buildSubitemReversePatch, subitemFieldByCol, readSubitemEvent } from "./line-item-reverse";
@@ -16,10 +16,10 @@ export async function syncAssociations(env: Env, spec: ObjectSpec, rec: HsRecord
     ctx: Ctx, opts: RunOpts, budget: Budget): Promise<void> {
   for (const a of spec.associations ?? []) {
     try {
-      const ids = await getAssociatedIds(env, spec.object, rec.id, a.toObject);
+      const { ids, truncated } = await getAssociatedPage(env, spec.object, rec.id, a.toObject);
       if (a.subitems) { await syncLineItems(env, a, ids, item.id, ctx, opts, budget, spec.object, rec.id); continue; }
       // A "Connect Boards" column links the actual cards; the text column (if kept) shows readable names.
-      if (a.relationCol) await syncRelationColumn(env, spec, a, ids, item, ctx, opts, budget);
+      if (a.relationCol) await syncRelationColumn(env, spec, a, ids, item, ctx, opts, budget, truncated);
       if (a.col) await syncNameColumn(env, spec, a, ids, rec, item, opts, budget);
     } catch (e) {
       console.log(`source=hubspot object=${spec.object} id=${rec.id} association=${a.toObject} action=error reason="${String(e).slice(0, 140)}"`);
@@ -214,7 +214,35 @@ export const shrinksFreshCard = (createdAt: string, want: string[], current: str
  * card doesn't exist yet, it is created on demand (so associations always link, even for records the
  * target board's own filter would exclude). Skips when links already match. HubSpot -> monday only. */
 async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids: string[],
-    item: MondayItem, ctx: Ctx, opts: RunOpts, budget: Budget): Promise<void> {
+    item: MondayItem, ctx: Ctx, opts: RunOpts, budget: Budget, truncated = false): Promise<void> {
+  /**
+   * A TRUNCATED ASSOCIATION READ MUST NEVER DRIVE A FULL-REPLACEMENT WRITE.
+   *
+   * getAssociatedPage asks for 100 and does not page, so a record with more than 100 associations
+   * yields the first 100 plus a cursor. Writing those as `item_ids` REPLACES the cell — and because
+   * board_relation columns are PAIRED, it also strips the link from every card outside that 100,
+   * on cards this pass never looked at.
+   *
+   * OBSERVED LIVE, which is why this exists rather than being a precaution: contact 2855936605 had
+   * its Company cell set and cleared on a cycle from 2026-09-10 to 09-12, every event under this
+   * integration's own token, because the relation backfill (which pages correctly) kept restoring
+   * what the capped read kept removing. Measured 2026-09-14: one Accounts card is 39 links short of
+   * HubSpot, and 3,473 further links sit above 100 across 25 cards — every one of which would be
+   * dropped the next time its company is synced.
+   *
+   * The four guards below cannot see it. `want` holds 100 items so it is not empty; every id the
+   * capped read returned DID resolve, so resolvedAllIds passes; the cards are not fresh; and the sets
+   * genuinely differ. Those catch incomplete RESOLUTION — this is incomplete READING, one layer up,
+   * and it needs its own signal.
+   *
+   * Refusing costs a stale cell that the next complete read repairs. Writing costs real links.
+   */
+  if (truncated) {
+    console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject}`
+      + ` read=${ids.length} action=kept-truncated reason="HubSpot returned a partial association page;`
+      + ` a full-replacement write would clear every link outside it"`);
+    return;
+  }
   // DEPLOYMENT-SPECIFIC. With the global map, a CRM contact's relation column would be filled with
   // cards from the WM companies board — a cross-deployment write. Undefined also covers line_items,
   // which have no board, and any object this deployment does not own.
