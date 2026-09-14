@@ -1129,6 +1129,180 @@ async function flushRelations(M, spec, rel, pending, result, links, ceiling) {
   }
 }
 
+// ---------------------------------------------------------------- pass 4: deal relations
+
+/**
+ * PASS 4 — the Deal's three relations: Contacts, Accounts and Line Items.
+ *
+ * THE CANARY IS WHY THIS EXISTS. The create pass writes column VALUES only; relations were always a
+ * separate pass, and for Contacts that was `--object relations`. Nobody had written the Deals
+ * equivalent, so the 40-deal canary produced 40 correct cards with 0/22 contacts, 0/40 accounts and
+ * 0/44 line items linked — a historical import would have created 8,655 deals with no relationships
+ * at all, on boards whose entire purpose is showing them.
+ *
+ * ADDITIVE-ONLY, by reusing planContactLinks unchanged rather than reimplementing the rule. That
+ * function is what five rounds of defects on the Contacts pass produced: `want` starts as the links
+ * the card already has and can only grow, so a full-replacement write can never drop one. Calling it
+ * once per relation column gets all three directions for free, with the same guarantee.
+ *
+ * NO TRUNCATION RISK HERE, which is worth stating because it is the bug that was clearing Contacts
+ * links two days ago: measured maxima are 9 contacts, 2 companies and 12 line items per deal, all far
+ * inside the 100-association page, so the read is never partial. The ceiling is kept at 740 anyway —
+ * a company can carry 154 deals, and the guard costs nothing when it does not bind.
+ */
+async function runDealRelations(M, H, mod, args) {
+  const { CRM_DEALS, CRM_CONTACTS, CRM_ACCOUNTS, CRM_LINE_ITEMS } = mod;
+  const CEILING = 740;
+
+  const DIRS = [
+    { to: "contacts",   spec: CRM_CONTACTS,   rel: CRM_DEALS.associations.find(a => a.toObject === "contacts").relationCol },
+    { to: "companies",  spec: CRM_ACCOUNTS,   rel: CRM_DEALS.associations.find(a => a.toObject === "companies").relationCol },
+    { to: "line_items", spec: CRM_LINE_ITEMS, rel: CRM_DEALS.associations.find(a => a.toObject === "line_items").relationCol },
+  ];
+
+  console.log(`\n=== ${args.apply ? "DEAL RELATIONS" : "PLAN DEAL RELATIONS"} ===`);
+  for (const d of DIRS) {
+    console.log(`  indexing ${d.to} board ${d.spec.boardId}…`);
+    d.index = (await indexBoard(M, d.spec, args.itemsPage)).index;
+    d.counts = new Map();
+    console.log(`    ${d.index.size} cards carry a HubSpot ID`);
+  }
+
+  // Every Deals card with a HubSpot id, plus what each relation column already holds.
+  const cards = [];
+  {
+    let cursor = null;
+    do {
+      const page = (await monday(M,
+        `query ($b: ID!, $c: String, $n: Int!, $ids: [String!]) {
+           boards(ids: [$b]) { items_page(limit: $n, cursor: $c) {
+             cursor items { id column_values(ids: $ids) {
+               id text ... on BoardRelationValue { linked_item_ids } } } } } }`,
+        { b: CRM_DEALS.boardId, c: cursor, n: args.itemsPage,
+          ids: [CRM_DEALS.idCol, ...DIRS.map(d => d.rel)] })).boards[0].items_page;
+      for (const it of page.items) {
+        const hsId = (it.column_values.find(c => c.id === CRM_DEALS.idCol)?.text ?? "").trim();
+        if (!hsId) continue;
+        if (args.onlyHs && !args.onlyHs.has(hsId)) continue;
+        const linked = {};
+        for (const d of DIRS)
+          linked[d.to] = (it.column_values.find(c => c.id === d.rel)?.linked_item_ids ?? []).map(String);
+        cards.push({ itemId: it.id, hsId, linked });
+      }
+      cursor = page.cursor;
+    } while (cursor);
+  }
+  console.log(`  ${cards.length} Deals cards carry a HubSpot ID`
+    + (args.onlyHs ? ` (restricted to the ${args.onlyHs.size} --only-hs ids)` : ""));
+
+  const byHsId = new Map(cards.map(c => [c.hsId, c]));
+  const result = { written: 0, alreadyCorrect: 0, failed: [], preservedExtra: 0,
+    rescuedMidRun: 0, assocReadErrors: 0, noCompanyReported: 0, markedFull: 0,
+    linked: { contacts: 0, companies: 0, line_items: 0 },
+    missing: { contacts: new Set(), companies: new Set(), line_items: new Set() } };
+
+  for (let i = 0; i < cards.length; i += 100) {
+    const chunk = cards.slice(i, i + 100);
+    const want = new Map(chunk.map(c => [c.itemId, { itemId: c.itemId, cols: {} }]));
+
+    for (const d of DIRS) {
+      const res = await fetch(`${HS_API}/crm/v4/associations/deals/${d.to}/batch/read`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${H}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: chunk.map(c => ({ id: c.hsId })) }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || body === null) {
+        result.failed.push({ chunk: `${i}-${i + chunk.length}/${d.to}`, reason: `http ${res.status}` });
+        continue;
+      }
+      for (const row of body.results ?? []) {
+        const card = byHsId.get(String(row.from?.id ?? ""));
+        if (!card) continue;
+        const ids = (row.to ?? []).map(t => String(t.toObjectId)).filter(x => /^\d+$/.test(x));
+        if (!ids.length) continue;
+        const plan = planContactLinks({
+          companyIds: ids, linked: card.linked[d.to],
+          counts: d.counts, accounts: d.index, ceiling: CEILING,
+        });
+        for (const m of plan.missing) result.missing[d.to].add(m);
+        result.preservedExtra += plan.extra.length;
+        if (plan.added.length) {
+          want.get(card.itemId).cols[d.rel] = plan.want;
+          result.linked[d.to] += plan.added.length;
+        }
+      }
+    }
+
+    const pending = [...want.values()].filter(p => Object.keys(p.cols).length);
+    if (!args.apply) { result.written += pending.length; }
+    else for (let j = 0; j < pending.length; j += args.batch)
+      await flushDealRelations(M, CRM_DEALS, pending.slice(j, j + args.batch), result);
+
+    if ((i / 100) % 5 === 0)
+      console.log(`  ${Math.min(i + 100, cards.length)}/${cards.length} deals checked,`
+        + ` ${args.apply ? "wrote" : "would write"} ${result.written}`);
+  }
+
+  console.log(`\n--- DEAL RELATIONS ${args.apply ? "WRITTEN" : "PLANNED"} ---`);
+  console.log(`  deals ${args.apply ? "written" : "to write"} : ${result.written}`);
+  for (const d of DIRS)
+    console.log(`  links added -> ${d.to.padEnd(11)}: ${result.linked[d.to]}`
+      + `   (targets with no card: ${result.missing[d.to].size})`);
+  console.log(`  links preserved that HubSpot does not assert : ${result.preservedExtra} (NOT removed)`);
+  console.log(`  FAILED : ${result.failed.length}`);
+  for (const f of result.failed.slice(0, 10)) console.log(`      ${f.chunk ?? f.itemId}: ${f.reason}`);
+  return result;
+}
+
+/** Write several deals' relation columns in one request, degrading to one-at-a-time on failure.
+ *  Mirrors flushRelations, including its pre-write re-read: the Deals board has the same paired
+ *  columns and the same mid-run window in which the live Worker or a person can add a link. */
+async function flushDealRelations(M, spec, pending, result) {
+  if (!pending.length) return;
+  const cols = [...new Set(pending.flatMap(p => Object.keys(p.cols)))];
+  try {
+    const fresh = await monday(M,
+      `query ($i: [ID!], $c: [String!]) { items(ids: $i) {
+         id column_values(ids: $c) { id ... on BoardRelationValue { linked_item_ids } } } }`,
+      { i: pending.map(p => p.itemId), c: cols });
+    const now = new Map((fresh.items ?? []).map(it => [String(it.id), it.column_values ?? []]));
+    for (const p of pending) {
+      const cur = now.get(String(p.itemId));
+      if (!cur) continue;
+      for (const [col, ids] of Object.entries(p.cols)) {
+        const live = (cur.find(c => c.id === col)?.linked_item_ids ?? []).map(String);
+        const union = [...new Set([...live, ...ids.map(String)])];
+        if (union.length > ids.length) result.rescuedMidRun += union.length - ids.length;
+        p.cols[col] = union;
+      }
+    }
+  } catch (e) {
+    console.log(`  [flush] pre-write re-read failed, writing the planned set: ${String(e).slice(0, 120)}`);
+  }
+
+  const decls = pending.map((_, i) => `$i${i}: ID!, $v${i}: JSON!`).join(", ");
+  const calls = pending.map((_, i) =>
+    `r${i}: change_multiple_column_values(board_id: $b, item_id: $i${i}, column_values: $v${i}) { id }`).join("\n    ");
+  const vars = { b: spec.boardId };
+  pending.forEach((p, i) => {
+    vars[`i${i}`] = p.itemId;
+    vars[`v${i}`] = JSON.stringify(Object.fromEntries(
+      Object.entries(p.cols).map(([col, ids]) => [col, { item_ids: ids.map(Number) }])));
+  });
+  try {
+    await monday(M, `mutation ($b: ID!, ${decls}) {\n    ${calls}\n  }`, vars);
+    result.written += pending.length;
+  } catch (e) {
+    if (pending.length === 1) {
+      result.failed.push({ itemId: pending[0].itemId, reason: String(e).slice(0, 300) });
+      return;
+    }
+    console.log(`  [isolate] a deal-relation batch of ${pending.length} failed; retrying individually`);
+    for (const one of pending) await flushDealRelations(M, spec, [one], result);
+  }
+}
+
 // ---------------------------------------------------------------- selftest
 
 /**
@@ -1253,8 +1427,8 @@ async function main() {
       process.exitCode = problems ? 1 : 0;
       return;
     }
-    if (!["contacts", "companies", "relations", "deals", "line_items"].includes(args.object)) {
-      console.error('--object must be "companies", "contacts", "relations", "deals" or "line_items".');
+    if (!["contacts", "companies", "relations", "deals", "line_items", "deal-relations"].includes(args.object)) {
+      console.error('--object must be "companies", "contacts", "relations", "deals", "line_items" or "deal-relations".');
       console.error("Run them IN THAT ORDER: relations can only link to Accounts cards that exist,");
       console.error("and line_items reference the deals they belong to.");
       process.exit(1);
@@ -1262,6 +1436,14 @@ async function main() {
     if (args.object === "relations") {
       if (!args.apply) console.log("\nPLAN MODE — nothing will be written. Add --apply to write relations.");
       await runRelations(M, H, mod, args);
+      return;
+    }
+    // Deals carry THREE relations (Contacts, Accounts, Line Items), so they get their own pass rather
+    // than sharing the Contacts one. The 40-deal canary is what surfaced its absence: 40 correct cards
+    // with 0/22, 0/40 and 0/44 links.
+    if (args.object === "deal-relations") {
+      if (!args.apply) console.log("\nPLAN MODE — nothing will be written. Add --apply to write relations.");
+      await runDealRelations(M, H, mod, args);
       return;
     }
     const spec = SPECS[args.object];
