@@ -287,7 +287,10 @@ export interface AssocSpec {
   nameProps: string[];     // properties composing the associated record's display name / line-item name
   col?: string;            // parent text column for comma-joined names (companies/contacts/deals)
   relationCol?: string;    // "Connect Boards" (board_relation) column: links to the actual monday cards.
-                           // monday can't CREATE this column type via API — make it in the UI, then set the id here.
+                           // CORRECTED 2026-09-14: the 2026-07 API DOES create these. create_column with
+                           // columnSettings {boardIds, allowCreateReflectionColumn: true} makes the column
+                           // AND its paired counterpart on the target board, so both sides are visible.
+                           // The old note ("make it in the UI") was true of an earlier API version only.
   subitems?: SubitemSpec;  // line_items only: sync each as a subitem
 }
 export interface SubitemSpec {
