@@ -57,6 +57,11 @@ async function monday(query, variables = {}, attempt = 0) {
   });
   const b = await r.json().catch(() => ({}));
   if (!b.data) {
+    // LOGGED, because a silent retry is indistinguishable from a slow API. Running this migration at
+    // --batch 25 produced 100 records/min against roughly 500+/min at --batch 10, with no failures
+    // reported anywhere — the cost was hiding entirely inside these backoffs. A retry that nobody can
+    // see turns a diagnosable throughput problem into a mystery.
+    console.log(`  [retry ${attempt + 1}] http ${r.status} ${JSON.stringify(b.errors ?? b).slice(0, 160)}`);
     if (attempt < 6) { await sleep(2000 * 2 ** attempt); return monday(query, variables, attempt + 1); }
     throw new Error(`monday: ${JSON.stringify(b.errors ?? b).slice(0, 250)}`);
   }
@@ -125,17 +130,37 @@ console.log(`  ${cards.size} cards carry a HubSpot ID`);
 // ==================================================================== VERIFY
 if (verifyOnly) {
   console.log(`\n=== VERIFY ${FIELD} ===`);
-  let populated = 0, blank = 0, noCard = 0, wrong = 0, expectBlank = 0;
+  let populated = 0, blank = 0, noCard = 0, wrong = 0, expectBlank = 0, scannedV = 0;
   const blankReasons = new Map();
-  let after;
-  do {
+  /**
+   * KEYSET PAGINATION HERE TOO, and the reason is not symmetry.
+   *
+   * This block carried the identical `after`-cursor bug the migration did: HubSpot's /search answers
+   * HTTP 400 on the request that would cross 10,000 results, and `if (!r.ok) break;` would have fallen
+   * straight through to printing "VERIFIED" — a clean bill of health computed over 18% of the data,
+   * on the very run whose job is to catch exactly that class of mistake. A verification that can
+   * silently check a fraction is worse than none, because it is trusted.
+   *
+   * The expected total is also asserted below, so a short scan fails loudly instead of passing.
+   */
+  let lastIdV = "0";
+  for (;;) {
     const r = await hs("/crm/v3/objects/contacts/search", {
-      filterGroups: [{ filters: [{ propertyName: FIELD, operator: "HAS_PROPERTY" }] }],
+      filterGroups: [{ filters: [
+        { propertyName: FIELD, operator: "HAS_PROPERTY" },
+        { propertyName: "hs_object_id", operator: "GT", value: lastIdV },
+      ] }],
       properties: [FIELD], limit: 100,
-      sorts: [{ propertyName: "hs_object_id", direction: "ASCENDING" }], ...(after ? { after } : {}),
+      sorts: [{ propertyName: "hs_object_id", direction: "ASCENDING" }],
     });
-    if (!r.ok) break;
-    for (const rec of r.body.results ?? []) {
+    if (!r.ok) {
+      console.log(`  SEARCH FAILED http ${r.status} after ${scannedV} records — verification INCOMPLETE`);
+      process.exit(1);
+    }
+    const batchV = r.body.results ?? [];
+    if (!batchV.length) break;
+    for (const rec of batchV) {
+      scannedV++; lastIdV = String(rec.id);
       const card = cards.get(String(rec.id));
       if (!card) { noCard++; continue; }
       const want = mod.formatValue(field, rec.properties?.[FIELD], ctx);
@@ -148,8 +173,17 @@ if (verifyOnly) {
       else wrong++;
       if (!card.current) blank++;
     }
-    after = r.body.paging?.next?.after;
-  } while (after);
+  }
+  /**
+   * THE COMPLETENESS ASSERTION. Counters that reconcile prove nothing about records never looked at,
+   * and this task has already produced one "MIGRATED" over 10,000 of 56,229. The verification must
+   * therefore show it saw the whole population, independently counted from HubSpot.
+   */
+  const expected = (await hs("/crm/v3/objects/contacts/search",
+    { filterGroups: [{ filters: [{ propertyName: FIELD, operator: "HAS_PROPERTY" }] }], properties: ["hs_object_id"], limit: 1 })).body.total ?? -1;
+  console.log(`  records scanned           ${scannedV}`);
+  console.log(`  HubSpot says there are    ${expected}   <- must match`);
+  const complete = scannedV === expected;
   console.log(`  correctly populated       ${populated}`);
   console.log(`  expected blank (no user)  ${expectBlank}`);
   console.log(`  cells currently blank     ${blank}`);
@@ -158,16 +192,39 @@ if (verifyOnly) {
   console.log(`\n  values that resolve to nobody:`);
   for (const [val, n] of [...blankReasons].sort((a, b) => b[1] - a[1]))
     console.log(`      ${String(n).padStart(6)}  ${JSON.stringify(val)}`);
-  console.log(`\n  ${wrong === 0 ? "VERIFIED" : "MISMATCHES PRESENT"}`);
-  process.exit(wrong === 0 ? 0 : 1);
+  // The verdict depends on BOTH: no mismatches, and having actually seen every record.
+  console.log(`\n  ${wrong === 0 && complete ? "VERIFIED"
+    : !complete ? `INCOMPLETE SCAN — saw ${scannedV} of ${expected}, verdict withheld`
+    : "MISMATCHES PRESENT"}`);
+  process.exit(wrong === 0 && complete ? 0 : 1);
 }
 
 // ==================================================================== MIGRATE
-const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : { after: null, done: 0, written: 0, blank: 0 };
+/**
+ * PAGINATION IS BY hs_object_id, NOT BY HUBSPOT'S `after` CURSOR.
+ *
+ * HubSpot's /search endpoint refuses to page beyond 10,000 results — it answers HTTP 400 on the
+ * request that would cross that line. The first run of this migration hit exactly that at record
+ * 10,000 of 56,229 and, because the failure path broke out of the loop into the completion block,
+ * it wrote `finishedAt` and reported "MIGRATED". A cap was reported as success.
+ *
+ * Carrying the last id forward as a FILTER instead of a cursor sidesteps the cap entirely: every
+ * request is a fresh search for "sales_user is set AND id > the last one I saw", so no single search
+ * ever needs to reach page 101. It also makes the resume point a plain number that survives any
+ * crash, rather than an opaque cursor that only HubSpot can interpret.
+ */
+const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : { lastId: "0", done: 0, written: 0, blank: 0 };
+// A state file written by the older cursor-based version has no lastId; restart it from the beginning.
+// Re-scanning is cheap and writes nothing: an already-correct cell is skipped.
+let lastId = state.lastId ?? "0";
 console.log(`\n${apply ? "MIGRATING" : "PLAN (nothing will be written)"} ${FIELD}`
-  + (state.after ? `  — resuming from a saved cursor (${state.done} already done)` : ""));
+  + (lastId !== "0" ? `  — resuming after id ${lastId} (${state.done} already done)`
+     : state.done ? `  — restarting the scan (previous run used the retired cursor format)` : ""));
 
-let after = state.after, scanned = state.done, written = state.written, blank = state.blank, same = 0, noCard = 0;
+let scanned = lastId !== "0" ? state.done : 0;
+let written = lastId !== "0" ? state.written : 0;
+let blank = lastId !== "0" ? state.blank : 0;
+let same = 0, noCard = 0;
 const pending = [];
 const flush = async () => {
   if (!pending.length) return;
@@ -188,15 +245,36 @@ const flush = async () => {
   }
 };
 
-do {
+let done = false;
+while (!done) {
   const r = await hs("/crm/v3/objects/contacts/search", {
-    filterGroups: [{ filters: [{ propertyName: FIELD, operator: "HAS_PROPERTY" }] }],
+    filterGroups: [{ filters: [
+      { propertyName: FIELD, operator: "HAS_PROPERTY" },
+      // The sliding window. Every request is its own search, so page 101 is never reached and the
+      // 10,000-result cap cannot be hit.
+      { propertyName: "hs_object_id", operator: "GT", value: lastId },
+    ] }],
     properties: [FIELD], limit: 100,
-    sorts: [{ propertyName: "hs_object_id", direction: "ASCENDING" }], ...(after ? { after } : {}),
+    sorts: [{ propertyName: "hs_object_id", direction: "ASCENDING" }],
   });
-  if (!r.ok) { console.log(`  search failed http ${r.status}`); break; }
-  for (const rec of r.body.results ?? []) {
+  if (!r.ok) {
+    /**
+     * A FAILED SEARCH IS NOT COMPLETION. The previous version broke out of the loop here and fell
+     * into the completion block, which stamped `finishedAt` and printed "MIGRATED" — so a HubSpot
+     * 400 at record 10,000 of 56,229 was reported as a finished migration and destroyed the resume
+     * point. Exit non-zero with the cursor intact instead, so re-running continues rather than lying.
+     */
+    console.log(`  SEARCH FAILED http ${r.status} — stopping with the cursor intact at id ${lastId}`);
+    console.log(`  ${JSON.stringify(r.body).slice(0, 200)}`);
+    if (apply) { await flush(); writeFileSync(STATE, JSON.stringify({ lastId, done: scanned, written, blank }, null, 2), "utf8"); }
+    console.log(`\n  INCOMPLETE — re-run the same command to continue from id ${lastId}.`);
+    process.exit(1);
+  }
+  const batch = r.body.results ?? [];
+  if (!batch.length) { done = true; }
+  for (const rec of batch) {
     scanned++;
+    lastId = String(rec.id);                                // the resume point, always a plain number
     const card = cards.get(String(rec.id));
     if (!card) { noCard++; continue; }
     const want = mod.formatValue(field, rec.properties?.[FIELD], ctx);
@@ -206,13 +284,12 @@ do {
     if (apply) { pending.push({ itemId: card.itemId, value: want }); if (pending.length >= BATCH) await flush(); }
     else written++;
   }
-  after = r.body.paging?.next?.after ?? null;
   if (apply) {
     await flush();
-    writeFileSync(STATE, JSON.stringify({ after, done: scanned, written, blank }, null, 2), "utf8");
+    writeFileSync(STATE, JSON.stringify({ lastId, done: scanned, written, blank }, null, 2), "utf8");
   }
   if (scanned % 1000 < 100) console.log(`  ${scanned} scanned, ${written} ${apply ? "written" : "would write"}, ${blank} blank, ${same} already correct`);
-} while (after);
+}
 if (apply) await flush();
 
 console.log(`\n--- ${FIELD} ${apply ? "MIGRATED" : "PLANNED"} ---`);
@@ -221,4 +298,6 @@ console.log(`  cells ${apply ? "written" : "to write"}            ${written}`);
 console.log(`  already correct           ${same}`);
 console.log(`  left blank (no account)   ${blank}`);
 console.log(`  contacts with no card     ${noCard}`);
-if (apply) writeFileSync(STATE, JSON.stringify({ after: null, done: scanned, written, blank, finishedAt: new Date().toISOString() }, null, 2), "utf8");
+// Reached ONLY by the loop ending naturally on an empty page — every failure path exits before here,
+// so `finishedAt` can no longer be stamped on a run that stopped early.
+if (apply) writeFileSync(STATE, JSON.stringify({ lastId, done: scanned, written, blank, finishedAt: new Date().toISOString() }, null, 2), "utf8");
