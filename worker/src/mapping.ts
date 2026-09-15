@@ -29,7 +29,18 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
     // { text }, not a bare string — and clamped, so the stored value equals what expectedText predicts.
     case "long_text": return { text: clampLongText(v) };
     case "numbers": return v;
-    case "status": return { label: dict(f, ctx)[v] ?? v };
+    // STRICT: a status column mints a label for any value it has not seen (create_labels_if_missing),
+    // so an unmapped value must be OMITTED, never written raw. See FieldSpec.strictDict.
+    case "status": {
+      const hit = dict(f, ctx)[v];
+      if (hit === undefined && f.strictDict) {
+        console.log(`[map] field=${f.hs} col=${f.col} action=refused-unmapped`
+          + ` reason="value not in ${f.labels} dictionary; writing it would create a status label"`
+          + ` value=${JSON.stringify(v).slice(0, 60)}`);
+        return null;
+      }
+      return { label: hit ?? v };
+    }
     case "dropdown": {
       const labels = v.split(";").map(s => s.trim()).filter(Boolean).map(s => dict(f, ctx)[s] ?? s);
       return labels.length ? { labels } : null;
@@ -340,7 +351,15 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
     case "numbers": return numText(v) || v;
     // A monday link column echoes its TEXT part, which formatValue sets equal to the url.
     case "link": return v;
-    case "status": case "text": return (dict(f, ctx)[v] ?? v).trim();
+    // Must stay in LOCKSTEP with formatValue: a strictDict miss writes nothing, so it must also
+    // predict nothing. Reporting the raw value here while formatValue omits it would diff on every
+    // webhook forever, chasing a value the column is never given.
+    case "status": {
+      const hit = dict(f, ctx)[v];
+      if (hit === undefined && f.strictDict) return "";
+      return (hit ?? v).trim();
+    }
+    case "text": return (dict(f, ctx)[v] ?? v).trim();
     // Must predict monday's OWN 2000-char truncation, or the diff never clears and the card is
     // rewritten on every webhook. Clamp before trim, matching formatValue's order.
     case "long_text": return clampLongText(dict(f, ctx)[v] ?? v).trim();

@@ -738,12 +738,65 @@ export interface CrmStageDicts {
   stages: Record<string, string>;
   /** stage id -> the pipeline id that stage belongs to */
   pipelineByStage: Record<string, string>;
+  /** stage id -> one of COARSE_STAGES, for the board's native Stage column. See coarseStageOf. */
+  coarse: Record<string, string>;
 }
 
-/** One call to the pipelines API yields all three maps; splitting them would triple the requests. */
+/**
+ * The ONLY labels the monday "Stage" status column may ever receive. They are the five the board
+ * already had; nothing here may invent a sixth.
+ *
+ * WHY THIS LIST IS CLOSED. Every monday write sets `create_labels_if_missing: true`, so any value
+ * that is not already a label CREATES one. On 2026-09-15 the coarse column was mapped to the `stage`
+ * dictionary — which `getDealStageLabels` builds from the DEFAULT PIPELINE ONLY — so every deal in
+ * the four Salesforce pipelines fell through `dict[v] ?? v` and minted a status label named after a
+ * raw stage GUID. 8 of them appeared in the first 70 cards, and a monday status column degrades above
+ * roughly 19 labels; the import was two labels from wedging the column for everyone.
+ */
+export const COARSE_STAGES = ["New", "Proposal", "Negotiation", "Won", "Lost"] as const;
+
+/** HubSpot stage metadata arrives as the STRINGS "true"/"false" as often as as booleans. */
+const isTrue = (x: unknown): boolean => x === true || x === "true";
+
+/**
+ * One pipeline's stages -> coarse label, keyed by stage id.
+ *
+ * DERIVED FROM METADATA, NEVER FROM LABEL TEXT. The three Salesforce pipelines reuse the same nine
+ * Chinese stage names, so `赢单` alone is three different stage ids in three pipelines — matching on
+ * text would collapse them and could bucket a live deal as Won. `isClosedWon` / `isClosed` are
+ * per-stage facts HubSpot maintains, and they are the same facts its own forecasting uses.
+ *
+ * Open stages are bucketed by ORDERED POSITION among the open stages of their own pipeline, in
+ * thirds. Position is the only ordering property every pipeline shares regardless of naming, and it
+ * keeps a 9-stage Salesforce pipeline and a 4-stage default pipeline mapping onto the same five
+ * labels without either needing a hand-written table that would rot the next time someone edits a
+ * pipeline in the HubSpot UI.
+ */
+export function coarseStageOf(stages: { id: unknown; displayOrder?: unknown; metadata?: Record<string, unknown> }[]):
+    Record<string, string> {
+  const out: Record<string, string> = {};
+  const open: string[] = [];
+  const ordered = [...stages].sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0));
+  for (const s of ordered) {
+    const sid = String(s.id);
+    const md = s.metadata ?? {};
+    // Won before Lost: a closed-won stage is also closed, so testing `isClosed` first would call
+    // every won deal lost — and 3,640 of this portal's deals are closed won.
+    if (isTrue(md.isClosedWon) || (isTrue(md.isClosed) && Number(md.probability) === 1)) out[sid] = "Won";
+    else if (isTrue(md.isClosed)) out[sid] = "Lost";
+    else open.push(sid);
+  }
+  const n = open.length;
+  open.forEach((sid, i) => {
+    out[sid] = i < n / 3 ? "New" : i < (2 * n) / 3 ? "Proposal" : "Negotiation";
+  });
+  return out;
+}
+
+/** One call to the pipelines API yields all four maps; splitting them would quadruple the requests. */
 export async function getCrmStageDicts(env: Env): Promise<CrmStageDicts> {
   const res = await hs(env, "GET", "/crm/v3/pipelines/deals");
-  const out: CrmStageDicts = { pipelines: {}, stages: {}, pipelineByStage: {} };
+  const out: CrmStageDicts = { pipelines: {}, stages: {}, pipelineByStage: {}, coarse: {} };
   for (const p of res.results ?? []) {
     const pid = String(p.id);
     const plabel = String(p.label ?? pid);
@@ -754,6 +807,9 @@ export async function getCrmStageDicts(env: Env): Promise<CrmStageDicts> {
       out.stages[sid] = `${prefix} / ${String(s.label)}`;
       out.pipelineByStage[sid] = pid;
     }
+    // Bucketed PER PIPELINE, so "first third of the open stages" means first third of THAT pipeline's
+    // funnel rather than of a meaningless merged list across five different funnels.
+    Object.assign(out.coarse, coarseStageOf(p.stages ?? []));
   }
   return out;
 }

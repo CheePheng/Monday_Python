@@ -461,8 +461,34 @@ export const CRM_DEALS: ObjectSpec = {
     { toObject: "line_items", nameProps: ["name"], relationCol: "board_relation_mm76btmt" },
   ],
   fields: [
-    // ONE-WAY: the coarse summary. See the header — many-to-one has no inverse.
-    { hs: "dealstage", col: "deal_stage", type: "status", labels: "stage", oneWay: true },
+    /**
+     * ONE-WAY: the coarse summary. See the header — many-to-one has no inverse.
+     *
+     * FIXED 2026-09-15, mid-import, and this is the defect that stopped it. This was
+     * `labels: "stage"`, and `stage` is built by getDealStageLabels, which reads HubSpot's DEFAULT
+     * PIPELINE ONLY. This portal keeps 42 stages across 5 pipelines and almost every deal lives in a
+     * Salesforce pipeline, so the dictionary missed them, formatValue fell through `dict[v] ?? v`,
+     * and — because every monday write sets create_labels_if_missing — each unmapped deal MINTED A
+     * STATUS LABEL NAMED AFTER ITS RAW STAGE GUID. 8 appeared in the first 70 cards; a status column
+     * degrades above ~19, so the import was two labels from wedging the column for the whole team.
+     *
+     * The canary could not have caught it, and said so: automation 31010016 (item created -> set
+     * Stage = New) was live then and overwrote this column on every card, so canary-deals.mjs
+     * explicitly excludes it from validation. Turning that automation off — a prerequisite of the
+     * import — is precisely what exposed the bug.
+     *
+     * `crmCoarseStage` buckets every stage in every pipeline into the five labels the board already
+     * has, from HubSpot's own stage METADATA rather than label text (the Salesforce pipelines reuse
+     * the same nine Chinese names, so 赢单 alone is three stage ids). `strictDict` makes an unmapped
+     * stage omit the column and log, instead of inventing a sixth label.
+     *
+     * KEPT, not removed, deliberately: Zmark's automations 31010010/31010011/31010012/31010014/
+     * 31010017 all key off this native column, and they are how the business wants the board to work.
+     * The exact, authoritative stage is the pipeline-qualified dropdown below; this one is the coarse
+     * surface those automations read.
+     */
+    { hs: "dealstage", col: "deal_stage", type: "status", labels: "crmCoarseStage",
+      oneWay: true, strictDict: true },
     // TWO-WAY: the exact stage, pipeline-qualified so the inverse is a function.
     { hs: "dealstage", col: "dropdown_mm7624zd", type: "dropdown", labels: "crmStage", reverse: true },
     { hs: "pipeline", col: "dropdown_mm76s7kk", type: "dropdown", labels: "crmPipeline", reverse: true },

@@ -159,12 +159,20 @@ describe("spec-driven metadata: each deployment fetches only what its specs refe
       // left the list on 2026-09-15 when Sales Person was retired from monday: the DICTS entry still
       // exists, but nothing references it, so nothing fetches it — which is the property this test
       // is really pinning.
+      //
+      // `stage` LEFT and `crmCoarseStage` ARRIVED on 2026-09-15, and the swap is the whole point of
+      // that day's second incident. `stage` is built by getDealStageLabels, which reads HubSpot's
+      // DEFAULT PIPELINE ONLY; the coarse Deals Stage column was mapped to it, so all four Salesforce
+      // pipelines fell through `dict[v] ?? v` and minted monday status labels named after raw stage
+      // GUIDs. `crmCoarseStage` covers every pipeline. CRM must no longer reference `stage` AT ALL —
+      // that absence is an assertion, not an accident.
       .toEqual(["companyType", "contactCity", "contactCountries", "contactDepartment",
                 "contactLeadSourceSub", "contactPriority", "contactSource",
-                "contactStatus", "contactVendor", "crmPipeline", "crmStage", "dealtype", "leadStatus",
+                "contactStatus", "contactVendor", "crmCoarseStage", "crmPipeline", "crmStage",
+                "dealtype", "leadStatus",
                 "liBillingFreq", "liBrand", "liCurrency", "liFamily", "liIsActive", "liPricingModel",
                 "liSubcategory", "liTaxRate", "lifecycleStage", "partnerWith", "pipeline", "priority",
-                "salesUser", "stage", "vendor"]));
+                "salesUser", "vendor"]));
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.
   it("WM still loads every dictionary it used to fetch unconditionally", () => {

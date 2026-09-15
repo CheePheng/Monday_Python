@@ -82,6 +82,11 @@ const LABEL_SOURCE: Record<LabelDict, { object: string; prop: string } | "dealPi
   // loader — the `dealstage` PROPERTY carries no options at all, stages live on the pipelines.
   crmStage:      "derived",
   crmPipeline:   "derived",
+  // The board's NATIVE Stage column, bucketed to the five labels it already has. Same single
+  // getCrmStageDicts call as crmStage/crmPipeline — see coarseStageOf for why it is derived from
+  // HubSpot's stage metadata rather than from the `stage` dictionary, which knows only the default
+  // pipeline and minted GUID labels for every Salesforce-pipeline deal on 2026-09-15.
+  crmCoarseStage: "derived",
   liBrand:       { object: "line_items", prop: "brand_isv" },
   liFamily:      { object: "line_items", prop: "family" },
   liSubcategory: { object: "line_items", prop: "product_subcategory" },
@@ -138,10 +143,11 @@ export async function buildCtx(env: Env): Promise<Ctx> {
    * triple the requests for no benefit.
    */
   let pipelineByStage: Record<string, string> | undefined;
-  if (wanted.includes("crmStage") || wanted.includes("crmPipeline")) {
+  if (wanted.includes("crmStage") || wanted.includes("crmPipeline") || wanted.includes("crmCoarseStage")) {
     const d = await getCrmStageDicts(env);
     labels.crmStage = d.stages;
     labels.crmPipeline = d.pipelines;
+    labels.crmCoarseStage = d.coarse;
     pipelineByStage = d.pipelineByStage;
   }
 

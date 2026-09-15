@@ -38,7 +38,7 @@ export type LabelDict =
   // interchangeable with `stage`: the WM `stage` dictionary covers the default pipeline only, and this
   // portal's 42 stage values across 5 pipelines contain duplicate labels (`赢单` is three distinct ids),
   // so an unqualified dictionary cannot be inverted. See getCrmStageDicts.
-  | "crmStage" | "crmPipeline"
+  | "crmStage" | "crmPipeline" | "crmCoarseStage"
   | "liBrand" | "liFamily" | "liSubcategory" | "liPricingModel" | "liBillingFreq" | "liTaxRate"
   | "liIsActive" | "liCurrency";
 
@@ -124,6 +124,25 @@ export interface FieldSpec {
    * until that person has an account.
    */
   peopleByName?: boolean;
+
+  /**
+   * REFUSE a value the dictionary does not know, instead of writing it through raw.
+   *
+   * `formatValue` normally falls back to `dict[v] ?? v`, which is right for a free-text column: an
+   * unknown value is still the user's data and showing it beats showing nothing. It is WRONG for a
+   * monday STATUS column, because every write sets `create_labels_if_missing: true` — so a value the
+   * dictionary missed does not merely display oddly, it permanently ADDS A LABEL to the column for
+   * every board member, and a status column degrades above roughly 19 labels.
+   *
+   * That is not hypothetical. On 2026-09-15 the Deals import mapped the coarse Stage column to a
+   * dictionary covering only HubSpot's DEFAULT pipeline, and the first 70 cards minted 8 status
+   * labels named after raw stage GUIDs before it was stopped.
+   *
+   * With this set, an unmapped value omits the column (and `expectedText` reports "" so the omission
+   * raises no diff and no churn). The cell keeps whatever it had rather than gaining a junk label,
+   * and the miss is logged so an unmapped stage is a reported fact rather than a silent one.
+   */
+  strictDict?: boolean;
 }
 
 /** Which sync owns WRITE access to a HubSpot record. */
