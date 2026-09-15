@@ -1,7 +1,40 @@
 # hubspot-crm-webhook-sync — HubSpot project app for the monday CRM sync
 
-**NOT UPLOADED. NOT INSTALLED. Nothing in HubSpot has been created or changed.**
-These are prepared configuration files only. See §4 for the exact commands, which are yours to run.
+**STATUS, 2026-09-15: UPLOADED AND INSTALLED.** App ID **52247773** on portal 39939588. The header
+below ("NOT UPLOADED") described the state on 2026-09-07 and is kept only because §1's reasoning is
+still the record of why this app exists separately. Steps §4.1-§4.6 are DONE.
+
+> **NOT UPLOADED. NOT INSTALLED. Nothing in HubSpot has been created or changed.**
+> These are prepared configuration files only. See §4 for the exact commands, which are yours to run.
+
+## 0. Scope change, 2026-09-15 — deals and line items ADDED, reversing §1c
+
+§1c below argues *against* giving this app deals/line-item scopes, on least-privilege grounds, because
+"the CRM deployment['s] dependency on Deals" had just been removed. **That is no longer true, and the
+paragraph is left standing as the record of the original decision rather than as current guidance.**
+
+What changed: `CRM_DEALS` and `CRM_LINE_ITEMS` joined `CRM_SPECS` in `ea0430a` (2026-09-14), and
+`buildCtx` loads a label dictionary for every dictionary any spec in the deployment references. So from
+the first deploy carrying those specs — `df2c03db`, 2026-09-15T04:54:59Z — **every contact and company
+webhook began reading `/crm/v3/pipelines/deals` and deal property schemas.** The token had no deals
+scope, the 403 threw, the throw escaped, and live Contacts/Companies sync stopped on a deploy that
+changed nothing about contacts or companies.
+
+Four scopes added, all READ, no write:
+
+```
+crm.objects.deals.read   crm.schemas.deals.read
+crm.objects.line_items.read   crm.schemas.line_items.read
+```
+
+This does NOT start syncing deals. §3 still holds: this app has **no deal and no line-item webhook
+subscriptions**, so no deal event is delivered here. The scopes let the Worker build its label
+dictionaries; turning deal sync on is a separate, later change that adds subscriptions.
+
+The general lesson, recorded because it cost a live outage: **a spec added to `CRM_SPECS` changes what
+the whole deployment reads at startup, not only what that one object does.** `worker/scripts/
+check-hubspot-scopes.mjs` now probes every read the specs make — run it before deploying a spec for a
+new object.
 
 ---
 
