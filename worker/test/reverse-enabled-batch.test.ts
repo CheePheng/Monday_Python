@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reverseFieldValue, buildReversePatch, buildCreateProperties, fieldDiffs } from "../src/reconcile";
-import { CRM_CONTACTS, CRM_ACCOUNTS } from "../src/config/crm";
+import { CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS } from "../src/config/crm";
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "../src/types";
 
 /**
@@ -39,13 +39,17 @@ const DEPARTMENT = { Finance: "Finance", IT: "IT", "Engineering/R&D": "Engineeri
 // only case where the dictionary does real translation work rather than membership checking.
 const CONTACT_SOURCE = { Others: "其他", "Web Form": "Web Form", "Trade Show": "Trade Show" };
 const CONTACT_CITY = { Shanghai: "Shanghai", "Kuala Lumpur": "Kuala Lumpur" };
+// salesUser is DERIVED from the owner list, so it is keyed by OWNER ID and valued by owner name —
+// the one dictionary here where the key is not itself a HubSpot option value. Ada and Heifer are
+// again deliberately absent: real reps who are not owners on this portal.
+const SALES_USER = { "77771": "Emily You", "77772": "Myla Mestiola" };
 
 const ctx = {
   labels: {
     leadStatus: LEAD_STATUS, contactPriority: CONTACT_PRIORITY,
     contactStatus: CONTACT_STATUS, contactVendor: CONTACT_VENDOR,
     contactSalesPerson: SALES_PERSON, contactDepartment: DEPARTMENT,
-    contactSource: CONTACT_SOURCE, contactCity: CONTACT_CITY,
+    contactSource: CONTACT_SOURCE, contactCity: CONTACT_CITY, salesUser: SALES_USER,
   },
   ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: "1",
 } as unknown as Ctx;
@@ -56,8 +60,9 @@ const f = (spec: ObjectSpec, hs: string): FieldSpec => {
   return found;
 };
 
+// `sales_person` was in this batch until 2026-09-15 — see the retirement test below.
 const ENABLED_CONTACTS = [
-  "priority__c", "sales_person", "leadstatus", "manufacturer__c", "department_3__c",
+  "priority__c", "leadstatus", "manufacturer__c", "department_3__c",
   "concrete_demand", "utm_term", "registration_page__c", "industry", "hs_state_code",
   "mobilephone", "event_name",
 ];
@@ -65,6 +70,41 @@ const ENABLED_CONTACTS = [
 describe("the batch is enabled, and only the batch", () => {
   it.each(ENABLED_CONTACTS)("contacts.%s is now reverse:true", (hs) =>
     expect(f(CRM_CONTACTS, hs).reverse).toBe(true));
+
+  /**
+   * RETIRED 2026-09-15, by the team's own decision after the requirements meeting: they will assign
+   * on Sales User only, so all three Sales Person columns (the People column, the legacy status, and
+   * the legacy Sales User dropdown) were deleted from the Contacts board.
+   *
+   * The mapping had to go FIRST and be deployed BEFORE the columns were deleted — monday rejects an
+   * entire change_multiple_column_values mutation that names an unknown column, so one spec field
+   * pointing at a deleted column stops EVERY card on the board from updating (the text_mm6sdvkq
+   * incident, 2026-09-08).
+   *
+   * HubSpot's `sales_person` property is UNTOUCHED: 6,543 contacts still carry it and nothing in this
+   * repo reads or writes it any more. That is the point of asserting absence rather than deleting the
+   * test — a future remap must be a deliberate change here, not an accident.
+   */
+  it("contacts.sales_person is retired: no field maps it, on either CRM spec", () => {
+    for (const spec of [CRM_CONTACTS, CRM_ACCOUNTS])
+      expect(spec.fields.find(x => x.hs === "sales_person"), `${spec.object} still maps sales_person`)
+        .toBeUndefined();
+  });
+
+  /**
+   * What replaced it. Sales User is the single assignment field now, and it is a monday PEOPLE column
+   * because monday's assignment permission can only be configured against one. It stays forward-only:
+   * a People cell resolves unambiguously back to an owner id, so the old dropdown's "Rick Antonio is
+   * two owner ids" objection is gone — but CONTACTS_MYLA's scope filter includes `sales_user
+   * HAS_PROPERTY`, so a CRM-side reverse write would pull contacts into the live WM Worker's scope.
+   * Enabling reverse here is a scope decision, not a mapping tweak.
+   */
+  it("sales_user is the one assignment field, a People column, and still forward-only", () => {
+    const su = f(CRM_CONTACTS, "sales_user");
+    expect(su.type).toBe("people");
+    expect(su.col).toBe("multiple_person_mm76ygkp");
+    expect(su.reverse).toBeUndefined();
+  });
 
   it("accounts.timezone is now reverse:true", () =>
     expect(f(CRM_ACCOUNTS, "timezone").reverse).toBe(true));
@@ -157,19 +197,33 @@ describe("each newly-enabled type reverses correctly", () => {
   });
 
   // CORRECTED 2026-09-09, and this is the assertion that was actively wrong rather than merely stale.
-  // It asserted a PASSTHROUGH and justified it with "sales_person has value === label" — which is
-  // true and irrelevant. sales_person is a 4-option HubSpot ENUMERATION (Elaine Rivera, Emily You,
-  // Myla Mestiola, Rick Avery Antonio), so value === label removes the need to translate a label but
-  // does nothing to check the text is an option. The requirements meeting is entirely about
-  // reassigning leads between reps named Ada and Heifer; either of those in this cell would have gone
-  // straight to HubSpot, 400'd, thrown before Sync State was stamped, and — with skipFullReconcile
-  // and no CRM cron — frozen every one of that card's 29 fields until someone edited it in HubSpot.
-  it("status maps a real option, and REFUSES a rep who is not one", () => {
-    const sp = f(CRM_CONTACTS, "sales_person");
-    expect(sp.labels).toBe("contactSalesPerson");
-    expect(reverseFieldValue(sp, "Emily You", ctx)).toBe("Emily You");
-    expect(reverseFieldValue(sp, "Ada", ctx)).toBe("");
-    expect(reverseFieldValue(sp, "Heifer", ctx)).toBe("");
+  // It asserted a PASSTHROUGH on contacts.sales_person and justified it with "value === label" —
+  // true and irrelevant. value === label removes the need to TRANSLATE a label; it does nothing to
+  // CHECK that the text is an option. The requirements meeting was entirely about reassigning leads
+  // between reps named Ada and Heifer; either of those in that cell would have gone straight to
+  // HubSpot, 400'd, thrown before Sync State was stamped, and — with skipFullReconcile and no CRM
+  // cron — frozen every one of that card's fields until someone edited it in HubSpot.
+  //
+  // RETARGETED 2026-09-15. contacts.sales_person is gone (see the retirement test above), but the
+  // defect class is not: deals.sales_user is now the one reversible field on either CRM board that
+  // carries a REP IDENTITY, and it is the same shape — an enum-backed column whose dictionary is the
+  // only thing between a typed rep name and a 400. So the scar moves to the field that still has it.
+  it("a reversible rep-identity field maps a real owner, and REFUSES a rep who is not one", () => {
+    const su = f(CRM_DEALS, "sales_user");
+    expect(su.labels).toBe("salesUser");
+    // salesUser is OWNER ID -> owner name, so the reverse is a genuine label -> id translation.
+    expect(reverseFieldValue(su, "Emily You", ctx)).toBe("77771");
+    expect(reverseFieldValue(su, "Ada", ctx)).toBe("");
+    expect(reverseFieldValue(su, "Heifer", ctx)).toBe("");
+  });
+
+  // The contacts side of that same guarantee, now structural rather than dictionary-enforced: the one
+  // assignment field left on Contacts is a People column, and it is forward-only — so there is no path
+  // at all by which a typed name on a Contact card reaches HubSpot.
+  it("no reversible CRM CONTACT field carries a rep identity any more", () => {
+    for (const fs of CRM_CONTACTS.fields)
+      if (["sales_person", "sales_user", "hubspot_owner_id"].includes(fs.hs))
+        expect(fs.reverse, `contacts.${fs.hs} reverses a rep identity`).toBeUndefined();
   });
 
   it("dropdown WITH a dictionary validates and drops the unknown part", () => {
@@ -211,8 +265,11 @@ describe("each newly-enabled type reverses correctly", () => {
   // set therefore costs a rejected edit, never a wedged card.
   it("an empty dictionary refuses everything rather than sending it raw", () => {
     const emptyCtx = { ...ctx, labels: {} } as unknown as Ctx;
-    for (const hs of ["leadsource", "sales_person", "department_3__c", "city_1__c"])
+    for (const hs of ["leadsource", "department_3__c", "city_1__c"])
       expect(reverseFieldValue(f(CRM_CONTACTS, hs), "Anything", emptyCtx)).toBe("");
+    // deals.sales_user belongs in this set too, and matters most: a failed owner fetch must refuse an
+    // assignment, never forward the typed name.
+    expect(reverseFieldValue(f(CRM_DEALS, "sales_user"), "Anything", emptyCtx)).toBe("");
   });
 
   it("phone canonicalises, keeping a leading +", () => {

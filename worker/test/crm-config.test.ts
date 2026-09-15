@@ -52,11 +52,16 @@ describe("CRM_CONTACTS", () => {
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
     expect(CRM_CONTACTS.createDefaults?.sales_user).toBeUndefined();
     const f = CRM_CONTACTS.fields.find(x => x.hs === "sales_user")!;
-    // A SINGLE-SELECT DROPDOWN since 2026-09-08 (was a text column). Dropdown because there are 42
-    // owners and status dies above ~19 labels; forward-only for two reasons now — a monday edit must
-    // never reassign, AND "Rick Antonio" is two owner ids, so a label cannot resolve back to one owner.
-    expect(f).toMatchObject({ col: "dropdown_mm70mxfy", type: "dropdown", labels: "salesUser" });
-    expect(f.reverse).toBeUndefined();      // a monday edit must never reassign it
+    // A PEOPLE COLUMN since 2026-09-15, replacing the single-select dropdown. monday's assignment
+    // permission can only be configured against a People column, and Sales User is now the one
+    // assignment field the team uses — so the dropdown could not stay.
+    //
+    // It also retires the dropdown's own objection to ever going two-way: a label could not resolve
+    // back to one owner, because "Rick Antonio" names two owner ids. A People column resolves through
+    // monday user -> email -> owner id, which is unambiguous. Still forward-only for a DIFFERENT
+    // reason — see the WM scope coupling note in crm.ts — but the ambiguity argument no longer applies.
+    expect(f).toMatchObject({ col: "multiple_person_mm76ygkp", type: "people" });
+    expect(f.reverse).toBeUndefined();      // a monday edit must never reassign it, for now
     expect(f.appReverse).toBeUndefined();
     expect(f.backfill).toBeUndefined();
   });

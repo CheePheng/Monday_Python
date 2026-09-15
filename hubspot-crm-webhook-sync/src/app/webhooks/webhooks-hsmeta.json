@@ -185,12 +185,6 @@
         {
           "subscriptionType": "object.propertyChange",
           "objectType": "contact",
-          "propertyName": "sales_person",
-          "active": true
-        },
-        {
-          "subscriptionType": "object.propertyChange",
-          "objectType": "contact",
           "propertyName": "sales_user",
           "active": true
         },

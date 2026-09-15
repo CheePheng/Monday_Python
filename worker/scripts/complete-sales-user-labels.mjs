@@ -1,6 +1,12 @@
 /**
  * Make the "Sales User" dropdowns hold EVERY sales user, then retire the old text columns.
  *
+ * SPENT — DO NOT RE-RUN AGAINST CONTACTS (2026-09-15). The Contacts entry below targets
+ * `dropdown_mm70mxfy`, the legacy Sales User dropdown, which was DELETED when Sales User became a
+ * People column (multiple_person_mm76ygkp). Re-running would fail on that board. Kept because the
+ * Accounts/Deals entries and the archived-owner reasoning below are still the live record of why the
+ * dropdowns hold archived owners at all.
+ *
  * THE GAP THIS CLOSES. The dropdowns were seeded from `/crm/v3/owners`, which returns only ACTIVE
  * owners — 42 of them. The portal also has 50 ARCHIVED owners, 27 with names, and 481 contacts plus
  * 32 companies still carry a `sales_user` pointing at one of those departed reps (measured live

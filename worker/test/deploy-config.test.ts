@@ -155,9 +155,12 @@ describe("spec-driven metadata: each deployment fetches only what its specs refe
     expect(labelDictsFor(crmEnv).sort())
       // Pinned so an accidental addition shows up as a deliberate change to this list — each entry
       // costs one HubSpot schema fetch per run. `industry` is absent because company industry is
-      // unmapped and the contact-level one is free text with no dictionary.
+      // unmapped and the contact-level one is free text with no dictionary. `contactSalesPerson`
+      // left the list on 2026-09-15 when Sales Person was retired from monday: the DICTS entry still
+      // exists, but nothing references it, so nothing fetches it — which is the property this test
+      // is really pinning.
       .toEqual(["companyType", "contactCity", "contactCountries", "contactDepartment",
-                "contactLeadSourceSub", "contactPriority", "contactSalesPerson", "contactSource",
+                "contactLeadSourceSub", "contactPriority", "contactSource",
                 "contactStatus", "contactVendor", "crmPipeline", "crmStage", "dealtype", "leadStatus",
                 "liBillingFreq", "liBrand", "liCurrency", "liFamily", "liIsActive", "liPricingModel",
                 "liSubcategory", "liTaxRate", "lifecycleStage", "partnerWith", "pipeline", "priority",

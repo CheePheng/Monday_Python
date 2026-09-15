@@ -103,3 +103,86 @@ board; they are simply not editable by ordinary members.
    **Not an assignee column** — no business requirement grants Sales User editing rights.
 3. **Retiring the legacy columns** — only once the People columns are two-way, or their two-way
    behaviour is deliberately given up.
+
+---
+
+# 2026-09-15 — Sales Person retired; Sales User is the only assignment field
+
+The requirements meeting settled the open question above by removing it: the team will assign on
+**Sales User** and nothing else. All three of the other assignment columns are gone from Contacts.
+
+Open item 3 above said the legacy columns could only go "once the People columns are two-way, or
+their two-way behaviour is deliberately given up". The second branch is what happened, deliberately.
+
+## What was deleted (board 5028000495)
+
+| column | id | type | was |
+|---|---|---|---|
+| Sales Person | `multiple_person_mm76qtz7` | people | `sales_person`, created 2026-09-14 |
+| Sales Person (legacy) | `color_mm701ff2` | status | `sales_person`, the original |
+| Sales User (legacy) | `dropdown_mm70mxfy` | dropdown | `sales_user`, superseded |
+
+Contacts went from 41 columns to 38. `scripts/retire-sales-person-columns.mjs --apply` did it; the
+plan mode of that script prints what will be destroyed and refuses to run out of order.
+
+**HubSpot `sales_person` is untouched** — still on 6,543 contacts, and the script makes no HubSpot
+call of any kind. The monday columns were a projection of it. Nothing in this repo now reads or
+writes that property, and that is asserted rather than merely recorded in a commit message: see
+*"contacts.sales_person is retired"* in `test/reverse-enabled-batch.test.ts`.
+
+## What remains
+
+```
+board_kind : public
+permission : assignee   ("Choose the contacts that members can edit")
+assignee columns: multiple_person_mm6zap53 "Contact owner"
+                  multiple_person_mm76ygkp "Sales User"
+```
+
+Sales User is a People column mapped from `sales_user`, **forward-only**. The dropdown's old objection
+to two-way is gone — a People cell resolves monday user → email → owner id unambiguously, where the
+label "Rick Antonio" named two owner ids — but a different one now applies: `CONTACTS_MYLA`'s scope
+filter includes `sales_user HAS_PROPERTY`, so a CRM-side reverse write would pull contacts into the
+live Work-Management Worker's scope (~957 candidates created since 2026-06-01, of 38,135 with no
+`sales_user`). Enabling reverse is a scope decision, not a mapping tweak. Not taken.
+
+## Order, and why it is not a preference
+
+1. permission re-pointed at Contact owner + Sales User — **2026-09-15T04:42:21Z**, verified live
+2. the three mappings removed from `src/config/crm.ts`
+3. **CRM Worker deployed** without them — version `df2c03db-329b-4c5e-a47e-049573e38f89`
+4. columns deleted — **04:58:43Z**
+
+Step 3 before step 4 is load-bearing. monday rejects an *entire* `change_multiple_column_values`
+mutation that names an unknown column, so a deployed spec pointing at a deleted column does not
+degrade one field — it stops every card on the board from updating, silently. That is the
+`text_mm6sdvkq` incident of 2026-09-08. Step 1 before step 4 matters for the same reason in the other
+direction: deleting a column still listed as an assignee column would have narrowed who can edit.
+
+Both preconditions are now machine-checked rather than remembered:
+
+* `scripts/retire-sales-person-columns.mjs` reads the board's own newest `update_board_permissions`
+  event and refuses if any target still grants edit access. The monday API exposes `permissions` only
+  as the bare string `"assignee"`; the assignee column list is UI-only state, so the activity log is
+  the only machine-readable source for it. Parser covered by `test/retire-sales-person.test.ts`.
+* `scripts/verify-spec-columns-exist.mjs` bundles the real specs and checks every `fields[].col`,
+  every `associations[].relationCol` and the bookkeeping columns against the live boards. Run after
+  the deletion, across all four CRM boards:
+
+```
+ok  companies   board 5028000496  20 refs / 27 live columns
+ok  contacts    board 5028000495  32 refs / 38 live columns
+ok  deals       board 5028000494  19 refs / 28 live columns
+ok  line_items  board 5028000489  22 refs / 25 live columns
+```
+
+Run it before any future deploy that follows a column deletion.
+
+## Open, carried forward
+
+1. **428 contacts** reference five HubSpot owner ids that return 404 — their Sales User cell is blank
+   and cannot be filled. A HubSpot data-quality item, not a sync defect.
+2. **joan zhang (5,962) and 小优 优阅达 (932)** have live owner records and `@dkmeco.com` emails but no
+   monday account. One monday invite each fills 6,894 cells.
+3. Rick Avery Antonio's 136 `sales_person` blanks are now moot on the monday side — the column they
+   would have filled no longer exists. The HubSpot data is still there.
