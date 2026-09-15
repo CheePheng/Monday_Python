@@ -17,9 +17,21 @@ import { fileURLToPath } from "node:url";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 
-/** @param {string} relPath e.g. "restore-card.ts" @returns {string} the file's raw text */
+/**
+ * LINE ENDINGS ARE NORMALISED TO "\n".
+ *
+ * These tests assert on multi-line source fragments — `indexOf("if (selfOrigin)\n    return ...")` —
+ * and this working tree is MIXED: 41 of 150 source files are CRLF and the rest are LF, because git
+ * normalises to LF on commit while the checkout and various editors do not agree on the way back.
+ * Whether a structural guarantee holds has nothing to do with which line ending the file happens to
+ * carry today, but without this an ordinary edit that flips a file's endings fails a test that is
+ * nominally about the selfOrigin guard, sending the reader hunting through logic that never changed.
+ *
+ * Normalising here rather than converting the 41 files keeps the fix in one place and survives the
+ * next checkout, which would simply reintroduce them.
+ */
 export function readSource(relPath) {
-  return readFileSync(join(SRC, relPath), "utf8");
+  return readFileSync(join(SRC, relPath), "utf8").replace(/\r\n/g, "\n");
 }
 
 /** The same file with block and line comments removed, so an assertion can target executable code.
@@ -40,7 +52,7 @@ const SCRIPTS = dirname(fileURLToPath(import.meta.url));
  * bundles the Worker with esbuild and needs live credentials to do anything at all.
  */
 export function readScript(relPath) {
-  return strip(readFileSync(join(SCRIPTS, relPath), "utf8"));
+  return strip(readFileSync(join(SCRIPTS, relPath), "utf8").replace(/\r\n/g, "\n"));
 }
 
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
