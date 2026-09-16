@@ -74,6 +74,27 @@ describe("the app points at the CRM Worker", () => {
   it("subscribes to NO deal events", () =>
     expect(subs.all.filter(s => s.objectType === "deal")).toEqual([]));
 
-  it("covers contacts and companies only", () =>
-    expect([...new Set(subs.all.map(s => s.objectType))].sort()).toEqual(["company", "contact"]));
+  /**
+   * WIDENED 2026-09-16, from "contacts and companies only", for the activity sync into monday's
+   * native Emails & Activities timeline.
+   *
+   * The four activity types are CREATION ONLY, deliberately. monday has no update mutation for
+   * timeline items, so synced activities are immutable; a propertyChange subscription would deliver
+   * events nothing could act on, and an event stream nobody consumes is indistinguishable from a
+   * broken one when you are later trying to work out why something did not sync.
+   *
+   * These arrive at the live Worker from the moment the app is uploaded, which is why
+   * activity-events-inert.test.ts pins that the router ignores them rather than misrouting them onto
+   * "deal" via the bare-payload fallback.
+   */
+  it("covers contacts, companies, and the four activity types", () =>
+    expect([...new Set(subs.all.map(s => s.objectType))].sort())
+      .toEqual(["call", "company", "contact", "email", "meeting_event", "note"]));
+
+  it("subscribes to activity CREATION only — activities are immutable in v1", () => {
+    for (const object of ["email", "call", "note", "meeting_event"]) {
+      const forObject = subs.all.filter(s => s.objectType === object);
+      expect(forObject.map(s => s.subscriptionType)).toEqual(["object.creation"]);
+    }
+  });
 });
