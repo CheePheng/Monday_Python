@@ -22,6 +22,10 @@ export interface Env {
    *  CLOSED to Infinity (claiming and CRM card creation both disabled) for a missing, malformed or
    *  implausible value. Deployment config on purpose - a temporary test cutover never enters git. */
   CRM_CUTOVER_AT?: string;
+  /** "true" turns the Activities sync on. Ships FALSE: the code deploys inert so the webhook
+   *  subscriptions, the handler and the enablement are three separate, reversible steps rather than
+   *  one deploy that changes behaviour the moment it lands. */
+  ENABLE_ACTIVITY_SYNC?: string;
   ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
                                       // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)
 }

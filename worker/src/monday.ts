@@ -2,7 +2,7 @@ import type { Env, MondayItem, RunOpts } from "./types";
 
 const URL_ = "https://api.monday.com/v2";
 
-async function gql(env: Env, query: string, variables: Record<string, unknown> = {}, retries = 3): Promise<any> {
+export async function gql(env: Env, query: string, variables: Record<string, unknown> = {}, retries = 3): Promise<any> {
   let rateWaits = 0;
   for (let attempt = 1; ; attempt++) {
     try {

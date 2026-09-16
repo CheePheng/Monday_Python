@@ -9,6 +9,14 @@ import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } 
 import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
 import { isDeletionEvent, restoreDeletedCard } from "./restore-card";
+import { CRM_CONTACTS } from "./config/crm";
+import {
+  ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
+  syncHubspotActivity, syncMondayTimeline,
+} from "./activity-sync";
+
+/** monday "Last Activity Date" on CRM Contacts — the activity wake-up doorbell. See the branch below. */
+const ACTIVITY_WAKE_COL = "date_mm7054jz";
 
 /** Columns whose monday-side change must NOT trigger a reconcile:
  *  - our own bookkeeping (Sync State / HubSpot ID / Link) — echoes of our own writes;
@@ -196,6 +204,26 @@ export async function handleMonday(req: Request, env: Env, ectx: ExecutionContex
       .catch(e => console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`)));
     return new Response("ok");
   }
+  // ACTIVITY WAKE-UP, checked BEFORE the ignore branch because Last Activity Date is one of the
+  // columns that branch drops. It is a DOORBELL, never data: the date is not read as the activity and
+  // never decides qualification. The Worker reads that one contact's timeline and the durable
+  // registry decides what is new, so the ~2 wake-ups each activity produces (the E&A automation and
+  // the workflow both write this column) cost one read and create nothing twice.
+  //
+  // Proven reliable for repeat activity on the same day: monday emits update_column_value even when
+  // the value is UNCHANGED — four "2026-09-16 -> 2026-09-16" events were observed on one card — so
+  // the second and third activity of a day still ring the bell.
+  if (columnId === ACTIVITY_WAKE_COL && spec.boardId === CRM_CONTACTS.boardId) {
+    if (!activitySyncEnabled(env)) {
+      console.log(`[webhook] source=monday item=${itemId} col=${columnId} action=ignored reason="ENABLE_ACTIVITY_SYNC is off"`);
+      return new Response("ok");
+    }
+    console.log(`[webhook] source=monday item=${itemId} col=${columnId} action=activity-wake`);
+    ectx.waitUntil(syncMondayTimeline(env, itemId)
+      .catch(e => console.log(`[activity] source=monday item=${itemId} action=error reason="${String(e).slice(0, 140)}"`)));
+    return new Response("ok");
+  }
+
   // LOOP GUARD: value columns still flow through (value-diff no-ops an echo), but bookkeeping and
   // one-way columns are dropped outright.
   if (columnId && ignoredColumns(spec).has(columnId)) {
@@ -289,6 +317,35 @@ export function extractDealIds(body: any): string[] {
   return extractObjectEvents(body).filter(e => e.type === "deal").map(e => e.id);
 }
 
+/**
+ * ACTIVITY creation events (email / call / note / meeting_event), pulled out SEPARATELY from
+ * extractObjectEvents so the two never share a code path.
+ *
+ * Creation only. monday has no timeline-item update mutation, so a propertyChange on an activity is
+ * something we could not act on; matching it would create work with no possible outcome.
+ *
+ * Deliberately strict about identifying the object — objectTypeId first, then the explicit name.
+ * extractObjectEvents has a fallback that treats a payload carrying NEITHER subscriptionType NOR
+ * objectTypeId as a deal (monday's Workflow "send webhook" sends that shape). Nothing here may
+ * inherit that guess: an activity mistaken for a deal would be a lookup for a deal that does not
+ * exist, on every activity anyone logs, and silent because a missing deal is an ordinary outcome.
+ */
+export function extractActivityEvents(body: any): { object: string; id: string }[] {
+  const arr = Array.isArray(body) ? body : [body];
+  const out = new Map<string, { object: string; id: string }>();
+  for (const e of arr) {
+    if (!e || typeof e !== "object") continue;
+    const sub = String(e.subscriptionType ?? e.eventType ?? "");
+    if (!sub.endsWith("creation")) continue;
+    const object = ACTIVITY_BY_TYPEID[String(e.objectTypeId ?? "")]
+      ?? ACTIVITY_BY_NAME[String(e.objectType ?? "").toLowerCase()];
+    if (!object) continue;
+    const raw = e.objectId ?? e.hs_object_id ?? e.id;
+    if (raw != null && /^\d+$/.test(String(raw))) out.set(`${object}:${raw}`, { object, id: String(raw) });
+  }
+  return [...out.values()];
+}
+
 /** Line-item ids from a HubSpot webhook batch (objectTypeId 0-8 / subscriptionType line_item.*). A
  * line-item property edit is routed to its parent DEAL(s) by the caller, which rebuilds the subitems. */
 export function extractLineItemIds(body: any): string[] {
@@ -319,7 +376,27 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
   // updates, deletions, and association changes), plus line-item edits routed to their parent deal.
   const events = extractObjectEvents(body);
   const liIds = extractLineItemIds(body);
+
+  // ACTIVITY EVENTS ARE ROUTED SEPARATELY and never reach the object path below. Nothing on this
+  // branch builds a label dictionary or touches an ObjectSpec: a 403 raised while assembling
+  // dictionaries is exactly what escaped this handler on 2026-09-15 and stopped Contacts and
+  // Companies sync for an hour, and activity events now land on this same endpoint. Each is fired
+  // independently so one failure cannot take the batch — or the contact/company events sharing it —
+  // down with it.
+  const activityEvents = extractActivityEvents(body);
+  if (activityEvents.length) {
+    if (!activitySyncEnabled(env)) {
+      console.log(`[webhook] source=hubspot activities=${activityEvents.length} action=ignored reason="ENABLE_ACTIVITY_SYNC is off"`);
+    } else {
+      console.log(`[webhook] source=hubspot activities=${activityEvents.map(a => `${a.object}:${a.id}`).join(",")} action=received`);
+      for (const a of activityEvents)
+        ectx.waitUntil(syncHubspotActivity(env, a.object, a.id)
+          .catch(e => console.log(`[activity] source=hubspot ${a.object}=${a.id} action=error reason="${String(e).slice(0, 140)}"`)));
+    }
+  }
+
   if (!events.length && !liIds.length) {
+    if (activityEvents.length) return new Response("ok");
     console.log(`[webhook] source=hubspot action=ignored reason="no object id found" body=${raw.slice(0, 240)}`);
     return new Response("ok");
   }

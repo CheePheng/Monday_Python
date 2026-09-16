@@ -5,7 +5,7 @@ import { canClaimCrmOwnership, claimPatch } from "./ownership";
 
 const BASE = "https://api.hubapi.com";
 
-async function hs(env: Env, method: string, path: string, body?: unknown, retries = 3): Promise<any> {
+export async function hs(env: Env, method: string, path: string, body?: unknown, retries = 3): Promise<any> {
   for (let attempt = 1; ; attempt++) {
     let resp: Response;
     try {
