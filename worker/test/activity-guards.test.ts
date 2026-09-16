@@ -123,7 +123,7 @@ describe("structural guarantees", () => {
    * beside the native entry it came from.
    */
   it("claims the reverse direction when creating in HubSpot", () => {
-    expect(code).toContain("claimHubspotAsRepresented(env, object, newId, entry.id)");
+    expect(code).toContain("claimHubspotAsRepresented(env, object, newId, contactId, entry.id)");
   });
 
   /**
@@ -133,7 +133,27 @@ describe("structural guarantees", () => {
   it("defers rather than settles when the contact or card is not yet visible", () => {
     expect(code).not.toContain('settleActivityToMonday(env, object, hubspotId, "no-contact")');
     expect(code).not.toContain('settleActivityToMonday(env, object, hubspotId, "no-card")');
-    expect((code.match(/releaseActivity\(env, h2mReservationKey/g)?.length ?? 0)).toBeGreaterThanOrEqual(2);
+  });
+
+  /**
+   * THE CARD IS RESOLVED BEFORE THE RESERVATION IS TAKEN. Claiming first and then discovering there
+   * is no card leaves a reservation standing for a write that was never going to happen, which blocks
+   * the retry that would have succeeded once the card appeared.
+   */
+  it("claims a card only after that card is known to exist", () => {
+    const loop = code.slice(code.indexOf("for (const contactId of targets)"));
+    expect(loop.indexOf("cards.get(contactId)")).toBeLessThan(loop.indexOf("claimActivityToMonday"));
+  });
+
+  /**
+   * THE DEFECT THAT REACHED PRODUCTION. Taking the first association filed 40 outbound emails on the
+   * SENDER's card and none on the customers'. The reservation key must carry the contact, or the
+   * first card written marks the whole activity done and every other participant is skipped.
+   */
+  it("keys the reservation per activity AND contact", () => {
+    expect(readCode("activity-registry.ts"))
+      .toContain("`act:h2m:${object}:${hubspotId}:${contactId}`");
+    expect(code).toContain("claimActivityToMonday(env, object, hubspotId, contactId)");
   });
 
   /** monday-origin activity must never mark follow-up: the timeline read carries no reliable mapping

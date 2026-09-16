@@ -35,7 +35,7 @@ const reg = vi.hoisted(() => {
   const settled = new Map<string, string>();
   const inflight = new Set<string>();
   const cycles = new Map<string, string>();
-  const h2m = (o: string, i: string) => `act:h2m:${o}:${i}`;
+  const h2m = (o: string, i: string, c: string) => `act:h2m:${o}:${i}:${c}`;
   const m2h = (t: string) => `act:m2h:${t}`;
   const claim = (k: string) => {
     if (settled.has(k)) return { status: "have", id: settled.get(k)! };
@@ -47,13 +47,15 @@ const reg = vi.hoisted(() => {
   return {
     settled, inflight, cycles,
     m2hReservationKey: m2h, h2mReservationKey: h2m,
-    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string) => claim(h2m(o, i))),
-    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, t: string) => settle(h2m(o, i), t)),
+    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string) => claim(h2m(o, i, c))),
+    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string, t: string) =>
+      settle(h2m(o, i, c), t)),
     unresolvedActivityToMonday: vi.fn(),
     claimActivityToHubspot: vi.fn(async (_e: Env, t: string) => claim(m2h(t))),
     settleActivityToHubspot: vi.fn(async (_e: Env, t: string, h: string) => settle(m2h(t), h)),
     unresolvedActivityToHubspot: vi.fn(),
-    claimHubspotAsRepresented: vi.fn(async (_e: Env, o: string, i: string, m: string) => settle(h2m(o, i), `monday:${m}`)),
+    claimHubspotAsRepresented: vi.fn(async (_e: Env, o: string, i: string, c: string, m: string) =>
+      settle(h2m(o, i, c), `monday:${m}`)),
     releaseActivity: vi.fn(async (_e: Env, k: string) => { inflight.delete(k); }),
     lastOwnerCycle: vi.fn(async (_e: Env, c: string) => cycles.get(c) ?? null),
     rememberOwnerCycle: vi.fn(async (_e: Env, c: string, v: string) => { cycles.set(c, v); }),
@@ -138,6 +140,8 @@ beforeEach(() => {
     return { items: [{ column_values: [{ text: CONTACT }] }] };
   });
   hubspot.hs.mockImplementation(async (_e: Env, _m: string, path: string) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
     if (path.startsWith("/crm/v3/objects/emails/")) return {
       properties: { hs_timestamp: "2026-09-12T10:00:00Z", hs_email_subject: "Following up",
         hs_email_direction: "EMAIL", hubspot_owner_id: "A" },
@@ -308,7 +312,7 @@ describe("the alarm", () => {
   /** If something else completed the activity while the job waited, the job must evaporate quietly. */
   it("does nothing when the activity settled before the alarm fired", async () => {
     const env = baseEnv();
-    reg.settled.set(`act:h2m:emails:${ACT}`, "tl-already-there");
+    reg.settled.set(`act:h2m:emails:${ACT}:${CONTACT}`, "tl-already-there");
     const { ctx, do: retry } = withJob(env, job());
     await retry.alarm();
 
@@ -426,13 +430,16 @@ describe("a failure BEFORE the create is retryable; one after it is not", () => 
    * the card. A 503 on any of them used to be reported as "error" and therefore never retried, which
    * threw the activity away on the most ordinary outage there is.
    */
-  it("a HubSpot read that fails is unresolved, and releases for a retry", async () => {
+  it("a HubSpot read that fails is unresolved, and is queued", async () => {
     const env = baseEnv();
     hubspot.hs.mockRejectedValue(new Error("HubSpot 503"));
     const outcome = await syncHubspotActivity(env, "emails", ACT);
 
     expect(outcome).toBe("unresolved");
-    expect(reg.releaseActivity).toHaveBeenCalledWith(env, `act:h2m:emails:${ACT}`);
+    // Nothing to release: a card is claimed only once it is known to exist, so a read that fails
+    // before that point never took a reservation in the first place.
+    expect(reg.releaseActivity).not.toHaveBeenCalled();
+    expect(reg.claimActivityToMonday).not.toHaveBeenCalled();
     await scheduleIfUnresolved(env, "emails", ACT, outcome);
     expect(scheduled).toHaveLength(1);
   });

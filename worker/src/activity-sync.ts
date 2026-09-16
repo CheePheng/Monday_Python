@@ -125,6 +125,58 @@ const RESOLVE_BACKOFF_MS = [0, 2_000, 5_000, 15_000];
 const strip = (h: unknown) =>
   String(h ?? "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
+/**
+ * STAFF ARE NOT THE COUNTERPARTY.
+ *
+ * Every HubSpot activity is associated with all its participants. An outbound email from a rep to a
+ * customer is associated with BOTH, and the rep exists as a Contact in this portal like anyone else.
+ * The first production rollout took the first association and filed 40 outbound campaign emails on
+ * the SENDER's own card; not one reached the customer whose timeline is the entire point.
+ *
+ * The fix cannot key on direction. "Skip the sender" is right for outbound and exactly backwards for
+ * inbound, where the sender IS the customer. The stable property is who is STAFF, and HubSpot already
+ * answers that: the owners list is the sales users, and a customer is never an owner.
+ *
+ * Cached for ten minutes per isolate. This is a small, flat read — deliberately NOT buildCtx, which
+ * is the path whose 403 stopped live Contacts and Companies sync for an hour on 2026-09-15.
+ */
+let ownerEmails: { at: number; emails: Set<string> } | null = null;
+const OWNER_CACHE_MS = 10 * 60_000;
+
+async function staffEmails(env: Env): Promise<Set<string>> {
+  if (ownerEmails && Date.now() - ownerEmails.at < OWNER_CACHE_MS) return ownerEmails.emails;
+  const emails = new Set<string>();
+  let after = "";
+  for (let page = 0; page < 20; page++) {
+    const r = await hs(env, "GET", `/crm/v3/owners?limit=100${after ? `&after=${after}` : ""}`, undefined, 2);
+    for (const o of r?.results ?? []) if (o?.email) emails.add(String(o.email).trim().toLowerCase());
+    after = r?.paging?.next?.after ?? "";
+    if (!after) break;
+  }
+  ownerEmails = { at: Date.now(), emails };
+  return emails;
+}
+
+/**
+ * How many cards one activity may land on. A note can be associated with a long list of people; the
+ * cap bounds the write cost of a single webhook. Exceeding it is logged rather than silently trimmed.
+ */
+const MAX_PARTICIPANTS = 5;
+
+/** The associated contacts an activity should actually appear on: participants, minus staff. */
+async function participantsFor(env: Env, contactIds: string[]): Promise<string[]> {
+  if (!contactIds.length) return [];
+  const staff = await staffEmails(env);           // throws -> caller treats it as retryable
+  const read = await hs(env, "POST", "/crm/v3/objects/contacts/batch/read",
+    { properties: ["email"], inputs: contactIds.map(id => ({ id })) }, 2);
+  const emailOf = new Map<string, string>();
+  for (const c of read?.results ?? [])
+    emailOf.set(String(c.id), String(c.properties?.email ?? "").trim().toLowerCase());
+  // A contact with no email cannot be PROVEN to be staff, and dropping a real customer is the worse
+  // error of the two, so it is kept.
+  return contactIds.filter(id => { const e = emailOf.get(id); return !e || !staff.has(e); });
+}
+
 // ============================================================ HubSpot -> monday
 
 /**
@@ -145,12 +197,6 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     return outcome;
   };
 
-  const claim = await claimActivityToMonday(env, object, hubspotId);
-  if (claim.status === "have") return fin("skipped", `reason="already synced as ${claim.id}"`);
-  if (claim.status === "creating") return fin("creating", 'reason="another delivery is mid-create"', "skipped");
-  if (claim.status === "blocked") return fin("blocked", 'reason="idempotency store unavailable — will retry"', "deferred");
-
-  let createAttempted = false;
   try {
     const props = PROPS[object] ?? ["hs_timestamp"];
     const rec = await hs(env, "GET",
@@ -158,64 +204,58 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     const p = rec?.properties ?? {};
 
     // CUTOVER-FORWARD. Refuse anything older than the cutover before spending a lookup on it.
-    if (!afterCutover(env, p.hs_timestamp)) {
-      await settleActivityToMonday(env, object, hubspotId, "pre-cutover");
+    if (!afterCutover(env, p.hs_timestamp))
       return fin("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
-    }
 
     /**
      * SECONDARY BOUNCE GUARD. Creating a HubSpot Note/Call from a monday entry makes HubSpot fire
-     * object.creation for it, and that event can arrive BEFORE the durable h2m mapping finishes
-     * writing. The mapping is the authoritative guard; this marker closes the gap between the create
-     * returning and the claim landing. Without it, that narrow race produces exactly what the whole
-     * design exists to prevent: a custom copy sitting beside the native entry it came from.
+     * object.creation for it, and that event can arrive BEFORE the durable mapping finishes writing.
+     * The mapping is the authoritative guard; this marker closes the gap between the create returning
+     * and the claim landing. Checked per ACTIVITY, before any per-contact work: an object we made
+     * from monday must not be re-created on anybody's card.
      */
     const origin = mondayOriginOf(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body);
-    if (origin) {
-      await claimHubspotAsRepresented(env, object, hubspotId, origin);
-      return fin("skipped", `reason="originated from monday timeline ${origin}"`);
-    }
+    if (origin) return fin("skipped", `reason="originated from monday timeline ${origin}"`);
 
-    // Resolve the contact and its card with a few short waits — the webhook routinely beats them into
-    // existence. Lookup only; no create is ever retried here.
-    let contactId = "";
-    let card: { id: string } | undefined;
-    let outOfScope = false;
+    // Resolve the associated contacts with a few short waits — the webhook routinely beats the
+    // association into existence. Lookup only; no create is ever retried here.
+    let contactIds: string[] = [];
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
-      if (!contactId) {
-        const a = await hs(env, "GET",
-          `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
-        contactId = (a?.results ?? []).map((r: any) => String(r.toObjectId))[0] ?? "";
-      }
-      /**
-       * SCOPE IS CHECKED THE MOMENT THE CONTACT IS KNOWN, not after the card hunt.
-       *
-       * While the canary allowlist is set, every activity in the portal still reaches this function.
-       * Checking scope after the loop meant an unrelated activity on a contact with no card spent the
-       * full ~22s backoff, returned "unresolved", and was then PERSISTED as a durable retry job —
-       * four more attempts and a dead-letter entry, all for work the canary must never touch. Out of
-       * scope has to be a settled decision reached on the first pass, not a lost race.
-       */
-      if (contactId && !outOfScope && !inCanaryScope(env, contactId, undefined)) outOfScope = true;
-      if (outOfScope) break;
-      if (contactId) {
-        card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId))[0];
-        if (card) break;
-      }
+      const assoc = await hs(env, "GET",
+        `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
+      contactIds = (assoc?.results ?? []).map((r: any) => String(r.toObjectId));
+      if (contactIds.length) break;
     }
-
-    if (outOfScope) {
-      await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return fin("skipped", `reason="outside canary scope" contact=${contactId}`);
-    }
-    if (!contactId) {
-      await releaseActivity(env, h2mReservationKey(object, hubspotId));
+    if (!contactIds.length) {
       return fin("unresolved", 'reason="no associated contact after bounded retry"');
     }
-    if (!card) {
-      await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return fin("unresolved", `reason="contact ${contactId} has no card after bounded retry"`);
+
+    /**
+     * SCOPE FIRST, CLASSIFICATION SECOND. While an allowlist is set every activity in the portal
+     * still arrives here, so anything out of scope must be settled before it costs an owners read, a
+     * batch read and a card hunt.
+     */
+    const inScope = contactIds.filter(id => inCanaryScope(env, id, undefined));
+    if (!inScope.length)
+      return fin("skipped", `reason="outside canary scope" contacts=${contactIds.join(",")}`);
+
+    // Participants minus staff. If the owners list is unreadable we do NOT guess: writing to every
+    // participant is how the rep's own card filled up in the first place, so it is reported as
+    // retryable and the durable retry picks it up once HubSpot answers.
+    let targets: string[];
+    try {
+      targets = await participantsFor(env, inScope);
+    } catch (e) {
+      return fin("unresolved", `reason="cannot classify participants: ${String(e).slice(0, 90)}"`,
+        "deferred");
+    }
+    if (!targets.length)
+      return fin("skipped", `reason="every participant is staff" contacts=${contactIds.join(",")}`);
+    if (targets.length > MAX_PARTICIPANTS) {
+      console.log(`[activity] source=hubspot ${object}=${hubspotId} action=capped`
+        + ` reason="${targets.length} participants, writing the first ${MAX_PARTICIPANTS}"`);
+      targets = targets.slice(0, MAX_PARTICIPANTS);
     }
 
     const activity: HsActivity = {
@@ -232,40 +272,92 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
       from: p.hs_email_from_email, to: p.hs_email_to_email,
       body: strip(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body),
     });
-    if (!payload.custom_activity_id) { await settleActivityToMonday(env, object, hubspotId, "unmapped"); return fin("skipped", 'reason="no monday activity type for this object"'); }
+    if (!payload.custom_activity_id)
+      return fin("skipped", 'reason="no monday activity type for this object"');
 
     /**
-     * THE LINE THAT DIVIDES "RETRY ME" FROM "NEVER RETRY ME".
-     *
-     * Everything above this point is reads: the HubSpot record, the association, the card. A 503 on
-     * any of them is a transient failure with nothing created, so it must be retryable — classifying
-     * it as an error, as the first version did, threw the activity away on the most ordinary outage
-     * there is. From here on a create has been SENT, and a failure may mean it landed.
+     * ONE RESERVATION PER CARD. Each participant is claimed, written and settled independently, so a
+     * failure on one card cannot mark the activity done for the others, and a redelivery resumes
+     * exactly where it stopped.
      */
-    createAttempted = true;
-    const created = await gql(env,
-      `mutation ($i: ID!, $a: String!, $t: String!, $s: String!, $c: String!, $ts: ISO8601DateTime!) {
-         create_timeline_item(item_id:$i, custom_activity_id:$a, title:$t, summary:$s, content:$c,
-                              timestamp:$ts) { id } }`,
-      { i: card.id, a: payload.custom_activity_id, t: payload.title, s: payload.summary,
-        c: payload.content, ts: payload.timestamp }, 1);
-    const timelineId = created?.create_timeline_item?.id;
-    await settleActivityToMonday(env, object, hubspotId, String(timelineId ?? "created"));
-    fin("created", `item=${card.id} timeline=${timelineId}`);
-
-    await maybeMarkFollowUp(env, card.id, contactId, activity);
-    return "created";
-  } catch (e) {
-    // NOT released: the write may have landed and releasing is how a lost response becomes a duplicate.
-    if (createAttempted) {
-      // NOT retryable. The request was already sent; a queued retry here is how a lost response
-      // becomes a duplicate. The reservation is left standing instead, and covers it.
-      unresolvedActivityToMonday(object, hubspotId, e);
-      return fin("error", `reason="${String(e).slice(0, 140)}"`);
+    /**
+     * THE CARD LOOKUP KEEPS THE BOUNDED BACKOFF. A contact and its first email are routinely created
+     * in the same second, so the card is the thing that arrives late — retrying only the association
+     * would have quietly dropped exactly the race this was built for. Resolved for all participants
+     * together so the waits are shared rather than paid per card.
+     */
+    const cards = new Map<string, { id: string }>();
+    for (const wait of RESOLVE_BACKOFF_MS) {
+      if (wait) await new Promise(r => setTimeout(r, wait));
+      for (const cid of targets)
+        if (!cards.has(cid)) {
+          const c = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, cid))[0];
+          if (c) cards.set(cid, c);
+        }
+      if (cards.size === targets.length) break;
     }
-    // Nothing was sent. Release so a retry can re-claim, and report it as the retryable failure it
-    // is — a HubSpot read that 503s must not cost us the activity.
-    await releaseActivity(env, h2mReservationKey(object, hubspotId));
+
+    let wrote = 0, errored = false, retryable: ActivityOutcome | null = null;
+    for (const contactId of targets) {
+      const card = cards.get(contactId);
+      if (!card) {
+        fin("unresolved", `reason="contact ${contactId} has no card after bounded retry"`);
+        retryable ??= "unresolved";
+        continue;
+      }
+
+      // Claimed only once the card is known, so a reservation is never left standing for a card that
+      // was never going to be written.
+      const claim = await claimActivityToMonday(env, object, hubspotId, contactId);
+      if (claim.status === "have") continue;                       // already on this card
+      if (claim.status === "creating") { retryable ??= "creating"; continue; }
+      if (claim.status === "blocked") { retryable ??= "blocked"; continue; }
+
+      /**
+       * THE CREATE, AND ITS OWN CATCH. Scoped per card on purpose: the failure that must never be
+       * retried is "the create was sent and may have landed", and that is a fact about ONE card. A
+       * single catch around the whole loop could not name the card whose reservation has to stay
+       * standing, and would have to treat every other participant as equally doomed.
+       */
+      try {
+        const created = await gql(env,
+          `mutation ($i: ID!, $a: String!, $t: String!, $s: String!, $c: String!, $ts: ISO8601DateTime!) {
+             create_timeline_item(item_id:$i, custom_activity_id:$a, title:$t, summary:$s, content:$c,
+                                  timestamp:$ts) { id } }`,
+          { i: card.id, a: payload.custom_activity_id, t: payload.title, s: payload.summary,
+            c: payload.content, ts: payload.timestamp }, 1);
+        const timelineId = created?.create_timeline_item?.id;
+        await settleActivityToMonday(env, object, hubspotId, contactId, String(timelineId ?? "created"));
+        wrote++;
+        fin("created", `item=${card.id} contact=${contactId} timeline=${timelineId}`);
+      } catch (e) {
+        // Sent. NOT released and NOT retried — that is how a lost response becomes a duplicate.
+        unresolvedActivityToMonday(object, hubspotId, contactId, e);
+        fin("error", `contact=${contactId} reason="${String(e).slice(0, 120)}"`);
+        errored = true;
+        continue;
+      }
+
+      // Outside the create's catch: a failed helper write must not read as a failed create.
+      await maybeMarkFollowUp(env, card.id, contactId, activity);
+    }
+
+    /**
+     * RETRYABLE WINS, THEN ERROR, THEN SUCCESS. An errored card must never be reported as "skipped":
+     * skipped is a settled decision and would hide a failed write entirely. It is still not
+     * retryable — the create was sent and may have landed — so it is surfaced as "error" and the
+     * standing reservation covers it.
+     */
+    if (retryable) return retryable;
+    if (errored) return "error";
+    return wrote ? "created" : fin("skipped", 'reason="nothing left to write"');
+  } catch (e) {
+    /**
+     * PRE-CREATE ONLY. Every send now has its own catch inside the loop, so anything reaching here
+     * failed while READING — the record, the association, the participant classification. Nothing
+     * was written, so it is retryable, and the durable retry re-runs the whole activity: cards
+     * already settled are skipped by their own claims, so nothing is written twice.
+     */
     return fin("unresolved", `reason="${String(e).slice(0, 140)}"`, "failed-before-create");
   }
 }
@@ -413,7 +505,7 @@ async function pushOne(env: Env, itemId: string, contactId: string, entry: any,
      * HubSpot -> monday sees it as already represented and creates nothing, instead of landing a
      * custom "HubSpot Call" beside the native Call it came from.
      */
-    if (newId) await claimHubspotAsRepresented(env, object, newId, entry.id);
+    if (newId) await claimHubspotAsRepresented(env, object, newId, contactId, entry.id);
     log("pushed", `timeline=${entry.id} -> ${object}/${newId} contact=${contactId}`);
   } catch (e) {
     unresolvedActivityToHubspot(entry.id, e);

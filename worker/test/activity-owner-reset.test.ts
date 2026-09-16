@@ -23,7 +23,7 @@ const reg = vi.hoisted(() => {
   const inflight = new Set<string>();
   const cycles = new Map<string, string>();
   const m2h = (t: string) => `act:m2h:${t}`;
-  const h2m = (o: string, i: string) => `act:h2m:${o}:${i}`;
+  const h2m = (o: string, i: string, c: string) => `act:h2m:${o}:${i}:${c}`;
   const claim = (k: string) => {
     if (settled.has(k)) return { status: "have", id: settled.get(k)! };
     if (inflight.has(k)) return { status: "creating" };
@@ -34,14 +34,15 @@ const reg = vi.hoisted(() => {
   return {
     settled, inflight, cycles,
     m2hReservationKey: m2h, h2mReservationKey: h2m,
-    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string) => claim(h2m(o, i))),
-    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, t: string) => settle(h2m(o, i), t)),
+    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string) => claim(h2m(o, i, c))),
+    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string, t: string) =>
+      settle(h2m(o, i, c), t)),
     unresolvedActivityToMonday: vi.fn(),
     claimActivityToHubspot: vi.fn(async (_e: Env, t: string) => claim(m2h(t))),
     settleActivityToHubspot: vi.fn(async (_e: Env, t: string, h: string) => settle(m2h(t), h)),
     unresolvedActivityToHubspot: vi.fn(),
-    claimHubspotAsRepresented: vi.fn(async (_e: Env, o: string, i: string, m: string) =>
-      settle(h2m(o, i), `monday:${m}`)),
+    claimHubspotAsRepresented: vi.fn(async (_e: Env, o: string, i: string, c: string, m: string) =>
+      settle(h2m(o, i, c), `monday:${m}`)),
     releaseActivity: vi.fn(async (_e: Env, k: string) => { inflight.delete(k); }),
     lastOwnerCycle: vi.fn(async (_e: Env, c: string) => cycles.get(c) ?? null),
     rememberOwnerCycle: vi.fn(async (_e: Env, c: string, v: string) => { cycles.set(c, v); }),
@@ -102,6 +103,8 @@ beforeEach(() => {
   });
 
   hubspot.hs.mockImplementation(async (_e: Env, method: string, path: string, body?: any) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
     if (method === "POST") { posted.push({ path, body }); return { id: `hs${posted.length}` }; }
     if (path.includes("/associations/contacts")) return { results: [{ toObjectId: CONTACT }] };
     if (path.startsWith(`/crm/v3/objects/contacts/${CONTACT}`)) return { properties: contactProps };
@@ -128,6 +131,8 @@ describe("owner reassignment clears the follow-up helper", () => {
    */
   it("Owner A qualifies, then Owner B takes over and inherits nothing", async () => {
     hubspot.hs.mockImplementation(async (_e: Env, method: string, path: string) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
       if (path.startsWith("/crm/v3/objects/emails/")) return emailRecord();
       if (path.includes("/associations/contacts")) return { results: [{ toObjectId: CONTACT }] };
       if (path.startsWith(`/crm/v3/objects/contacts/${CONTACT}`)) return { properties: contactProps };
@@ -251,6 +256,8 @@ describe("the transient contact/card race", () => {
   it("retries the LOOKUP until the card appears, then creates exactly one entry", async () => {
     vi.useFakeTimers();
     hubspot.hs.mockImplementation(async (_e: Env, _m: string, path: string) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
       if (path.startsWith("/crm/v3/objects/emails/")) return emailRecord();
       if (path.includes("/associations/contacts")) return { results: [{ toObjectId: CONTACT }] };
       return { properties: contactProps };
@@ -271,6 +278,8 @@ describe("the transient contact/card race", () => {
    *  ordinary case, and the durable mapping — not a lookup — is what stops it. */
   it("a redelivery after success creates nothing", async () => {
     hubspot.hs.mockImplementation(async (_e: Env, _m: string, path: string) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
       if (path.startsWith("/crm/v3/objects/emails/")) return emailRecord();
       if (path.includes("/associations/contacts")) return { results: [{ toObjectId: CONTACT }] };
       return { properties: contactProps };
@@ -288,6 +297,8 @@ describe("the transient contact/card race", () => {
   it("releases rather than settles when the card never appears", async () => {
     vi.useFakeTimers();
     hubspot.hs.mockImplementation(async (_e: Env, _m: string, path: string) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
       if (path.startsWith("/crm/v3/objects/emails/")) return emailRecord();
       if (path.includes("/associations/contacts")) return { results: [{ toObjectId: CONTACT }] };
       return { properties: contactProps };
@@ -299,8 +310,11 @@ describe("the transient contact/card race", () => {
     await p;
 
     expect(createdTimeline).toEqual([]);
-    expect(reg.releaseActivity).toHaveBeenCalledWith(env, "act:h2m:emails:900004");
+    // No reservation was ever taken: the card is claimed only once it is known to exist, so a card
+    // that never appears leaves nothing behind to release. What matters is that it was NOT settled —
+    // settling an unresolved card as done is what loses the activity permanently.
     expect(reg.settleActivityToMonday).not.toHaveBeenCalled();
+    expect(reg.claimActivityToMonday).not.toHaveBeenCalled();
   });
 });
 
@@ -317,6 +331,8 @@ describe("the first bounce, guarded by the marker as well as the mapping", () =>
     "a marked HubSpot object creates nothing in monday, even with no mapping stored (id %s)",
     async (timelineId) => {
       hubspot.hs.mockImplementation(async (_e: Env, _m: string, path: string) => {
+    if (path.startsWith("/crm/v3/owners")) return { results: [{ id: "OWNER", email: "rep@dkmeco.com" }] };
+    if (path === "/crm/v3/objects/contacts/batch/read") return { results: [] };
         if (path.startsWith("/crm/v3/objects/notes/")) return {
           properties: { hs_timestamp: "2026-09-12T10:00:00Z",
             hs_note_body: `Called the customer\n\n${mondayOriginMarker(timelineId)}` },
@@ -327,8 +343,11 @@ describe("the first bounce, guarded by the marker as well as the mapping", () =>
       await syncHubspotActivity(env, "notes", "900005");
 
       expect(createdTimeline).toEqual([]);
-      // and the mapping is now recorded, so the marker never has to be relied on twice
-      expect(reg.settled.get("act:h2m:notes:900005")).toBe(`monday:${timelineId}`);
+      // Nothing is recorded here, and nothing needs to be: the mapping is now keyed per (activity,
+      // contact) and the marker is checked before any contact is resolved. The marker lives in the
+      // HubSpot body permanently, so re-reading it on a redelivery is reliable.
+      expect(reg.claimActivityToMonday).not.toHaveBeenCalled();
+      expect([...reg.settled.keys()]).toEqual([]);
     });
 
   /** The producer half: every object we create from a timeline entry must carry the marker the guard
@@ -342,6 +361,6 @@ describe("the first bounce, guarded by the marker as well as the mapping", () =>
     expect(posted).toHaveLength(1);
     expect(posted[0].body.properties.hs_note_body).toContain(mondayOriginMarker("77123"));
     // ...and the reverse direction is claimed at creation, while the pair is still known
-    expect(reg.settled.get("act:h2m:notes:hs1")).toBe("monday:77123");
+    expect(reg.settled.get(`act:h2m:notes:hs1:${CONTACT}`)).toBe("monday:77123");
   });
 });

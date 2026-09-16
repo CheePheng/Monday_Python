@@ -65,7 +65,17 @@ function stub(env: Env, key: string) {
   return env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(key));
 }
 const m2hKey = (timelineItemId: string) => `act:m2h:${timelineItemId}`;
-const h2mKey = (object: string, hubspotId: string) => `act:h2m:${object}:${hubspotId}`;
+/**
+ * ONE KEY PER (ACTIVITY, CONTACT), not per activity.
+ *
+ * A HubSpot activity is associated with EVERY participant — an outbound email carries both the rep
+ * and the customer — so one activity legitimately becomes several monday timeline entries, on
+ * several cards. Keyed by activity alone, the first card to be written marked the whole activity
+ * settled and every remaining participant was silently skipped: the customer, whose timeline is the
+ * entire point, would never receive it.
+ */
+const h2mKey = (object: string, hubspotId: string, contactId: string) =>
+  `act:h2m:${object}:${hubspotId}:${contactId}`;
 
 async function claim(env: Env, key: string): Promise<ActivityClaim> {
   try {
@@ -96,8 +106,8 @@ async function settle(env: Env, key: string, counterpartId: string): Promise<voi
  * try rather than in some loop.
  */
 export async function claimHubspotAsRepresented(env: Env, object: string, hubspotId: string,
-    mondayTimelineId: string): Promise<void> {
-  await settle(env, h2mKey(object, hubspotId), `monday:${mondayTimelineId}`);
+    contactId: string, mondayTimelineId: string): Promise<void> {
+  await settle(env, h2mKey(object, hubspotId, contactId), `monday:${mondayTimelineId}`);
 }
 
 /**
@@ -120,12 +130,12 @@ export const unresolvedActivityToHubspot = (timelineItemId: string, err: unknown
   markUnresolved(m2hKey(timelineItemId), err);
 
 // ---------------------------------------------------------------- HubSpot -> monday
-export const claimActivityToMonday = (env: Env, object: string, hubspotId: string) =>
-  claim(env, h2mKey(object, hubspotId));
-export const settleActivityToMonday = (env: Env, object: string, hubspotId: string, timelineItemId: string) =>
-  settle(env, h2mKey(object, hubspotId), timelineItemId);
-export const unresolvedActivityToMonday = (object: string, hubspotId: string, err: unknown) =>
-  markUnresolved(h2mKey(object, hubspotId), err);
+export const claimActivityToMonday = (env: Env, object: string, hubspotId: string, contactId: string) =>
+  claim(env, h2mKey(object, hubspotId, contactId));
+export const settleActivityToMonday = (env: Env, object: string, hubspotId: string, contactId: string,
+    timelineItemId: string) => settle(env, h2mKey(object, hubspotId, contactId), timelineItemId);
+export const unresolvedActivityToMonday = (object: string, hubspotId: string, contactId: string,
+    err: unknown) => markUnresolved(h2mKey(object, hubspotId, contactId), err);
 
 /**
  * Release a reservation once something has PROVEN the write never happened.
