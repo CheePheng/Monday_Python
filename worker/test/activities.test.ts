@@ -76,12 +76,28 @@ describe("qualifiesAsFollowUp", () => {
     expect(qualifiesAsFollowUp(outboundEmail({ timestamp: "not a date" }), ctx)).toBe(false);
   });
 
-  // Notes and meetings carry no direction; requiring one would reject every note a rep writes.
-  it("does not demand a direction for notes and meetings", () => {
+  /**
+   * CORRECTED. An earlier version of this test asserted that notes and meetings qualify, reasoning
+   * only that they carry no direction to check. That confuses "nothing disqualifies it" with
+   * "it is evidence of contact".
+   *
+   * A note is the rep talking to themselves — "call him Tuesday", "waiting on legal". A meeting
+   * object is normally a SCHEDULED one, written when the invite goes out rather than when anyone is
+   * actually spoken to. Either silences the chaser for work that has not happened yet, and a reminder
+   * that stops early is invisible: nobody notices the email that was never sent.
+   *
+   * Both still SYNC and stay visible on the timeline. Visibility and qualification are separate.
+   */
+  it("REFUSES a note — internal notes are not customer contact", () => {
     expect(qualifiesAsFollowUp({ id: "2", object: "notes", timestamp: "2026-09-12T10:00:00Z",
-      ownerId: "164317533" }, ctx)).toBe(true);
+      ownerId: "164317533" }, ctx)).toBe(false);
+  });
+
+  // Revisit only when a HELD meeting is distinguishable from a booked one (an outcome, or an end
+  // time in the past). Until then, fail closed.
+  it("REFUSES a meeting — the object usually means booked, not held", () => {
     expect(qualifiesAsFollowUp({ id: "3", object: "meetings", timestamp: "2026-09-12T10:00:00Z",
-      ownerId: "164317533" }, ctx)).toBe(true);
+      ownerId: "164317533" }, ctx)).toBe(false);
   });
 
   it("REFUSES a call with no direction, since a call's direction is knowable", () => {

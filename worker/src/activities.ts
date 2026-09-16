@@ -95,12 +95,21 @@ export function qualifiesAsFollowUp(a: HsActivity, ctx: FollowUpContext): boolea
   // the POC confirmed is populated on real sequence mail — so this needs no Sequences API scope.
   if (a.sequenceId) return false;
 
+  // ONLY REACHING OUT COUNTS. A note is the rep talking to themselves — "call him Tuesday", "waiting
+  // on legal" — and a meeting object is usually a SCHEDULED one, created when the invite goes out
+  // rather than when anyone is spoken to. Either would silence the chaser for work that has not
+  // happened, which is the expensive direction to be wrong in. They still sync and stay visible;
+  // visibility and qualification are different questions.
+  //
+  // Meetings can be revisited once we can prove an object represents a HELD meeting (an outcome, or
+  // an end time in the past) rather than an intention. Until then, fail closed.
+  if (a.object !== "emails" && a.object !== "calls") return false;
+
   // Inbound mail is the CUSTOMER acting. It is the strongest evidence a reply is owed, so treating it
-  // as follow-up would cancel the reminder at the precise moment it is most warranted.
-  if (a.object === "emails" || a.object === "calls") {
-    const dir = String(a.direction ?? "").toUpperCase();
-    if (!OUTBOUND.has(dir)) return false;
-  }
+  // as follow-up would cancel the reminder at the precise moment it is most warranted. A call with no
+  // direction is refused too: a call's direction is knowable, so its absence is missing data rather
+  // than an exemption.
+  if (!OUTBOUND.has(String(a.direction ?? "").toUpperCase())) return false;
 
   // Attribution by HUBSPOT OWNER ID, never by the monday People column. Some owners have no monday
   // account at all — "Rick Avery Antonio" is the live example, 136 contacts deep — and matching on
