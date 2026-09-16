@@ -26,6 +26,14 @@ export interface Env {
    *  subscriptions, the handler and the enablement are three separate, reversible steps rather than
    *  one deploy that changes behaviour the moment it lands. */
   ENABLE_ACTIVITY_SYNC?: string;
+  /** Cutover-forward only: activity older than this is never synced, either way. Absent or
+   *  unparseable means INFINITY — nothing qualifies — because this value's job is to stop a bulk
+   *  write, and a guard that fails open is not a guard. */
+  ACTIVITY_CUTOVER_AT?: string;
+  /** Canary scope. While either is set, ONLY that contact is processed. The feature flag alone is
+   *  global, so enabling it for "a canary" would in fact start syncing the whole portal. */
+  ACTIVITY_CANARY_HUBSPOT_CONTACT_ID?: string;
+  ACTIVITY_CANARY_MONDAY_ITEM_ID?: string;
   ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
                                       // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)
 }

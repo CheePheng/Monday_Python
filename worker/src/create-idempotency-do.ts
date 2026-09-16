@@ -64,6 +64,24 @@ export class CreateIdempotency extends DurableObject {
     await this.ctx.storage.put("card", { itemId: hubspotId });
     await this.ctx.storage.setAlarm(nowMs + retentionMs);
   }
+  /**
+   * Store a pairing that must NEVER expire, cancelling any cleanup alarm a prior claim scheduled.
+   *
+   * ACTIVITY MAPPINGS NEED THIS AND A LONG RETENTION WILL NOT DO. `rememberOwner`'s alarm still fires
+   * eventually and `alarm()` calls deleteAll(), so any finite retention is a date on which the
+   * mapping silently vanishes. For a card that is survivable — the reverse index is only read at
+   * deletion time. For an activity it is not: once the monday-timeline-id -> HubSpot-id pair is gone,
+   * the next wake-up on that contact sees an old entry as brand new and pushes a duplicate
+   * communication record into a CRM people read to decide what to say next. A communication timeline
+   * routinely outlives any retention we would pick.
+   *
+   * deleteAlarm() is the load-bearing half: claimCard set a 24h alarm when it reserved, and without
+   * cancelling it the entry would be wiped a day later no matter what is stored here.
+   */
+  async rememberPermanent(counterpartId: string): Promise<void> {
+    await this.ctx.storage.put("card", { itemId: counterpartId });
+    await this.ctx.storage.deleteAlarm();
+  }
   /** Drop the reservation (create failed / card turned out to be gone) so the next pass may retry. */
   async forgetCard(): Promise<void> { await this.ctx.storage.delete("card"); }
   async getCard(): Promise<string | null> {

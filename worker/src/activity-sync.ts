@@ -22,6 +22,7 @@ import {
 import {
   claimActivityToHubspot, settleActivityToHubspot, unresolvedActivityToHubspot,
   claimActivityToMonday, settleActivityToMonday, unresolvedActivityToMonday,
+  claimHubspotAsRepresented, releaseActivity, h2mReservationKey,
 } from "./activity-registry";
 
 /** HubSpot activity objectTypeId -> object name. Routed explicitly, never inferred. */
@@ -40,6 +41,43 @@ const OWNER_ASSIGNED_COL = "date_mm70pa4c";
 const OWNER_COL = "multiple_person_mm6zap53";
 
 export const activitySyncEnabled = (env: Env) => env.ENABLE_ACTIVITY_SYNC === "true";
+
+/**
+ * CUTOVER-FORWARD ONLY. Nothing whose ORIGINAL timestamp predates this is ever synced, in either
+ * direction.
+ *
+ * It matters most on the monday side. The first Last Activity Date wake-up on a real contact reads a
+ * timeline that may hold years of native notes and calls, none of which has a durable mapping yet —
+ * so without this, "what is new?" answers "all of it" and the contact's entire history is pushed into
+ * HubSpot as fresh activity. That is precisely the historical backfill we agreed not to do, arriving
+ * by accident rather than by decision.
+ *
+ * Absent or unparseable means INFINITY: nothing qualifies, the feature is inert. Failing closed is
+ * right for a value whose job is to stop a bulk write.
+ */
+export function activityCutoverMs(env: Env): number {
+  const ms = Date.parse(String(env.ACTIVITY_CUTOVER_AT ?? ""));
+  return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+}
+
+export function afterCutover(env: Env, timestamp: unknown): boolean {
+  const t = Date.parse(String(timestamp ?? ""));
+  return Number.isFinite(t) && t >= activityCutoverMs(env);
+}
+
+/**
+ * CANARY SCOPE. While set, only this contact is processed — the feature flag alone is global, so
+ * turning it on for "a canary" would in fact start syncing every contact in the portal. Unset for the
+ * production cutover.
+ */
+export function inCanaryScope(env: Env, hubspotContactId?: string, mondayItemId?: string): boolean {
+  const c = String(env.ACTIVITY_CANARY_HUBSPOT_CONTACT_ID ?? "").trim();
+  const m = String(env.ACTIVITY_CANARY_MONDAY_ITEM_ID ?? "").trim();
+  if (!c && !m) return true;                                  // no allowlist: full scope
+  if (c && hubspotContactId && String(hubspotContactId) === c) return true;
+  if (m && mondayItemId && String(mondayItemId) === m) return true;
+  return false;
+}
 
 const PROPS: Record<string, string[]> = {
   emails: ["hs_timestamp", "hs_email_subject", "hs_email_direction", "hs_email_status",
@@ -83,11 +121,34 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     // an error, so it settles rather than retrying forever.
     const assoc = await hs(env, "GET",
       `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
+    // CUTOVER-FORWARD. Refuse anything older than the cutover before spending a lookup on it.
+    if (!afterCutover(env, p.hs_timestamp)) {
+      await settleActivityToMonday(env, object, hubspotId, "pre-cutover");
+      return log("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
+    }
+
     const contactId = (assoc?.results ?? []).map((r: any) => String(r.toObjectId))[0];
-    if (!contactId) { await settleActivityToMonday(env, object, hubspotId, "no-contact"); return log("skipped", 'reason="no associated contact"'); }
+    // TRANSIENT, NOT PERMANENT. A contact and its first email are often created within the same
+    // second, and HubSpot's association can be briefly unreadable; the webhook then arrives before the
+    // link is visible. Settling that as done would lose the activity FOREVER, so the reservation is
+    // released and the next delivery retries. The cost of being wrong here is one duplicate check;
+    // the cost of the opposite is a permanently missing record.
+    if (!contactId) {
+      await releaseActivity(env, h2mReservationKey(object, hubspotId));
+      return log("deferred", 'reason="no associated contact yet — will retry on redelivery"');
+    }
+
+    if (!inCanaryScope(env, contactId, undefined)) {
+      await releaseActivity(env, h2mReservationKey(object, hubspotId));
+      return log("skipped", `reason="outside canary scope" contact=${contactId}`);
+    }
 
     const card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId))[0];
-    if (!card) { await settleActivityToMonday(env, object, hubspotId, "no-card"); return log("skipped", `reason="contact ${contactId} has no monday card"`); }
+    if (!card) {
+      // Same reasoning: the card may simply not exist YET (creation races the activity webhook).
+      await releaseActivity(env, h2mReservationKey(object, hubspotId));
+      return log("deferred", `reason="contact ${contactId} has no card yet — will retry"`);
+    }
 
     const activity: HsActivity = {
       id: hubspotId, object,
@@ -115,7 +176,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     await settleActivityToMonday(env, object, hubspotId, String(timelineId ?? "created"));
     log("created", `item=${card.id} timeline=${timelineId}`);
 
-    await maybeMarkFollowUp(env, card.id, activity);
+    await maybeMarkFollowUp(env, card.id, contactId, activity);
   } catch (e) {
     // NOT released: the write may have landed and releasing is how a lost response becomes a duplicate.
     unresolvedActivityToMonday(object, hubspotId, e);
@@ -128,30 +189,44 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
  * out. Needs the card's own owner and assignment date, so it reads them rather than trusting the
  * activity alone — the contact may have been reassigned since the activity happened.
  */
-async function maybeMarkFollowUp(env: Env, itemId: string, activity: HsActivity): Promise<void> {
+async function maybeMarkFollowUp(env: Env, itemId: string, contactId: string,
+    activity: HsActivity): Promise<void> {
   try {
-    const d = await gql(env,
-      `query ($i: [ID!]) { items(ids: $i) { column_values(ids: ["${OWNER_COL}", "${OWNER_ASSIGNED_COL}", "${QUALIFYING_COL}"]) { id text } } }`,
-      { i: [itemId] }, 2);
-    const cv = d?.items?.[0]?.column_values ?? [];
-    const val = (id: string) => String(cv.find((c: any) => c.id === id)?.text ?? "").trim();
-    const assignedMs = Date.parse(val(OWNER_ASSIGNED_COL));
-    if (!Number.isFinite(assignedMs)) return;   // never assigned: no cycle to satisfy
+    /**
+     * THE OWNER COMPARISON MUST USE THE CONTACT'S OWNER, NOT THE ACTIVITY'S.
+     *
+     * The first version of this passed the activity's own owner in as `contactOwnerId`, so the check
+     * inside qualifiesAsFollowUp compared a value with itself and passed for ANY actor. Every
+     * activity qualified, including one logged by a colleague who does not own the contact — and the
+     * failure is invisible, because a reminder that stops early produces no error, just a customer
+     * nobody chases.
+     *
+     * BOTH VALUES COME FROM HUBSPOT, and the timestamp deliberately does NOT come from monday's
+     * Owner assigned date column: that column is a DATE, so it truncates to midnight, and activity
+     * from earlier on the reassignment day would satisfy "after assignment" when it belongs to the
+     * previous owner's cycle. hubspot_owner_assigneddate keeps the time.
+     */
+    const contact = await hs(env, "GET",
+      `/crm/v3/objects/contacts/${contactId}?properties=hubspot_owner_id,hubspot_owner_assigneddate`,
+      undefined, 2);
+    const owner = String(contact?.properties?.hubspot_owner_id ?? "").trim();
+    const assignedMs = Date.parse(String(contact?.properties?.hubspot_owner_assigneddate ?? ""));
+    if (!owner || !Number.isFinite(assignedMs)) return;   // unowned or never assigned: no cycle to satisfy
 
-    // Owner comparison is by HUBSPOT owner id, resolved from the activity, never the monday People
-    // cell — owners without a monday account would otherwise never qualify. The card's HubSpot owner
-    // is not on the board, so the activity's own owner is compared against the contact's owner as
-    // recorded in HubSpot at fetch time; see qualifiesAsFollowUp.
-    const ownerId = String(activity.ownerId ?? activity.sourceUserId ?? "");
-    if (!qualifiesAsFollowUp(activity, { contactOwnerId: ownerId, ownerAssignedAtMs: assignedMs })) return;
+    if (!qualifiesAsFollowUp(activity, { contactOwnerId: owner, ownerAssignedAtMs: assignedMs })) return;
 
     const day = String(activity.timestamp ?? "").slice(0, 10);
-    if (!day || val(QUALIFYING_COL) === day) return;   // already recorded: no churn
+    if (!day) return;
+    const d = await gql(env,
+      `query ($i: [ID!]) { items(ids: $i) { column_values(ids: ["${QUALIFYING_COL}"]) { text } } }`,
+      { i: [itemId] }, 2);
+    if (String(d?.items?.[0]?.column_values?.[0]?.text ?? "").trim() === day) return;   // no churn
+
     await gql(env,
       `mutation ($b: ID!, $i: ID!, $c: JSON!) {
          change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
       { b: CRM_CONTACTS.boardId, i: itemId, c: JSON.stringify({ [QUALIFYING_COL]: { date: day } }) }, 2);
-    console.log(`[activity] item=${itemId} action=qualified date=${day}`);
+    console.log(`[activity] item=${itemId} action=qualified date=${day} owner=${owner}`);
   } catch (e) {
     // A missed helper write must never fail the sync: the activity is already visible, which is the
     // larger half of the value.
@@ -187,8 +262,17 @@ export async function syncMondayTimeline(env: Env, itemId: string): Promise<void
       { i: [itemId] }, 2);
     const contactId = String(card?.items?.[0]?.column_values?.[0]?.text ?? "").trim();
     if (!contactId) return log("skipped", 'reason="card carries no HubSpot id"');
+    if (!inCanaryScope(env, contactId, itemId)) return log("skipped", 'reason="outside canary scope"');
 
-    for (const entry of native) await pushOne(env, itemId, contactId, entry, log);
+    // CUTOVER-FORWARD, and this is where it earns its keep. A real contact's timeline can hold years
+    // of native notes and calls, none of which has a mapping yet, so without this the first wake-up
+    // would read "nothing is mapped" as "everything is new" and push the whole history into HubSpot.
+    const fresh = native.filter(e => afterCutover(env, e.created_at));
+    if (fresh.length !== native.length)
+      log("filtered", `pre-cutover=${native.length - fresh.length} of ${native.length}`);
+    if (!fresh.length) return log("nothing-to-sync", 'reason="all entries predate the cutover"');
+
+    for (const entry of fresh) await pushOne(env, itemId, contactId, entry, log);
   } catch (e) {
     log("error", `reason="${String(e).slice(0, 140)}"`);
   }
@@ -221,8 +305,18 @@ async function pushOne(env: Env, itemId: string, contactId: string, entry: any,
       associations: [{ to: { id: contactId },
         types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: CONTACT_ASSOC_TYPE[object] }] }],
     }, 1);
-    await settleActivityToHubspot(env, entry.id, String(created?.id ?? ""));
-    log("pushed", `timeline=${entry.id} -> ${object}/${created?.id} contact=${contactId}`);
+    const newId = String(created?.id ?? "");
+    await settleActivityToHubspot(env, entry.id, newId);
+    /**
+     * SUPPRESS THE FIRST BOUNCE. Creating this object makes HubSpot fire object.creation for it, and
+     * that event looks exactly like a rep's own call. The structural echo guard cannot help — it only
+     * stops OUR monday writes travelling back, and this is a HubSpot object we really did create. So
+     * claim the other direction now, while we still know the pair: when the bounce arrives,
+     * HubSpot -> monday sees it as already represented and creates nothing, instead of landing a
+     * custom "HubSpot Call" beside the native Call it came from.
+     */
+    if (newId) await claimHubspotAsRepresented(env, object, newId, entry.id);
+    log("pushed", `timeline=${entry.id} -> ${object}/${newId} contact=${contactId}`);
   } catch (e) {
     unresolvedActivityToHubspot(entry.id, e);
     log("error", `timeline=${entry.id} reason="${String(e).slice(0, 140)}"`);

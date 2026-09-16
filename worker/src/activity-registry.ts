@@ -23,11 +23,13 @@
  *     read to decide what to say next, while a delayed activity is merely late. When the guard is
  *     unavailable we therefore do NOT write.
  *
- *  2. SETTLED MAPPINGS OUTLIVE A DAY. claimCard/finishCard put a 24h cleanup alarm on the entry,
- *     which suits a creation reservation and is actively wrong for this: a webhook redelivered 25
- *     hours later would find no mapping and duplicate the activity. Settled pairs are stored through
- *     `rememberOwner`, whose retention the caller chooses — the same mechanism the reverse card index
- *     uses for the same reason.
+ *  2. SETTLED MAPPINGS NEVER EXPIRE. claimCard/finishCard put a 24h cleanup alarm on the entry, which
+ *     suits a creation reservation and is actively wrong here: a webhook redelivered 25 hours later
+ *     would find no mapping and duplicate the activity. A longer retention only moves that date —
+ *     any finite window is a day on which the pairing silently vanishes and an old timeline entry
+ *     reads as brand new, and a communication history outlives any window we would choose. Settled
+ *     pairs therefore go through `rememberPermanent`, which also CANCELS the alarm the reservation
+ *     scheduled. Only unsettled reservations expire.
  *
  *  3. A LOST RESPONSE DOES NOT RELEASE. If the create request fails after HubSpot already stored the
  *     object, releasing the reservation and retrying duplicates it. The reservation is left standing
@@ -37,8 +39,14 @@
 import type { Env } from "./types";
 import type { CardClaim } from "./create-idempotency-do";
 
-/** Settled pairs must survive redelivery, reprocessing and a quiet weekend. */
-const MAPPING_RETENTION_MS = 400 * 24 * 60 * 60_000;
+/**
+ * SETTLED PAIRS NEVER EXPIRE, and a long retention is not an acceptable substitute.
+ *
+ * Any finite retention is a date on which the mapping silently disappears; the next wake-up on that
+ * contact then reads an old timeline entry as brand new and pushes a duplicate communication record.
+ * A communication history routinely outlives any window we would pick, and the failure surfaces long
+ * after anyone would connect it to a retention constant. Only unsettled RESERVATIONS expire.
+ */
 
 /**
  * How long an unsettled reservation blocks a retry. Deliberately far longer than the card registry's
@@ -71,10 +79,25 @@ async function claim(env: Env, key: string): Promise<ActivityClaim> {
   }
 }
 
-/** Record the counterpart id. Long retention: a redelivery next week must still find this. */
+/** Record the counterpart id permanently, cancelling the reservation's cleanup alarm. */
 async function settle(env: Env, key: string, counterpartId: string): Promise<void> {
-  try { await stub(env, key).rememberOwner(counterpartId, Date.now(), MAPPING_RETENTION_MS); }
+  try { await stub(env, key).rememberPermanent(counterpartId); }
   catch (e) { console.log(`[activity-registry] ${key} action=settle-failed reason="${String(e).slice(0, 90)}"`); }
+}
+
+/**
+ * Mark a HubSpot activity as ALREADY REPRESENTED in monday, without having created anything there.
+ *
+ * THE FIRST BOUNCE. Pushing a native monday Call into HubSpot makes HubSpot fire object.creation for
+ * it, and that event is indistinguishable from a rep's own call. The structural echo guard does not
+ * help: it only stops OUR monday writes travelling back, and this event is about a HubSpot object we
+ * genuinely created. Without claiming the h2m side at the moment of creation, the bounce lands a
+ * custom "HubSpot Call" beside the native Call it came from — one activity shown twice, on the first
+ * try rather than in some loop.
+ */
+export async function claimHubspotAsRepresented(env: Env, object: string, hubspotId: string,
+    mondayTimelineId: string): Promise<void> {
+  await settle(env, h2mKey(object, hubspotId), `monday:${mondayTimelineId}`);
 }
 
 /**
