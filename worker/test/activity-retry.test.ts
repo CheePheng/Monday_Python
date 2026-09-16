@@ -412,7 +412,10 @@ describe("the alarm", () => {
     await retry.alarm();
 
     expect(ctx.map.get("job")).toEqual(expect.objectContaining({ attempts: 1 }));
-    expect(ctx.alarmAt).toBe(Date.now() + 300_000);
+    // A window, not equality: the alarm is stamped from the clock a moment before this reads it, and
+    // an exact comparison fails whenever a millisecond ticks between the two.
+    expect(ctx.alarmAt! - Date.now()).toBeGreaterThan(300_000 - 5_000);
+    expect(ctx.alarmAt! - Date.now()).toBeLessThanOrEqual(300_000);
   });
 });
 

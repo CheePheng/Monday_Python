@@ -31,6 +31,20 @@ export const MONDAY_ACTIVITY_TYPE: Record<string, string> = {
 };
 
 /** monday native timeline type -> the HubSpot object a monday-origin activity becomes. */
+/**
+ * Native monday entry type -> the HubSpot object to create. ANYTHING ABSENT HERE IS IGNORED, and the
+ * most important absence is `email`.
+ *
+ * Surveyed across 400 Contacts cards before global enablement: 39 of the 45 native entries were
+ * type "email", and every one was a monday WORKFLOW NOTIFICATION — "New Contact Assigned to You —
+ * <name>", addressed to the rep, auto-logged into Emails & Activities because Gmail is bound to
+ * monday. Mapping `email` would copy that internal notification traffic into HubSpot as customer
+ * communication, on a CRM people read to decide what to say next. Reps send real mail from HubSpot,
+ * which already arrives through the HubSpot -> monday direction, so nothing is lost by refusing it.
+ *
+ * Note the asymmetry with `activity`: it maps to CALLS, so a future decision to admit `email` must
+ * NOT simply add it here — it would need its own object and direction handling.
+ */
 export const HUBSPOT_OBJECT_FOR_NATIVE: Record<string, "notes" | "calls"> = {
   note: "notes",
   activity: "calls",   // monday's "Call summary" surfaces as type "activity"
