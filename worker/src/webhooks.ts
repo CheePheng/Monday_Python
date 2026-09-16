@@ -338,7 +338,24 @@ export function extractActivityEvents(body: any): { object: string; id: string }
   for (const e of arr) {
     if (!e || typeof e !== "object") continue;
     const sub = String(e.subscriptionType ?? e.eventType ?? "");
-    if (!sub.endsWith("creation")) continue;
+    /**
+     * CREATION, AND ALSO ASSOCIATION CHANGE.
+     *
+     * Creation alone was right while the only destination was "the associated Contact". It is not
+     * right now that one activity fans out to a Contact, a Company and a Deal: an activity whose
+     * associations are attached AFTER it is created — an automation, or an API flow that posts the
+     * record first and links it second — fires creation while it is still associated with nothing,
+     * and the destinations added a moment later would never be written. Observed directly while
+     * proving the fan-out: a note created bare and associated afterwards reached the Contact and
+     * missed the Company and Deal entirely.
+     *
+     * Re-running is safe and nearly free: every destination has its own durable mapping, so the ones
+     * already written are skipped and only genuinely new ones are created.
+     *
+     * propertyChange is still excluded — monday has no timeline-item update mutation, so an edited
+     * activity is something we could not act on.
+     */
+    if (!sub.endsWith("creation") && !sub.endsWith("associationChange")) continue;
     const object = ACTIVITY_BY_TYPEID[String(e.objectTypeId ?? "")]
       ?? ACTIVITY_BY_NAME[String(e.objectType ?? "").toLowerCase()];
     if (!object) continue;

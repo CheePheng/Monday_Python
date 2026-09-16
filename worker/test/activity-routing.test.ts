@@ -37,6 +37,28 @@ describe("extractActivityEvents", () => {
       expect(extractActivityEvents([{ subscriptionType: sub, objectTypeId: "0-49", objectId: "1" }])).toEqual([]);
   });
 
+  /**
+   * AND IT MUST ALSO CATCH ASSOCIATION CHANGES, now that one activity fans out to a Contact, a
+   * Company and a Deal. An activity whose associations are attached AFTER creation fires creation
+   * while associated with nothing — observed directly while proving the fan-out: a note created bare
+   * and associated afterwards reached the Contact and missed the Company and Deal entirely.
+   *
+   * Re-running costs almost nothing, because each destination has its own durable mapping.
+   */
+  it("routes an association change so late-linked destinations are not lost", () => {
+    expect(extractActivityEvents([
+      { subscriptionType: "object.associationChange", objectTypeId: "0-46", objectId: "400369925881" }]))
+      .toEqual([{ object: "notes", id: "400369925881" }]);
+  });
+
+  it("still refuses an association change on a contact, company or deal", () => {
+    expect(extractActivityEvents([
+      { subscriptionType: "object.associationChange", objectTypeId: "0-1", objectId: "1" },
+      { subscriptionType: "object.associationChange", objectTypeId: "0-2", objectId: "2" },
+      { subscriptionType: "object.associationChange", objectTypeId: "0-3", objectId: "3" },
+    ])).toEqual([]);
+  });
+
   it("ignores contacts, companies and deals — those belong to the object path", () => {
     expect(extractActivityEvents([
       ev({ objectTypeId: "0-1", objectId: "1" }),

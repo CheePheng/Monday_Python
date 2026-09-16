@@ -309,6 +309,36 @@
           "subscriptionType": "object.creation",
           "objectType": "meeting_event",
           "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "task",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "email",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "call",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "note",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "meeting_event",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "task",
+          "active": true
         }
       ]
     }
