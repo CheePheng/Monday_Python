@@ -19,6 +19,30 @@ const env = Object.fromEntries(fs.readFileSync(new URL("../.dev.vars", import.me
   .split(/\r?\n/).filter(l => l.includes("="))
   .map(l => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; }));
 
+/**
+ * IT MUST BE THE DEPLOYED APP'S TOKEN, AND NOTHING ELSE.
+ *
+ * This script existed during the 2026-09-15 outage and did not prevent it, for a reason worth stating
+ * plainly: it probed `HUBSPOT_ACCESS_TOKEN` from .dev.vars, which belongs to a DIFFERENT, BROADER
+ * HubSpot app than the one the CRM Worker runs as. It would have reported "every read the CRM specs
+ * make is permitted" while the deployed Worker was 403ing on every webhook. A preflight that checks
+ * the wrong credential is worse than no preflight: it manufactures confidence.
+ *
+ * So probe the CRM app's own token, and REFUSE TO RUN without it rather than fall back to the broad
+ * one. The fallback IS the bug. Put the app's token in worker/.dev.vars (git-ignored) as
+ * HUBSPOT_CRM_APP_TOKEN — the value shown on the private app's page, the same one held by the
+ * Worker's HUBSPOT_ACCESS_TOKEN secret.
+ */
+const TOKEN = env.HUBSPOT_CRM_APP_TOKEN;
+if (!TOKEN) {
+  console.error("HUBSPOT_CRM_APP_TOKEN is missing from worker/.dev.vars.\n");
+  console.error("This check is only meaningful against the token the DEPLOYED CRM Worker uses.");
+  console.error("HUBSPOT_ACCESS_TOKEN in that file belongs to a different, broader app — probing it is");
+  console.error("what let the 2026-09-15 outage happen with this script already in the repo.");
+  console.error("Refusing to probe the wrong credential and report a false pass.");
+  process.exit(2);
+}
+
 /** Every read the four CRM specs make, grouped by the object whose scope grants it. */
 const PROBES = [
   ["contacts", "GET /crm/v3/objects/contacts?limit=1"],
@@ -39,7 +63,7 @@ const failedObjects = new Set();
 for (const [object, probe] of PROBES) {
   const path = probe.slice(4);
   const r = await fetch(`https://api.hubapi.com${path}`, {
-    headers: { Authorization: `Bearer ${env.HUBSPOT_ACCESS_TOKEN}` },
+    headers: { Authorization: `Bearer ${TOKEN}` },
   });
   const ok = r.ok;
   if (!ok) failedObjects.add(object);
