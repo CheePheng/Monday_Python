@@ -243,6 +243,29 @@ describe("scheduling is driven by the outcome, not by the error path", () => {
     expect(scheduled).toEqual([expect.objectContaining({ object: "emails", hubspotId: ACT, attempts: 0 })]);
   });
 
+  /**
+   * THE CANARY MUST NOT GENERATE GARBAGE. While the allowlist is set, every activity in the portal
+   * still reaches syncHubspotActivity. If an unrelated one on a contact with no card spent the full
+   * backoff and came back "unresolved", it would be PERSISTED as a retry job — four more attempts and
+   * a dead-letter entry, for work the canary must never touch. Out of scope is a settled decision
+   * reached on the first pass.
+   */
+  it("an out-of-scope activity settles immediately and is never queued", async () => {
+    vi.useFakeTimers();
+    const env = { ...baseEnv(), ACTIVITY_CANARY_HUBSPOT_CONTACT_ID: "999999999" } as Env;
+    cardVisible = false;                                  // the expensive path, if it were taken
+
+    const p = syncHubspotActivity(env, "emails", ACT);
+    await vi.advanceTimersByTimeAsync(30_000);
+    const outcome = await p;
+
+    expect(outcome).toBe("skipped");
+    expect(mondayApi.findItemByColumn).not.toHaveBeenCalled();   // no card hunt at all
+    expect(hubspot.hs).toHaveBeenCalledTimes(2);                 // the record, then the association
+    await scheduleIfUnresolved(env, "emails", ACT, outcome);
+    expect(scheduled).toEqual([]);
+  });
+
   it("a create that threw is NOT queued — it may have landed", async () => {
     const env = baseEnv();
     mondayApi.gql.mockImplementation(async (_e: Env, q: string) => {

@@ -180,6 +180,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     // existence. Lookup only; no create is ever retried here.
     let contactId = "";
     let card: { id: string } | undefined;
+    let outOfScope = false;
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
       if (!contactId) {
@@ -187,19 +188,30 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
           `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
         contactId = (a?.results ?? []).map((r: any) => String(r.toObjectId))[0] ?? "";
       }
+      /**
+       * SCOPE IS CHECKED THE MOMENT THE CONTACT IS KNOWN, not after the card hunt.
+       *
+       * While the canary allowlist is set, every activity in the portal still reaches this function.
+       * Checking scope after the loop meant an unrelated activity on a contact with no card spent the
+       * full ~22s backoff, returned "unresolved", and was then PERSISTED as a durable retry job —
+       * four more attempts and a dead-letter entry, all for work the canary must never touch. Out of
+       * scope has to be a settled decision reached on the first pass, not a lost race.
+       */
+      if (contactId && !outOfScope && !inCanaryScope(env, contactId, undefined)) outOfScope = true;
+      if (outOfScope) break;
       if (contactId) {
         card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId))[0];
         if (card) break;
       }
     }
 
+    if (outOfScope) {
+      await releaseActivity(env, h2mReservationKey(object, hubspotId));
+      return fin("skipped", `reason="outside canary scope" contact=${contactId}`);
+    }
     if (!contactId) {
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
       return fin("unresolved", 'reason="no associated contact after bounded retry"');
-    }
-    if (!inCanaryScope(env, contactId, undefined)) {
-      await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return fin("skipped", `reason="outside canary scope" contact=${contactId}`);
     }
     if (!card) {
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
