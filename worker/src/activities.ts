@@ -78,8 +78,10 @@ const OUTBOUND = new Set(["EMAIL", "OUTBOUND", "OUTGOING"]);
  *
  * SEPARATE FROM VISIBILITY, deliberately. Everything relevant syncs to the timeline so both systems
  * show the same history; only a subset may silence a reminder. Conflating the two is the failure that
- * matters: the monday workflows #03/#04/#05 stop chasing as soon as their date column is populated,
- * so counting an inbound customer reply — or an automated marketing send — as "the rep followed up"
+ * matters: the monday workflows #03/#04/#05 stop chasing as soon as their date column is populated
+ * (live cadence 2/3/5 days after Owner assigned date; intended 1/3/5, and only #03 changes — not
+ * until the Activity sync is enabled), so counting an inbound customer reply — or an automated
+ * marketing send — as "the rep followed up"
  * would silently cancel the escalation to Zmark for exactly the contacts nobody has worked. The
  * system would go quiet and look healthy.
  *

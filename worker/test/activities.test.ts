@@ -6,9 +6,18 @@ import type { HsActivity, FollowUpContext } from "../src/activities";
 /**
  * FOLLOW-UP QUALIFICATION, and why it is worth this much test.
  *
- * monday workflows #03 / #04 / #05 chase a rep at 2, 3 and 5 days after Owner assigned date, and each
- * one only fires while its date column is EMPTY. So whatever writes that column decides whether a
- * reminder happens at all. Say yes too easily and the escalation to Zmark silently never fires for
+ * monday workflows #03 / #04 / #05 chase a rep after Owner assigned date, and each one only fires
+ * while its date column is EMPTY. So whatever writes that column decides whether a reminder happens
+ * at all.
+ *
+ * CADENCE, live vs intended — the numbers differ and the difference is deliberate:
+ *   live today      #03 = 2 days, #04 = 3 days, #05 = 5 days
+ *   intended        #03 = 1 day,  #04 = 3 days, #05 = 5 days
+ * Only #03 changes, and NOT YET: the workflows stay untouched until the Activity sync is proven and
+ * enabled, because retiming a chaser while the thing that silences it is still inert would chase
+ * reps over contacts they had in fact worked. Recorded here so nobody reads "2 days" as the target.
+ *
+ * Say yes too easily and the escalation to Zmark silently never fires for
  * exactly the contacts nobody has worked — the system goes quiet and looks healthy, which is the
  * hardest failure to notice. Say no too easily and reps are chased over contacts they demonstrably
  * emailed, which is how people learn to ignore the alerts.

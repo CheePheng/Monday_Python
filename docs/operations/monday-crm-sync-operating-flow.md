@@ -205,7 +205,7 @@ It sometimes shows a message instead, e.g. `not synced — needs domain` (§7).
 |---|---|
 | **Deals** | Not synced to the CRM boards. Deals already sync to the separate Work Management boards |
 | **Activities timeline** | monday's own. Emails, calls and meetings logged in HubSpot are **not** copied across |
-| **24-hour owner follow-up reminder** | Planned next, not built |
+| **24-hour owner follow-up reminder** | Planned next, not built. The chasing itself already runs as monday workflows **#03 / #04 / #05**, live at **2 / 3 / 5 days** after Owner assigned date. Intended cadence is **1 / 3 / 5** — so only **#03** changes, 2 days → 1 day. Not changed yet: it waits until the Activity sync is proven and enabled, because retiming a chaser while the thing that silences it is still inert would chase reps over contacts they had in fact worked |
 | **Sales Playbook library** | Planned, not built |
 | **Sales User column** | Left empty; not used by the CRM sync |
 | **Vendors** | Left empty for now — 89 possible values need a proper dropdown first |
