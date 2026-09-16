@@ -158,23 +158,75 @@ async function staffEmails(env: Env): Promise<Set<string>> {
 }
 
 /**
- * How many cards one activity may land on. A note can be associated with a long list of people; the
- * cap bounds the write cost of a single webhook. Exceeding it is logged rather than silently trimmed.
+ * AN ABUSE CEILING, NOT A PRODUCT LIMIT.
+ *
+ * "All participants minus staff" has to mean ALL of them: an email to eight customers belongs on
+ * eight cards, and quietly writing the first few would lose real communication history in a way
+ * nobody would ever notice. This exists only to stop a pathological record — an object associated
+ * with hundreds of contacts — from exhausting a single webhook's subrequest budget and taking the
+ * shared handler down with it.
+ *
+ * Above the ceiling NOTHING is written. Partially writing and discarding the remainder is the worst
+ * of both: it looks successful and is silently incomplete. Instead the activity is reported as
+ * unresolved, so it travels the normal durable-retry path and ends as an inspectable terminal record
+ * in the dead-letter index, where a person can decide what it was.
  */
-const MAX_PARTICIPANTS = 5;
+const MAX_PARTICIPANTS = 50;
 
-/** The associated contacts an activity should actually appear on: participants, minus staff. */
-async function participantsFor(env: Env, contactIds: string[]): Promise<string[]> {
-  if (!contactIds.length) return [];
-  const staff = await staffEmails(env);           // throws -> caller treats it as retryable
-  const read = await hs(env, "POST", "/crm/v3/objects/contacts/batch/read",
-    { properties: ["email"], inputs: contactIds.map(id => ({ id })) }, 2);
+/** How many association pages to walk before treating the count as pathological. */
+const MAX_ASSOC_PAGES = 10;
+
+/**
+ * Every contact associated with an activity, paginated to exhaustion and deduplicated.
+ *
+ * The first version asked for `limit=10` and read page one. Ten is an ordinary number of recipients,
+ * so that was not a theoretical truncation — and because the entries it dropped were simply absent,
+ * the result would have looked like a clean success.
+ */
+async function associatedContacts(env: Env, object: string, hubspotId: string): Promise<string[]> {
+  const ids = new Set<string>();
+  let after = "";
+  for (let page = 0; page < MAX_ASSOC_PAGES; page++) {
+    const r = await hs(env, "GET",
+      `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=100${after ? `&after=${after}` : ""}`,
+      undefined, 2);
+    for (const a of r?.results ?? []) if (a?.toObjectId != null) ids.add(String(a.toObjectId));
+    after = r?.paging?.next?.after ?? "";
+    if (!after) break;
+  }
+  return [...ids];
+}
+
+/**
+ * Split the participants into the cards an activity belongs on and the colleagues it does not.
+ *
+ * Returns BOTH sides. The staff list is not merely discarded: it is logged, because "who did the
+ * classifier see and what did it decide" is the only evidence that distinguishes a working staff
+ * filter from a set of associations that never contained a colleague in the first place — which is
+ * exactly the blind spot that let the production incident through a green canary.
+ */
+async function participantsFor(env: Env, contactIds: string[]):
+    Promise<{ targets: string[]; staff: string[] }> {
+  if (!contactIds.length) return { targets: [], staff: [] };
+  const staffSet = await staffEmails(env);        // throws -> caller treats it as retryable
   const emailOf = new Map<string, string>();
-  for (const c of read?.results ?? [])
-    emailOf.set(String(c.id), String(c.properties?.email ?? "").trim().toLowerCase());
-  // A contact with no email cannot be PROVEN to be staff, and dropping a real customer is the worse
-  // error of the two, so it is kept.
-  return contactIds.filter(id => { const e = emailOf.get(id); return !e || !staff.has(e); });
+  // HubSpot's batch read accepts at most 100 inputs. Now that the full association set is classified
+  // rather than a pre-filtered slice of it, an oversized activity would otherwise fail HERE, as an
+  // opaque 400, instead of at the ceiling check that exists to describe exactly that case.
+  for (let i = 0; i < contactIds.length; i += 100) {
+    const read = await hs(env, "POST", "/crm/v3/objects/contacts/batch/read",
+      { properties: ["email"], inputs: contactIds.slice(i, i + 100).map(id => ({ id })) }, 2);
+    for (const c of read?.results ?? [])
+      emailOf.set(String(c.id), String(c.properties?.email ?? "").trim().toLowerCase());
+  }
+  const targets: string[] = [], staff: string[] = [];
+  for (const id of contactIds) {
+    const e = emailOf.get(id);
+    // A contact with no email cannot be PROVEN to be staff, and dropping a real customer is the
+    // worse error of the two, so it is kept.
+    (e && staffSet.has(e) ? staff : targets).push(id);
+  }
+  return { targets, staff };
 }
 
 // ============================================================ HubSpot -> monday
@@ -222,9 +274,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     let contactIds: string[] = [];
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
-      const assoc = await hs(env, "GET",
-        `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
-      contactIds = (assoc?.results ?? []).map((r: any) => String(r.toObjectId));
+      contactIds = await associatedContacts(env, object, hubspotId);
       if (contactIds.length) break;
     }
     if (!contactIds.length) {
@@ -232,31 +282,46 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     }
 
     /**
-     * SCOPE FIRST, CLASSIFICATION SECOND. While an allowlist is set every activity in the portal
-     * still arrives here, so anything out of scope must be settled before it costs an owners read, a
-     * batch read and a card hunt.
+     * DOES THIS ACTIVITY CONCERN THE CANARY AT ALL? — a cheap gate, and deliberately NOT a filter.
+     *
+     * The first version filtered contactIds down to the allowlist and classified only what survived.
+     * With the allowlist set to the CUSTOMER, that removed the rep before the staff check ever ran —
+     * so the classifier saw a single participant and the canary reproduced exactly the one-sided
+     * shape that let the production incident through in the first place. A canary that cannot see the
+     * rep cannot prove the rep was excluded.
+     *
+     * So scope only decides whether to look at this activity. Classification below sees the FULL,
+     * real participant set, and scope is applied again at the end, to the WRITES.
      */
-    const inScope = contactIds.filter(id => inCanaryScope(env, id, undefined));
-    if (!inScope.length)
-      return fin("skipped", `reason="outside canary scope" contacts=${contactIds.join(",")}`);
+    if (!contactIds.some(id => inCanaryScope(env, id, undefined)))
+      return fin("skipped", `reason="no participant in canary scope" contacts=${contactIds.join(",")}`);
 
-    // Participants minus staff. If the owners list is unreadable we do NOT guess: writing to every
-    // participant is how the rep's own card filled up in the first place, so it is reported as
+    // Participants minus staff, over the complete set. If the owners list is unreadable we do NOT
+    // guess: writing to every participant is how the rep's own card filled up, so it is reported as
     // retryable and the durable retry picks it up once HubSpot answers.
-    let targets: string[];
+    let targets: string[], staff: string[];
     try {
-      targets = await participantsFor(env, inScope);
+      ({ targets, staff } = await participantsFor(env, contactIds));
     } catch (e) {
       return fin("unresolved", `reason="cannot classify participants: ${String(e).slice(0, 90)}"`,
         "deferred");
     }
+    // The evidence a canary needs: what went in, who was judged staff, who is left.
+    console.log(`[activity] source=hubspot ${object}=${hubspotId} action=classified`
+      + ` participants=${contactIds.join(",") || "-"} staff=${staff.join(",") || "-"}`
+      + ` targets=${targets.join(",") || "-"}`);
+
     if (!targets.length)
       return fin("skipped", `reason="every participant is staff" contacts=${contactIds.join(",")}`);
-    if (targets.length > MAX_PARTICIPANTS) {
-      console.log(`[activity] source=hubspot ${object}=${hubspotId} action=capped`
-        + ` reason="${targets.length} participants, writing the first ${MAX_PARTICIPANTS}"`);
-      targets = targets.slice(0, MAX_PARTICIPANTS);
-    }
+    if (targets.length > MAX_PARTICIPANTS)
+      return fin("unresolved",
+        `reason="${targets.length} non-staff participants exceeds the ceiling of ${MAX_PARTICIPANTS}; writing none"`,
+        "abnormal-participants");
+
+    // Scope applied to the WRITES, now that classification has seen everyone.
+    targets = targets.filter(id => inCanaryScope(env, id, undefined));
+    if (!targets.length)
+      return fin("skipped", 'reason="no non-staff participant is in canary scope"');
 
     const activity: HsActivity = {
       id: hubspotId, object,

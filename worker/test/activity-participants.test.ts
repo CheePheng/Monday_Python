@@ -70,6 +70,10 @@ const EMAILS: Record<string, string> = {
 let associated: string[] = [];
 let created: { card: string }[] = [];
 let ownersFail = false;
+/** ids the contacts/batch/read fake was asked to classify — the canary blind-spot detector. */
+let classified: string[] = [];
+/** association pages, to prove the lookup walks past page one. */
+let assocPages: string[][] | null = null;
 
 const env = {
   ENABLE_ACTIVITY_SYNC: "true",
@@ -82,6 +86,8 @@ beforeEach(() => {
   associated = [REP, CUSTOMER];      // the real shape: sender FIRST, as HubSpot returns it
   created = [];
   ownersFail = false;
+  classified = [];
+  assocPages = null;
 
   monday.findItemByColumn.mockImplementation(async (_e: Env, _b: string, _c: string, value: string) => {
     const card = CARDS[value];
@@ -100,14 +106,24 @@ beforeEach(() => {
       if (ownersFail) throw new Error("HubSpot 503 on owners");
       return { results: [{ id: "OW", email: REP_EMAIL }] };     // the rep IS an owner
     }
-    if (path === "/crm/v3/objects/contacts/batch/read")
+    if (path === "/crm/v3/objects/contacts/batch/read") {
+      classified = (body?.inputs ?? []).map((i: any) => String(i.id));
       return { results: (body?.inputs ?? []).map((i: any) => ({ id: i.id, properties: { email: EMAILS[i.id] } })) };
+    }
     if (path.startsWith("/crm/v3/objects/emails/")) return {
       properties: { hs_timestamp: "2026-09-16T09:49:00Z", hs_email_subject: "Executive Dinner",
         hs_email_direction: "EMAIL", hs_email_from_email: REP_EMAIL },
     };
-    if (path.includes("/associations/contacts"))
+    if (path.includes("/associations/contacts")) {
+      if (assocPages) {                                    // multi-page mode
+        const n = Number(/after=(\d+)/.exec(path)?.[1] ?? 0);
+        const page = assocPages[n] ?? [];
+        const more = n + 1 < assocPages.length;
+        return { results: page.map(id => ({ toObjectId: id })),
+                 paging: more ? { next: { after: String(n + 1) } } : undefined };
+      }
       return { results: associated.map(id => ({ toObjectId: id })) };
+    }
     return { properties: {} };
   });
 });
@@ -194,6 +210,120 @@ describe("one entry per card, exactly once", () => {
     expect(cardsWritten()).toEqual([CARDS[CUSTOMER]]);
     expect(outcome).toBe("unresolved");              // so the durable retry picks the ghost up later
     delete EMAILS[GHOST];
+  });
+});
+
+describe("the canary must be able to see the staff participant", () => {
+  /**
+   * THE BLIND SPOT THAT SURVIVED THE FIRST FIX. Scope used to FILTER the associations before
+   * classification. With the allowlist set to the customer, the rep vanished before the staff check
+   * ever ran — so the classifier saw one participant, and the canary reproduced precisely the
+   * one-sided shape that let the incident through a green canary in the first place.
+   *
+   * A canary that cannot see the rep cannot prove the rep was excluded. Scope now decides only
+   * WHETHER to look; classification sees everyone, and scope is re-applied to the WRITES.
+   */
+  it("classifies the full association set even when the allowlist names only the customer", async () => {
+    const canary = { ...env, ACTIVITY_CANARY_HUBSPOT_CONTACT_ID: CUSTOMER } as Env;
+    associated = [REP, CUSTOMER];
+
+    expect(await syncHubspotActivity(canary, "emails", ACT)).toBe("created");
+
+    // the evidence the live canary has to produce: the rep WAS on the classifier's input
+    expect(classified.sort()).toEqual([REP, CUSTOMER].sort());
+    expect(cardsWritten()).toEqual([CARDS[CUSTOMER]]);
+    expect(cardsWritten()).not.toContain(CARDS[REP]);
+  });
+
+  /** An activity that does not involve the canary contact at all is dropped before any classification
+   *  work — the allowlist must stay cheap for the rest of the portal. */
+  it("skips an unrelated activity without classifying anything", async () => {
+    const canary = { ...env, ACTIVITY_CANARY_HUBSPOT_CONTACT_ID: "777777777" } as Env;
+    associated = [REP, CUSTOMER];
+
+    expect(await syncHubspotActivity(canary, "emails", ACT)).toBe("skipped");
+    expect(classified).toEqual([]);
+    expect(created).toEqual([]);
+  });
+
+  /** And a customer outside the allowlist is classified but not written — scope applies to the
+   *  writes, so the canary cannot leak onto other people's cards. */
+  it("classifies everyone but writes only the allowlisted customer", async () => {
+    const canary = { ...env, ACTIVITY_CANARY_HUBSPOT_CONTACT_ID: CUSTOMER } as Env;
+    associated = [REP, CUSTOMER, CUSTOMER_2];
+
+    expect(await syncHubspotActivity(canary, "emails", ACT)).toBe("created");
+    expect(classified.sort()).toEqual([REP, CUSTOMER, CUSTOMER_2].sort());
+    expect(cardsWritten()).toEqual([CARDS[CUSTOMER]]);
+  });
+});
+
+describe("all participants means all of them", () => {
+  const many = (n: number) => Array.from({ length: n }, (_, i) => `9000${i}`);
+
+  /** More than the old hard-coded five. Silently writing the first few would lose real communication
+   *  history in a way nobody would notice. */
+  it("fans out to more than five customers", async () => {
+    const ids = many(8);
+    for (const id of ids) { CARDS[id] = `card${id}`; EMAILS[id] = `c${id}@example.com`; }
+    associated = [REP, ...ids];
+
+    expect(await syncHubspotActivity(env, "emails", ACT)).toBe("created");
+    expect(cardsWritten()).toEqual(ids.map(i => CARDS[i]).sort());
+    for (const id of ids) { delete CARDS[id]; delete EMAILS[id]; }
+  });
+
+  /**
+   * Above the abuse ceiling NOTHING is written. Partially writing and discarding the rest is the
+   * worst option: it looks successful and is silently incomplete.
+   */
+  /** HubSpot's batch read takes at most 100 inputs, so classifying the full set has to chunk. Without
+   *  it an oversized activity fails as an opaque 400 instead of at the ceiling built to describe it. */
+  it("chunks the classification read past a hundred participants", async () => {
+    const ids = many(140);
+    for (const id of ids) { CARDS[id] = `card${id}`; EMAILS[id] = `c${id}@example.com`; }
+    associated = [REP, ...ids];
+    const batches: number[] = [];
+    const inner = hubspot.hs.getMockImplementation()!;
+    hubspot.hs.mockImplementation(async (e: any, m: string, path: string, body?: any) => {
+      if (path === "/crm/v3/objects/contacts/batch/read") batches.push((body?.inputs ?? []).length);
+      return inner(e, m, path, body);
+    });
+
+    await syncHubspotActivity(env, "emails", ACT);
+    expect(batches.length).toBeGreaterThan(1);
+    expect(Math.max(...batches)).toBeLessThanOrEqual(100);
+    for (const id of ids) { delete CARDS[id]; delete EMAILS[id]; }
+  });
+
+  it("writes nothing at all when the participant count is pathological", async () => {
+    const ids = many(60);
+    for (const id of ids) { CARDS[id] = `card${id}`; EMAILS[id] = `c${id}@example.com`; }
+    associated = [REP, ...ids];
+
+    expect(await syncHubspotActivity(env, "emails", ACT)).toBe("unresolved");   // -> durable retry -> terminal
+    expect(created).toEqual([]);
+    for (const id of ids) { delete CARDS[id]; delete EMAILS[id]; }
+  });
+
+  /** The association lookup asked for one page of ten. Ten is an ordinary number of recipients, so
+   *  that truncation was real — and invisible, because the dropped entries were simply absent. */
+  it("walks every association page", async () => {
+    const p1 = [REP, CUSTOMER], p2 = [CUSTOMER_2];
+    assocPages = [p1, p2];
+
+    expect(await syncHubspotActivity(env, "emails", ACT)).toBe("created");
+    expect(classified.sort()).toEqual([REP, CUSTOMER, CUSTOMER_2].sort());
+    expect(cardsWritten()).toEqual([CARDS[CUSTOMER], CARDS[CUSTOMER_2]].sort());
+  });
+
+  /** The same contact on two pages, or twice on one, must not produce two entries on its card. */
+  it("deduplicates repeated association ids", async () => {
+    assocPages = [[REP, CUSTOMER], [CUSTOMER, REP]];
+
+    expect(await syncHubspotActivity(env, "emails", ACT)).toBe("created");
+    expect(classified.sort()).toEqual([REP, CUSTOMER].sort());
+    expect(cardsWritten()).toEqual([CARDS[CUSTOMER]]);
   });
 });
 
