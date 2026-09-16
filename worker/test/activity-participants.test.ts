@@ -317,6 +317,22 @@ describe("all participants means all of them", () => {
     expect(cardsWritten()).toEqual([CARDS[CUSTOMER], CARDS[CUSTOMER_2]].sort());
   });
 
+  /**
+   * RUNNING OUT OF PAGES IS NOT AN ANSWER. A truncated set looks perfectly ordinary — a shorter list,
+   * with nothing to mark it short — so acting on it would write a confidently incomplete result. It
+   * fails closed instead, writing nothing and travelling the durable-retry path to a terminal record.
+   */
+  it("writes nothing when the associations exceed the page ceiling", async () => {
+    // eleven pages, each still offering another: one more than MAX_ASSOC_PAGES
+    assocPages = Array.from({ length: 11 }, (_, i) => [i === 0 ? CUSTOMER : `page${i}`]);
+    for (let i = 1; i < 11; i++) { CARDS[`page${i}`] = `card${i}`; EMAILS[`page${i}`] = `p${i}@example.com`; }
+
+    expect(await syncHubspotActivity(env, "emails", ACT)).toBe("unresolved");
+    expect(created).toEqual([]);
+    expect(classified).toEqual([]);          // it refuses before spending a classification read
+    for (let i = 1; i < 11; i++) { delete CARDS[`page${i}`]; delete EMAILS[`page${i}`]; }
+  });
+
   /** The same contact on two pages, or twice on one, must not produce two entries on its card. */
   it("deduplicates repeated association ids", async () => {
     assocPages = [[REP, CUSTOMER], [CUSTOMER, REP]];

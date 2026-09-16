@@ -183,7 +183,8 @@ const MAX_ASSOC_PAGES = 10;
  * so that was not a theoretical truncation — and because the entries it dropped were simply absent,
  * the result would have looked like a clean success.
  */
-async function associatedContacts(env: Env, object: string, hubspotId: string): Promise<string[]> {
+async function associatedContacts(env: Env, object: string, hubspotId: string):
+    Promise<{ ids: string[]; complete: boolean }> {
   const ids = new Set<string>();
   let after = "";
   for (let page = 0; page < MAX_ASSOC_PAGES; page++) {
@@ -194,7 +195,13 @@ async function associatedContacts(env: Env, object: string, hubspotId: string): 
     after = r?.paging?.next?.after ?? "";
     if (!after) break;
   }
-  return [...ids];
+  /**
+   * `complete` IS THE WHOLE POINT OF THE RETURN SHAPE. Running out of pages with more still offered
+   * produces a set that looks perfectly ordinary — a shorter list, with nothing to mark it short. The
+   * caller must be able to tell "these are all the participants" from "these are the first thousand",
+   * because the second is not something to act on.
+   */
+  return { ids: [...ids], complete: !after };
 }
 
 /**
@@ -272,14 +279,26 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     // Resolve the associated contacts with a few short waits — the webhook routinely beats the
     // association into existence. Lookup only; no create is ever retried here.
     let contactIds: string[] = [];
+    let complete = true;
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
-      contactIds = await associatedContacts(env, object, hubspotId);
+      ({ ids: contactIds, complete } = await associatedContacts(env, object, hubspotId));
       if (contactIds.length) break;
     }
     if (!contactIds.length) {
       return fin("unresolved", 'reason="no associated contact after bounded retry"');
     }
+
+    /**
+     * A TRUNCATED PARTICIPANT LIST IS NOT A PARTICIPANT LIST. Checked BEFORE the canary gate on
+     * purpose: the missing page could be the one holding the contact we are scoped to, so deciding
+     * scope from a partial set could skip an activity that is in fact in scope. Failing closed costs
+     * a dead-letter entry on a pathological record; guessing costs a silently incomplete write.
+     */
+    if (!complete)
+      return fin("unresolved",
+        `reason="associations exceed ${MAX_ASSOC_PAGES} pages; refusing to act on a partial set" seen=${contactIds.length}`,
+        "abnormal-participants");
 
     /**
      * DOES THIS ACTIVITY CONCERN THE CANARY AT ALL? — a cheap gate, and deliberately NOT a filter.
