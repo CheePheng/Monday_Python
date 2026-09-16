@@ -289,6 +289,26 @@
           "objectType": "company",
           "propertyName": "hs_object_source_label",
           "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "email",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "call",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "note",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "meeting_event",
+          "active": true
         }
       ]
     }
