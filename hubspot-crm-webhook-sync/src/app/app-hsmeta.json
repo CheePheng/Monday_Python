@@ -19,7 +19,8 @@
         "crm.objects.deals.read",
         "crm.schemas.deals.read",
         "crm.objects.line_items.read",
-        "crm.schemas.line_items.read"
+        "crm.schemas.line_items.read",
+        "sales-email-read"
       ],
       "optionalScopes": [],
       "conditionallyRequiredScopes": []
