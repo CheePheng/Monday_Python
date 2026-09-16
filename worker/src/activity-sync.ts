@@ -23,6 +23,7 @@ import {
   claimActivityToHubspot, settleActivityToHubspot, unresolvedActivityToHubspot,
   claimActivityToMonday, settleActivityToMonday, unresolvedActivityToMonday,
   claimHubspotAsRepresented, releaseActivity, h2mReservationKey,
+  lastOwnerCycle, rememberOwnerCycle,
 } from "./activity-registry";
 
 /** HubSpot activity objectTypeId -> object name. Routed explicitly, never inferred. */
@@ -90,6 +91,35 @@ const PROPS: Record<string, string[]> = {
     "hs_object_source_user_id"],
 };
 
+/**
+ * The marker stamped into every HubSpot object we create from a monday entry, and the pattern that
+ * reads it back. Secondary bounce guard — see resolveContactAndCard's caller.
+ */
+export const mondayOriginMarker = (timelineId: string) => `[monday timeline ${timelineId}]`;
+/**
+ * DELIBERATELY SHAPE-AGNOSTIC about the id. An earlier version demanded 8+ hex characters, which
+ * would have matched a UUID and silently missed anything else monday hands out — and a guard that
+ * stops matching produces no error, just the duplicate it exists to prevent. The literal prefix is
+ * what identifies the marker; the id is only carried along.
+ */
+const MONDAY_ORIGIN_RE = /\[monday timeline ([A-Za-z0-9_-]{1,64})\]/;
+export function mondayOriginOf(text: unknown): string | null {
+  return MONDAY_ORIGIN_RE.exec(String(text ?? ""))?.[1] ?? null;
+}
+
+/**
+ * BOUNDED RETRY for visibility, not for writes.
+ *
+ * A contact and its first email are routinely created in the same second, and HubSpot's association
+ * can be briefly unreadable, so the activity webhook often arrives before the link or the card
+ * exists. Releasing the reservation and "waiting for redelivery" does NOT fix that: this work runs in
+ * waitUntil and the webhook was already acknowledged 200, so HubSpot has no reason to send it again.
+ *
+ * So resolve with a few short waits instead. Only the LOOKUP is retried — never a create, which must
+ * never be repeated. Total ~22s, comfortably inside the detached task's budget.
+ */
+const RESOLVE_BACKOFF_MS = [0, 2_000, 5_000, 15_000];
+
 /** HTML arrives in note/call/meeting bodies; a timeline entry is plain text. */
 const strip = (h: unknown) =>
   String(h ?? "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
@@ -117,37 +147,53 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
       `/crm/v3/objects/${object}/${hubspotId}?properties=${encodeURIComponent(props.join(","))}`, undefined, 2);
     const p = rec?.properties ?? {};
 
-    // Which contact? An activity with no contact has nowhere to go; that is normal (a deal note), not
-    // an error, so it settles rather than retrying forever.
-    const assoc = await hs(env, "GET",
-      `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
     // CUTOVER-FORWARD. Refuse anything older than the cutover before spending a lookup on it.
     if (!afterCutover(env, p.hs_timestamp)) {
       await settleActivityToMonday(env, object, hubspotId, "pre-cutover");
       return log("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
     }
 
-    const contactId = (assoc?.results ?? []).map((r: any) => String(r.toObjectId))[0];
-    // TRANSIENT, NOT PERMANENT. A contact and its first email are often created within the same
-    // second, and HubSpot's association can be briefly unreadable; the webhook then arrives before the
-    // link is visible. Settling that as done would lose the activity FOREVER, so the reservation is
-    // released and the next delivery retries. The cost of being wrong here is one duplicate check;
-    // the cost of the opposite is a permanently missing record.
-    if (!contactId) {
-      await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return log("deferred", 'reason="no associated contact yet — will retry on redelivery"');
+    /**
+     * SECONDARY BOUNCE GUARD. Creating a HubSpot Note/Call from a monday entry makes HubSpot fire
+     * object.creation for it, and that event can arrive BEFORE the durable h2m mapping finishes
+     * writing. The mapping is the authoritative guard; this marker closes the gap between the create
+     * returning and the claim landing. Without it, that narrow race produces exactly what the whole
+     * design exists to prevent: a custom copy sitting beside the native entry it came from.
+     */
+    const origin = mondayOriginOf(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body);
+    if (origin) {
+      await claimHubspotAsRepresented(env, object, hubspotId, origin);
+      return log("skipped", `reason="originated from monday timeline ${origin}"`);
     }
 
+    // Resolve the contact and its card with a few short waits — the webhook routinely beats them into
+    // existence. Lookup only; no create is ever retried here.
+    let contactId = "";
+    let card: { id: string } | undefined;
+    for (const wait of RESOLVE_BACKOFF_MS) {
+      if (wait) await new Promise(r => setTimeout(r, wait));
+      if (!contactId) {
+        const a = await hs(env, "GET",
+          `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=10`, undefined, 2);
+        contactId = (a?.results ?? []).map((r: any) => String(r.toObjectId))[0] ?? "";
+      }
+      if (contactId) {
+        card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId))[0];
+        if (card) break;
+      }
+    }
+
+    if (!contactId) {
+      await releaseActivity(env, h2mReservationKey(object, hubspotId));
+      return log("unresolved", 'reason="no associated contact after bounded retry"');
+    }
     if (!inCanaryScope(env, contactId, undefined)) {
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
       return log("skipped", `reason="outside canary scope" contact=${contactId}`);
     }
-
-    const card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId))[0];
     if (!card) {
-      // Same reasoning: the card may simply not exist YET (creation races the activity webhook).
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return log("deferred", `reason="contact ${contactId} has no card yet — will retry"`);
+      return log("unresolved", `reason="contact ${contactId} has no card after bounded retry"`);
     }
 
     const activity: HsActivity = {
@@ -210,7 +256,8 @@ async function maybeMarkFollowUp(env: Env, itemId: string, contactId: string,
       `/crm/v3/objects/contacts/${contactId}?properties=hubspot_owner_id,hubspot_owner_assigneddate`,
       undefined, 2);
     const owner = String(contact?.properties?.hubspot_owner_id ?? "").trim();
-    const assignedMs = Date.parse(String(contact?.properties?.hubspot_owner_assigneddate ?? ""));
+    const assigned = String(contact?.properties?.hubspot_owner_assigneddate ?? "").trim();
+    const assignedMs = Date.parse(assigned);
     if (!owner || !Number.isFinite(assignedMs)) return;   // unowned or never assigned: no cycle to satisfy
 
     if (!qualifiesAsFollowUp(activity, { contactOwnerId: owner, ownerAssignedAtMs: assignedMs })) return;
@@ -226,6 +273,15 @@ async function maybeMarkFollowUp(env: Env, itemId: string, contactId: string,
       `mutation ($b: ID!, $i: ID!, $c: JSON!) {
          change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
       { b: CRM_CONTACTS.boardId, i: itemId, c: JSON.stringify({ [QUALIFYING_COL]: { date: day } }) }, 2);
+    /**
+     * RECORD THE CYCLE THAT SATISFIED THIS CONTACT, at the moment the helper is written.
+     *
+     * Without this, the owner-reset below has no baseline: the first reassignment after a qualifying
+     * follow-up would read "never seen this contact" and, refusing to clear on a first sighting, would
+     * hand the new owner the previous owner's satisfied state — the exact failure the reset exists to
+     * prevent, on the very first case it has to handle.
+     */
+    await rememberOwnerCycle(env, contactId, `${owner}|${assigned}`);
     console.log(`[activity] item=${itemId} action=qualified date=${day} owner=${owner}`);
   } catch (e) {
     // A missed helper write must never fail the sync: the activity is already visible, which is the
@@ -293,7 +349,9 @@ async function pushOne(env: Env, itemId: string, contactId: string, entry: any,
     const bodyProp = object === "notes" ? "hs_note_body" : "hs_call_body";
     const properties: Record<string, string> = {
       hs_timestamp: entry.created_at,
-      [bodyProp]: `${text}\n\n[monday timeline ${entry.id}]`,
+      // The marker the secondary bounce guard reads back — written through the shared helper so the
+      // producer and the consumer can never drift apart.
+      [bodyProp]: `${text}\n\n${mondayOriginMarker(entry.id)}`,
     };
     if (object === "calls") {
       properties.hs_call_title = strip(entry.title) || "monday call";
@@ -320,5 +378,74 @@ async function pushOne(env: Env, itemId: string, contactId: string, entry: any,
   } catch (e) {
     unresolvedActivityToHubspot(entry.id, e);
     log("error", `timeline=${entry.id} reason="${String(e).slice(0, 140)}"`);
+  }
+}
+
+// ============================================================ owner reassignment
+
+/**
+ * CLEAR Last qualifying follow-up date WHEN, AND ONLY WHEN, THE CONTACT CHANGES HANDS.
+ *
+ * The helper column is a per-owner claim: "the person responsible for this contact has reached out
+ * since they were made responsible". Leaving it behind on reassignment hands the new owner a
+ * satisfied state they did not earn — the reminder never fires, and a customer sits with a rep who
+ * has never contacted them. Nothing about that is visible: no error, no failed run, just a chase that
+ * silently does not happen.
+ *
+ * WHY THE PAYLOAD IS NOT TRUSTED. monday emits update_column_value even for same-value writes, our
+ * own reverse sync writes the owner back to HubSpot, and HubSpot fires propertyChange for writes that
+ * change nothing. Treating any owner event as a reassignment would clear a legitimately satisfied
+ * helper on an echo. So the decision is made against HubSpot's own state, stored durably:
+ *
+ *   cycle = "<hubspot_owner_id>|<hubspot_owner_assigneddate>"
+ *
+ * Same cycle as last seen -> an echo or an unrelated edit; the helper is preserved. A DIFFERENT cycle
+ * is a genuine reassignment (both a new owner and a re-assignment to the same owner change it), and
+ * only then is the column cleared. hubspot_owner_assigneddate is included because reassigning a
+ * contact back to the same owner starts a new cycle that the owner id alone cannot express.
+ *
+ * FIRST SIGHTING CLEARS NOTHING. With no stored cycle we cannot tell a reassignment from the first
+ * event we happen to observe, and the safe error is to leave a helper standing (one reminder not
+ * sent) rather than to wipe one (a reminder chasing a rep who already did the work).
+ */
+export async function resetHelperOnReassignment(env: Env, contactId: string): Promise<void> {
+  if (!activitySyncEnabled(env)) return;
+  if (!inCanaryScope(env, contactId, undefined)) return;
+  const log = (action: string, extra = "") =>
+    console.log(`[activity] source=owner contact=${contactId} action=${action}${extra ? " " + extra : ""}`);
+  try {
+    const contact = await hs(env, "GET",
+      `/crm/v3/objects/contacts/${contactId}?properties=hubspot_owner_id,hubspot_owner_assigneddate`,
+      undefined, 2);
+    const owner = String(contact?.properties?.hubspot_owner_id ?? "").trim();
+    const assigned = String(contact?.properties?.hubspot_owner_assigneddate ?? "").trim();
+    const cycle = `${owner}|${assigned}`;
+
+    const seen = await lastOwnerCycle(env, contactId);
+    if (seen === cycle) return;                       // echo, or an edit that left ownership alone
+    await rememberOwnerCycle(env, contactId, cycle);
+    if (seen === null) return log("baseline", `cycle="${cycle}"`);   // first sighting: clear nothing
+
+    const card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId))[0];
+    if (!card) return log("skipped", 'reason="no card"');
+
+    // Read before writing. monday emits update_column_value even for a same-value write, so clearing
+    // an already-empty column would wake this board's automations for nothing.
+    const d = await gql(env,
+      `query ($i: [ID!]) { items(ids: $i) { column_values(ids: ["${QUALIFYING_COL}"]) { text } } }`,
+      { i: [card.id] }, 2);
+    if (!String(d?.items?.[0]?.column_values?.[0]?.text ?? "").trim())
+      return log("noop", `item=${card.id} reason="helper already empty"`);
+
+    // {} is monday's clear for a complex column value; "" would be rejected on a date.
+    await gql(env,
+      `mutation ($b: ID!, $i: ID!, $c: JSON!) {
+         change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
+      { b: CRM_CONTACTS.boardId, i: card.id, c: JSON.stringify({ [QUALIFYING_COL]: {} }) }, 2);
+    log("reset", `item=${card.id} from="${seen}" to="${cycle}"`);
+  } catch (e) {
+    // Same asymmetry as everywhere else in this file: never let an activity concern break the
+    // ordinary contact sync sharing this webhook.
+    log("error", `reason="${String(e).slice(0, 140)}"`);
   }
 }

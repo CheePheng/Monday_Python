@@ -12,7 +12,7 @@ import { isDeletionEvent, restoreDeletedCard } from "./restore-card";
 import { CRM_CONTACTS } from "./config/crm";
 import {
   ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
-  syncHubspotActivity, syncMondayTimeline,
+  syncHubspotActivity, syncMondayTimeline, resetHelperOnReassignment,
 } from "./activity-sync";
 
 /** monday "Last Activity Date" on CRM Contacts — the activity wake-up doorbell. See the branch below. */
@@ -346,6 +346,35 @@ export function extractActivityEvents(body: any): { object: string; id: string }
   return [...out.values()];
 }
 
+/**
+ * Contacts whose OWNER may have just changed.
+ *
+ * Deliberately narrow: only object.propertyChange on hubspot_owner_id, which is a subscription the
+ * app already holds. Every other contact event is an ordinary edit and must not be able to reach the
+ * helper reset — the whole point of the reset is that it fires on reassignment and nothing else.
+ *
+ * "May have": this only says an owner property was written. Whether that was a real change or an echo
+ * of our own reverse sync is decided in resetHelperOnReassignment against HubSpot's stored state, not
+ * here — a webhook cannot tell the two apart.
+ */
+export function extractOwnerChangeContactIds(body: any): string[] {
+  const arr = Array.isArray(body) ? body : [body];
+  const out = new Set<string>();
+  for (const e of arr) {
+    if (!e || typeof e !== "object") continue;
+    const sub = String(e.subscriptionType ?? e.eventType ?? "");
+    if (!sub.endsWith("propertyChange")) continue;
+    if (String(e.propertyName ?? "") !== "hubspot_owner_id") continue;
+    const objTypeId = String(e.objectTypeId ?? "");
+    const objName = String(e.objectType ?? "").toLowerCase();
+    // Contacts only. A company or deal owner change has no follow-up helper to reset.
+    if (objTypeId ? objTypeId !== "0-1" : !sub.startsWith("contact") && objName !== "contact") continue;
+    const raw = e.objectId ?? e.hs_object_id ?? e.id;
+    if (raw != null && /^\d+$/.test(String(raw))) out.add(String(raw));
+  }
+  return [...out];
+}
+
 /** Line-item ids from a HubSpot webhook batch (objectTypeId 0-8 / subscriptionType line_item.*). A
  * line-item property edit is routed to its parent DEAL(s) by the caller, which rebuilds the subitems. */
 export function extractLineItemIds(body: any): string[] {
@@ -393,6 +422,14 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
         ectx.waitUntil(syncHubspotActivity(env, a.object, a.id)
           .catch(e => console.log(`[activity] source=hubspot ${a.object}=${a.id} action=error reason="${String(e).slice(0, 140)}"`)));
     }
+  }
+
+  // OWNER REASSIGNMENT -> reset the follow-up helper. Fired independently, on the same reasoning as
+  // the activity branch above: it must not be able to fail the contact sync sharing this batch.
+  if (activitySyncEnabled(env)) {
+    for (const cid of extractOwnerChangeContactIds(body))
+      ectx.waitUntil(resetHelperOnReassignment(env, cid)
+        .catch(e => console.log(`[activity] source=owner contact=${cid} action=error reason="${String(e).slice(0, 140)}"`)));
   }
 
   if (!events.length && !liIds.length) {

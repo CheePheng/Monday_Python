@@ -139,3 +139,23 @@ export async function releaseActivity(env: Env, key: string): Promise<void> {
 }
 export const m2hReservationKey = m2hKey;
 export const h2mReservationKey = h2mKey;
+
+/**
+ * The owner-assignment cycle last seen for a contact, as "<ownerId>|<hubspot_owner_assigneddate>".
+ *
+ * Stored so a genuine reassignment can be told apart from an ordinary update, or from an integration
+ * echo writing the same owner back. Permanent for the same reason activity mappings are: were it to
+ * expire, the next contact update would look like a reassignment and wipe a legitimately satisfied
+ * helper, restarting a reminder cycle against a rep who had already done the work.
+ */
+const cycleKey = (contactId: string) => `act:owner:${contactId}`;
+
+export async function lastOwnerCycle(env: Env, contactId: string): Promise<string | null> {
+  try { return await stub(env, cycleKey(contactId)).getCard(); }
+  catch { return null; }   // unreadable: treat as first sighting, which clears nothing
+}
+
+export async function rememberOwnerCycle(env: Env, contactId: string, cycle: string): Promise<void> {
+  try { await stub(env, cycleKey(contactId)).rememberPermanent(cycle); }
+  catch (e) { console.log(`[activity-registry] ${cycleKey(contactId)} action=cycle-save-failed reason="${String(e).slice(0, 90)}"`); }
+}
