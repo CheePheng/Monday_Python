@@ -19,6 +19,7 @@ import {
   MONDAY_ACTIVITY_TYPE, HUBSPOT_OBJECT_FOR_NATIVE, CONTACT_ASSOC_TYPE,
   eligibleForHubspot, qualifiesAsFollowUp, timelinePayload, type HsActivity,
 } from "./activities";
+import type { ActivityOutcome } from "./activity-retry";
 import {
   claimActivityToHubspot, settleActivityToHubspot, unresolvedActivityToHubspot,
   claimActivityToMonday, settleActivityToMonday, unresolvedActivityToMonday,
@@ -132,15 +133,24 @@ const strip = (h: unknown) =>
  * Only ever CREATES. monday has no timeline-item update mutation, so there is nothing to reconcile if
  * the activity later changes in HubSpot — see activities.ts on immutability.
  */
-export async function syncHubspotActivity(env: Env, object: string, hubspotId: string): Promise<void> {
-  const log = (action: string, extra = "") =>
+export async function syncHubspotActivity(env: Env, object: string, hubspotId: string): Promise<ActivityOutcome> {
+  /**
+   * EVERY EXIT REPORTS AN OUTCOME, because the durable retry has to tell three cases apart that all
+   * used to look like "it did not sync": a settled decision (nothing to do), a lost race (retry), and
+   * a create that threw after being sent (NEVER retry — it may have landed). Returning void made the
+   * third indistinguishable from the second, which is how a retry becomes a duplicate.
+   */
+  const fin = (outcome: ActivityOutcome, extra = "", action: string = outcome): ActivityOutcome => {
     console.log(`[activity] source=hubspot ${object}=${hubspotId} action=${action}${extra ? " " + extra : ""}`);
+    return outcome;
+  };
 
   const claim = await claimActivityToMonday(env, object, hubspotId);
-  if (claim.status === "have") return log("skipped", `reason="already synced as ${claim.id}"`);
-  if (claim.status === "creating") return log("skipped", 'reason="another delivery is mid-create"');
-  if (claim.status === "blocked") return log("deferred", 'reason="idempotency store unavailable — will retry"');
+  if (claim.status === "have") return fin("skipped", `reason="already synced as ${claim.id}"`);
+  if (claim.status === "creating") return fin("creating", 'reason="another delivery is mid-create"', "skipped");
+  if (claim.status === "blocked") return fin("blocked", 'reason="idempotency store unavailable — will retry"', "deferred");
 
+  let createAttempted = false;
   try {
     const props = PROPS[object] ?? ["hs_timestamp"];
     const rec = await hs(env, "GET",
@@ -150,7 +160,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     // CUTOVER-FORWARD. Refuse anything older than the cutover before spending a lookup on it.
     if (!afterCutover(env, p.hs_timestamp)) {
       await settleActivityToMonday(env, object, hubspotId, "pre-cutover");
-      return log("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
+      return fin("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
     }
 
     /**
@@ -163,7 +173,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     const origin = mondayOriginOf(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body);
     if (origin) {
       await claimHubspotAsRepresented(env, object, hubspotId, origin);
-      return log("skipped", `reason="originated from monday timeline ${origin}"`);
+      return fin("skipped", `reason="originated from monday timeline ${origin}"`);
     }
 
     // Resolve the contact and its card with a few short waits — the webhook routinely beats them into
@@ -185,15 +195,15 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
 
     if (!contactId) {
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return log("unresolved", 'reason="no associated contact after bounded retry"');
+      return fin("unresolved", 'reason="no associated contact after bounded retry"');
     }
     if (!inCanaryScope(env, contactId, undefined)) {
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return log("skipped", `reason="outside canary scope" contact=${contactId}`);
+      return fin("skipped", `reason="outside canary scope" contact=${contactId}`);
     }
     if (!card) {
       await releaseActivity(env, h2mReservationKey(object, hubspotId));
-      return log("unresolved", `reason="contact ${contactId} has no card after bounded retry"`);
+      return fin("unresolved", `reason="contact ${contactId} has no card after bounded retry"`);
     }
 
     const activity: HsActivity = {
@@ -210,8 +220,17 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
       from: p.hs_email_from_email, to: p.hs_email_to_email,
       body: strip(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body),
     });
-    if (!payload.custom_activity_id) { await settleActivityToMonday(env, object, hubspotId, "unmapped"); return log("skipped", 'reason="no monday activity type for this object"'); }
+    if (!payload.custom_activity_id) { await settleActivityToMonday(env, object, hubspotId, "unmapped"); return fin("skipped", 'reason="no monday activity type for this object"'); }
 
+    /**
+     * THE LINE THAT DIVIDES "RETRY ME" FROM "NEVER RETRY ME".
+     *
+     * Everything above this point is reads: the HubSpot record, the association, the card. A 503 on
+     * any of them is a transient failure with nothing created, so it must be retryable — classifying
+     * it as an error, as the first version did, threw the activity away on the most ordinary outage
+     * there is. From here on a create has been SENT, and a failure may mean it landed.
+     */
+    createAttempted = true;
     const created = await gql(env,
       `mutation ($i: ID!, $a: String!, $t: String!, $s: String!, $c: String!, $ts: ISO8601DateTime!) {
          create_timeline_item(item_id:$i, custom_activity_id:$a, title:$t, summary:$s, content:$c,
@@ -220,13 +239,22 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
         c: payload.content, ts: payload.timestamp }, 1);
     const timelineId = created?.create_timeline_item?.id;
     await settleActivityToMonday(env, object, hubspotId, String(timelineId ?? "created"));
-    log("created", `item=${card.id} timeline=${timelineId}`);
+    fin("created", `item=${card.id} timeline=${timelineId}`);
 
     await maybeMarkFollowUp(env, card.id, contactId, activity);
+    return "created";
   } catch (e) {
     // NOT released: the write may have landed and releasing is how a lost response becomes a duplicate.
-    unresolvedActivityToMonday(object, hubspotId, e);
-    log("error", `reason="${String(e).slice(0, 140)}"`);
+    if (createAttempted) {
+      // NOT retryable. The request was already sent; a queued retry here is how a lost response
+      // becomes a duplicate. The reservation is left standing instead, and covers it.
+      unresolvedActivityToMonday(object, hubspotId, e);
+      return fin("error", `reason="${String(e).slice(0, 140)}"`);
+    }
+    // Nothing was sent. Release so a retry can re-claim, and report it as the retryable failure it
+    // is — a HubSpot read that 503s must not cost us the activity.
+    await releaseActivity(env, h2mReservationKey(object, hubspotId));
+    return fin("unresolved", `reason="${String(e).slice(0, 140)}"`, "failed-before-create");
   }
 }
 

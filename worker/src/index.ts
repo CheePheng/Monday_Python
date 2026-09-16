@@ -1,9 +1,11 @@
 import type { Env, RunOpts, Budget } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
+export { ActivityRetry } from "./activity-retry-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { writeModeFor, maxWritesFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday } from "./webhooks";
+import { deadLetterStub } from "./activity-retry";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, listContacts, mapAssocRecord, mapOwners } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
@@ -602,6 +604,20 @@ export default {
 
     // Manual full reconcile: header `X-Trigger-Secret: <secret>`
     //   /run?object=deals|companies|contacts&mode=dry|live&maxWrites=300
+    /**
+     * Terminal activity-retry failures — the dead-letter view.
+     *
+     * The one thing Cloudflare Queues would have given us for free is somewhere to LOOK when a job
+     * finally gives up. Read-only, guarded by the same trigger secret as /run and /import.
+     */
+    if (url.pathname === "/activity-dead-letters" && req.method === "GET") {
+      const provided = req.headers.get("x-trigger-secret") ?? "";
+      if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
+        return new Response("forbidden", { status: 403 });
+      const dead = await deadLetterStub(env).listDead();
+      return Response.json({ count: dead.length, dead });
+    }
+
     if (url.pathname === "/run") {
       const provided = req.headers.get("x-trigger-secret") ?? "";
       if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)

@@ -10,6 +10,7 @@ import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
 import { isDeletionEvent, restoreDeletedCard } from "./restore-card";
 import { CRM_CONTACTS } from "./config/crm";
+import { scheduleIfUnresolved } from "./activity-retry";
 import {
   ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
   syncHubspotActivity, syncMondayTimeline, resetHelperOnReassignment,
@@ -419,7 +420,12 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
     } else {
       console.log(`[webhook] source=hubspot activities=${activityEvents.map(a => `${a.object}:${a.id}`).join(",")} action=received`);
       for (const a of activityEvents)
+        // The outcome decides whether this activity needs a DURABLE retry. The in-invocation
+        // backoff covers the ordinary race; when it still cannot find the contact or card, nothing
+        // would ever redeliver this webhook — waitUntil already answered 200 — so the job is
+        // persisted here instead of being logged and lost.
         ectx.waitUntil(syncHubspotActivity(env, a.object, a.id)
+          .then(outcome => scheduleIfUnresolved(env, a.object, a.id, outcome))
           .catch(e => console.log(`[activity] source=hubspot ${a.object}=${a.id} action=error reason="${String(e).slice(0, 140)}"`)));
     }
   }

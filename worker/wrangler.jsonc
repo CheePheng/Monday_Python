@@ -31,7 +31,16 @@
   // A new Worker script gets its OWN Durable Object namespace, so CRM idempotency state can never
   // collide with production's. The v1 migration is required to create the class on a fresh script.
   "durable_objects": {
-    "bindings": [ { "name": "CREATE_IDEMPOTENCY", "class_name": "CreateIdempotency" } ]
+    "bindings": [
+      { "name": "CREATE_IDEMPOTENCY", "class_name": "CreateIdempotency" },
+      // Durable activity retry. One instance per stuck activity + one dead-letter index; the alarm
+      // is the retry clock. Deliberately NOT Cloudflare Queues — see activity-retry.ts.
+      { "name": "ACTIVITY_RETRY", "class_name": "ActivityRetry" }
+    ]
   },
-  "migrations": [ { "tag": "v1", "new_sqlite_classes": ["CreateIdempotency"] } ]
+  // v2 is ADDITIVE: it creates a new class and leaves CreateIdempotency's stored state untouched.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CreateIdempotency"] },
+    { "tag": "v2", "new_sqlite_classes": ["ActivityRetry"] }
+  ]
 }
