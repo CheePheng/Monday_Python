@@ -11,6 +11,7 @@ import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
 import { isDeletionEvent, restoreDeletedCard } from "./restore-card";
 import { CRM_CONTACTS } from "./config/crm";
 import { scheduleIfUnresolved } from "./activity-retry";
+import { spillDeferred, type DeferredItem } from "./deferred-sync";
 import {
   ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
   syncHubspotActivity, syncMondayTimeline, resetHelperOnReassignment,
@@ -458,8 +459,29 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
         for (const d of await getAssociatedIds(env, "line_items", liId, "deals")) events.push({ type: "deal", id: d });
       } catch (e) { console.log(`[webhook] source=hubspot line_item=${liId} action=error reason="${String(e).slice(0, 120)}"`); }
     }
-    if (events.length > MAX)
-      console.log(`[webhook] source=hubspot action=deferred count=${events.length - MAX} reason="batch > ${MAX}; backup catches overflow"`);
+    /**
+     * THE OVERFLOW GOES SOMEWHERE NOW.
+     *
+     * This used to log "backup catches overflow" and drop the remainder. That sentence is true on the
+     * Work Management Worker, which runs a ten-minute incremental cron; it was never true here, where
+     * crons are disabled for Phase 1, so `scheduled()` never fires. With HubSpot delivering ~47
+     * contact events per batch during a bulk update, roughly two thirds of each batch was discarded
+     * behind a reassuring log line — and a dropped change is invisible, because the card simply keeps
+     * its old values.
+     *
+     * Contacts and Companies only. Deals and line items keep their existing behaviour exactly, and
+     * the spill is a no-op on the Work Management deployment, which has no such binding and whose
+     * cron already covers this ground.
+     */
+    if (events.length > MAX) {
+      const overflow = events.slice(MAX);
+      const spill: DeferredItem[] = overflow
+        .filter(e => e.type === "contact" || e.type === "company")
+        .map(e => ({ type: e.type as "contact" | "company", id: e.id, deleted: e.deleted }));
+      console.log(`[webhook] source=hubspot action=deferred count=${overflow.length}`
+        + ` spilling=${spill.length} reason="batch > ${MAX}; overflow queued durably"`);
+      await spillDeferred(env, spill);
+    }
     // coalesce by object type+id(+delete) so a burst of events for one record can't race into a duplicate.
     await Promise.all(events.slice(0, MAX).map(ev =>
       coalesce(`hs:${ev.type}:${ev.id}:${ev.deleted ? "d" : "u"}`, () =>

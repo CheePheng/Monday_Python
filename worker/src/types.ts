@@ -1,9 +1,12 @@
 import type { CreateIdempotency } from "./create-idempotency-do";
 import type { ActivityRetry } from "./activity-retry-do";
+import type { DeferredSync } from "./deferred-sync-do";
 
 export interface Env {
   CREATE_IDEMPOTENCY: DurableObjectNamespace<CreateIdempotency>;
   ACTIVITY_RETRY: DurableObjectNamespace<ActivityRetry>;
+  /** Optional: absent on the Work Management deployment, whose cron covers the same ground. */
+  DEFERRED_SYNC?: DurableObjectNamespace<DeferredSync>;
   MONDAY_API_TOKEN: string;
   HUBSPOT_ACCESS_TOKEN: string;
   TRIGGER_SECRET: string;

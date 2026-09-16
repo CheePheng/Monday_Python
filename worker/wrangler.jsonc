@@ -35,12 +35,17 @@
       { "name": "CREATE_IDEMPOTENCY", "class_name": "CreateIdempotency" },
       // Durable activity retry. One instance per stuck activity + one dead-letter index; the alarm
       // is the retry clock. Deliberately NOT Cloudflare Queues — see activity-retry.ts.
-      { "name": "ACTIVITY_RETRY", "class_name": "ActivityRetry" }
+      { "name": "ACTIVITY_RETRY", "class_name": "ActivityRetry" },
+      // Durable overflow queue for oversized webhook batches. ONE instance, drained in small waves —
+      // its serialization is the rate control. Needed because this Worker has no cron, so the
+      // "backup catches overflow" the batch limit assumed never existed here.
+      { "name": "DEFERRED_SYNC", "class_name": "DeferredSync" }
     ]
   },
   // v2 is ADDITIVE: it creates a new class and leaves CreateIdempotency's stored state untouched.
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["CreateIdempotency"] },
-    { "tag": "v2", "new_sqlite_classes": ["ActivityRetry"] }
+    { "tag": "v2", "new_sqlite_classes": ["ActivityRetry"] },
+    { "tag": "v3", "new_sqlite_classes": ["DeferredSync"] }
   ]
 }

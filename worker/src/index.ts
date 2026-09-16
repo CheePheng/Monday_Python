@@ -1,6 +1,7 @@
 import type { Env, RunOpts, Budget } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
 export { ActivityRetry } from "./activity-retry-do";
+export { DeferredSync } from "./deferred-sync-do";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { writeModeFor, maxWritesFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
