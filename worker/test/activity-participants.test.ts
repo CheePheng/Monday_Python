@@ -26,7 +26,10 @@ const monday = vi.hoisted(() => ({ gql: vi.fn(), findItemByColumn: vi.fn() }));
 const reg = vi.hoisted(() => {
   const settled = new Map<string, string>();
   const inflight = new Set<string>();
-  const h2m = (o: string, i: string, c: string) => `act:h2m:${o}:${i}:${c}`;
+  // Mirrors the real key: contact keeps its original three-part shape so pre-existing durable
+  // mappings stay readable; company and deal get their own namespace.
+  const h2m = (o: string, i: string, k: string, d: string) =>
+    k === "contact" ? `act:h2m:${o}:${i}:${d}` : `act:h2m:${o}:${i}:${k}:${d}`;
   const claim = (k: string) => {
     if (settled.has(k)) return { status: "have", id: settled.get(k)! };
     if (inflight.has(k)) return { status: "creating" };
@@ -36,9 +39,10 @@ const reg = vi.hoisted(() => {
   return {
     settled, inflight,
     m2hReservationKey: (t: string) => `act:m2h:${t}`, h2mReservationKey: h2m,
-    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string) => claim(h2m(o, i, c))),
-    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string, t: string) => {
-      settled.set(h2m(o, i, c), t); inflight.delete(h2m(o, i, c));
+    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, k: string, d: string) =>
+      claim(h2m(o, i, k, d))),
+    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, k: string, d: string, t: string) => {
+      settled.set(h2m(o, i, k, d), t); inflight.delete(h2m(o, i, k, d));
     }),
     unresolvedActivityToMonday: vi.fn(),
     claimActivityToHubspot: vi.fn(), settleActivityToHubspot: vi.fn(),

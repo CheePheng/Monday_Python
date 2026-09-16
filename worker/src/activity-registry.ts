@@ -74,8 +74,17 @@ const m2hKey = (timelineItemId: string) => `act:m2h:${timelineItemId}`;
  * settled and every remaining participant was silently skipped: the customer, whose timeline is the
  * entire point, would never receive it.
  */
-const h2mKey = (object: string, hubspotId: string, contactId: string) =>
-  `act:h2m:${object}:${hubspotId}:${contactId}`;
+const h2mKey = (object: string, hubspotId: string, destKind: string, destId: string) =>
+  /**
+   * CONTACT KEEPS ITS ORIGINAL THREE-PART SHAPE, deliberately. Mappings written before Companies and
+   * Deals became destinations are already in durable storage; changing their spelling would make
+   * every one of them unreadable, and an unreadable mapping does not fail — it reads as "never
+   * synced" and writes the entry a second time. The new kinds get their own namespace instead, so
+   * nothing has to be migrated and nothing can collide.
+   */
+  destKind === "contact"
+    ? `act:h2m:${object}:${hubspotId}:${destId}`
+    : `act:h2m:${object}:${hubspotId}:${destKind}:${destId}`;
 
 async function claim(env: Env, key: string): Promise<ActivityClaim> {
   try {
@@ -107,7 +116,7 @@ async function settle(env: Env, key: string, counterpartId: string): Promise<voi
  */
 export async function claimHubspotAsRepresented(env: Env, object: string, hubspotId: string,
     contactId: string, mondayTimelineId: string): Promise<void> {
-  await settle(env, h2mKey(object, hubspotId, contactId), `monday:${mondayTimelineId}`);
+  await settle(env, h2mKey(object, hubspotId, "contact", contactId), `monday:${mondayTimelineId}`);
 }
 
 /**
@@ -130,12 +139,13 @@ export const unresolvedActivityToHubspot = (timelineItemId: string, err: unknown
   markUnresolved(m2hKey(timelineItemId), err);
 
 // ---------------------------------------------------------------- HubSpot -> monday
-export const claimActivityToMonday = (env: Env, object: string, hubspotId: string, contactId: string) =>
-  claim(env, h2mKey(object, hubspotId, contactId));
-export const settleActivityToMonday = (env: Env, object: string, hubspotId: string, contactId: string,
-    timelineItemId: string) => settle(env, h2mKey(object, hubspotId, contactId), timelineItemId);
-export const unresolvedActivityToMonday = (object: string, hubspotId: string, contactId: string,
-    err: unknown) => markUnresolved(h2mKey(object, hubspotId, contactId), err);
+export const claimActivityToMonday = (env: Env, object: string, hubspotId: string,
+    destKind: string, destId: string) => claim(env, h2mKey(object, hubspotId, destKind, destId));
+export const settleActivityToMonday = (env: Env, object: string, hubspotId: string,
+    destKind: string, destId: string, timelineItemId: string) =>
+  settle(env, h2mKey(object, hubspotId, destKind, destId), timelineItemId);
+export const unresolvedActivityToMonday = (object: string, hubspotId: string, destKind: string,
+    destId: string, err: unknown) => markUnresolved(h2mKey(object, hubspotId, destKind, destId), err);
 
 /**
  * Release a reservation once something has PROVEN the write never happened.

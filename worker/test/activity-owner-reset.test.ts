@@ -23,7 +23,10 @@ const reg = vi.hoisted(() => {
   const inflight = new Set<string>();
   const cycles = new Map<string, string>();
   const m2h = (t: string) => `act:m2h:${t}`;
-  const h2m = (o: string, i: string, c: string) => `act:h2m:${o}:${i}:${c}`;
+  // Mirrors the real key: contact keeps its original three-part shape so pre-existing durable
+  // mappings stay readable; company and deal get their own namespace.
+  const h2m = (o: string, i: string, k: string, d: string) =>
+    k === "contact" ? `act:h2m:${o}:${i}:${d}` : `act:h2m:${o}:${i}:${k}:${d}`;
   const claim = (k: string) => {
     if (settled.has(k)) return { status: "have", id: settled.get(k)! };
     if (inflight.has(k)) return { status: "creating" };
@@ -34,15 +37,16 @@ const reg = vi.hoisted(() => {
   return {
     settled, inflight, cycles,
     m2hReservationKey: m2h, h2mReservationKey: h2m,
-    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string) => claim(h2m(o, i, c))),
-    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, c: string, t: string) =>
-      settle(h2m(o, i, c), t)),
+    claimActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, k: string, d: string) =>
+      claim(h2m(o, i, k, d))),
+    settleActivityToMonday: vi.fn(async (_e: Env, o: string, i: string, k: string, d: string, t: string) =>
+      settle(h2m(o, i, k, d), t)),
     unresolvedActivityToMonday: vi.fn(),
     claimActivityToHubspot: vi.fn(async (_e: Env, t: string) => claim(m2h(t))),
     settleActivityToHubspot: vi.fn(async (_e: Env, t: string, h: string) => settle(m2h(t), h)),
     unresolvedActivityToHubspot: vi.fn(),
     claimHubspotAsRepresented: vi.fn(async (_e: Env, o: string, i: string, c: string, m: string) =>
-      settle(h2m(o, i, c), `monday:${m}`)),
+      settle(h2m(o, i, "contact", c), `monday:${m}`)),
     releaseActivity: vi.fn(async (_e: Env, k: string) => { inflight.delete(k); }),
     lastOwnerCycle: vi.fn(async (_e: Env, c: string) => cycles.get(c) ?? null),
     rememberOwnerCycle: vi.fn(async (_e: Env, c: string, v: string) => { cycles.set(c, v); }),

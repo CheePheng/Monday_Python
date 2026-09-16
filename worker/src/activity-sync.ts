@@ -16,6 +16,10 @@ import { hs } from "./hubspot";
 import { gql, findItemByColumn } from "./monday";
 import { CRM_CONTACTS } from "./config/crm";
 import {
+  associatedDestinations, DEST_BOARD, MAX_ASSOC_PAGES,
+  type Destination, type DestKind,
+} from "./activity-destinations";
+import {
   MONDAY_ACTIVITY_TYPE, HUBSPOT_OBJECT_FOR_NATIVE, CONTACT_ASSOC_TYPE,
   eligibleForHubspot, qualifiesAsFollowUp, timelinePayload, type HsActivity,
 } from "./activities";
@@ -173,37 +177,6 @@ async function staffEmails(env: Env): Promise<Set<string>> {
  */
 const MAX_PARTICIPANTS = 50;
 
-/** How many association pages to walk before treating the count as pathological. */
-const MAX_ASSOC_PAGES = 10;
-
-/**
- * Every contact associated with an activity, paginated to exhaustion and deduplicated.
- *
- * The first version asked for `limit=10` and read page one. Ten is an ordinary number of recipients,
- * so that was not a theoretical truncation — and because the entries it dropped were simply absent,
- * the result would have looked like a clean success.
- */
-async function associatedContacts(env: Env, object: string, hubspotId: string):
-    Promise<{ ids: string[]; complete: boolean }> {
-  const ids = new Set<string>();
-  let after = "";
-  for (let page = 0; page < MAX_ASSOC_PAGES; page++) {
-    const r = await hs(env, "GET",
-      `/crm/v4/objects/${object}/${hubspotId}/associations/contacts?limit=100${after ? `&after=${after}` : ""}`,
-      undefined, 2);
-    for (const a of r?.results ?? []) if (a?.toObjectId != null) ids.add(String(a.toObjectId));
-    after = r?.paging?.next?.after ?? "";
-    if (!after) break;
-  }
-  /**
-   * `complete` IS THE WHOLE POINT OF THE RETURN SHAPE. Running out of pages with more still offered
-   * produces a set that looks perfectly ordinary — a shorter list, with nothing to mark it short. The
-   * caller must be able to tell "these are all the participants" from "these are the first thousand",
-   * because the second is not something to act on.
-   */
-  return { ids: [...ids], complete: !after };
-}
-
 /**
  * Split the participants into the cards an activity belongs on and the colleagues it does not.
  *
@@ -276,71 +249,71 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     const origin = mondayOriginOf(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body);
     if (origin) return fin("skipped", `reason="originated from monday timeline ${origin}"`);
 
-    // Resolve the associated contacts with a few short waits — the webhook routinely beats the
-    // association into existence. Lookup only; no create is ever retried here.
-    let contactIds: string[] = [];
+    /**
+     * EVERY CRM OBJECT THE ACTIVITY TOUCHED, not just the Contact.
+     *
+     * monday is becoming the system the sales team actually works in, so a rep looking at an Account
+     * or a Deal has to see the conversation that happened on it without opening a HubSpot seat. One
+     * email legitimately belongs on a Contact, a Company and a Deal at once, and appears once on each.
+     * Explicit associations only — a Company is never inferred by walking from the Contact.
+     */
+    let dests: Destination[] = [];
     let complete = true;
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
-      ({ ids: contactIds, complete } = await associatedContacts(env, object, hubspotId));
-      if (contactIds.length) break;
+      ({ destinations: dests, complete } = await associatedDestinations(env, object, hubspotId));
+      if (dests.length) break;
     }
-    if (!contactIds.length) {
-      return fin("unresolved", 'reason="no associated contact after bounded retry"');
-    }
+    if (!dests.length) return fin("unresolved", 'reason="no associated CRM object after bounded retry"');
 
     /**
-     * A TRUNCATED PARTICIPANT LIST IS NOT A PARTICIPANT LIST. Checked BEFORE the canary gate on
-     * purpose: the missing page could be the one holding the contact we are scoped to, so deciding
-     * scope from a partial set could skip an activity that is in fact in scope. Failing closed costs
-     * a dead-letter entry on a pathological record; guessing costs a silently incomplete write.
+     * A TRUNCATED ASSOCIATION LIST IS NOT AN ASSOCIATION LIST. Running out of pages with more still
+     * offered yields a set that looks perfectly ordinary, so acting on it would write a confidently
+     * incomplete history. Checked before the scope gate: the page we did not fetch could hold the
+     * very record we are scoped to.
      */
     if (!complete)
       return fin("unresolved",
-        `reason="associations exceed ${MAX_ASSOC_PAGES} pages; refusing to act on a partial set" seen=${contactIds.length}`,
+        `reason="associations exceed ${MAX_ASSOC_PAGES} pages; refusing to act on a partial set" seen=${dests.length}`,
         "abnormal-participants");
+
+    // Scope decides only WHETHER to look. Classification below sees the full, real set.
+    if (!dests.some(d => inCanaryScope(env, d.hubspotId, undefined)))
+      return fin("skipped", `reason="no destination in canary scope" n=${dests.length}`);
 
     /**
-     * DOES THIS ACTIVITY CONCERN THE CANARY AT ALL? — a cheap gate, and deliberately NOT a filter.
+     * STAFF EXCLUSION APPLIES TO CONTACT CARDS ONLY.
      *
-     * The first version filtered contactIds down to the allowlist and classified only what survived.
-     * With the allowlist set to the CUSTOMER, that removed the rep before the staff check ever ran —
-     * so the classifier saw a single participant and the canary reproduced exactly the one-sided
-     * shape that let the production incident through in the first place. A canary that cannot see the
-     * rep cannot prove the rep was excluded.
-     *
-     * So scope only decides whether to look at this activity. Classification below sees the FULL,
-     * real participant set, and scope is applied again at the end, to the WRITES.
+     * A rep's own Contact card must not collect the mail they sent — that is the incident this rule
+     * exists for. It says nothing about an Account or a Deal: if HubSpot linked the activity there,
+     * the link is a record of what happened and the rep's staff status is irrelevant to it.
      */
-    if (!contactIds.some(id => inCanaryScope(env, id, undefined)))
-      return fin("skipped", `reason="no participant in canary scope" contacts=${contactIds.join(",")}`);
-
-    // Participants minus staff, over the complete set. If the owners list is unreadable we do NOT
-    // guess: writing to every participant is how the rep's own card filled up, so it is reported as
-    // retryable and the durable retry picks it up once HubSpot answers.
-    let targets: string[], staff: string[];
-    try {
-      ({ targets, staff } = await participantsFor(env, contactIds));
-    } catch (e) {
-      return fin("unresolved", `reason="cannot classify participants: ${String(e).slice(0, 90)}"`,
-        "deferred");
+    const contactIds = dests.filter(d => d.kind === "contact").map(d => d.hubspotId);
+    let keepContacts: string[] = [], staff: string[] = [];
+    if (contactIds.length) {
+      try {
+        const r = await participantsFor(env, contactIds);
+        keepContacts = r.targets; staff = r.staff;
+      } catch (e) {
+        return fin("unresolved", `reason="cannot classify participants: ${String(e).slice(0, 90)}"`,
+          "deferred");
+      }
     }
-    // The evidence a canary needs: what went in, who was judged staff, who is left.
+
+    let targets = dests.filter(d => d.kind !== "contact" || keepContacts.includes(d.hubspotId));
+    const show = (ds: Destination[]) => ds.map(d => `${d.kind}:${d.hubspotId}`).join(",") || "-";
     console.log(`[activity] source=hubspot ${object}=${hubspotId} action=classified`
-      + ` participants=${contactIds.join(",") || "-"} staff=${staff.join(",") || "-"}`
-      + ` targets=${targets.join(",") || "-"}`);
+      + ` destinations=${show(dests)} staff=${staff.join(",") || "-"} targets=${show(targets)}`);
 
     if (!targets.length)
-      return fin("skipped", `reason="every participant is staff" contacts=${contactIds.join(",")}`);
+      return fin("skipped", 'reason="every destination excluded (all staff)"');
     if (targets.length > MAX_PARTICIPANTS)
       return fin("unresolved",
-        `reason="${targets.length} non-staff participants exceeds the ceiling of ${MAX_PARTICIPANTS}; writing none"`,
+        `reason="${targets.length} destinations exceeds the ceiling of ${MAX_PARTICIPANTS}; writing none"`,
         "abnormal-participants");
 
-    // Scope applied to the WRITES, now that classification has seen everyone.
-    targets = targets.filter(id => inCanaryScope(env, id, undefined));
-    if (!targets.length)
-      return fin("skipped", 'reason="no non-staff participant is in canary scope"');
+    targets = targets.filter(d => inCanaryScope(env, d.hubspotId, undefined));
+    if (!targets.length) return fin("skipped", 'reason="no surviving destination is in canary scope"');
 
     const activity: HsActivity = {
       id: hubspotId, object,
@@ -359,50 +332,40 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     if (!payload.custom_activity_id)
       return fin("skipped", 'reason="no monday activity type for this object"');
 
-    /**
-     * ONE RESERVATION PER CARD. Each participant is claimed, written and settled independently, so a
-     * failure on one card cannot mark the activity done for the others, and a redelivery resumes
-     * exactly where it stopped.
-     */
-    /**
-     * THE CARD LOOKUP KEEPS THE BOUNDED BACKOFF. A contact and its first email are routinely created
-     * in the same second, so the card is the thing that arrives late — retrying only the association
-     * would have quietly dropped exactly the race this was built for. Resolved for all participants
-     * together so the waits are shared rather than paid per card.
-     */
+    // Cards for every destination, on whichever board that kind lives, with the bounded backoff the
+    // late-card race needs. Resolved together so the waits are shared rather than paid per card.
     const cards = new Map<string, { id: string }>();
+    const keyOf = (d: Destination) => `${d.kind}:${d.hubspotId}`;
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
-      for (const cid of targets)
-        if (!cards.has(cid)) {
-          const c = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, cid))[0];
-          if (c) cards.set(cid, c);
+      for (const d of targets)
+        if (!cards.has(keyOf(d))) {
+          const b = DEST_BOARD[d.kind];
+          const c = (await findItemByColumn(env, b.boardId, b.idCol, d.hubspotId))[0];
+          if (c) cards.set(keyOf(d), c);
         }
       if (cards.size === targets.length) break;
     }
 
+    /**
+     * ONE RESERVATION PER DESTINATION. Each is claimed, written and settled independently, so a
+     * failure on the Company cannot mark the Contact done, and a redelivery resumes exactly where it
+     * stopped.
+     */
     let wrote = 0, errored = false, retryable: ActivityOutcome | null = null;
-    for (const contactId of targets) {
-      const card = cards.get(contactId);
+    for (const d of targets) {
+      const card = cards.get(keyOf(d));
       if (!card) {
-        fin("unresolved", `reason="contact ${contactId} has no card after bounded retry"`);
+        fin("unresolved", `reason="${d.kind} ${d.hubspotId} has no card after bounded retry"`);
         retryable ??= "unresolved";
         continue;
       }
 
-      // Claimed only once the card is known, so a reservation is never left standing for a card that
-      // was never going to be written.
-      const claim = await claimActivityToMonday(env, object, hubspotId, contactId);
-      if (claim.status === "have") continue;                       // already on this card
+      const claim = await claimActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId);
+      if (claim.status === "have") continue;
       if (claim.status === "creating") { retryable ??= "creating"; continue; }
       if (claim.status === "blocked") { retryable ??= "blocked"; continue; }
 
-      /**
-       * THE CREATE, AND ITS OWN CATCH. Scoped per card on purpose: the failure that must never be
-       * retried is "the create was sent and may have landed", and that is a fact about ONE card. A
-       * single catch around the whole loop could not name the card whose reservation has to stay
-       * standing, and would have to treat every other participant as equally doomed.
-       */
       try {
         const created = await gql(env,
           `mutation ($i: ID!, $a: String!, $t: String!, $s: String!, $c: String!, $ts: ISO8601DateTime!) {
@@ -411,27 +374,21 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
           { i: card.id, a: payload.custom_activity_id, t: payload.title, s: payload.summary,
             c: payload.content, ts: payload.timestamp }, 1);
         const timelineId = created?.create_timeline_item?.id;
-        await settleActivityToMonday(env, object, hubspotId, contactId, String(timelineId ?? "created"));
+        await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, String(timelineId ?? "created"));
         wrote++;
-        fin("created", `item=${card.id} contact=${contactId} timeline=${timelineId}`);
+        fin("created", `item=${card.id} ${d.kind}=${d.hubspotId} timeline=${timelineId}`);
       } catch (e) {
-        // Sent. NOT released and NOT retried — that is how a lost response becomes a duplicate.
-        unresolvedActivityToMonday(object, hubspotId, contactId, e);
-        fin("error", `contact=${contactId} reason="${String(e).slice(0, 120)}"`);
+        unresolvedActivityToMonday(object, hubspotId, d.kind, d.hubspotId, e);
+        fin("error", `${d.kind}=${d.hubspotId} reason="${String(e).slice(0, 120)}"`);
         errored = true;
         continue;
       }
 
-      // Outside the create's catch: a failed helper write must not read as a failed create.
-      await maybeMarkFollowUp(env, card.id, contactId, activity);
+      // The follow-up helper is a CONTACT concept: it answers "has the person responsible for this
+      // person reached out". A Company or Deal timeline entry says nothing about that.
+      if (d.kind === "contact") await maybeMarkFollowUp(env, card.id, d.hubspotId, activity);
     }
 
-    /**
-     * RETRYABLE WINS, THEN ERROR, THEN SUCCESS. An errored card must never be reported as "skipped":
-     * skipped is a settled decision and would hide a failed write entirely. It is still not
-     * retryable — the create was sent and may have landed — so it is surfaced as "error" and the
-     * standing reservation covers it.
-     */
     if (retryable) return retryable;
     if (errored) return "error";
     return wrote ? "created" : fin("skipped", 'reason="nothing left to write"');
