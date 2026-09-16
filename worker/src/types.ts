@@ -38,6 +38,8 @@ export interface Env {
   /** Canary scope. While either is set, ONLY that contact is processed. The feature flag alone is
    *  global, so enabling it for "a canary" would in fact start syncing the whole portal. */
   ACTIVITY_CANARY_HUBSPOT_CONTACT_ID?: string;
+  ACTIVITY_CANARY_HUBSPOT_COMPANY_ID?: string;
+  ACTIVITY_CANARY_HUBSPOT_DEAL_ID?: string;
   ACTIVITY_CANARY_MONDAY_ITEM_ID?: string;
   ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
                                       // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)

@@ -21,7 +21,7 @@ import {
 } from "./activity-destinations";
 import {
   MONDAY_ACTIVITY_TYPE, HUBSPOT_OBJECT_FOR_NATIVE, CONTACT_ASSOC_TYPE,
-  eligibleForHubspot, qualifiesAsFollowUp, timelinePayload, type HsActivity,
+  eligibleForHubspot, qualifiesAsFollowUp, timelinePayload, taskTimestamp, type HsActivity,
 } from "./activities";
 import type { ActivityOutcome } from "./activity-retry";
 import {
@@ -36,7 +36,7 @@ export const ACTIVITY_BY_TYPEID: Record<string, string> = {
   "0-49": "emails", "0-48": "calls", "0-46": "notes", "0-47": "meetings",
 };
 export const ACTIVITY_BY_NAME: Record<string, string> = {
-  email: "emails", call: "calls", note: "notes", meeting_event: "meetings",
+  email: "emails", call: "calls", note: "notes", meeting_event: "meetings", task: "tasks",
 };
 
 /** The monday Contacts columns this file touches. Last Activity Date is READ-ONLY here: it is the
@@ -76,6 +76,24 @@ export function afterCutover(env: Env, timestamp: unknown): boolean {
  * turning it on for "a canary" would in fact start syncing every contact in the portal. Unset for the
  * production cutover.
  */
+/**
+ * SCOPE FOR A DESTINATION, which is not the same question as scope for a contact.
+ *
+ * The allowlist began life contact-shaped, and comparing a Company or Deal id against a CONTACT
+ * allowlist can only ever be false — so a canary would resolve all three destinations, silently drop
+ * two of them, and "pass" having proven nothing about the fan-out it exists to test. Each kind is
+ * therefore matched against its own variable.
+ */
+export function destInCanaryScope(env: Env, kind: "contact" | "company" | "deal", hubspotId: string): boolean {
+  const c = String(env.ACTIVITY_CANARY_HUBSPOT_CONTACT_ID ?? "").trim();
+  const co = String(env.ACTIVITY_CANARY_HUBSPOT_COMPANY_ID ?? "").trim();
+  const d = String(env.ACTIVITY_CANARY_HUBSPOT_DEAL_ID ?? "").trim();
+  const m = String(env.ACTIVITY_CANARY_MONDAY_ITEM_ID ?? "").trim();
+  if (!c && !co && !d && !m) return true;                      // no allowlist: full scope
+  const want = kind === "contact" ? c : kind === "company" ? co : d;
+  return !!want && hubspotId === want;
+}
+
 export function inCanaryScope(env: Env, hubspotContactId?: string, mondayItemId?: string): boolean {
   const c = String(env.ACTIVITY_CANARY_HUBSPOT_CONTACT_ID ?? "").trim();
   const m = String(env.ACTIVITY_CANARY_MONDAY_ITEM_ID ?? "").trim();
@@ -94,6 +112,8 @@ const PROPS: Record<string, string[]> = {
   notes: ["hs_timestamp", "hs_note_body", "hubspot_owner_id", "hs_object_source_user_id"],
   meetings: ["hs_timestamp", "hs_meeting_title", "hs_meeting_body", "hubspot_owner_id",
     "hs_object_source_user_id"],
+  tasks: ["hs_timestamp", "hs_task_subject", "hs_task_body", "hs_task_status", "hs_task_priority",
+    "hs_task_type", "hs_task_completion_date", "hubspot_owner_id", "hs_object_source_user_id"],
 };
 
 /**
@@ -278,7 +298,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
         "abnormal-participants");
 
     // Scope decides only WHETHER to look. Classification below sees the full, real set.
-    if (!dests.some(d => inCanaryScope(env, d.hubspotId, undefined)))
+    if (!dests.some(d => destInCanaryScope(env, d.kind, d.hubspotId)))
       return fin("skipped", `reason="no destination in canary scope" n=${dests.length}`);
 
     /**
@@ -312,22 +332,26 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
         `reason="${targets.length} destinations exceeds the ceiling of ${MAX_PARTICIPANTS}; writing none"`,
         "abnormal-participants");
 
-    targets = targets.filter(d => inCanaryScope(env, d.hubspotId, undefined));
+    targets = targets.filter(d => destInCanaryScope(env, d.kind, d.hubspotId));
     if (!targets.length) return fin("skipped", 'reason="no surviving destination is in canary scope"');
 
     const activity: HsActivity = {
       id: hubspotId, object,
-      timestamp: p.hs_timestamp,
+      // A task is dated by when it was DONE, not by its deadline — see taskTimestamp.
+      timestamp: object === "tasks" ? taskTimestamp(p) : p.hs_timestamp,
       ownerId: p.hubspot_owner_id,
       sourceUserId: p.hs_object_source_user_id,
       direction: p.hs_email_direction ?? p.hs_call_direction,
       sequenceId: p.hs_sequence_id,
     };
     const payload = timelinePayload(activity, {
-      title: p.hs_email_subject ?? p.hs_call_title ?? p.hs_meeting_title
+      title: p.hs_email_subject ?? p.hs_call_title ?? p.hs_meeting_title ?? p.hs_task_subject
         ?? strip(p.hs_note_body).slice(0, 80) ?? undefined,
       from: p.hs_email_from_email, to: p.hs_email_to_email,
-      body: strip(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body),
+      body: strip(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body ?? p.hs_task_body),
+      taskStatus: p.hs_task_status, taskType: p.hs_task_type, taskPriority: p.hs_task_priority,
+      taskDue: p.hs_timestamp && object === "tasks" ? p.hs_timestamp : undefined,
+      taskCompleted: p.hs_task_completion_date,
     });
     if (!payload.custom_activity_id)
       return fin("skipped", 'reason="no monday activity type for this object"');

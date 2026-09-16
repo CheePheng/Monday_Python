@@ -28,9 +28,25 @@ export const MONDAY_ACTIVITY_TYPE: Record<string, string> = {
   notes: "ca35c3ab-476a-4718-9b38-67ee945593d4",     // HubSpot Note
   calls: "1e0d9eca-222b-4f8b-85c8-4f7947e83595",     // HubSpot Call
   meetings: "7314447b-685c-4c58-9e38-80ad162d8fc4",  // HubSpot Meeting
+  tasks: "5f0e2267-8cea-45fa-bb54-2b1a29324a34",     // HubSpot Task — created 2026-09-16
 };
 
-/** monday native timeline type -> the HubSpot object a monday-origin activity becomes. */
+/**
+ * WHEN A TASK BELONGS IN THE TIMELINE.
+ *
+ * hs_timestamp on a task is its DUE DATE, not when anything happened — so using it directly would
+ * file a task completed in July under its October deadline, and a timeline sorted by "when did this
+ * happen" would be wrong about the one thing it is for. A completed task is dated by its completion;
+ * an open one has nothing to have happened yet, so its deadline is the best available anchor.
+ *
+ * Both dates are kept in the body regardless: the deadline is information a rep wants even after the
+ * work is done.
+ */
+export function taskTimestamp(p: Record<string, unknown>): string | undefined {
+  const done = String(p.hs_task_completion_date ?? "").trim();
+  return done || (String(p.hs_timestamp ?? "").trim() || undefined);
+}
+
 /**
  * Native monday entry type -> the HubSpot object to create. ANYTHING ABSENT HERE IS IGNORED, and the
  * most important absence is `email`.
@@ -145,6 +161,11 @@ export function timelinePayload(a: HsActivity, fields: Record<string, string | u
     a.direction ? `Direction: ${a.direction}` : "",
     a.ownerId ? `HubSpot owner: ${a.ownerId}` : "",
     a.sequenceId ? `Sequence ${a.sequenceId} — informational, does not count as follow-up` : "",
+    fields.taskStatus ? `Status: ${fields.taskStatus}` : "",
+    fields.taskType ? `Task type: ${fields.taskType}` : "",
+    fields.taskPriority && fields.taskPriority !== "NONE" ? `Priority: ${fields.taskPriority}` : "",
+    fields.taskDue ? `Due: ${fields.taskDue}` : "",
+    fields.taskCompleted ? `Completed: ${fields.taskCompleted}` : "",
     fields.body ? `\n${fields.body}` : "",
     `\n[hubspot:${a.object}:${a.id}]`,
   ].filter(Boolean);
