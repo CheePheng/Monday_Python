@@ -23,13 +23,21 @@ import { getWatermark, setWatermark } from "./activity-registry";
 import { syncHubspotActivity } from "./activity-sync";
 
 /**
- * THE SEED, FIXED IN THE SOURCE RATHER THAN TAKEN FROM THE CLOCK.
+ * THE SEED IS THE ACTIVITY CUTOVER, not the moment this was written.
  *
- * Captured 2026-09-17T08:06:31Z, while this was being built. If the first run instead used "now",
- * every task created between writing this and switching the cron on would fall into a gap nobody
- * would ever notice — the watermark would start after them and they would never be new again.
+ * Fixed in source either way — "now" on first run would drop every task modified between writing
+ * this and switching the cron on, into a gap nobody would ever look for. But the cutover is the
+ * RIGHT fixed point, and the reason is a case the later seed misses entirely: a task with a FUTURE
+ * due date, modified in that window, is skipped by the historical backfill (its timestamp is after
+ * the cutover, so the backfill considers it live sync's problem) AND never seen by a poller that
+ * starts later. Invisible to both, permanently.
+ *
+ * Re-reading the wider window is close to free. Everything the backfill already placed is caught by
+ * verifyExisting against the card's own marker, and the durable mapping is settled rather than
+ * duplicated. Reading too much costs a marker check; reading too little costs a task nobody knows
+ * is missing.
  */
-export const TASK_POLL_SEED = "2026-09-17T08:06:31Z";
+export const TASK_POLL_SEED = "2026-09-16T11:16:48Z";   // == ACTIVITY_CUTOVER_AT
 
 /**
  * Re-read a little before the watermark each time. A task modified in the same second the previous
@@ -101,7 +109,12 @@ export async function pollTasks(env: Env): Promise<PollResult> {
     if (!after) break;
   }
 
-  // Only ever forward, and only as far as work that actually landed.
+  /**
+   * Only ever forward, only as far as work that actually landed — and only CLAIMED once the store
+   * has confirmed it. setWatermark throws on failure and that is deliberately not caught: reporting
+   * an advance that was never persisted would tell an operator progress was saved when the next run
+   * will silently redo it.
+   */
   if (Date.parse(highWater) > Date.parse(before)) {
     await setWatermark(env, "tasks", highWater);
     r.watermarkAfter = highWater;

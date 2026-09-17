@@ -190,12 +190,27 @@ export async function rememberOwnerCycle(env: Env, contactId: string, cycle: str
  */
 const watermarkKey = (name: string) => `wm:${name}`;
 
+/**
+ * BOTH FAIL CLOSED, because "the store is broken" and "nothing has been recorded yet" are different
+ * facts and must not produce the same answer.
+ *
+ * Swallowing a read error and returning null reads as "no watermark", which sends the poller back to
+ * its seed and quietly replays everything — survivable here thanks to the overlap and the marker
+ * check, but it is a silent rewind dressed up as a normal first run. Swallowing a WRITE error is
+ * worse: the poll reports progress that was never saved.
+ *
+ * A genuinely absent watermark still returns null; only failure throws.
+ */
 export async function getWatermark(env: Env, name: string): Promise<string | null> {
   try { return await stub(env, watermarkKey(name)).getCard(); }
-  catch { return null; }          // unreadable: the caller falls back to its seed, never to "now"
+  catch (e) {
+    throw new Error(`watermark ${name} unreadable: ${String(e).slice(0, 90)}`);
+  }
 }
 
 export async function setWatermark(env: Env, name: string, value: string): Promise<void> {
   try { await stub(env, watermarkKey(name)).rememberPermanent(value); }
-  catch (e) { console.log(`[watermark] ${name} action=save-failed reason="${String(e).slice(0, 90)}"`); }
+  catch (e) {
+    throw new Error(`watermark ${name} not saved: ${String(e).slice(0, 90)}`);
+  }
 }

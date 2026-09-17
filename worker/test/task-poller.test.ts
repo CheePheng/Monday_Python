@@ -56,6 +56,8 @@ describe("the watermark", () => {
     const since = searched[0].filterGroups[0].filters[0].value;
     expect(Date.parse(since)).toBe(Date.parse(TASK_POLL_SEED) - OVERLAP_MS);
     expect(Date.parse(since)).toBeGreaterThan(Date.parse("2026-09-01T00:00:00Z"));
+    // and it is the migration cutover, so nothing can fall between the backfill and the poller
+    expect(TASK_POLL_SEED).toBe("2026-09-16T11:16:48Z");
   });
 
   /**
@@ -65,7 +67,7 @@ describe("the watermark", () => {
    */
   it("hard-codes the seed rather than reading the clock", () => {
     const code = readCode("task-poller.ts");
-    expect(code).toContain('export const TASK_POLL_SEED = "2026-09-17T08:06:31Z"');
+    expect(code).toContain('export const TASK_POLL_SEED = "2026-09-16T11:16:48Z"');
     expect(code).not.toMatch(/TASK_POLL_SEED\s*=\s*new Date\(\)/);
   });
 
@@ -114,6 +116,36 @@ describe("the watermark", () => {
     hubspot.hs.mockResolvedValueOnce({ results: [task("1", "2026-09-20T10:00:00.000Z")] });
     const r = await pollTasks(env);
     expect(r.watermarkAfter).toBe("2026-09-25T00:00:00.000Z");
+  });
+
+  /**
+   * "THE STORE IS BROKEN" AND "NOTHING RECORDED YET" ARE DIFFERENT FACTS.
+   *
+   * Returning null on a read error reads as "no watermark", which sends the poller back to its seed
+   * and replays everything — survivable thanks to the overlap and the marker check, but it is a
+   * silent rewind wearing the costume of a normal first run. It must fail loudly instead.
+   */
+  it("fails the poll when the watermark cannot be read", async () => {
+    reg.getWatermark.mockRejectedValueOnce(new Error("durable object unreachable"));
+    await expect(pollTasks(env)).rejects.toThrow(/unreachable/);
+  });
+
+  /**
+   * And a WRITE failure is worse than a read one: the poll would report progress that was never
+   * saved, so an operator believes the position advanced while the next run silently redoes it.
+   */
+  it("does not claim the mark advanced when saving it failed", async () => {
+    hubspot.hs.mockResolvedValueOnce({ results: [task("1", "2026-09-20T10:00:00.000Z")] });
+    reg.setWatermark.mockRejectedValueOnce(new Error("storage write failed"));
+    await expect(pollTasks(env)).rejects.toThrow(/storage write failed/);
+    expect(reg.marks.get("tasks")).toBeUndefined();       // nothing persisted, nothing claimed
+  });
+
+  /** A genuinely absent watermark is NOT an error — it is the ordinary first run. */
+  it("treats an absent watermark as the seed, not as a failure", async () => {
+    reg.getWatermark.mockResolvedValueOnce(null);
+    const r = await pollTasks(env);
+    expect(r.watermarkBefore).toBe(TASK_POLL_SEED);
   });
 
   it("bounds how much one poll takes on", async () => {
