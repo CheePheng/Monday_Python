@@ -547,6 +547,19 @@ export const CRM_LINE_ITEMS: ObjectSpec = {
     { toObject: "deals", nameProps: ["dealname"], relationCol: "board_relation_mm76w9y5" },
   ],
   fields: [
+    /**
+     * DEAL OWNER, so item-level permissions can later restrict a rep to their own deals' lines.
+     *
+     * NOT derived from the associated Deal, though that is what it represents. Measured across 60
+     * line items: 46 carried an owner identical to their deal's, 0 disagreed, and 0 lacked one where
+     * the deal had one — HubSpot already maintains this. Computing it ourselves would add a second
+     * source of truth to drift out of step, and a permissions column that silently drifts is how
+     * someone loses sight of their own pipeline.
+     *
+     * oneWay: monday must never write an owner back. The Deal is where ownership is decided, and a
+     * stale people column reassigning a line item is the failure this ordering exists to prevent.
+     */
+    { hs: "hubspot_owner_id", col: "multiple_person_mm79ey0p", type: "people", oneWay: true },
     { hs: "hs_sku", col: "text_mm73mvfj", type: "text", reverse: true },
     { hs: "description", col: "product_and_service_description", type: "long_text", reverse: true },
     { hs: "note", col: "text_mm7318s1", type: "text", reverse: true },

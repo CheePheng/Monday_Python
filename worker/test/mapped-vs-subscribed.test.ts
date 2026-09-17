@@ -87,14 +87,38 @@ describe("the app points at the CRM Worker", () => {
    * activity-events-inert.test.ts pins that the router ignores them rather than misrouting them onto
    * "deal" via the bare-payload fallback.
    */
-  it("covers contacts, companies, and the four activity types", () =>
+  it("covers contacts, companies, and all five activity types", () =>
     expect([...new Set(subs.all.map(s => s.objectType))].sort())
-      .toEqual(["call", "company", "contact", "email", "meeting_event", "note"]));
+      .toEqual(["call", "company", "contact", "email", "meeting_event", "note", "task"]));
 
-  it("subscribes to activity CREATION only — activities are immutable in v1", () => {
-    for (const object of ["email", "call", "note", "meeting_event"]) {
-      const forObject = subs.all.filter(s => s.objectType === object);
-      expect(forObject.map(s => s.subscriptionType)).toEqual(["object.creation"]);
+  /**
+   * CREATION, AND ASSOCIATION CHANGE. Creation alone was right while the only destination was the
+   * associated Contact; it stops being right once one activity fans out to a Contact, a Company and a
+   * Deal, because an activity linked to its records AFTER creation fires creation while associated
+   * with nothing. Observed directly: a note created bare and associated a moment later reached the
+   * Contact and missed the Company and Deal entirely.
+   *
+   * propertyChange stays out — monday has no timeline-item update mutation, so an edited activity is
+   * something we could not act on.
+   */
+  it("subscribes to activity creation AND association change, never propertyChange", () => {
+    for (const object of ["email", "call", "note", "meeting_event", "task"]) {
+      const forObject = subs.all.filter(s => s.objectType === object).map(s => s.subscriptionType).sort();
+      expect(forObject).toEqual(["object.associationChange", "object.creation"]);
     }
+  });
+
+  /**
+   * DECLARED BUT NOT DELIVERING, and recorded here so nobody re-derives it from scratch. HubSpot
+   * accepted the associationChange subscriptions on build #10 and still sends nothing for them, even
+   * after the app was reauthorized — tested twice against a real note. The live path therefore cannot
+   * depend on them; bounded rechecks after creation are what actually close the gap.
+   *
+   * task creation is declared too, but crm.objects.tasks.read is not obtainable for this app type
+   * ("isn't available to this app — contact HubSpot support"), so task events cannot arrive either.
+   * Historical Tasks import regardless, because the backfill reads HubSpot directly.
+   */
+  it("declares task creation even though the scope for it is unobtainable", () => {
+    expect(subs.all.some(s => s.objectType === "task" && s.subscriptionType === "object.creation")).toBe(true);
   });
 });
