@@ -15,6 +15,7 @@ import type { Env } from "../src/types";
 
 const hubspot = vi.hoisted(() => ({ hs: vi.fn() }));
 const sync = vi.hoisted(() => ({ syncHubspotActivity: vi.fn(), activitySyncEnabled: () => true }));
+const retry = vi.hoisted(() => ({ scheduleReconcile: vi.fn() }));
 const reg = vi.hoisted(() => {
   const marks = new Map<string, string>();
   return {
@@ -27,6 +28,7 @@ const reg = vi.hoisted(() => {
 vi.mock("../src/hubspot", () => hubspot);
 vi.mock("../src/activity-sync", () => sync);
 vi.mock("../src/activity-registry", () => reg);
+vi.mock("../src/activity-retry", () => retry);
 
 const { pollTasks } = await import("../src/task-poller");
 
@@ -139,6 +141,26 @@ describe("the watermark", () => {
     reg.setWatermark.mockRejectedValueOnce(new Error("storage write failed"));
     await expect(pollTasks(env)).rejects.toThrow(/storage write failed/);
     expect(reg.marks.get("tasks")).toBeUndefined();       // nothing persisted, nothing claimed
+  });
+
+  /**
+   * THE WATERMARK ALONE IS NOT ENOUGH FOR ASSOCIATIONS. Measured on a disposable task: attaching a
+   * Company advanced hs_lastmodifieddate, attaching a Deal moments later did not. Association changes
+   * move it SOMETIMES, and for the one it misses that is the same as never. So each task the poller
+   * writes also gets the bounded reconcile already built for the webhook path.
+   */
+  it("schedules a bounded association reconcile for each task it writes", async () => {
+    hubspot.hs.mockResolvedValueOnce({ results: [task("55", "2026-09-20T10:00:00.000Z")] });
+    await pollTasks(env);
+    expect(retry.scheduleReconcile).toHaveBeenCalledWith(env, "tasks", "55");
+  });
+
+  /** Nothing new to write means nothing to reconcile — a repeat poll must stay silent. */
+  it("does not reconcile a task that was already represented", async () => {
+    hubspot.hs.mockResolvedValueOnce({ results: [task("56", "2026-09-20T10:00:00.000Z")] });
+    sync.syncHubspotActivity.mockResolvedValueOnce("skipped");
+    await pollTasks(env);
+    expect(retry.scheduleReconcile).not.toHaveBeenCalled();
   });
 
   /** A genuinely absent watermark is NOT an error — it is the ordinary first run. */

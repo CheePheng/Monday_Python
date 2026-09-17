@@ -20,6 +20,7 @@
 import type { Env } from "./types";
 import { hs } from "./hubspot";
 import { getWatermark, setWatermark } from "./activity-registry";
+import { scheduleReconcile } from "./activity-retry";
 import { syncHubspotActivity } from "./activity-sync";
 
 /**
@@ -95,7 +96,20 @@ export async function pollTasks(env: Env): Promise<PollResult> {
          */
         const outcome = await syncHubspotActivity(env, "tasks", String(t.id),
           { ignoreCutover: true, verifyExisting: true });
-        if (outcome === "created") r.written++;
+        if (outcome === "created") {
+          r.written++;
+          /**
+           * AND LOOK AGAIN SHORTLY, because the watermark cannot be trusted to notice a late
+           * association on its own. Measured on a disposable task: attaching a Company advanced
+           * hs_lastmodifieddate, attaching a Deal moments later did NOT. So association changes move
+           * it SOMETIMES — and a watermark that sometimes misses is, for the association it misses,
+           * the same as one that never notices.
+           *
+           * The bounded reconcile built for the webhook path answers this exactly, so it is reused
+           * rather than reinvented: +30s and +5min, destination-idempotent, then done.
+           */
+          await scheduleReconcile(env, "tasks", String(t.id));
+        }
         else if (outcome === "skipped") r.unchanged++;
         else { r.failures++; stop = true; break; }      // ordered: stop rather than step over it
         if (modified) highWater = modified;
