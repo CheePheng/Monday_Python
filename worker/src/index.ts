@@ -2,7 +2,7 @@ import type { Env, RunOpts, Budget } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
 export { ActivityRetry } from "./activity-retry-do";
 export { DeferredSync } from "./deferred-sync-do";
-import { pollTasks } from "./task-poller";
+import { pollTasks, reconcileRecentTasks } from "./task-poller";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { writeModeFor, maxWritesFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
@@ -73,6 +73,13 @@ export default {
     if (event.cron === "*/5 * * * *") {
       ectx.waitUntil(pollTasks(env)
         .catch(e => console.log(`[task-poller] action=error reason="${String(e).slice(0, 140)}"`)));
+      return;
+    }
+    if (event.cron === "0 4 * * *") {
+      // Deliberately NOT 03:00: that expression belongs to the full CRM reconciliation, and sharing
+      // it would make a small bounded task sweep indistinguishable from a deep scan of every record.
+      ectx.waitUntil(reconcileRecentTasks(env)
+        .catch(e => console.log(`[task-sweep] action=error reason="${String(e).slice(0, 140)}"`)));
       return;
     }
     if (event.cron === "0 3 * * *") {

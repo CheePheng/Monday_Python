@@ -137,3 +137,74 @@ export async function pollTasks(env: Env): Promise<PollResult> {
     + ` failures=${r.failures} watermark=${r.watermarkBefore} -> ${r.watermarkAfter}`);
   return r;
 }
+
+/**
+ * THE DAILY SWEEP, for the association the watermark will never notice.
+ *
+ * The +30s/+5min reconcile covers associations attached shortly after a task is first discovered. It
+ * cannot cover this: a task synced on Monday, its two looks long finished, gains a Deal on Thursday —
+ * and because an association-only change does NOT reliably advance hs_lastmodifieddate (measured:
+ * attaching a Company moved it, attaching a Deal moments later did not), the incremental poller never
+ * sees that task again. The association would simply never arrive, with nothing recording the loss.
+ *
+ * So once a day, look at recent tasks regardless of the watermark. Bounded by a window rather than
+ * scanning history: 8,372 tasks exist, but only 86 were created or touched in the last ninety days
+ * and fifteen in the last thirty. A year's window is a few hundred records — small enough to run
+ * daily, wide enough to cover anything a person is plausibly still editing.
+ *
+ * WHAT IT STILL DOES NOT CATCH, said plainly rather than implied away: an association attached to a
+ * task OLDER than the window that HubSpot has not otherwise touched. No bounded window can. The only
+ * complete answer is sweeping all 8,372 every time — some 33,000 HubSpot calls to find an edit to a
+ * legacy object the team is migrating off. The residual risk is one missing timeline entry on an old
+ * admin task, and the cure costs more than the disease.
+ */
+export const SWEEP_WINDOW_DAYS = 365;
+export const SWEEP_MAX = 800;
+
+export interface SweepResult { scanned: number; written: number; unchanged: number; failures: number }
+
+export async function reconcileRecentTasks(env: Env, windowDays = SWEEP_WINDOW_DAYS): Promise<SweepResult> {
+  const since = String(Date.now() - windowDays * 86_400_000);
+  const r: SweepResult = { scanned: 0, written: 0, unchanged: 0, failures: 0 };
+  let after: string | undefined;
+  let capped = false;
+
+  for (let page = 0; page < 20 && !capped; page++) {
+    // Separate filterGroups are OR in HubSpot: created recently, OR touched recently.
+    const res = await hs(env, "POST", "/crm/v3/objects/tasks/search", {
+      filterGroups: [
+        { filters: [{ propertyName: "hs_createdate", operator: "GTE", value: since }] },
+        { filters: [{ propertyName: "hs_lastmodifieddate", operator: "GTE", value: since }] },
+      ],
+      sorts: [{ propertyName: "hs_lastmodifieddate", direction: "DESCENDING" }],
+      properties: ["hs_lastmodifieddate"],
+      limit: 100, ...(after ? { after } : {}),
+    }, 2);
+
+    for (const t of res?.results ?? []) {
+      if (r.scanned >= SWEEP_MAX) {
+        console.log(`[task-sweep] action=capped at=${SWEEP_MAX} reason="window larger than expected"`);
+        capped = true; break;
+      }
+      r.scanned++;
+      try {
+        // Same narrow bypass and the same card check the poller uses: existing destinations create
+        // nothing, a newly attached Company or Deal gets exactly one entry.
+        const outcome = await syncHubspotActivity(env, "tasks", String(t.id),
+          { ignoreCutover: true, verifyExisting: true });
+        if (outcome === "created") r.written++;
+        else if (outcome === "skipped") r.unchanged++;
+        else r.failures++;
+      } catch (e) {
+        // One bad task must not end the sweep; the rest of the window still deserves a look.
+        r.failures++;
+        console.log(`[task-sweep] task=${t.id} action=error reason="${String(e).slice(0, 110)}"`);
+      }
+    }
+    after = res?.paging?.next?.after;
+    if (!after) break;
+  }
+  console.log(`[task-sweep] window=${windowDays}d scanned=${r.scanned} written=${r.written}`
+    + ` unchanged=${r.unchanged} failures=${r.failures}`);
+  return r;
+}

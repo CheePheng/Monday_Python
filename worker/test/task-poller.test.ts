@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TASK_POLL_SEED, OVERLAP_MS, MAX_PER_POLL } from "../src/task-poller";
+import { TASK_POLL_SEED, OVERLAP_MS, MAX_PER_POLL, SWEEP_MAX, SWEEP_WINDOW_DAYS } from "../src/task-poller";
 import { readCode } from "../scripts/read-source.mjs";
 import type { Env } from "../src/types";
 
@@ -30,7 +30,7 @@ vi.mock("../src/activity-sync", () => sync);
 vi.mock("../src/activity-registry", () => reg);
 vi.mock("../src/activity-retry", () => retry);
 
-const { pollTasks } = await import("../src/task-poller");
+const { pollTasks, reconcileRecentTasks } = await import("../src/task-poller");
 
 const env = {} as Env;
 let searched: any[] = [];
@@ -226,5 +226,83 @@ describe("the scheduler cannot wake the wrong job", () => {
     // ...and the old shape — anything-not-the-daily-sweep runs an incremental — must be gone.
     expect(code).not.toMatch(/}\s*else\s*{\s*ectx\.waitUntil\(runIncremental/);
     expect(code).toContain('ectx.waitUntil(pollTasks(env)');
+  });
+});
+
+describe("the daily sweep, for what the watermark cannot notice", () => {
+  /**
+   * THE CASE THE +30s/+5min RECONCILE CANNOT REACH. A task synced on Monday, its two looks long
+   * finished, gains a Deal on Thursday. Because an association-only change does not reliably advance
+   * hs_lastmodifieddate — measured: attaching a Company moved it, attaching a Deal moments later did
+   * not — the incremental poller never returns that task, and the association simply never arrives.
+   */
+  it("finds a task the watermark would never return", async () => {
+    hubspot.hs.mockResolvedValueOnce({ results: [task("900", "2026-06-01T00:00:00.000Z")] });
+    reg.marks.set("tasks", "2026-09-20T00:00:00.000Z");     // long past that task's last modification
+
+    const r = await reconcileRecentTasks(env);
+
+    expect(r.scanned).toBe(1);
+    expect(sync.syncHubspotActivity).toHaveBeenCalledWith(env, "tasks", "900",
+      { ignoreCutover: true, verifyExisting: true });
+  });
+
+  /**
+   * A WINDOW, never history. 8,372 tasks exist; scanning them daily would be some 33,000 HubSpot
+   * calls to find an edit to a legacy object the team is migrating away from.
+   */
+  it("bounds itself to a recent window rather than all history", async () => {
+    await reconcileRecentTasks(env);
+    const body = searched[0];
+    expect(body.filterGroups).toHaveLength(2);              // created recently OR touched recently
+    const props = body.filterGroups.map((g: any) => g.filters[0].propertyName).sort();
+    expect(props).toEqual(["hs_createdate", "hs_lastmodifieddate"]);
+    const oldest = Math.min(...body.filterGroups.map((g: any) => Number(g.filters[0].value)));
+    expect(Math.round((Date.now() - oldest) / 86_400_000)).toBe(SWEEP_WINDOW_DAYS);
+  });
+
+  it("stops at the cap if the window turns out bigger than expected", async () => {
+    const many = Array.from({ length: 900 }, (_, i) => task("s" + i, "2026-09-01T00:00:00.000Z"));
+    hubspot.hs.mockResolvedValue({ results: many, paging: { next: { after: "x" } } });
+    const r = await reconcileRecentTasks(env);
+    expect(r.scanned).toBeLessThanOrEqual(SWEEP_MAX);
+  });
+
+  /** Already-represented destinations create nothing, so a second sweep is silent. */
+  it("creates nothing on a second pass", async () => {
+    hubspot.hs.mockResolvedValue({ results: [task("901", "2026-09-01T00:00:00.000Z")] });
+    sync.syncHubspotActivity.mockResolvedValue("skipped");
+    const r = await reconcileRecentTasks(env);
+    expect(r.written).toBe(0);
+    expect(r.unchanged).toBe(1);
+  });
+
+  /** One bad task must not end the sweep — the rest of the window still deserves a look. */
+  it("keeps going past a failure", async () => {
+    hubspot.hs.mockResolvedValueOnce({ results: [
+      task("a", "2026-09-01T00:00:00.000Z"), task("b", "2026-09-02T00:00:00.000Z")] });
+    sync.syncHubspotActivity
+      .mockRejectedValueOnce(new Error("HubSpot 500"))
+      .mockResolvedValueOnce("created");
+    const r = await reconcileRecentTasks(env);
+    expect(r.scanned).toBe(2);
+    expect(r.failures).toBe(1);
+    expect(r.written).toBe(1);
+  });
+
+  /** The sweep must never touch the incremental watermark; they are independent mechanisms and
+   *  conflating them would let a sweep silently rewind or advance the poller. */
+  it("leaves the watermark alone", async () => {
+    reg.marks.set("tasks", "2026-09-20T00:00:00.000Z");
+    hubspot.hs.mockResolvedValueOnce({ results: [task("902", "2026-09-01T00:00:00.000Z")] });
+    await reconcileRecentTasks(env);
+    expect(reg.setWatermark).not.toHaveBeenCalled();
+    expect(reg.marks.get("tasks")).toBe("2026-09-20T00:00:00.000Z");
+  });
+
+  it("runs on its own schedule, never the full CRM reconciliation's", () => {
+    const code = readCode("index.ts");
+    expect(code).toContain('if (event.cron === "0 4 * * *")');
+    expect(code).toContain("reconcileRecentTasks(env)");
   });
 });
