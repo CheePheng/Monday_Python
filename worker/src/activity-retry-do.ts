@@ -11,7 +11,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./types";
 import {
   stepForAlarm, afterOutcome, nextDelayMs, deadLetterStub,
-  DEAD_LETTER_CAP, RETRY_SCHEDULE_MS,
+  DEAD_LETTER_CAP, scheduleFor,
   type PendingActivity, type DeadActivity,
 } from "./activity-retry";
 import { syncHubspotActivity, activitySyncEnabled } from "./activity-sync";
@@ -28,7 +28,7 @@ export class ActivityRetry extends DurableObject<Env> {
     return this.ctx.blockConcurrencyWhile(async () => {
       if (await this.ctx.storage.get<PendingActivity>("job")) return "already-pending" as const;
       await this.ctx.storage.put("job", job);
-      await this.ctx.storage.setAlarm(Date.now() + RETRY_SCHEDULE_MS[0]);
+      await this.ctx.storage.setAlarm(Date.now() + scheduleFor(job.mode)[0]);
       return "scheduled" as const;
     });
   }
@@ -78,7 +78,7 @@ export class ActivityRetry extends DurableObject<Env> {
        * often than the bounded schedule allows. Catching here keeps one clock.
        */
       const attempts = job.attempts + 1;
-      const delayMs = nextDelayMs(attempts);
+      const delayMs = nextDelayMs(attempts, job.mode);
       if (delayMs === null) return this.die({ ...job, attempts }, `retry threw: ${String(e).slice(0, 120)}`);
       await this.ctx.storage.put("job", { ...job, attempts, reason: "error" });
       await this.ctx.storage.setAlarm(Date.now() + delayMs);

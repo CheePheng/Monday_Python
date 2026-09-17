@@ -10,7 +10,7 @@ import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
 import { isDeletionEvent, restoreDeletedCard } from "./restore-card";
 import { CRM_CONTACTS } from "./config/crm";
-import { scheduleIfUnresolved } from "./activity-retry";
+import { scheduleIfUnresolved, scheduleReconcile } from "./activity-retry";
 import { spillDeferred, type DeferredItem } from "./deferred-sync";
 import {
   ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
@@ -443,7 +443,11 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
         // would ever redeliver this webhook — waitUntil already answered 200 — so the job is
         // persisted here instead of being logged and lost.
         ectx.waitUntil(syncHubspotActivity(env, a.object, a.id)
-          .then(outcome => scheduleIfUnresolved(env, a.object, a.id, outcome))
+          .then(async outcome => {
+            await scheduleIfUnresolved(env, a.object, a.id, outcome);
+            // And look again shortly: the associations may not have existed when this fired.
+            if (outcome === "created" || outcome === "skipped") await scheduleReconcile(env, a.object, a.id);
+          })
           .catch(e => console.log(`[activity] source=hubspot ${a.object}=${a.id} action=error reason="${String(e).slice(0, 140)}"`)));
     }
   }

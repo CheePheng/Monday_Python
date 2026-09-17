@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   nextDelayMs, shouldRetry, stepForAlarm, afterOutcome, scheduleIfUnresolved,
   RETRY_SCHEDULE_MS, DISABLED_RECHECK_MS, MAX_DEFERRED_MS, DEAD_LETTER_CAP,
-  retryName, DEAD_LETTER_NAME, type PendingActivity, type ActivityOutcome,
+  retryName, DEAD_LETTER_NAME, RECONCILE_SCHEDULE_MS, type PendingActivity, type ActivityOutcome,
 } from "../src/activity-retry";
 import type { Env } from "../src/types";
 
@@ -176,7 +176,7 @@ describe("the retry policy", () => {
    *  must stop costing work and must become visible instead of humming forever. */
   it("follows the schedule and then terminates", () => {
     expect(RETRY_SCHEDULE_MS).toEqual([60_000, 300_000, 900_000, 3_600_000]);
-    expect([0, 1, 2, 3].map(nextDelayMs)).toEqual([60_000, 300_000, 900_000, 3_600_000]);
+    expect([0, 1, 2, 3].map(n => nextDelayMs(n))).toEqual([60_000, 300_000, 900_000, 3_600_000]);
     expect(nextDelayMs(4)).toBeNull();
   });
 
@@ -194,6 +194,37 @@ describe("the retry policy", () => {
   it("retries only the pre-create failures", () => {
     expect(["unresolved", "blocked", "creating"].map(o => shouldRetry(o as ActivityOutcome)))
       .toEqual([true, true, true]);
+  });
+
+  /**
+   * A RECONCILE IS NOT A RETRY. It runs after a SUCCESSFUL sync, because HubSpot fires creation the
+   * moment an activity exists — before an automation has attached its Company and Deal. So "created"
+   * and "skipped" are the ordinary results of looking again, and must NOT cancel the second look.
+   */
+  it("keeps a reconcile going through outcomes that would end a retry", () => {
+    const r = { ...job({ attempts: 0 }), mode: "reconcile" as const };
+    expect(afterOutcome(r, "created", 0))
+      .toEqual({ action: "retry", job: expect.objectContaining({ attempts: 1 }), delayMs: 300_000 });
+    expect(afterOutcome(r, "skipped", 0).action).toBe("retry");
+  });
+
+  /** Two looks and then it stops — and stopping is success, not a terminal failure. */
+  it("ends a reconcile quietly once both looks are taken", () => {
+    const r = { ...job({ attempts: 1 }), mode: "reconcile" as const };
+    expect(afterOutcome(r, "created", 0)).toEqual({ action: "done" });
+  });
+
+  it("uses the shorter schedule for reconciles", () => {
+    expect(RECONCILE_SCHEDULE_MS).toEqual([30_000, 300_000]);
+    expect(nextDelayMs(0, "reconcile")).toBe(30_000);
+    expect(nextDelayMs(1, "reconcile")).toBe(300_000);
+    expect(nextDelayMs(2, "reconcile")).toBeNull();
+  });
+
+  /** A job written before reconciles existed has no mode and must still behave as a retry. */
+  it("treats a job with no mode as a retry", () => {
+    expect(nextDelayMs(0)).toBe(60_000);
+    expect(afterOutcome(job({ attempts: 0 }), "created", 0)).toEqual({ action: "done" });
   });
 
   it("afterOutcome advances the attempt and picks the next delay", () => {

@@ -61,6 +61,16 @@ export const shouldRetry = (o: ActivityOutcome): boolean => RETRYABLE.has(o);
  */
 export const RETRY_SCHEDULE_MS: readonly number[] = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000];
 
+/**
+ * Two looks, then stop. Associations are attached within seconds by anything automated; five minutes
+ * is generous for a person doing it by hand. Beyond that this becomes polling, and polling every
+ * activity forever to catch an edit someone might make next week is not worth what it costs.
+ */
+export const RECONCILE_SCHEDULE_MS: readonly number[] = [30_000, 5 * 60_000];
+
+export const scheduleFor = (mode?: PendingMode) =>
+  mode === "reconcile" ? RECONCILE_SCHEDULE_MS : RETRY_SCHEDULE_MS;
+
 /** How often a job re-checks whether the feature has come back on. Not an attempt. */
 export const DISABLED_RECHECK_MS = 60 * 60_000;
 
@@ -73,7 +83,26 @@ export const MAX_DEFERRED_MS = 7 * 24 * 60 * 60_000;
 /** Most recent terminal failures kept for inspection. Capped: this is a diagnostic, not a log store. */
 export const DEAD_LETTER_CAP = 200;
 
+/**
+ * WHY A RECONCILE IS NOT A RETRY, even though it rides the same rails.
+ *
+ * A retry exists because something FAILED. A reconcile runs after a perfectly successful sync,
+ * because HubSpot fires object.creation the moment an activity exists — which for an automation or an
+ * API flow that posts the record first and links it second is BEFORE it is associated with anything.
+ * We proved this directly: a note created bare and associated a moment later reached the Contact and
+ * missed the Company and the Deal entirely, permanently, because "created" is a settled decision.
+ *
+ * object.associationChange was meant to cover exactly this and does not deliver — declared, accepted
+ * by HubSpot, reauthorized, and still silent, tested twice against real notes. So rather than wait for
+ * a webhook that is not coming, we simply look again: once after thirty seconds, once after five
+ * minutes, and then stop. Destination-level idempotency makes a look cost nothing when nothing has
+ * changed, and adds exactly one entry when a Company or Deal has since been attached.
+ */
+export type PendingMode = "retry" | "reconcile";
+
 export interface PendingActivity {
+  /** Absent means "retry", so jobs written before reconciles existed still read correctly. */
+  mode?: PendingMode;
   object: string;        // "emails" | "calls" | "notes" | "meetings"
   hubspotId: string;
   reason: string;        // the outcome that caused the last scheduling
@@ -84,8 +113,9 @@ export interface PendingActivity {
 export interface DeadActivity extends PendingActivity { diedAtMs: number; terminalReason: string }
 
 /** Delay before attempt n+1, or null when the schedule is exhausted. */
-export function nextDelayMs(attemptsCompleted: number): number | null {
-  return attemptsCompleted < RETRY_SCHEDULE_MS.length ? RETRY_SCHEDULE_MS[attemptsCompleted] : null;
+export function nextDelayMs(attemptsCompleted: number, mode?: PendingMode): number | null {
+  const sched = scheduleFor(mode);
+  return attemptsCompleted < sched.length ? sched[attemptsCompleted] : null;
 }
 
 export type AlarmStep =
@@ -120,11 +150,19 @@ export type OutcomeStep =
  * a duplicate; the standing reservation, not this queue, is what covers it.
  */
 export function afterOutcome(job: PendingActivity, outcome: ActivityOutcome, _nowMs: number): OutcomeStep {
-  if (!shouldRetry(outcome)) return { action: "done" };
+  const reconciling = job.mode === "reconcile";
+  /**
+   * A reconcile keeps its appointment whatever the outcome. "created" and "skipped" are the ORDINARY
+   * results of looking again — nothing new was attached — and treating them as "done" would cancel
+   * the second look, which is the one that catches an association added a few minutes later.
+   */
+  if (!reconciling && !shouldRetry(outcome)) return { action: "done" };
   const attempts = job.attempts + 1;
-  const delayMs = nextDelayMs(attempts);
+  const delayMs = nextDelayMs(attempts, job.mode);
   if (delayMs === null)
-    return { action: "die", reason: `still "${outcome}" after ${attempts} attempts` };
+    return reconciling
+      ? { action: "done" }                                   // both looks taken; nothing failed
+      : { action: "die", reason: `still "${outcome}" after ${attempts} attempts` };
   return { action: "retry", job: { ...job, attempts, reason: outcome }, delayMs };
 }
 
@@ -149,6 +187,22 @@ export const deadLetterStub = (env: Env) => stub(env, DEAD_LETTER_NAME);
  * Fails soft on purpose. This is a fallback for a rare race; it must not be able to turn into an
  * exception on the path that serves ordinary contact and company events.
  */
+/**
+ * Look again shortly, because HubSpot will not tell us when the associations land.
+ *
+ * Deliberately fire-and-forget and deliberately quiet: this is an optimisation over a webhook that
+ * does not arrive, and it must never be able to fail the request that scheduled it.
+ */
+export async function scheduleReconcile(env: Env, object: string, hubspotId: string,
+    nowMs = Date.now()): Promise<void> {
+  try {
+    await retryStub(env, object, hubspotId)
+      .schedule({ mode: "reconcile", object, hubspotId, reason: "association-settle", attempts: 0, firstSeenMs: nowMs });
+  } catch (e) {
+    console.log(`[activity-retry] ${object}=${hubspotId} action=reconcile-schedule-failed reason="${String(e).slice(0, 110)}"`);
+  }
+}
+
 export async function scheduleIfUnresolved(env: Env, object: string, hubspotId: string,
     outcome: ActivityOutcome, nowMs = Date.now()): Promise<void> {
   if (!shouldRetry(outcome)) return;
