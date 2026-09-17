@@ -179,3 +179,23 @@ export async function rememberOwnerCycle(env: Env, contactId: string, cycle: str
   try { await stub(env, cycleKey(contactId)).rememberPermanent(cycle); }
   catch (e) { console.log(`[activity-registry] ${cycleKey(contactId)} action=cycle-save-failed reason="${String(e).slice(0, 90)}"`); }
 }
+
+/**
+ * A DURABLE WATERMARK, on the same strongly-consistent store everything else here uses.
+ *
+ * The task poller needs to remember how far it has read across Worker invocations, and that is
+ * exactly the key-value the card registry already provides — so it reuses it rather than introducing
+ * a third kind of state. Permanent, because a watermark that expires silently rewinds the poller to
+ * its seed and re-reads years of tasks.
+ */
+const watermarkKey = (name: string) => `wm:${name}`;
+
+export async function getWatermark(env: Env, name: string): Promise<string | null> {
+  try { return await stub(env, watermarkKey(name)).getCard(); }
+  catch { return null; }          // unreadable: the caller falls back to its seed, never to "now"
+}
+
+export async function setWatermark(env: Env, name: string, value: string): Promise<void> {
+  try { await stub(env, watermarkKey(name)).rememberPermanent(value); }
+  catch (e) { console.log(`[watermark] ${name} action=save-failed reason="${String(e).slice(0, 90)}"`); }
+}

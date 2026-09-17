@@ -237,7 +237,39 @@ async function participantsFor(env: Env, contactIds: string[]):
  * Only ever CREATES. monday has no timeline-item update mutation, so there is nothing to reconcile if
  * the activity later changes in HubSpot — see activities.ts on immutability.
  */
-export async function syncHubspotActivity(env: Env, object: string, hubspotId: string): Promise<ActivityOutcome> {
+/**
+ * Options exist for ONE caller, the task poller, and both are deliberately narrow.
+ *
+ * ignoreCutover — a task's timeline position is its due or completion date, routinely long past, so
+ * the cutover that exists to stop a bulk history push would reject every task the poller finds. No
+ * webhook path sets this.
+ *
+ * verifyExisting — the historical backfill writes timeline entries WITHOUT creating live durable
+ * mappings, so a poller that trusted the mapping alone would faithfully duplicate everything the
+ * migration had already placed. Checking the card costs a read; not checking costs a duplicate.
+ */
+export interface SyncActivityOpts { ignoreCutover?: boolean; verifyExisting?: boolean }
+
+/** Is this activity already represented on that card, according to the card itself? */
+async function alreadyOnCard(env: Env, cardId: string, object: string, hubspotId: string): Promise<boolean> {
+  const marker = `[hubspot:${object}:${hubspotId}]`;
+  let cursor: string | null = null;
+  for (let p = 0; p < 40; p++) {
+    const d: any = await gql(env,
+      `query ($i: ID!, $c: String) { timeline(id: $i) { timeline_items_page(limit: 100, cursor: $c) {
+          cursor timeline_items { content } } } }`, { i: cardId, c: cursor }, 2);
+    const page = d?.timeline?.timeline_items_page;
+    if (!page) return false;
+    for (const e of page.timeline_items ?? [])
+      if (String(e?.content ?? "").includes(marker)) return true;
+    cursor = page.cursor ?? null;
+    if (!cursor) return false;
+  }
+  return false;
+}
+
+export async function syncHubspotActivity(env: Env, object: string, hubspotId: string,
+    opts: SyncActivityOpts = {}): Promise<ActivityOutcome> {
   /**
    * EVERY EXIT REPORTS AN OUTCOME, because the durable retry has to tell three cases apart that all
    * used to look like "it did not sync": a settled decision (nothing to do), a lost race (retry), and
@@ -256,7 +288,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     const p = rec?.properties ?? {};
 
     // CUTOVER-FORWARD. Refuse anything older than the cutover before spending a lookup on it.
-    if (!afterCutover(env, p.hs_timestamp))
+    if (!opts.ignoreCutover && !afterCutover(env, p.hs_timestamp))
       return fin("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
 
     /**
@@ -382,6 +414,17 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
       if (!card) {
         fin("unresolved", `reason="${d.kind} ${d.hubspotId} has no card after bounded retry"`);
         retryable ??= "unresolved";
+        continue;
+      }
+
+      /**
+       * ASK THE CARD, not just the mapping. The historical backfill placed entries without creating
+       * mappings, so for anything it already imported the mapping says "never synced" while the card
+       * plainly disagrees. Settling here makes the next pass cheap and stops the duplicate.
+       */
+      if (opts.verifyExisting && await alreadyOnCard(env, card.id, object, hubspotId)) {
+        await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, "already-on-card");
+        fin("skipped", `${d.kind}=${d.hubspotId} reason="already on the card from the historical import"`);
         continue;
       }
 

@@ -2,6 +2,7 @@ import type { Env, RunOpts, Budget } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
 export { ActivityRetry } from "./activity-retry-do";
 export { DeferredSync } from "./deferred-sync-do";
+import { pollTasks } from "./task-poller";
 import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
 import { writeModeFor, maxWritesFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
@@ -63,11 +64,26 @@ export default {
   //     daily instead of every minute to avoid unnecessary API load.
   async scheduled(event: ScheduledEvent, env: Env, ectx: ExecutionContext): Promise<void> {
     const opts = optsFromEnv(env);
+    /**
+     * EVERY CRON IS DISPATCHED BY NAME. The previous shape fell through to runIncremental for
+     * ANYTHING that was not the daily sweep, which meant adding a trigger for some unrelated small
+     * job — a five-minute task poll, say — would quietly start a full CRM incremental reconciliation
+     * that Phase 1 deliberately disabled. An unrecognised expression must do nothing and say so.
+     */
+    if (event.cron === "*/5 * * * *") {
+      ectx.waitUntil(pollTasks(env)
+        .catch(e => console.log(`[task-poller] action=error reason="${String(e).slice(0, 140)}"`)));
+      return;
+    }
     if (event.cron === "0 3 * * *") {
       ectx.waitUntil(runAll(env, opts).then(s => console.log("cron-daily-full", JSON.stringify(s))));
-    } else {
-      ectx.waitUntil(runIncremental(env, opts, 11 * 60_000).then(s => console.log("cron-backup", s)));
+      return;
     }
+    if (event.cron === "*/10 * * * *") {
+      ectx.waitUntil(runIncremental(env, opts, 11 * 60_000).then(s => console.log("cron-backup", s)));
+      return;
+    }
+    console.log(`[cron] action=ignored expression="${event.cron}" reason="not a recognised schedule"`);
   },
 
   async fetch(req: Request, env: Env, ectx: ExecutionContext): Promise<Response> {
