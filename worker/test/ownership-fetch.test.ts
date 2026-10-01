@@ -37,16 +37,18 @@ describe("propertiesForSpec + ownership metadata", () => {
     const p = propertiesForSpec(spec);
     expect(p).toContain("sync_owner");
     expect(p).toContain("hs_createdate");
-    expect(p).not.toContain("createdate");
+    expect(p).not.toContain("createdate");   // only the DECLARED createdProp is fetched
   });
 
-  it("PRODUCTION specs are unchanged — no ownership means no extra properties", () => {
+  it("WM specs now fetch the ownership metadata, and nothing else new", () => {
     for (const spec of [DEALS, CONTACTS_MYLA, COMPANIES_MYLA]) {
       const p = propertiesForSpec(spec);
-      expect(p).not.toContain("sync_owner");
+      expect(p).toContain("sync_owner");     // REQUIRED since WM authorizes too (2026-09-22)
       // and every property still comes from the spec itself
       const expected = new Set<string>([...spec.nameProps, spec.modifiedProp,
-        ...spec.fields.map(f => f.hs), ...("prop" in spec.groupBy ? [spec.groupBy.prop] : [])]);
+        ...spec.fields.map(f => f.hs), ...("prop" in spec.groupBy ? [spec.groupBy.prop] : []),
+        // the two ownership properties, which are infrastructure rather than mapped fields
+        spec.ownership!.prop, spec.ownership!.createdProp]);
       expect(new Set(p)).toEqual(expected);
     }
   });

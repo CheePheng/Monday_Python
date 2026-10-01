@@ -87,46 +87,90 @@ export function authorizeCreate(o: OwnershipSpec): WriteAuth {
 export const NEW_RECORD_ID = "(new)";
 
 /**
- * May the CRM Worker CLAIM this record? A claim is a distinct operation, not a write exception —
- * its only permitted mutation is claimPatch(). With an INFINITE cutover (the Phase 1 setting) this
- * is always false, so the CRM path cannot write anything at all until a real date is chosen.
+ * WHY a claim is being considered. The two bases answer different questions and must not blur.
  *
- * Deliberately false for a pre-cutover record even when a rep has just recreated it on the CRM
- * board: adoption links the existing record so no duplicate is made, but recreating something must
- * never silently migrate ownership of history. Also false for any stamp we do not recognise.
+ *   "cutover"    -- the record was born after CRM_CUTOVER_AT, so it is CRM's by date. The original
+ *                   rule, and still the default: every caller that does not say otherwise gets it.
+ *   "human-edit" -- a PERSON just edited this record's card on a CRM board. That is the one signal
+ *                   that genuinely means "this record is now worked in CRM", and it holds for a 2024
+ *                   record exactly as much as for one created yesterday.
+ *
+ * The date-only rule could never claim the ~96% of the portal that predates the cutover, so every rep
+ * edit on those cards was refused and visibly snapped back -- the reported Lifecycle Stage bug, and in
+ * fact every two-way column on every older card. "human-edit" is reachable ONLY from the column-level
+ * reverse path, which runs only for a webhook a person caused (never our own token's echo, never a
+ * HubSpot event, never a sweep), so it cannot turn a passive reconcile into an ownership migration.
  */
-export function canClaimCrmOwnership(rec: HsRecord, o: OwnershipSpec): boolean {
+export type ClaimBasis = "cutover" | "human-edit";
+
+/**
+ * May the CRM Worker CLAIM this record? A claim is a distinct operation, not a write exception —
+ * its only permitted mutation is claimPatch(). On the "cutover" basis with an INFINITE cutover (the
+ * Phase 1 setting) this is always false.
+ *
+ * On EITHER basis it is false for a record that is already stamped -- crm, wm, hold, or anything we do
+ * not recognise. An explicit stamp is a decision someone made, and a claim only ever fills a blank.
+ * Adoption still never claims: recreating a card links the existing record, and that is not an edit.
+ */
+export function canClaimCrmOwnership(rec: HsRecord, o: OwnershipSpec,
+    basis: ClaimBasis = "cutover"): boolean {
   if (o.owner !== "crm") return false;      // the WM Worker never claims
   if (syncOwnerOf(rec, o)) return false;    // already owned, or parked with an unrecognised stamp
   const created = toMs(rec.properties[o.createdProp]);
-  return !Number.isNaN(created) && created >= o.cutoverAtMs;
+  // FAIL CLOSED ON EITHER BASIS when the metadata is unreadable. An unusable createdate means the caller
+  // may not have fetched the ownership properties at all -- and then a record parked as `hold` reads as
+  // blank, and a human-edit claim would silently override the operator's decision.
+  if (Number.isNaN(created)) return false;
+  if (basis === "human-edit") return true;  // a person is working it in CRM, whatever its age
+  return created >= o.cutoverAtMs;
 }
 
 /**
- * May the CRM path CREATE a missing monday card for this record?  NO HISTORICAL IMPORT.
+ * May the CRM path CREATE a missing monday card for this record?
  *
  * A separate chokepoint from authorizeWrite: that one guards HubSpot mutations, this one guards the
- * BIRTH of a monday card, and the two sit on opposite sides of the sync. Nothing on the card-creation
- * path (sync.ts -> reconcileRecord -> ensureCardForRecord -> createItem) consults ownership otherwise,
- * and CRM specs set `includeAll: true`, which short-circuits recInScope to true — so without this an
- * unstamped 2024 record with no card would be carded the moment anything touched it.
+ * BIRTH of a monday card, and the two sit on opposite sides of the sync. CRM specs set
+ * `includeAll: true`, which short-circuits recInScope to true, so this is the only thing between a
+ * HubSpot event and a new card.
+ *
+ * IT USED TO REFUSE EVERY UNSTAMPED RECORD CREATED BEFORE CRM_CUTOVER_AT ("no historical import"),
+ * and that was right while the historical import was a separate, controlled process that had not run.
+ * It has run -- all history, every board, 2026-09-17/18 -- so the rule no longer protects anything
+ * and only did harm: a lead created in HubSpot on 2026-09-23 got NO card, because it predates a
+ * 2026-09-25 cutover, and every activity logged against it had nowhere to land (live log:
+ * `refused-card reason="outside CRM creation scope"`, then `contact 557162299108 has no card after
+ * bounded retry`). A record that has no card now is a GAP, and filling it is the point.
+ *
+ * What still refuses: a record an operator PARKED (`hold`, or any stamp we do not recognise), and one
+ * the WM Worker owns (`wm`). Those are explicit decisions, not blanks.
  *
  * Consulted ONLY when no card exists, so it decides creation and never blocks updates to a card that
- * a user deliberately adopted. Returns true for specs without `ownership` so every WM path is
- * byte-for-byte unchanged.
+ * already exists. Returns true for specs without `ownership`, and for WM, so every WM path is unchanged.
  *
- * Fail-closed: absent or unparseable ownership metadata yields "" / NaN and therefore refusal. A
- * caller that forgets to fetch sync_owner/createdate declines to create rather than importing the
- * portal.
+ * Fail-closed on missing metadata: an unparseable createdate means the caller did not fetch the
+ * ownership properties, and then a `hold` stamp would read as blank. That caller declines to create.
  */
 export function mayCreateCrmCard(rec: HsRecord, o: OwnershipSpec | undefined): boolean {
   if (!o) return true;                      // no ownership declared -> legacy WM behaviour
+  /**
+   * THE GATE IS CRM-ONLY, AND "has an ownership spec" IS NOT THE SAME QUESTION.
+   *
+   * This used to return early only for `!o`, using the absence of ownership as a stand-in for "this is
+   * the WM deployment". That held exactly as long as WM declared none. The moment WM was given an
+   * ownership spec (2026-09-22, to make it refuse crm-stamped records) the proxy inverted: WM's cutover
+   * is Infinity, `created >= Infinity` is false for every record, and the WM Worker stopped carding
+   * anything at all — `action=refused-card reason="outside CRM creation scope"` on a WM deal.
+   *
+   * The real question is whose no-historical-import invariant this is, so it asks that directly. WM has
+   * always carded every record in its search scope and must keep doing so.
+   */
+  if (o.owner !== "crm") return true;
   const stamp = syncOwnerOf(rec, o);
   if (stamp === "other") return false;      // parked by an operator (e.g. "hold") -> hands off
   if (stamp === "wm") return false;         // the WM Worker owns it -> no CRM card
   if (stamp === "crm") return true;         // ours
-  const created = toMs(rec.properties[o.createdProp]);   // unstamped -> the cutover decides
-  return !Number.isNaN(created) && created >= o.cutoverAtMs;
+  // Unstamped: a gap, whatever its age. The createdate is read only to prove the metadata was fetched.
+  return !Number.isNaN(toMs(rec.properties[o.createdProp]));
 }
 
 /** The ONLY payload a claim may send. Exactly one property; anything else is a bug. */

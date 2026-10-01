@@ -481,6 +481,27 @@ describe("a failure BEFORE the create is retryable; one after it is not", () => 
   });
 
   /** And the other side of the line stays exactly as it was: never retried, reservation standing. */
+  /**
+   * Rate-limited is RETRYABLE, not "error" (never retried). The reservation is deliberately kept: the
+   * retry schedule reaches the 15-minute stale takeover, which checks the card before writing, so even a
+   * mis-classified reply cannot become a second copy.
+   */
+  it("a create monday rate-limited to exhaustion is retried, not filed as error -- reservation kept", async () => {
+    const env = baseEnv();
+    mondayApi.gql.mockImplementation(async (_e: Env, q: string) => {
+      if (q.includes("create_timeline_item")) {
+        const e = new Error("monday 429: rate-limited after 6 waits"); e.name = "MondayRateLimitedError"; throw e;
+      }
+      return { items: [{ column_values: [{ text: CONTACT }] }] };
+    });
+    const outcome = await syncHubspotActivity(env, "emails", ACT);
+    expect(outcome).toBe("unresolved");
+    expect(reg.releaseActivity).not.toHaveBeenCalled();
+    expect(reg.unresolvedActivityToMonday).not.toHaveBeenCalled();
+    await scheduleIfUnresolved(env, "emails", ACT, outcome);
+    expect(scheduled).toEqual([expect.objectContaining({ hubspotId: ACT, reason: "unresolved" })]);
+  });
+
   it("a create that fails is an error, and the reservation is NOT released", async () => {
     const env = baseEnv();
     mondayApi.gql.mockImplementation(async (_e: Env, q: string) => {

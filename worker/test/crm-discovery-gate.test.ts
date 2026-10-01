@@ -4,12 +4,19 @@ import { DEALS, CONTACTS_MYLA, COMPANIES_MYLA } from "../src/config";
 import type { HsRecord, ObjectSpec, OwnershipSpec, RunOpts } from "../src/types";
 
 /**
- * TASK 3B — the no-historical-import gate at the monday card-creation chokepoint.
+ * THE CARD-CREATION GATE at the monday chokepoint.
  *
- * Why it exists: the Task 3 guard protects the two HUBSPOT mutation chokepoints. Creating a monday card
- * writes to MONDAY, so it never passes through them, and CRM specs set `includeAll: true` which
- * short-circuits recInScope to true. Without this gate an unstamped 2024 record with no card reaches
- * createItem the moment anything touches it.
+ * Creating a monday card writes to MONDAY, so it never passes the HubSpot write guard, and CRM specs set
+ * `includeAll: true`, which short-circuits recInScope to true. This gate is therefore the only thing
+ * between a HubSpot event and a new card.
+ *
+ * It began as the NO-HISTORICAL-IMPORT gate (Task 3B): an unstamped record created before
+ * CRM_CUTOVER_AT got no card. That was right while the historical import had not run. It ran on
+ * 2026-09-17/18 -- all history, every board -- and from then on the rule only did harm: a lead created
+ * in HubSpot on 2026-09-23 got no card because it predated a 2026-09-25 cutover, and its activities had
+ * nowhere to land. On 2026-09-23 the rule became: an unstamped record with no card is a GAP and gets
+ * one, whatever its age. What still refuses is an explicit decision (a `hold` or unknown stamp, or
+ * `wm`), and unreadable metadata. The refusal MECHANICS below are unchanged and still pinned.
  */
 
 const CUT = Date.parse("2026-10-01T00:00:00Z");
@@ -32,8 +39,9 @@ describe("mayCreateCrmCard — the six required rules", () => {
   it("unstamped + post-cutover -> may create, with no sales_user present", () =>
     expect(mayCreateCrmCard(rec({ createdate: POST }), own)).toBe(true));
 
-  it("unstamped + PRE-cutover -> MUST NOT be imported", () =>
-    expect(mayCreateCrmCard(rec({ createdate: PRE }), own)).toBe(false));
+  // Was "MUST NOT be imported". The import is done; a record with no card now is a gap.
+  it("unstamped + PRE-cutover -> may create (the historical import is complete)", () =>
+    expect(mayCreateCrmCard(rec({ createdate: PRE }), own)).toBe(true));
 
   it("sync_owner=wm -> no CRM card even post-cutover", () =>
     expect(mayCreateCrmCard(rec({ sync_owner: "wm", createdate: POST }), own)).toBe(false));
@@ -60,22 +68,35 @@ describe("mayCreateCrmCard — fail-closed on bad metadata", () => {
   it("exactly AT the cutover is post-cutover (>=, matching canClaimCrmOwnership)", () =>
     expect(mayCreateCrmCard(rec({ createdate: new Date(CUT).toISOString() }), own)).toBe(true));
 
-  it("one millisecond before the cutover is historical", () =>
-    expect(mayCreateCrmCard(rec({ createdate: new Date(CUT - 1).toISOString() }), own)).toBe(false));
+  // The cutover no longer decides carding at all -- the boundary has no meaning for this gate now.
+  it("one millisecond before the cutover is carded exactly like one after it", () => {
+    expect(mayCreateCrmCard(rec({ createdate: new Date(CUT - 1).toISOString() }), own)).toBe(true);
+    expect(mayCreateCrmCard(rec({ createdate: new Date(CUT + 1).toISOString() }), own)).toBe(true);
+  });
 
-  it("the inert Phase-1 cutover creates nothing at all", () => {
+  it("an infinite cutover no longer blocks carding; explicit decisions still do", () => {
     const inert = { ...own, cutoverAtMs: Number.POSITIVE_INFINITY };
-    expect(mayCreateCrmCard(rec({ createdate: POST }), inert)).toBe(false);
-    expect(mayCreateCrmCard(rec({ sync_owner: "crm" }), inert)).toBe(true);  // an explicit stamp still wins
+    expect(mayCreateCrmCard(rec({ createdate: POST }), inert)).toBe(true);
+    expect(mayCreateCrmCard(rec({ sync_owner: "crm" }), inert)).toBe(true);
+    expect(mayCreateCrmCard(rec({ sync_owner: "hold", createdate: POST }), inert)).toBe(false);
   });
 });
 
 // ONE rule, not two. If these ever disagree, a record could be carded but never claimable (or the
-// reverse), which is the split-brain the whole ownership design exists to prevent.
-describe("mayCreateCrmCard agrees with canClaimCrmOwnership on the unstamped case", () => {
+// reverse), which is the split-brain the whole ownership design exists to prevent. A CRM card is where
+// a person works a record, so the claim it must agree with is the one a person's edit makes.
+describe("mayCreateCrmCard agrees with canClaimCrmOwnership(human-edit) on every unstamped case", () => {
   it.each([PRE, POST, "", "bad"])("createdate %j", (d) => {
     const r = rec(d ? { createdate: d } : {});
-    expect(mayCreateCrmCard(r, own)).toBe(canClaimCrmOwnership(r, own));
+    expect(mayCreateCrmCard(r, own)).toBe(canClaimCrmOwnership(r, own, "human-edit"));
+  });
+
+  // Unreadable metadata must refuse BOTH, or a `hold` record that was never fetched reads as blank.
+  it("unreadable metadata refuses the card AND the claim", () => {
+    for (const r of [rec({}), rec({ createdate: "bad" })]) {
+      expect(mayCreateCrmCard(r, own)).toBe(false);
+      expect(canClaimCrmOwnership(r, own, "human-edit")).toBe(false);
+    }
   });
 });
 
@@ -119,8 +140,15 @@ beforeEach(() => {
 });
 
 describe("ensureCardForRecord — the gate fires before any monday write", () => {
-  it("REFUSES a pre-cutover unstamped record and creates NOTHING", async () => {
+  // The reported gap, closed: a lead HubSpot already had before the cutover now gets its card.
+  it("CREATES a card for a pre-cutover unstamped record (the gap is filled)", async () => {
     const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live);
+    expect(r.status).toBe("created");
+    expect(monday.createItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("REFUSES a record with unreadable metadata and creates NOTHING", async () => {
+    const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({}), live);
     // "refused", not "skipped": Task 10 split the TERMINAL refusal from transient contention so
     // /app/ensure-card can answer 422 non-retryable instead of 409 "retry shortly".
     expect(r.status).toBe("refused");
@@ -128,7 +156,7 @@ describe("ensureCardForRecord — the gate fires before any monday write", () =>
   });
 
   it("releases the reservation on refusal, so the record is not wedged as 'creating'", async () => {
-    await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live);
+    await ensureCardForRecord({} as never, crmSpec, ctx, rec({ sync_owner: "hold", createdate: PRE }), live);
     expect(registry.forgetCard).toHaveBeenCalledTimes(1);
     expect(registry.finishCard).not.toHaveBeenCalled();
   });
@@ -181,7 +209,12 @@ describe("ensureCardForRecord — the gate fires before any monday write", () =>
   });
 
   it("PRODUCTION specs declare no ownership, so none of them can be gated", () => {
-    for (const s of [DEALS, CONTACTS_MYLA, COMPANIES_MYLA]) expect(s.ownership).toBeUndefined();
+    // WM declares ownership now, but as "wm" — so mayCreateCrmCard short-circuits to true for it and
+    // the no-historical-import gate remains CRM-only. Asserted directly below rather than inferred.
+    for (const s of [DEALS, CONTACTS_MYLA, COMPANIES_MYLA]) {
+      expect(s.ownership?.owner).toBe("wm");
+      expect(mayCreateCrmCard({ id: "1", properties: {} }, s.ownership)).toBe(true);
+    }
   });
 });
 
@@ -192,7 +225,7 @@ describe("refusal is safe for every caller shape", () => {
     expect(cardIdOf({ status: "skipped" })).toBeNull());
 
   it("a refusal is never reported as created/existing, so no caller miscounts it", async () => {
-    const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live);
+    const r = await ensureCardForRecord({} as never, crmSpec, ctx, rec({ sync_owner: "hold", createdate: PRE }), live);
     expect(r.status).not.toBe("created");
     expect(r.status).not.toBe("existing");
     expect("itemId" in r).toBe(false);   // nothing to dereference
@@ -201,15 +234,15 @@ describe("refusal is safe for every caller shape", () => {
   it("a refusal issues no HubSpot call — the gate is monday-side only", async () => {
     const fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy as never;
-    await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live);
+    await ensureCardForRecord({} as never, crmSpec, ctx, rec({ sync_owner: "hold", createdate: PRE }), live);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   // Repeated refusal is stable: same answer, still no write, no growing state. A poll that keeps
-  // rediscovering a historical record therefore cannot become a retry storm.
+  // rediscovering a parked record therefore cannot become a retry storm.
   it("refusing repeatedly is idempotent and never escalates", async () => {
     for (let i = 0; i < 5; i++)
-      expect((await ensureCardForRecord({} as never, crmSpec, ctx, rec({ createdate: PRE }), live)).status)
+      expect((await ensureCardForRecord({} as never, crmSpec, ctx, rec({ sync_owner: "hold", createdate: PRE }), live)).status)
         .toBe("refused");
     expect(monday.createItem).not.toHaveBeenCalled();
     expect(registry.forgetCard).toHaveBeenCalledTimes(5);

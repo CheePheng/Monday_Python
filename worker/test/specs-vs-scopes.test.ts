@@ -67,7 +67,10 @@ describe("every CRM spec's object is covered by the app's scopes", () => {
    * `hs project upload`, REAUTHORIZE the install (a scope change does not reach an existing static
    * token on its own — that is what cost the outage its second hour), then delete the entry below.
    */
-  const REVERSE_WITHOUT_WRITE_SCOPE = ["deals", "line_items"];
+  // CLOSED IN THE APP DEFINITION on 2026-09-23: both write scopes are now in app-hsmeta.json. The file
+  // is only half of it -- the install must still be RE-AUTHORIZED in HubSpot before the Deals and P&S
+  // monday webhooks are registered, per the rule above.
+  const REVERSE_WITHOUT_WRITE_SCOPE: string[] = [];
 
   it("every spec that reverses can WRITE its object, except the recorded pre-webhook gaps", () => {
     const gaps: string[] = [];

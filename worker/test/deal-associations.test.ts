@@ -66,17 +66,36 @@ describe("the measured shape the design rests on", () => {
   });
 });
 
-describe("monday never removes a HubSpot association", () => {
+describe("monday never removes a HubSpot association it merely fails to show", () => {
   /**
-   * The reverse association path is additive by construction — it only ever ADDS. This asserts that
-   * in the source, because the property is the absence of a call rather than the presence of one, and
-   * absence is invisible to a behavioural test.
+   * The rule, as learned over five rounds of Contacts defects: DISPLAYING fewer links is not evidence
+   * that the others are wrong. It used to be enforced absolutely -- the reverse path contained no delete
+   * at all -- which also meant a rep could never remove a wrong link: it came straight back.
+   *
+   * Since 2026-09-23 a delete exists, and the rule is kept by where it may come from: ONLY a person's
+   * explicit unlink carried by monday's own webhook before/after (`scope.unlinked`), never anything read
+   * off a card. Asserted in the source because the property is about the ABSENCE of any other path.
+   * Behaviour is proven in association-unlink.test.ts, and since 2026-09-28 the delete also requires the
+   * removed card to be ACTIVE (association-deleted-card.test.ts).
+   *
+   * The slice runs from reverseAssociations to the next export, so it covers the (unexported) steps the
+   * pass is split into: the whole-cell pass, the unlink step, the add step, the snap-back and the
+   * derived-Account rule. Still exactly one delete across all of them.
    */
-  it("reverseAssociations contains no HubSpot association delete", () => {
+  it("reverseAssociations deletes only inside the explicit-unlink branch", () => {
     const code = readCode("associations.ts");
     const fn = code.slice(code.indexOf("export async function reverseAssociations"));
     const body = fn.slice(0, fn.indexOf("\nexport "));
-    expect(body).not.toMatch(/deleteAssociation|archiveAssociation|method:\s*["']DELETE["']/);
+    const deletes = body.match(/deleteAssociation\(/g) ?? [];
+    expect(deletes).toHaveLength(1);
+    // The one delete is fed by `removedCards`, which is built from scope.unlinked and nothing else...
+    expect(body).toMatch(/const removedCards = \(scope\.unlinked\?\.\[col\] \?\? \[\]\)/);
+    // ...and narrowed to the cards whose own monday state is still active -- before any cap or budget.
+    expect(body).toMatch(/const active = await activeCards\(env, spec, item\.id, a, removedCards\)/);
+    expect(body).toMatch(/return cards\.filter\(c => states\[c\] === "active"\)/);
+    expect(body.indexOf("await activeCards(env, spec, item.id, a, removedCards)"))
+      .toBeLessThan(body.indexOf("if (n > MAX_UNLINKS_PER_EDIT)"));
+    expect(body).not.toMatch(/archiveAssociation|method:\s*["']DELETE["']/);
   });
 
   /** The forward path's existing guards, which the Deals specs inherit. Each one is a case where a

@@ -13,7 +13,11 @@
  */
 import type { Env } from "./types";
 import { hs } from "./hubspot";
+import { isPublicEmailDomain } from "./adopt";
+import { normalizeDomain } from "./normalize";
 import { gql, findItemByColumn } from "./monday";
+/** MondayRateLimitedError's name -- see monday.ts. */
+const MONDAY_RATE_LIMITED = "MondayRateLimitedError";
 import { CRM_CONTACTS } from "./config/crm";
 import {
   associatedDestinations, DEST_BOARD, MAX_ASSOC_PAGES,
@@ -72,6 +76,26 @@ export function afterCutover(env: Env, timestamp: unknown): boolean {
 }
 
 /**
+ * IS THIS ACTIVITY THE LIVE SYNC'S TO WRITE? Yes if EITHER its own date OR the moment the HubSpot object
+ * was created falls after the cutover. Refused only when BOTH predate it -- that is exactly what the
+ * historical import already carried.
+ *
+ * It used to test the activity's own date (hs_timestamp) alone, and that lost real customer mail at
+ * scale: when reps connected their inboxes on 2026-09-21/22, HubSpot imported their existing emails as
+ * NEW objects carrying OLD dates -- 819 emails, 25% of all email since the cutover, 795 of them 30-365
+ * days old. Created after the import finished, dated before the cutover: the import never saw them and
+ * the live sync refused them, so they reached no card at all.
+ *
+ * Creation date alone would be wrong the other way: a task or meeting created BEFORE the cutover but due
+ * after it was deliberately deferred by the import ("post-cutover, deferred: 718"), and would then be
+ * refused by both. The union covers both gaps. Re-processing something the import did write is caught
+ * by the durable registry and the on-card marker check, exactly as a re-delivered webhook is.
+ */
+export function activityIsLive(env: Env, p: Record<string, unknown>): boolean {
+  return afterCutover(env, p.hs_timestamp) || afterCutover(env, p.hs_createdate);
+}
+
+/**
  * CANARY SCOPE. While set, only this contact is processed — the feature flag alone is global, so
  * turning it on for "a canary" would in fact start syncing every contact in the portal. Unset for the
  * production cutover.
@@ -104,15 +128,22 @@ export function inCanaryScope(env: Env, hubspotContactId?: string, mondayItemId?
 }
 
 const PROPS: Record<string, string[]> = {
-  emails: ["hs_timestamp", "hs_email_subject", "hs_email_direction", "hs_email_status",
+  // hs_email_text is the BODY. Without it a synced email reaches monday as a subject line and a pair
+  // of addresses, which is not enough for a rep to work from — the whole point of the migration is
+  // that they never open HubSpot. The historical importer has always requested it; the live path did
+  // not, so history had bodies and anything synced after the cutover did not.
+  // Text, not HTML: strip() removes tags but leaves the CSS inside a <style> block as visible text,
+  // so an HTML marketing email would render as a wall of stylesheet. The importer proved text alone
+  // across 38,144 entries.
+  emails: ["hs_timestamp", "hs_createdate", "hs_email_subject", "hs_email_direction", "hs_email_status",
     "hs_email_from_email", "hs_email_to_email", "hubspot_owner_id", "hs_sequence_id",
+    "hs_object_source_user_id", "hs_email_text"],
+  calls: ["hs_timestamp", "hs_createdate", "hs_call_title", "hs_call_body", "hs_call_direction", "hubspot_owner_id",
     "hs_object_source_user_id"],
-  calls: ["hs_timestamp", "hs_call_title", "hs_call_body", "hs_call_direction", "hubspot_owner_id",
+  notes: ["hs_timestamp", "hs_createdate", "hs_note_body", "hubspot_owner_id", "hs_object_source_user_id"],
+  meetings: ["hs_timestamp", "hs_createdate", "hs_meeting_title", "hs_meeting_body", "hubspot_owner_id",
     "hs_object_source_user_id"],
-  notes: ["hs_timestamp", "hs_note_body", "hubspot_owner_id", "hs_object_source_user_id"],
-  meetings: ["hs_timestamp", "hs_meeting_title", "hs_meeting_body", "hubspot_owner_id",
-    "hs_object_source_user_id"],
-  tasks: ["hs_timestamp", "hs_task_subject", "hs_task_body", "hs_task_status", "hs_task_priority",
+  tasks: ["hs_timestamp", "hs_createdate", "hs_task_subject", "hs_task_body", "hs_task_status", "hs_task_priority",
     "hs_task_type", "hs_task_completion_date", "hubspot_owner_id", "hs_object_source_user_id"],
 };
 
@@ -167,7 +198,7 @@ const strip = (h: unknown) =>
 let ownerEmails: { at: number; emails: Set<string> } | null = null;
 const OWNER_CACHE_MS = 10 * 60_000;
 
-async function staffEmails(env: Env): Promise<Set<string>> {
+export async function staffEmails(env: Env): Promise<Set<string>> {
   if (ownerEmails && Date.now() - ownerEmails.at < OWNER_CACHE_MS) return ownerEmails.emails;
   const emails = new Set<string>();
   let after = "";
@@ -179,6 +210,54 @@ async function staffEmails(env: Env): Promise<Set<string>> {
   }
   ownerEmails = { at: Date.now(), emails };
   return emails;
+}
+/** Test-only: forget the cached owner list, so each test is judged on the owners it sets. */
+export function resetStaffEmailCache(): void { ownerEmails = null; }
+
+/**
+ * THE COMPANY'S OWN DOMAINS: every domain a HubSpot owner's email uses, minus public mail providers.
+ *
+ * Derived from the owner list rather than hardcoded, so a new office domain is covered the day its
+ * first owner is added. Public providers are removed so a rep on a gmail.com address cannot turn
+ * every gmail.com company into "internal".
+ */
+export function internalDomains(staff: Set<string>): Set<string> {
+  const out = new Set<string>();
+  for (const e of staff) {
+    const d = normalizeDomain(e.split("@")[1] ?? "");
+    if (d && !isPublicEmailDomain(d)) out.add(d);
+  }
+  return out;
+}
+
+/**
+ * Company destinations that are the business ITSELF, not a customer, so an activity is not filed there.
+ *
+ * HubSpot auto-associates every email to the company matching the sender's domain, so the internal
+ * "Test" company (16824787545, www.dkmeco.com, monday item 2855573545) became a destination for 2,310 of
+ * the 3,054 eligible post-cutover activities -- 76% of everything synced. Every colleague's mail landed
+ * on one Account: noise, a privacy problem, and a large share of the account-wide monday timeline write
+ * capacity. The contact-card staff rule never covered it, because it only ever looked at contacts.
+ *
+ * FAILS OPEN, deliberately and unlike the staff read: if the domains cannot be read, the company stays a
+ * destination. Filing a customer's email in one extra place is recoverable; silently dropping it is not.
+ */
+async function internalCompanyIds(env: Env, companyIds: string[], staff: Set<string>): Promise<Set<string>> {
+  const internal = internalDomains(staff);
+  if (!companyIds.length || !internal.size) return new Set();
+  try {
+    const r = await hs(env, "POST", "/crm/v3/objects/companies/batch/read",
+      { properties: ["domain"], inputs: companyIds.map(id => ({ id })) }, 2);
+    const out = new Set<string>();
+    for (const c of r?.results ?? []) {
+      const d = normalizeDomain(String(c?.properties?.domain ?? ""));
+      if (d && internal.has(d)) out.add(String(c.id));
+    }
+    return out;
+  } catch (e) {
+    console.log(`[activity] action=internal-company-check-failed reason="${String(e).slice(0, 100)}" -- keeping all companies`);
+    return new Set();
+  }
 }
 
 /**
@@ -248,24 +327,159 @@ async function participantsFor(env: Env, contactIds: string[]):
  * mappings, so a poller that trusted the mapping alone would faithfully duplicate everything the
  * migration had already placed. Checking the card costs a read; not checking costs a duplicate.
  */
-export interface SyncActivityOpts { ignoreCutover?: boolean; verifyExisting?: boolean }
+/**
+ * deferMirrorCheck — ACTIVITY_SKIP_MIRRORED_COPIES only, set by the ActivityRetry Durable Object on a
+ * job's FIRST delivery and nowhere else (mayDeferMirror). A Company/Deal card linked to a Contact card
+ * written by THIS pass is neither claimed nor written; the pass answers "deferred" and the next one, at
+ * +MIRROR_SETTLE_MS, checks the card once monday's copy has had time to land.
+ */
+export interface SyncActivityOpts { ignoreCutover?: boolean; verifyExisting?: boolean; deferMirrorCheck?: boolean }
 
-/** Is this activity already represented on that card, according to the card itself? */
-async function alreadyOnCard(env: Env, cardId: string, object: string, hubspotId: string): Promise<boolean> {
+/**
+ * Is this activity already represented on that card, according to the card itself?
+ *
+ * THREE ANSWERS, NOT TWO. This check is the last thing standing between a lost write response and a
+ * duplicate, so "I could not tell" must never be reported as "absent" — that is the answer that
+ * makes the caller write a second copy. Returning a bare boolean did exactly that: a failed read and
+ * an exhausted page budget both came back `false`.
+ *
+ * The pagination needs guarding as well as bounding. monday's timeline pages OVERLAP — measured on a
+ * production card, 36 pages returned 1,339 distinct entries and 449 repeated rows — so a page budget
+ * covers far fewer distinct entries than its arithmetic suggests, and a cursor that stops advancing
+ * would otherwise burn the whole budget on one page and then report "absent".
+ */
+export type CardCheck = "present" | "absent" | "unknown";
+
+const MARKER_PAGES = 120;   // ~12k rows; generous because overlap means pages repeat themselves
+
+/**
+ * `bound` is for a caller racing a wall clock (the marketing poller, inside one cron invocation): a
+ * `deadlineMs` after which the walk answers "unknown" instead of reading on, and a lower cap on monday
+ * rate-limit waits per page. "unknown" is the fail-closed answer, so stopping early can never cause a
+ * write. Omitted, the walk behaves exactly as it always has.
+ */
+export async function alreadyOnCard(env: Env, cardId: string, object: string,
+    hubspotId: string, bound: { deadlineMs?: number; maxRateWaits?: number } = {}): Promise<CardCheck> {
+  return (await scanCardForMarker(env, cardId, object, hubspotId, bound, false)).state;
+}
+
+/**
+ * THE WALK BEHIND alreadyOnCard, which can also hand back the id of the entry it found.
+ *
+ * `withId` exists for the mirrored-copy check alone: settling a destination on monday's copy must record
+ * that copy's timeline id, exactly as a create records its own. Without it the query is, byte for byte,
+ * the one alreadyOnCard has always sent. `maxPages` lowers the page budget for a caller whose "unknown"
+ * is cheap (the mirrored-copy check writes on it); omitted, it is MARKER_PAGES as before.
+ */
+async function scanCardForMarker(env: Env, cardId: string, object: string, hubspotId: string,
+    bound: { deadlineMs?: number; maxRateWaits?: number; maxPages?: number }, withId: boolean):
+    Promise<{ state: CardCheck; timelineId?: string }> {
   const marker = `[hubspot:${object}:${hubspotId}]`;
+  const maxPages = bound.maxPages ?? MARKER_PAGES;
   let cursor: string | null = null;
-  for (let p = 0; p < 40; p++) {
-    const d: any = await gql(env,
-      `query ($i: ID!, $c: String) { timeline(id: $i) { timeline_items_page(limit: 100, cursor: $c) {
-          cursor timeline_items { content } } } }`, { i: cardId, c: cursor }, 2);
-    const page = d?.timeline?.timeline_items_page;
-    if (!page) return false;
+  const seenCursors = new Set<string>();
+  for (let p = 0; p < maxPages; p++) {
+    if (bound.deadlineMs !== undefined && Date.now() > bound.deadlineMs) {
+      console.log(`[activity] card=${cardId} ${object}=${hubspotId} action=marker-check-deadline`
+        + ` reason="caller's time budget ran out after ${p} pages"`);
+      return { state: "unknown" };
+    }
+    let page: any;
+    try {
+      const d: any = await gql(env,
+        `query ($i: ID!, $c: String) { timeline(id: $i) { timeline_items_page(limit: 100, cursor: $c) {
+            cursor timeline_items { ${withId ? "id content" : "content"} } } } }`, { i: cardId, c: cursor }, 2, bound.maxRateWaits ?? 6);
+      page = d?.timeline?.timeline_items_page;
+    } catch (e) {
+      console.log(`[activity] card=${cardId} ${object}=${hubspotId} action=marker-check-failed`
+        + ` reason="${String(e).slice(0, 90)}"`);
+      return { state: "unknown" };            // fail CLOSED: the caller must not write on this
+    }
+    if (!page) return { state: "unknown" };   // no page at all is not evidence of absence
     for (const e of page.timeline_items ?? [])
-      if (String(e?.content ?? "").includes(marker)) return true;
+      if (String(e?.content ?? "").includes(marker))
+        return { state: "present", timelineId: e?.id != null && e.id !== "" ? String(e.id) : undefined };
     cursor = page.cursor ?? null;
-    if (!cursor) return false;
+    if (!cursor) return { state: "absent" };  // walked the whole timeline: genuinely not there
+    if (seenCursors.has(cursor)) {
+      console.log(`[activity] card=${cardId} ${object}=${hubspotId} action=marker-check-stalled`
+        + ` reason="pagination repeated a cursor after ${p + 1} pages"`);
+      return { state: "unknown" };
+    }
+    seenCursors.add(cursor);
   }
-  return false;
+  console.log(`[activity] card=${cardId} ${object}=${hubspotId} action=marker-check-truncated`
+    + ` reason="timeline longer than ${maxPages} pages"`);
+  return { state: "unknown" };                // budget exhausted with pages still to come
+}
+
+// ============================================================ monday's own copy onto linked cards
+
+/**
+ * "true" stops the Worker writing a SECOND copy of a HubSpot activity onto an Account/Deal card that
+ * monday has already copied it onto. Anything else -- including absent, the shipped "false" -- is the
+ * behaviour before this existed, call for call.
+ *
+ * WHY. monday CRM copies each timeline entry created on a Contact card onto the Accounts and Deals linked
+ * to that Contact AT THAT MOMENT (never onto links added later). The Worker also writes every activity
+ * on each associated Company/Deal card, so a linked Account ended up with two copies (three, when monday
+ * then copied the Worker's own Account entry back). Measured 2026-09-30: ~79 emails -> 138 extra copies
+ * on 37 cards. Cosmetic -- but removing them afterwards is not: copies of one activity are LINKED, and
+ * deleting one can take copies on other cards with it. Not making them is the only safe cleanup.
+ *
+ * THE RULE, and it is built so it can only ever cost the old duplicate, never a missing entry:
+ *  - Only a Company/Deal card LINKED (contact_account / contact_deal) to a Contact card that HOLDS this
+ *    activity -- written by this pass or settled by an earlier one -- is examined at all.
+ *  - That card is then READ (the marker, bounded), and only "present" -- the copy is really there -- is
+ *    settled and skipped, on the copy's own timeline id, so later passes answer "have".
+ *  - "absent" and "unknown" write exactly as before. For THIS check "unknown" FAILS OPEN: a card we
+ *    could not read gets its write, and the worst case is the duplicate we had. (alreadyOnCard's other
+ *    callers fail closed, because there "unknown" may hide a write of our own.)
+ *  - A link we could not read is "unknown" too: write.
+ */
+export const skipMirroredCopies = (env: Env) => env.ACTIVITY_SKIP_MIRRORED_COPIES === "true";
+
+/** The Contacts board's native relation columns monday copies a Contact's timeline entries along. */
+const CONTACT_LINK_COLS = ["contact_account", "contact_deal"];
+
+/**
+ * THE MIRRORED-COPY READ IS BOUNDED, because "unknown" is cheap here (it writes). The largest Accounts
+ * measured take ~27 pages to walk end to end; beyond MIRROR_CHECK_PAGES, MIRROR_CHECK_MS or one monday
+ * rate-limit wait the answer is "unknown" and the card is written, as it always was.
+ */
+const MIRROR_CHECK_PAGES = 30;
+const MIRROR_CHECK_MS = 20_000;
+const MIRROR_CHECK_RATE_WAITS = 1;
+
+/**
+ * For the Contact cards that hold this activity: linked Account/Deal card id -> EVERY one of those
+ * Contact cards linking it (a Set, not the first seen -- which of them was written by this pass decides
+ * whether the check waits). null when the links cannot be read: the caller then writes, as before.
+ */
+async function linkedFromContactCards(env: Env, contactCardIds: string[]):
+    Promise<Map<string, Set<string>> | null> {
+  const out = new Map<string, Set<string>>();
+  if (!contactCardIds.length) return out;
+  try {
+    // `limit` is load-bearing: items(ids:) silently answers only the first 25 without it.
+    for (let i = 0; i < contactCardIds.length; i += 100) {
+      const d = await gql(env,
+        `query ($i: [ID!]) { items(ids: $i, limit: 100) { id column_values(ids: ${JSON.stringify(CONTACT_LINK_COLS)}) {
+            ... on BoardRelationValue { linked_item_ids } } } }`, { i: contactCardIds.slice(i, i + 100) }, 2);
+      for (const it of d?.items ?? [])
+        for (const cv of it?.column_values ?? [])
+          for (const linked of cv?.linked_item_ids ?? []) {
+            const k = String(linked);
+            if (!out.has(k)) out.set(k, new Set());
+            out.get(k)!.add(String(it.id));
+          }
+    }
+    return out;
+  } catch (e) {
+    console.log(`[activity] action=mirror-link-read-failed reason="${String(e).slice(0, 100)}"`
+      + " -- linked Company/Deal cards are written as before");
+    return null;
+  }
 }
 
 export async function syncHubspotActivity(env: Env, object: string, hubspotId: string,
@@ -288,8 +502,8 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     const p = rec?.properties ?? {};
 
     // CUTOVER-FORWARD. Refuse anything older than the cutover before spending a lookup on it.
-    if (!opts.ignoreCutover && !afterCutover(env, p.hs_timestamp))
-      return fin("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp}`);
+    if (!opts.ignoreCutover && !activityIsLive(env, p))
+      return fin("skipped", `reason="before ACTIVITY_CUTOVER_AT" ts=${p.hs_timestamp} created=${p.hs_createdate}`);
 
     /**
      * SECONDARY BOUNCE GUARD. Creating a HubSpot Note/Call from a monday entry makes HubSpot fire
@@ -352,7 +566,15 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
       }
     }
 
-    let targets = dests.filter(d => d.kind !== "contact" || keepContacts.includes(d.hubspotId));
+    // The business's OWN company is not a destination either -- see internalCompanyIds.
+    const companyIds = dests.filter(d => d.kind === "company").map(d => d.hubspotId);
+    const internalCos = companyIds.length
+      ? await internalCompanyIds(env, companyIds, await staffEmails(env).catch(() => new Set<string>()))
+      : new Set<string>();
+    if (internalCos.size) staff.push(...[...internalCos].map(id => `company:${id}`));
+    let targets = dests.filter(d =>
+      (d.kind !== "contact" || keepContacts.includes(d.hubspotId))
+      && !(d.kind === "company" && internalCos.has(d.hubspotId)));
     const show = (ds: Destination[]) => ds.map(d => `${d.kind}:${d.hubspotId}`).join(",") || "-";
     console.log(`[activity] source=hubspot ${object}=${hubspotId} action=classified`
       + ` destinations=${show(dests)} staff=${staff.join(",") || "-"} targets=${show(targets)}`);
@@ -380,7 +602,10 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
       title: p.hs_email_subject ?? p.hs_call_title ?? p.hs_meeting_title ?? p.hs_task_subject
         ?? strip(p.hs_note_body).slice(0, 80) ?? undefined,
       from: p.hs_email_from_email, to: p.hs_email_to_email,
-      body: strip(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body ?? p.hs_task_body),
+      // Same precedence as scripts/backfill-activities.mjs, so a live email and an imported one of
+      // the same email produce the same entry. hs_email_text last: it is the only one an email has.
+      body: strip(p.hs_note_body ?? p.hs_call_body ?? p.hs_meeting_body ?? p.hs_task_body
+        ?? p.hs_email_text),
       taskStatus: p.hs_task_status, taskType: p.hs_task_type, taskPriority: p.hs_task_priority,
       taskDue: p.hs_timestamp && object === "tasks" ? p.hs_timestamp : undefined,
       taskCompleted: p.hs_task_completion_date,
@@ -409,6 +634,30 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
      * stopped.
      */
     let wrote = 0, errored = false, retryable: ActivityOutcome | null = null;
+
+    /**
+     * MONDAY'S OWN COPY (ACTIVITY_SKIP_MIRRORED_COPIES) -- see skipMirroredCopies for the rule. Flag off,
+     * `mirror` is false and nothing below reads, logs or decides anything new.
+     *
+     * Contacts come first in `targets` (DEST_KINDS order), so by the time a Company or Deal is reached
+     * every Contact card of this activity has been written, settled or passed over. Were that order ever
+     * to change, a Company would simply see fewer holding Contacts and be written: the safe direction.
+     */
+    const mirror = skipMirroredCopies(env);
+    const holding = new Set<string>();       // Contact cards holding this activity (written now or settled)
+    const writtenNow = new Set<string>();    // ... the ones THIS pass wrote
+    let links: Map<string, Set<string>> | null | undefined;   // undefined: not read yet
+    /** The holding Contact cards linked to this card; null = links unreadable. Read once, lazily. */
+    const linkersOf = async (cardId: string): Promise<Set<string> | null> => {
+      if (!holding.size) return new Set();
+      if (links === undefined) links = await linkedFromContactCards(env, [...holding]);
+      if (links === null) return null;
+      return new Set([...(links.get(cardId) ?? [])].filter(c => holding.has(c)));
+    };
+    const note = (action: string, extra: string) =>
+      console.log(`[activity] source=hubspot ${object}=${hubspotId} action=${action} ${extra}`);
+    let deferred = 0;
+
     for (const d of targets) {
       const card = cards.get(keyOf(d));
       if (!card) {
@@ -416,22 +665,108 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
         retryable ??= "unresolved";
         continue;
       }
+      const linkedKind = mirror && d.kind !== "contact";
+      /** Set once a read of THIS card has already said "absent": the mirrored-copy check would only
+       *  repeat it, and with verifyExisting a verified absence must be written, full stop. */
+      let knownAbsent = false;
 
       /**
        * ASK THE CARD, not just the mapping. The historical backfill placed entries without creating
        * mappings, so for anything it already imported the mapping says "never synced" while the card
        * plainly disagrees. Settling here makes the next pass cheap and stops the duplicate.
        */
-      if (opts.verifyExisting && await alreadyOnCard(env, card.id, object, hubspotId)) {
-        await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, "already-on-card");
-        fin("skipped", `${d.kind}=${d.hubspotId} reason="already on the card from the historical import"`);
-        continue;
+      if (opts.verifyExisting) {
+        const seen = await alreadyOnCard(env, card.id, object, hubspotId);
+        if (seen === "present") {
+          if (mirror && d.kind === "contact") holding.add(card.id);
+          await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, "already-on-card");
+          fin("skipped", `${d.kind}=${d.hubspotId} reason="already on the card from the historical import"`);
+          continue;
+        }
+        if (seen === "unknown") {             // could not establish: retry rather than risk a copy
+          retryable ??= "unresolved";
+          fin("unresolved", `${d.kind}=${d.hubspotId} reason="could not read the card's markers"`);
+          continue;
+        }
+        knownAbsent = true;
+      }
+
+      /**
+       * HOLD IT BACK, UNCLAIMED, when a Contact card linked to it was written a moment ago: monday's copy
+       * may not have landed yet, and a check now would read "absent" and write the duplicate anyway.
+       * Nothing is reserved, so the next pass (+MIRROR_SETTLE_MS, a full delivery) starts clean.
+       */
+      if (linkedKind && opts.deferMirrorCheck && !opts.verifyExisting && writtenNow.size) {
+        const by = await linkersOf(card.id);
+        const fresh = by ? [...by].filter(c => writtenNow.has(c)) : [];
+        if (fresh.length) {
+          deferred++;
+          note("mirror-check-deferred", `item=${card.id} ${d.kind}=${d.hubspotId} via=${fresh.join(",")}`
+            + ` reason="linked contact card written this pass; checking once monday's copy has landed"`);
+          continue;
+        }
       }
 
       const claim = await claimActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId);
-      if (claim.status === "have") continue;
+      if (claim.status === "have") { if (mirror && d.kind === "contact") holding.add(card.id); continue; }
       if (claim.status === "creating") { retryable ??= "creating"; continue; }
       if (claim.status === "blocked") { retryable ??= "blocked"; continue; }
+
+      /**
+       * WE INHERITED AN ABANDONED RESERVATION, so a previous attempt may already have written and
+       * merely lost its response. Look at the card before writing again, whatever the caller asked
+       * for — the retry and webhook paths do not set verifyExisting, and this is the one moment a
+       * duplicate can be made. Measured: under the historical import's load this produced 906
+       * duplicated entries of 1,382 post-cutover emails.
+       *
+       * Only on the stale path: a fresh reservation cannot have a lost write behind it, so the
+       * common case still costs no extra read.
+       */
+      if (claim.tookOverStale) {
+        const seen = await alreadyOnCard(env, card.id, object, hubspotId);
+        if (seen === "present") {
+          if (mirror && d.kind === "contact") holding.add(card.id);
+          await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, "already-on-card");
+          fin("skipped", `${d.kind}=${d.hubspotId} reason="stale reservation, but the entry is already on the card"`);
+          continue;
+        }
+        // Cannot tell, and a previous attempt may have written: writing now is how the duplicate is
+        // made. Leave it for a later pass, when the read may succeed or the mapping may have settled.
+        if (seen === "unknown") {
+          retryable ??= "unresolved";
+          fin("unresolved", `${d.kind}=${d.hubspotId} reason="stale reservation and the card could not be read"`);
+          continue;
+        }
+        knownAbsent = true;
+      }
+
+      /**
+       * HAS monday ALREADY COPIED IT HERE? Asked only of a Company/Deal card linked to a Contact card that
+       * holds this activity, and answered by the card itself. Only "present" skips -- settled on the
+       * copy's id, as a create settles on its own -- and every other answer writes, as before.
+       */
+      if (linkedKind && !knownAbsent) {
+        const by = await linkersOf(card.id);
+        if (by === null) {
+          note("mirror-check-unknown", `item=${card.id} ${d.kind}=${d.hubspotId} reason="contact links unreadable; writing"`);
+        } else if (by.size) {
+          const via = [...by].join(",");
+          const seen = await scanCardForMarker(env, card.id, object, hubspotId, {
+            deadlineMs: Date.now() + MIRROR_CHECK_MS, maxPages: MIRROR_CHECK_PAGES,
+            maxRateWaits: MIRROR_CHECK_RATE_WAITS }, true);
+          if (seen.state === "present") {
+            const found = seen.timelineId ?? "already-on-card";
+            await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, found);
+            note("mirrored-present", `item=${card.id} ${d.kind}=${d.hubspotId} timeline=${found} via=${via}`
+              + ` reason="monday already copied it from a linked contact card; not writing a second copy"`);
+            continue;
+          }
+          note(seen.state === "absent" ? "mirror-check-absent" : "mirror-check-unknown",
+            `item=${card.id} ${d.kind}=${d.hubspotId} via=${via} reason="${seen.state === "absent"
+              ? "no copy on the card (linked after the contact entry, or not landed); writing"
+              : "card could not be read within the bound; writing"}"`);
+        }
+      }
 
       try {
         const created = await gql(env,
@@ -442,9 +777,23 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
             c: payload.content, ts: payload.timestamp }, 1);
         const timelineId = created?.create_timeline_item?.id;
         await settleActivityToMonday(env, object, hubspotId, d.kind, d.hubspotId, String(timelineId ?? "created"));
+        if (mirror && d.kind === "contact") { holding.add(card.id); writtenNow.add(card.id); }
         wrote++;
         fin("created", `item=${card.id} ${d.kind}=${d.hubspotId} timeline=${timelineId}`);
       } catch (e) {
+        /**
+         * RATE-LIMITED IS RETRYABLE, NOT "ERROR". Filing it as "error" -- the old behaviour -- meant never
+         * retried: under repair load (catch-up, dedupe and People re-sync share one monday budget) the
+         * entry was simply lost. The reservation is deliberately NOT released even though the request
+         * most likely never ran: the retry schedule reaches the 15-minute stale takeover, which checks
+         * the card before writing, so a mis-classified reply can still never become a second copy.
+         */
+        // By name, not instanceof: survives a bundler boundary and a mocked monday module alike.
+        if ((e as Error)?.name === MONDAY_RATE_LIMITED) {
+          retryable ??= "unresolved";
+          fin("unresolved", `${d.kind}=${d.hubspotId} reason="monday rate limit; will retry after the reservation goes stale"`);
+          continue;
+        }
         unresolvedActivityToMonday(object, hubspotId, d.kind, d.hubspotId, e);
         fin("error", `${d.kind}=${d.hubspotId} reason="${String(e).slice(0, 120)}"`);
         errored = true;
@@ -457,6 +806,14 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
     }
 
     if (retryable) return retryable;
+    /**
+     * A HELD-BACK DESTINATION OUTRANKS "error": it was never attempted, and "deferred" brings the next
+     * delivery back in MIRROR_SETTLE_MS. An errored destination's reservation still stands, so that pass
+     * reads "creating" for it and writes nothing -- the same protection "unresolved" relies on above.
+     */
+    if (deferred)
+      return fin("deferred", `held=${deferred} reason="linked Company/Deal cards checked on the next pass"`,
+        "mirror-held");
     if (errored) return "error";
     return wrote ? "created" : fin("skipped", 'reason="nothing left to write"');
   } catch (e) {
@@ -533,23 +890,48 @@ async function maybeMarkFollowUp(env: Env, itemId: string, contactId: string,
 // ============================================================ monday -> HubSpot
 
 /**
- * Woken by a Last Activity Date change, read ONE contact's timeline and push anything native we have
+ * Woken by a wake-up column (the Activity bell, or Last Activity Date -- webhooks.ts ACTIVITY_WAKE_COLS),
+ * a person's edit, or POST /wake-timeline: read ONE contact's timeline and push anything native we have
  * not pushed before.
  *
  * The date is only a doorbell. It is never read as the activity, and never used for qualification —
- * the durable registry decides what is new, so repeated wake-ups (we observe roughly two per
- * activity, from the automation and the workflow that both write the column) cost one timeline read
- * and create nothing twice.
+ * the durable registry decides what is new, so repeated wake-ups cost one timeline read and create
+ * nothing twice.
+ *
+ * Returns the outcome as a short line (the same words it logs), for the catch-up route to report.
  */
-export async function syncMondayTimeline(env: Env, itemId: string): Promise<void> {
-  const log = (action: string, extra = "") =>
-    console.log(`[activity] source=monday item=${itemId} action=${action}${extra ? " " + extra : ""}`);
+/**
+ * Timeline entries per page (monday's own default, 25) and pages per wake. scripts/wake-timelines.mjs
+ * reads with the same two numbers (wake-timeline.test.ts pins it), so a card the script finds work on
+ * is a card this read reaches.
+ */
+export const TIMELINE_PAGE = 25;
+export const TIMELINE_MAX_PAGES = 4;
+
+export async function syncMondayTimeline(env: Env, itemId: string): Promise<string> {
+  const log = (action: string, extra = "") => {
+    const line = `action=${action}${extra ? " " + extra : ""}`;
+    console.log(`[activity] source=monday item=${itemId} ${line}`);
+    return line;
+  };
   try {
-    const d = await gql(env,
-      `query ($i: ID!) { timeline(id: $i) { timeline_items_page { timeline_items {
-          id type title content custom_activity_id created_at } } } }`,
-      { i: itemId }, 2);
-    const entries: any[] = d?.timeline?.timeline_items_page?.timeline_items ?? [];
+    // PAGED, newest first. One default page (25) was all this read, so on a contact flooded with
+    // marketing or HubSpot entries a rep's note could sit past it and never be pushed. Pages go on only
+    // while every entry read is still after the activity cutover -- older ones are never pushed -- so an
+    // ordinary card still costs one read.
+    const entries: any[] = [];
+    let cursor: string | null = null;
+    for (let p = 0; p < TIMELINE_MAX_PAGES; p++) {
+      const d = await gql(env,
+        `query ($i: ID!, $l: Int, $c: String) { timeline(id: $i) { timeline_items_page(limit: $l, cursor: $c) {
+            cursor timeline_items { id type title content custom_activity_id created_at } } } }`,
+        { i: itemId, l: TIMELINE_PAGE, c: cursor }, 2);
+      const page = d?.timeline?.timeline_items_page;
+      const items: any[] = page?.timeline_items ?? [];
+      entries.push(...items);
+      cursor = page?.cursor ? String(page.cursor) : null;
+      if (!cursor || !items.length || items.some(e => !afterCutover(env, e?.created_at))) break;
+    }
     const native = entries.filter(eligibleForHubspot);
     if (!native.length) return log("nothing-to-sync", `entries=${entries.length}`);
 
@@ -568,25 +950,83 @@ export async function syncMondayTimeline(env: Env, itemId: string): Promise<void
       log("filtered", `pre-cutover=${native.length - fresh.length} of ${native.length}`);
     if (!fresh.length) return log("nothing-to-sync", 'reason="all entries predate the cutover"');
 
-    for (const entry of fresh) await pushOne(env, itemId, contactId, entry, log);
+    let pushed = 0;
+    for (const entry of fresh) if (await pushOne(env, itemId, contactId, entry, log)) pushed++;
+    return `action=done pushed=${pushed} fresh=${fresh.length} contact=${contactId}`;
   } catch (e) {
-    log("error", `reason="${String(e).slice(0, 140)}"`);
+    return log("error", `reason="${String(e).slice(0, 140)}"`);
   }
 }
 
+/**
+ * IS THIS monday ENTRY ALREADY IN HUBSPOT? For a stale m2h reservation only (pushOne), so the common
+ * path pays nothing.
+ *
+ * The search is narrow on purpose: the contact's own notes/calls whose hs_timestamp is the entry's
+ * created_at (which is what pushOne writes, +-1 s), then the origin marker in the body decides -- a
+ * timestamp alone could be a rep's own note from the same second. More than one page of candidates,
+ * a failed search or an entry with no usable date is "unknown", and the caller creates nothing.
+ * HubSpot's search index lags seconds; a reservation goes stale only after 15 minutes.
+ */
+async function alreadyInHubspot(env: Env, object: string, bodyProp: string, contactId: string, entry: any)
+    : Promise<{ state: "present"; id: string } | { state: "absent" } | { state: "unknown"; why: string }> {
+  const ts = Date.parse(String(entry?.created_at ?? ""));
+  if (!Number.isFinite(ts)) return { state: "unknown", why: "entry has no usable created_at" };
+  const marker = mondayOriginMarker(String(entry.id));
+  try {
+    const r = await hs(env, "POST", `/crm/v3/objects/${object}/search`, {
+      filterGroups: [{ filters: [
+        { propertyName: "associations.contact", operator: "EQ", value: contactId },
+        { propertyName: "hs_timestamp", operator: "GTE", value: ts - 1000 },
+        { propertyName: "hs_timestamp", operator: "LTE", value: ts + 1000 },
+      ] }],
+      properties: [bodyProp], limit: 100,
+    }, 2);
+    const hit = (r?.results ?? []).find((x: any) => String(x?.properties?.[bodyProp] ?? "").includes(marker));
+    if (hit?.id) return { state: "present", id: String(hit.id) };
+    if (r?.paging?.next?.after) return { state: "unknown", why: "more candidates than one page" };
+    return { state: "absent" };
+  } catch (e) {
+    return { state: "unknown", why: String(e).slice(0, 80) };
+  }
+}
+
+/** True only when this call created the HubSpot object. */
 async function pushOne(env: Env, itemId: string, contactId: string, entry: any,
-    log: (a: string, e?: string) => void): Promise<void> {
+    log: (a: string, e?: string) => unknown): Promise<boolean> {
   const object = HUBSPOT_OBJECT_FOR_NATIVE[String(entry.type)];
-  if (!object) return;
+  if (!object) return false;
 
   const claim = await claimActivityToHubspot(env, entry.id);
-  if (claim.status === "have") return;                       // already pushed — the common case
-  if (claim.status === "creating") return log("skipped", `timeline=${entry.id} reason="mid-create"`);
-  if (claim.status === "blocked") return log("deferred", `timeline=${entry.id} reason="idempotency store unavailable"`);
+  if (claim.status === "have") return false;                 // already pushed — the common case
+  if (claim.status === "creating") { log("skipped", `timeline=${entry.id} reason="mid-create"`); return false; }
+  if (claim.status === "blocked") { log("deferred", `timeline=${entry.id} reason="idempotency store unavailable"`); return false; }
+  const bodyProp = object === "notes" ? "hs_note_body" : "hs_call_body";
+
+  /**
+   * WE INHERITED AN ABANDONED RESERVATION: an earlier create may have landed and lost its response (a
+   * timeout under load; a settle that failed, which settle only logs). The HubSpot -> monday side has
+   * checked the destination here since the 906 doubled emails (see alreadyOnCard); this side did not,
+   * and the wake-ups on one card multiplied on 2026-09-30 -- the bell with its trailing re-read, the
+   * person doorbell, our own Last Activity Date writes, POST /wake-timeline catch-ups. So look in
+   * HubSpot for the marker the body carries before creating again. Found: settle to it. Cannot tell:
+   * create NOTHING -- the reservation (ours now) goes stale again and a later wake re-checks.
+   */
+  if (claim.tookOverStale) {
+    const seen = await alreadyInHubspot(env, object, bodyProp, contactId, entry);
+    if (seen.state === "present") {
+      await settleActivityToHubspot(env, entry.id, seen.id);
+      log("skipped", `timeline=${entry.id} -> ${object}/${seen.id} reason="stale reservation, but it is already in HubSpot"`);
+      return false;
+    }
+    if (seen.state === "unknown") {
+      log("deferred", `timeline=${entry.id} reason="stale reservation and HubSpot could not be checked: ${seen.why}"`);
+      return false;
+    }
+  }
 
   try {
     const text = strip(entry.content) || strip(entry.title) || "(no content)";
-    const bodyProp = object === "notes" ? "hs_note_body" : "hs_call_body";
     const properties: Record<string, string> = {
       hs_timestamp: entry.created_at,
       // The marker the secondary bounce guard reads back — written through the shared helper so the
@@ -615,9 +1055,11 @@ async function pushOne(env: Env, itemId: string, contactId: string, entry: any,
      */
     if (newId) await claimHubspotAsRepresented(env, object, newId, contactId, entry.id);
     log("pushed", `timeline=${entry.id} -> ${object}/${newId} contact=${contactId}`);
+    return true;
   } catch (e) {
     unresolvedActivityToHubspot(entry.id, e);
     log("error", `timeline=${entry.id} reason="${String(e).slice(0, 140)}"`);
+    return false;
   }
 }
 

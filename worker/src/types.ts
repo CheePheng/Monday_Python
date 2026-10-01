@@ -4,7 +4,10 @@ import type { DeferredSync } from "./deferred-sync-do";
 
 export interface Env {
   CREATE_IDEMPOTENCY: DurableObjectNamespace<CreateIdempotency>;
-  ACTIVITY_RETRY: DurableObjectNamespace<ActivityRetry>;
+  /** Optional for the same reason as DEFERRED_SYNC: the Work Management deployment does not run
+   *  activity sync and has no such namespace. Declaring it required was a lie the compiler believed,
+   *  which is how an unguarded read reached a route WM can serve. */
+  ACTIVITY_RETRY?: DurableObjectNamespace<ActivityRetry>;
   /** Optional: absent on the Work Management deployment, whose cron covers the same ground. */
   DEFERRED_SYNC?: DurableObjectNamespace<DeferredSync>;
   MONDAY_API_TOKEN: string;
@@ -15,6 +18,8 @@ export interface Env {
   /** Capability key for the CRM Worker's monday webhooks. Set ONLY on the CRM Worker: mondayAuth
    *  fails open when absent so the live WM Worker's bare-path hooks keep working. */
   MONDAY_WEBHOOK_KEY?: string;
+  /** A second live webhook key, for hooks registered after the first key's value was lost. See mondayAuth. */
+  MONDAY_WEBHOOK_KEY_2?: string;
   MAX_WRITES?: string;           // optional: writes/records per cron tick (default 25; raise on Workers Paid)
   LINE_ITEM_WRITE?: string;      // "true" once the token has crm.objects.line_items.write (enables reverse line items)
   APP_SECRET?: string;           // shared secret the vibe app sends to /app/search (falls back to TRIGGER_SECRET)
@@ -41,8 +46,62 @@ export interface Env {
   ACTIVITY_CANARY_HUBSPOT_COMPANY_ID?: string;
   ACTIVITY_CANARY_HUBSPOT_DEAL_ID?: string;
   ACTIVITY_CANARY_MONDAY_ITEM_ID?: string;
+  /** "true" = do not write a second copy of a HubSpot activity onto an Account/Deal card that monday has
+   *  already copied it onto from a linked Contact card -- only when a bounded read of that card finds the
+   *  copy; "absent", "unknown" and unreadable links all write as before (activity-sync.ts,
+   *  skipMirroredCopies). Anything else, including absent, is the old behaviour exactly. Ships "false". */
+  ACTIVITY_SKIP_MIRRORED_COPIES?: string;
   ENABLE_CRM?: string;                // "true" ONLY on the separate CRM Worker. Selects the CRM specs
                                       // EXCLUSIVELY (see specsFor); the production Worker never sets it.         // the one allowed monday account id (rejects tokens from any other account)
+  /** "true" lets a person's edit of the Products & Services "Accounts/Companies" cell FILL an empty
+   *  company on the line item's deal (deal -> company, Primary). Anything else -- including absent --
+   *  keeps that derived cell read-only: every edit snaps back. Ships "false". See fillDealCompany. */
+  PS_ACCOUNT_REVERSE?: string;
+  /** "true" lets a PERSON's edit of the Deals board's native coarse Stage (deal_stage: New / Proposal /
+   *  Negotiation / Won / Lost) set the deal's stage, within its current pipeline (coarseStageEdit in
+   *  reconcile.ts). An automation's or our own token's edit of it is never sent. Anything else -- including
+   *  absent -- keeps the column one-way: every event on it is ignored. Ships "false". */
+  STAGE_COARSE_REVERSE?: string;
+  /** "true" turns the HubSpot marketing email poller on (marketing-email-poller.ts). Ships "false".
+   *  Also needs ENABLE_ACTIVITY_SYNC (the kill switch for every timeline write), ENABLE_CRM, and the
+   *  monday activity type id in activities.ts. */
+  ENABLE_MARKETING_EMAIL_SYNC?: string;
+  /** Where the LIVE marketing cursor starts (ISO). Unset or unparseable = the poller refuses: seeding
+   *  from "now" would silently lose everything between deploy and first run, and from zero would
+   *  import all history through the live path. */
+  MARKETING_CUTOVER_AT?: string;
+  /** Where the BACKFILL cursor starts (ISO); it runs up to MARKETING_CUTOVER_AT with whatever write
+   *  budget the live work leaves. Unset = no backfill. */
+  MARKETING_BACKFILL_FROM?: string;
+  /** Timeline writes per poll, all phases together. Default 60. */
+  MARKETING_MAX_WRITES_PER_POLL?: string;
+  /** Canary: comma-separated HubSpot contact ids. While set, ONLY those contacts get entries, and the
+   *  cursors are kept under separate names so the production cursors start clean afterwards. Separate
+   *  from ACTIVITY_CANARY_* on purpose: those scope the live activity sync in both directions. */
+  MARKETING_CANARY_CONTACT_IDS?: string;
+  /** "true" turns on the bounded Last Activity backstop sweep in the 15-minute cron (lad-sweep.ts):
+   *  records whose notes_last_updated moved since its watermark get the ordinary, non-forced sync, so
+   *  a dropped HubSpot webhook heals itself. CRM Worker only. Ships "false". */
+  ENABLE_LAD_SWEEP?: string;
+  /** KILL SWITCH. "true" = a record created from a monday card by a PERSON gets the relation links the
+   *  card shows, pushed to HubSpot right after the create (the birth pass: bornAttached ->
+   *  pushBirthAssociations). Anything else, including absent, is the old behaviour: no association
+   *  write follows a monday-born record. The card-owner re-stamp and the create's provenance stay on
+   *  either way. Ships "false"; the deploy passes "true". */
+  BORN_ATTACHED_LINKS?: string;
+  /** KILL SWITCH. "true" = a person's edit made while its card's HubSpot record is being created is
+   *  queued and replayed by the creator, and the creator holds the forward pass off the new card until
+   *  it has settled it (createWindowReplayOn in sync.ts). Anything else, including absent, is the old
+   *  create path: an edit that finds the create in flight is skipped, and a 'have' claim only
+   *  re-stamps. Ships "false"; the deploy passes "true". */
+  CREATE_WINDOW_REPLAY?: string;
+  /** "true" = an event of our own token user (104118038 "ask ada", a login people share) is read as a
+   *  PERSON's when monday's activity log proves it was a UI action: the matching update_column_value row
+   *  carries an action_record_uuid, or a create_pulse row lacks the HubSpot ID column (ui-actor.ts). One
+   *  activity_logs query per such event on a two-way column; no row / an error = our own, as today.
+   *  Anything else, including absent, is today's behaviour exactly: every event of ours is an echo.
+   *  Ships "false". */
+  ASK_ADA_UI_EDITS?: string;
 }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone" | "email" | "link";
@@ -86,6 +145,22 @@ export interface FieldSpec {
    * on 2026-09-09; both now carry dictionaries.
    */
   unvalidatedEnum?: boolean;
+  /**
+   * ON REVERSE, SEND THE TEXT ONLY IN ONE STRICT SHAPE -- for a property whose valid values a label
+   * dictionary cannot describe.
+   *
+   *   "currency": a three-letter ISO 4217 code. `deal_currency_code` and `hs_line_item_currency_code`
+   *     resolve their options dynamically in HubSpot, so a fetched dictionary comes back EMPTY and every
+   *     edit was refused (Deals also pointed at the pipeline dictionary by mistake). The monday cells hold
+   *     bare codes -- measured 2026-09-23: Deals CNY 5,272 / USD 3,302 / HKD 10 / SGD 7; P&S CNY 7,144 /
+   *     USD 2,813 / HKD 11 -- so the code IS the value.
+   *   "integer": a whole number, thousands separators allowed and stripped. For a HubSpot NUMBER property
+   *     shown in a monday TEXT column (`numberofemployees`), where a range like "100-500" must be refused
+   *     rather than 400 the write.
+   *
+   * Anything else is refused and the cell healed, exactly like an unknown status label.
+   */
+  reverseAs?: "currency" | "integer";
   /**
    * ON REVERSE, WRITE THE CANONICAL DOMAIN — because this value is also a SEARCH KEY.
    *
@@ -162,6 +237,68 @@ export interface FieldSpec {
    * and the miss is logged so an unmapped stage is a reported fact rather than a silent one.
    */
   strictDict?: boolean;
+
+  /**
+   * THIS HUBSPOT PROPERTY IS AN INSTANT, NOT A DAY — so take its date part in the BUSINESS timezone.
+   *
+   * A monday date column holds a calendar day. The engine used to produce one with `value.slice(0, 10)`
+   * on HubSpot's raw UTC string, which is only correct for a viewer sitting in UTC. This portal is
+   * Asia/Shanghai (UTC+8, no DST), so every value from 16:00Z onward belongs to the NEXT local day and
+   * the board showed the one before it. Measured: 496 of 1,399 populated `notes_last_updated` values
+   * (35.5%), of which 488 are exactly 16:00:00.000Z — i.e. local midnight, the worst possible case.
+   * Live example, deal 14054129559: closedate 2023-11-09T16:00:00Z is Nov 10 in Shanghai, shown as Nov 9.
+   *
+   * OPT-IN PER FIELD, for two separate reasons:
+   *
+   *  - NOT EVERY DATE PROPERTY IS AN INSTANT. HubSpot distinguishes `datetime` from `date`, and the
+   *    line-item properties `service_date` and `hs_recurring_billing_start_date` are genuinely `date`
+   *    (stored as midnight UTC, where the day IS the value). Shifting those is a no-op at +8h, so they
+   *    are left plain rather than given a flag that suggests a conversion is happening.
+   *  - THE LIVE WORK-MANAGEMENT WORKER SHARES THIS FILE. A blanket change would alter dates on its
+   *    production boards on the next reconcile. Those specs carry no flag and are untouched.
+   *
+   * KEEP IT TO oneWay FIELDS UNTIL THE TRANSITION IS PLANNED. Moving a displayed date by a day raises a
+   * diff on every existing card. Forward that is a correction. On a `reverse` field — `closedate` is the
+   * only one — the direction could resolve to monday and PATCH the stale day back into HubSpot, so that
+   * field is deliberately NOT flagged yet and needs its own migration.
+   */
+  localDate?: boolean;
+
+  /**
+   * WRITABLE AT BIRTH, READ-ONLY AFTERWARDS.
+   *
+   * `buildCreateProperties` emits only `reverse` fields, which is right for an update — a monday edit
+   * may push back only what the spec says it owns. It is wrong for a CREATE, because a record has to be
+   * born with the very key that identifies it.
+   *
+   * Contacts is the case that forces it. `email` is deliberately forward-only: it is the dedup key, so a
+   * monday edit must never rewrite it (a typo would orphan the card from its HubSpot twin). But it is
+   * also `adoptBy.col`, and the create path REFUSES to mint a record whose adoption key is absent —
+   * correctly, since nothing could ever match it again and the next card would create a duplicate.
+   * Marking the field `reverse` to satisfy the create would hand monday permission to rewrite the key
+   * on every subsequent edit, which is the opposite of what is wanted.
+   *
+   * So the two directions are separated: present in the birth payload, absent from every later patch.
+   */
+  writeOnCreate?: boolean;
+
+  /**
+   * HUBSPOT IGNORES A MOVE TO AN EARLIER OPTION OF THIS PROPERTY UNLESS IT IS CLEARED FIRST.
+   *
+   * `lifecyclestage` is a pipeline, and HubSpot's API only lets it move FORWARD: a PATCH to an earlier
+   * stage returns 200 and changes nothing. The documented way back is to clear it ("") and then set it,
+   * which is exactly what HubSpot's own UI does (contact 553232416501, 2026-10-01: "" at 03:12:27, then
+   * 6 at 03:12:28). Proven live the same day: Matthew Ng set 7 -> 3 on contact 42000269320 and hiffer set
+   * 10 -> 6 -> 5 -> 6 on 553232416501; both PATCHes went out, and neither left a history entry.
+   *
+   * With this set, a reverse write that moves the value to an EARLIER position (the property's live
+   * `displayOrder`, read with its label dictionary: see optionOrderOf in reconcile.ts) sends the clear --
+   * carrying every other property of the write -- and then the move alone, after queueing a durable
+   * re-check that finishes a clear whose move never followed (sendPatch and repairDanglingClears in
+   * sync.ts). Forward moves, first fills, clears and unchanged values are one PATCH, as before. Requires
+   * `labels`: an unknown order is never guessed, it is one PATCH and a log line.
+   */
+  backwardNeedsClear?: boolean;
 }
 
 /** Which sync owns WRITE access to a HubSpot record. */
@@ -198,7 +335,52 @@ export type GroupBy =
   // noSalesUserGroup overrides placement when the record has no sales_user (e.g. the shared Deals
   // board's "Unassigned Deals" group).
   | { prop: string; map: Record<string, string>; reverse: boolean; fallbackGroup?: string; noSalesUserGroup?: string }
-  | { singleGroup: string };
+  /**
+   * `placeOnly`: the group is where a NEW card is created, and nothing more. The Worker never moves an
+   * existing card. Without it every reconcile compares the card's group to `singleGroup` and moves it
+   * back, so any synced card left a group a person had put it in -- the CRM Contacts board's
+   * "No Activity - 未跟进" emptied into "Active Contacts" whenever a card in it was edited or updated.
+   */
+  | { singleGroup: string; placeOnly?: boolean };
+
+/**
+ * What a person changed on a monday card, as reported by the webhook that delivered it. Carried into
+ * the reconcile so a column-level spec can push exactly that and nothing else. `cols` are monday
+ * column ids; `name` means the item name itself.
+ */
+export interface MondayEdit {
+  cols: string[];
+  name?: boolean;
+  /** For a relation (Connect Boards) column: the linked monday item ids the person REMOVED, composed
+   *  from monday's own before/after over every event coalesced into this run. The webhook sets it for
+   *  every relation edit; an event whose before/after was unreadable contributes nothing to it (a missed
+   *  unlink, never an invented one). A paired echo of a click already seen on the other card is left
+   *  out -- that card's run owns the pair. See unlinkedCardIds and isPairedEcho. */
+  unlinked?: Record<string, string[]>;
+  /** For a relation column: the linked monday item ids the person ADDED, composed over every event of
+   *  this person's that was coalesced into this run (monday's previousValue -> value). A column is
+   *  ABSENT when any of those events lacked a usable before-value -- "cannot tell", which refuses the
+   *  push and snaps the cell back; an empty list means "added nothing". See linkedCardIds. */
+  linked?: Record<string, string[]>;
+  /** For a relation column: how many cards the largest SINGLE event composed into this run added and
+   *  removed. The per-edit caps (MAX_LINKS_PER_EDIT / MAX_UNLINKS_PER_EDIT) judge one click by it, so
+   *  six quick one-card clicks queued behind a running pass are not mistaken for one bulk edit. Absent
+   *  when the caller has no per-event view; the caps then judge the composed lists. */
+  largestEvent?: Record<string, { added: number; removed: number }>;
+  /** The monday user id behind the edit (the first event's, for a coalesced run). For logs only:
+   *  relation edits are serialised per item + column + actor CLASS, and the reverse pass, which only
+   *  ever runs for the person class, finds its re-check key without it. See relation-edit.ts. */
+  actor?: string;
+  /** For a People column: the monday PERSON ids the person removed, accumulated over every event
+   *  coalesced into this run (from monday's previousValue -> value). Absent when the events did not
+   *  carry both sides. See columnEditPatch's people branch. */
+  removedPeople?: Record<string, string[]>;
+  /** The edit was made by a monday AUTOMATION (a negative userId, e.g. -4), not a person. A FIELD edit
+   *  still pushes to a record CRM already owns, but can never CLAIM one -- see isAutomationActor. A
+   *  RELATION edit by an automation pushes nothing at all (logged, not snapped back): see
+   *  reverseAssociations. */
+  byAutomation?: boolean;
+}
 
 export interface ObjectSpec {
   // "line_items" joined 2026-09-14: the CRM phase gives Line Items their own BOARD with a paired Deal
@@ -306,6 +488,27 @@ export interface ObjectSpec {
    * `ownership` as a stand-in for another decision.
    */
   suppressSelfOriginWrites?: boolean;
+  /**
+   * TWO-WAY BY COLUMN, NOT BY RECORD. When set:
+   *   - a person editing a monday column pushes THAT column to HubSpot, and nothing else on the card;
+   *   - a sync that did not start from a person's monday edit (a HubSpot webhook, a sweep, a restore)
+   *     only ever writes MONDAY. It never writes HubSpot.
+   *
+   * The default engine decides direction for the whole RECORD by comparing HubSpot's lastmodifieddate
+   * against the card's Sync State, then pushes every reversible column that differs. That is only safe
+   * while every monday column is known to be current, and on the CRM boards it is not: a HubSpot
+   * change that was never delivered leaves a stale cell, and the next unrelated edit on that card
+   * would write the stale cell back over a deliberate HubSpot change. Contact 394787683005 was the live
+   * example on 2026-09-23 — HubSpot's Sales User had been changed to Elaine Rivera, monday still showed
+   * Myla, and a Job Title edit would have reverted HubSpot to Myla.
+   *
+   * Knowing the column is also what makes a CLEAR syncable. The record-level engine cannot tell "never
+   * set" from "just emptied", so it never sends an empty monday value to HubSpot; a person emptying the
+   * one column they edited is unambiguous.
+   *
+   * OPT-IN PER SPEC. The live Work-Management specs keep the record-level engine exactly.
+   */
+  columnLevelReverse?: boolean;
   /** Spec-driven adoption key. Absent on production WM specs, which keep their existing
    * object-specific adoption branches untouched. */
   adoptBy?: AdoptBy;
@@ -313,6 +516,41 @@ export interface ObjectSpec {
   createFromMonday: boolean;
   // fixed HubSpot properties stamped on records created from monday (pipeline, owner, sales_user...).
   createDefaults?: Record<string, string>;
+  /**
+   * MONDAY CARDS OLDER THAN THIS NEVER CREATE A HUBSPOT RECORD. Per-spec override of the module-level
+   * CREATE_CUTOFF_MS, which is a Work-Management constant (2026-07-03) and far too old to protect the
+   * CRM boards.
+   *
+   * THIS IS THE GUARD THAT MAKES ENABLING CREATION SAFE. The Accounts board carries ~1,301 cards with a
+   * name and a domain and no HubSpot id — manufactured by monday's CRM "Item association" feature, not
+   * by a person. Every one of them was created in September 2026, so every one of them clears the
+   * 2026-07-03 cutoff. Turning creation on without a newer cutoff would therefore, on the next column
+   * change to any of those cards, adopt or CREATE a HubSpot Company for each — silently, at scale, and
+   * irreversibly from monday's side (a monday deletion never deletes a HubSpot record).
+   *
+   * Supplied from the environment (CRM_CREATE_CUTOFF_AT) and FAILS CLOSED to Infinity, so a deployment
+   * that forgets to set it creates nothing at all rather than creating everything. Go-live is then a
+   * var, and rolling back is deleting that var.
+   */
+  createCutoffMs?: number;
+  /**
+   * THIS RECORD CANNOT EXIST WITHOUT A PARENT, so the parent is part of its BIRTH, not a later link.
+   *
+   * A HubSpot line item with no deal is not a lesser line item, it is an orphan: it appears in no
+   * quote, rolls into no deal amount, and nothing in either system will ever point at it again. So the
+   * association is sent in the create payload rather than PUT afterwards — a create that succeeded and
+   * an association that then failed would leave exactly that orphan, and monday cannot delete a HubSpot
+   * record to clean it up.
+   *
+   * The parent is found the way a rep sees it: the monday Connect-Boards column they filled in on the
+   * form, resolved to the linked card, and then to that card's HubSpot id. If any hop fails the create
+   * is REFUSED and the reason is stamped on Sync State — a visible refusal beats an invisible orphan.
+   */
+  createParent?: {
+    toObject: "deals";
+    relationCol: string;        // monday board_relation column holding the parent card
+    associationTypeId: number;  // HubSpot association type id for child -> parent
+  };
   // HubSpot associations to reflect onto the monday item (HubSpot -> monday only). See associations.ts.
   associations?: AssocSpec[];
   // When set: on records with NO sales_user, assign `teamId` to the people column `col` so that under
@@ -348,6 +586,36 @@ export interface AssocSpec {
                            // AND its paired counterpart on the target board, so both sides are visible.
                            // The old note ("make it in the UI") was true of an earlier API version only.
   subitems?: SubitemSpec;  // line_items only: sync each as a subitem
+  /**
+   * RESOLVE `toObject` THROUGH A SECOND OBJECT, because HubSpot defines no direct association.
+   *
+   * A line item has no company. Verified live, not assumed:
+   * `/crm/v4/associations/line_items/companies/labels` returns an EMPTY result set — the association
+   * TYPE does not exist, so a plain `{ toObject: "companies" }` entry would read zero ids forever,
+   * write nothing, and look like a working mapping. The company a line item belongs to is the company
+   * of its DEAL, so the link has to be walked: line_item -> deals -> companies.
+   *
+   * FORWARD, only the READ changes. Everything after it — card resolution through the target spec's
+   * idCol, on-demand card creation, the truncation guard, the full-replacement write — is the ordinary
+   * relation path, untouched.
+   *
+   * REVERSE, it is NOT the ordinary path: the link it shows is computed, so there is no association of
+   * this type to put or delete. The column-level reverse pass dispatches it to its own narrow rule
+   * (fillDealCompany in associations.ts: fill the deal's company when it has none, behind
+   * PS_ACCOUNT_REVERSE), and snaps every other edit back to the derived set. The whole-cell pass skips it.
+   */
+  via?: "deals";
+  /**
+   * WHEN THE HOP YIELDS MORE THAN ONE, PREFER THE ONE HUBSPOT ITSELF CALLS PRIMARY.
+   *
+   * A deal may carry several companies (typeId 341, unlabelled) of which exactly one is marked Primary
+   * (typeId 5, HUBSPOT_DEFINED — both verified live against this portal). Writing all of them would put
+   * two Accounts on a line item that belongs to one, so on a multi-company deal the Primary wins.
+   *
+   * Applied ONLY to break a tie. A single company that happens to carry no Primary label still links —
+   * filtering it away would trade a correct link for an empty cell, which is the worse error.
+   */
+  viaPrimary?: boolean;
 }
 export interface SubitemSpec {
   boardId: string;     // subitems board id
@@ -363,7 +631,10 @@ export interface MondayItem {
   created_at: string;
   updated_at: string;
   group: { id: string };
-  column_values: { id: string; text: string | null; persons_and_teams?: { id: string; kind: string }[] }[];
+  /** `status_index` is present ONLY on status cells (fetched via `... on StatusValue`) and is null when
+   *  the cell is unset -- see colText for why the text of an unset status must never be trusted. */
+  column_values: { id: string; text: string | null; persons_and_teams?: { id: string; kind: string }[];
+    status_index?: number | null }[];
 }
 
 export interface HsRecord { id: string; properties: Record<string, string | null> }

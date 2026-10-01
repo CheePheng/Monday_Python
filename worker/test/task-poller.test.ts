@@ -38,6 +38,11 @@ const task = (id: string, modified: string) => ({ id, properties: { hs_lastmodif
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // clearAllMocks does not drain mockResolvedValueOnce queues: an unconsumed "created" from an earlier
+  // test would otherwise be served to the next one before its own value.
+  sync.syncHubspotActivity.mockReset();
+  hubspot.hs.mockReset();
+  retry.scheduleReconcile.mockReset();
   reg.marks.clear();
   searched = [];
   sync.syncHubspotActivity.mockResolvedValue("created");

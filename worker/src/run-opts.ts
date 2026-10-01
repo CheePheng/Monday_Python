@@ -31,13 +31,19 @@ export function writeModeFor(env: WriteEnv, maxWrites: number): RunOpts {
   return { dryRun: !live, writeHubspot: live && env.WRITE_HUBSPOT !== "false", maxWrites };
 }
 
+/** The same table with every write forced off, for a request that asked to be a dry run (/resync). */
+export function dryRunModeFor(env: WriteEnv, maxWrites: number): RunOpts {
+  return writeModeFor({ ...env, DRY_RUN: "true" }, maxWrites);
+}
+
 /**
  * Write mode for a single inbound webhook.
  *
  * Exists so the webhook path cannot drift from the table above — it did. webhooks.ts used to carry its
  * own `liveOpts` returning `{ writeHubspot: live }`, which ignored WRITE_HUBSPOT entirely. On the CRM
- * deployment that is not a cosmetic duplicate: there are no crons and both CRM specs set
- * `skipFullReconcile`, so webhooks are the ONLY live path, and Phase B's HubSpot kill switch was
+ * deployment that is not a cosmetic duplicate: there are no SYNC crons (the only cron, the 15-minute one, dispatches
+ * the marketing poller, which writes monday timelines and never HubSpot) and both CRM specs set
+ * `skipFullReconcile`, so webhooks are the only live SYNC path, and Phase B's HubSpot kill switch was
  * therefore inert precisely where every real write happens. The one thing still refusing reverse
  * writes was the ownership gate — a second line of defence being mistaken for the first.
  *

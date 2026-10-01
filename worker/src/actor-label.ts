@@ -54,6 +54,23 @@ export async function isIntegrationActor(env: Env, userId: string): Promise<bool
   }
 }
 
+/**
+ * Was this edit made by a monday AUTOMATION rather than a person? monday attributes automation and
+ * workflow actions to a negative pseudo-user (-4 on every CRM board, observed in the activity log).
+ *
+ * WHY IT MATTERS FOR OWNERSHIP. A person's edit on a CRM card is the claim basis that lets the CRM
+ * Worker take over an older record. An automation is not that signal, and it can fire in BULK: the
+ * Contacts board's #06/#08 react to Last Activity Date changing, so a forward repair that rewrites that
+ * column on thousands of cards would have #08 set Lead Status on each -- and, if automations could claim,
+ * turn one monday-side repair into thousands of HubSpot ownership claims and writes. So an automation's
+ * edit still reaches HubSpot on a record CRM already owns (the team configured that rule in the CRM
+ * workspace), but it can never make a record CRM's. Not treated as our own echo either: it is a
+ * deliberate rule someone set up, not a side effect of our token.
+ */
+export function isAutomationActor(userId: string): boolean {
+  return /^-\d+$/.test(String(userId ?? "").trim());
+}
+
 /** Resolve the acting monday user to a log label. Cached; never throws (attribution must not break a sync). */
 export async function actorLabel(env: Env, userId: string): Promise<string> {
   if (!userId) return "actor=unknown";

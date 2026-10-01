@@ -113,6 +113,13 @@ describe("what selfOrigin actually suppresses", () => {
   /** The forward direction must STILL run: reconciling HubSpot's truth onto our own card is harmless
    *  and self-healing, and suppressing it would leave cards permanently stale. */
   it("still reconciles forward rather than skipping the record entirely", () => {
-    expect(sync).toContain("reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave, selfOrigin)");
+    expect(sync).toContain("reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave, selfOrigin, edit)");
+  });
+
+  /** On a column-level spec our own echo must reach the FORWARD-ONLY path, never the push path: the
+   *  push path claims ownership and writes HubSpot, and an echo carries no person's intent. */
+  it("on a column-level spec, self-origin is excluded from the push path", () => {
+    expect(sync).toContain("if (edit && (edit.cols.length || edit.name) && !selfOrigin)");
+    expect(sync).toContain("return reconcileForwardOnly(env, spec, ctx, opts, budget, rec, existing, stats, forceForward);");
   });
 });

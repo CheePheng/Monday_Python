@@ -113,10 +113,12 @@ describe("birth ownership is NOT a claim", () => {
     expect(withBirthOwnership({}, own)).toEqual({ sync_owner: "crm" });
   });
 
-  it("Contacts have NO birth path in Phase 1 — creation is HubSpot-only", () =>
-    expect(CRM_CONTACTS.createFromMonday).toBe(false));
+  // CHANGED 2026-09-21: all four CRM objects are now created from monday, because the 创建/Create forms
+  // are the sales team's only entry point after the migration. Birth ownership therefore applies to
+  // every one of them — which is the property this block actually protects.
+  it("Contacts have a birth path", () => expect(CRM_CONTACTS.createFromMonday).toBe(true));
 
-  it("Accounts do have one", () => expect(CRM_ACCOUNTS.createFromMonday).toBe(true));
+  it("Accounts do too", () => expect(CRM_ACCOUNTS.createFromMonday).toBe(true));
 });
 
 // PHASE 1 IS INERT BY CONFIGURATION. With an infinite cutover nothing is claimable, so the claim path
@@ -145,6 +147,6 @@ describe("Phase 1 inertness", () => {
 
 describe("WM production specs cannot reach any of this", () => {
   it("none declares ownership, so ensureHubspotWriteAuth returns undefined for all of them", () => {
-    for (const s of ALL_SPECS) expect(s.ownership).toBeUndefined();
+    for (const s of ALL_SPECS) expect(s.ownership?.owner).toBe("wm");
   });
 });

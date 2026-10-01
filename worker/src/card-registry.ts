@@ -1,5 +1,5 @@
 import type { Env } from "./types";
-import type { CardClaim } from "./create-idempotency-do";
+import type { CardClaim, CreateSnapshot, PendingEdit } from "./create-idempotency-do";
 
 // monday's `items_page_by_column_values` (how every path asks "is there already a card for this HubSpot
 // record?") is EVENTUALLY CONSISTENT — a card created seconds ago is invisible to it. Several paths create
@@ -20,7 +20,7 @@ export async function claimCard(env: Env, boardId: string, hubspotId: string): P
     return await cardStub(env, boardId, hubspotId).claimCard(Date.now());
   } catch (e) {
     console.log(`[card-registry] claim board=${boardId} hs=${hubspotId} error="${String(e).slice(0, 120)}"`);
-    return { status: "proceed" }; // fail open — fall back to the column search
+    return { status: "proceed", tookOverStale: true }; // fail open — the column search below is the check
   }
 }
 
@@ -94,17 +94,86 @@ function itemStub(env: Env, boardId: string, itemId: string) {
   return env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(`mdcreate:${boardId}:${itemId}`));
 }
 
-/** Reserve the right to create a HubSpot record for this monday row. */
-export async function claimHubspotForItem(env: Env, boardId: string, itemId: string): Promise<CardClaim> {
-  try { return await itemStub(env, boardId, itemId).claimCard(Date.now()); }
-  catch (e) {
+/**
+ * How long a create may stay "creating", or a settling creator go without a heartbeat, before it is
+ * presumed dead. The same 30 s the claim has always used (claimCard's default), named so the settle
+ * check below cannot drift from it.
+ */
+export const CREATE_CLAIM_STALE_MS = 30_000;
+
+/**
+ * Reserve the right to create a HubSpot record for this monday row.
+ *
+ * `defer`: the edit this event carries. When the row's record is still being made the edit is QUEUED
+ * for its creator to replay rather than dropped -- see PendingEdit. Omitted, the call is byte-for-byte
+ * the old one.
+ */
+export async function claimHubspotForItem(env: Env, boardId: string, itemId: string,
+    defer?: PendingEdit): Promise<CardClaim> {
+  try {
+    const stub = itemStub(env, boardId, itemId);
+    return await (defer ? stub.claimCard(Date.now(), CREATE_CLAIM_STALE_MS, false, defer) : stub.claimCard(Date.now()));
+  } catch (e) {
     console.log(`[md-create] claim board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`);
-    return { status: "proceed" }; // fail open
+    return { status: "proceed", tookOverStale: true }; // fail open — state unknown, so treat as stale
   }
 }
-export async function finishHubspotForItem(env: Env, boardId: string, itemId: string, hubspotId: string): Promise<void> {
-  try { await itemStub(env, boardId, itemId).finishCard(hubspotId, Date.now()); }
-  catch (e) { console.log(`[md-create] finish board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`); }
+
+/**
+ * Settle this row's claim on the record it now has.
+ *
+ * Without `settle`: exactly as before (the WM adoption paths, and a create whose id write-back failed).
+ * With it, the create's own settle protocol -- see CreateIdempotency.settleCreate; "renew" and "link"
+ * return the edits that queued while the record was being made (and the notes beside them). A "hold"
+ * and every "renew" also name the card, so the row can watch its own create window and settle the card
+ * itself should this creator stop (CreateIdempotency.alarm); a "hold" carries what the creator knew
+ * (`snapshot`) for whoever has to. Fails open to "nothing queued": a Durable Object hiccup degrades to
+ * the old behaviour, never to a blocked create.
+ */
+export async function finishHubspotForItem(env: Env, boardId: string, itemId: string, hubspotId: string,
+    settle?: "hold" | "renew" | "release" | "link",
+    o?: { baseline?: string; ack?: number; snapshot?: CreateSnapshot }): Promise<PendingEdit[]> {
+  try {
+    const stub = itemStub(env, boardId, itemId);
+    if (!settle) { await stub.finishCard(hubspotId, Date.now()); return []; }
+    const watch = settle === "hold" || settle === "renew"
+      ? { watch: { boardId, itemId, staleMs: CREATE_CLAIM_STALE_MS } } : {};
+    return (await stub.settleCreate(hubspotId, Date.now(), settle, { ...(o ?? {}), ...watch })) ?? [];
+  } catch (e) {
+    console.log(`[md-create] finish board=${boardId} item=${itemId}${settle ? ` mode=${settle}` : ""} error="${String(e).slice(0, 120)}"`);
+    return [];
+  }
+}
+
+/**
+ * Where is this row in its create window? See CreateIdempotency.createWindow: `settling` while a live
+ * creator is still bringing the card into line; otherwise any `leftovers` (and `snapshot`) a stalled or
+ * dead creator left, handed to this caller, and the `baseline` this Worker last wrote on the card.
+ * `note`: this caller's event is our own token's, noted for the window (see noteCreateWindowEdit). Fails
+ * open to "not settling, nothing left": an unreadable state syncs exactly as before.
+ */
+export async function createWindowOf(env: Env, boardId: string, itemId: string, note?: PendingEdit):
+    Promise<{ settling: boolean; baseline?: string; leftovers?: PendingEdit[]; snapshot?: CreateSnapshot }> {
+  try {
+    const stub = itemStub(env, boardId, itemId);
+    return (await (note ? stub.createWindow(Date.now(), CREATE_CLAIM_STALE_MS, note)
+      : stub.createWindow(Date.now(), CREATE_CLAIM_STALE_MS))) ?? { settling: false };
+  } catch (e) {
+    console.log(`[md-create] window-check board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`);
+    return { settling: false };
+  }
+}
+
+/**
+ * Note, for this row's create window, an edit whose event never reaches a claim: our own token's (the
+ * provenance gate refuses it first), or an automation's the webhook drops (the coarse Stage). Kept only
+ * while the window is open, and never replayed: it stops a replay sending that writer's value as the
+ * person's edit it overwrote. See CreateIdempotency.noteEdit. Fails open: a note that cannot be written
+ * leaves the replay as it was.
+ */
+export async function noteCreateWindowEdit(env: Env, boardId: string, itemId: string, e: PendingEdit): Promise<void> {
+  try { await itemStub(env, boardId, itemId).noteEdit(Date.now(), CREATE_CLAIM_STALE_MS, e); }
+  catch (err) { console.log(`[md-create] note board=${boardId} item=${itemId} error="${String(err).slice(0, 120)}"`); }
 }
 export async function forgetHubspotForItem(env: Env, boardId: string, itemId: string): Promise<void> {
   try { await itemStub(env, boardId, itemId).forgetCard(); }

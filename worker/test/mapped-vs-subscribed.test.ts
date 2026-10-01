@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readSubscriptions } from "../scripts/read-subscriptions.mjs";
-import { CRM_CONTACTS, CRM_ACCOUNTS } from "../src/config/crm";
+import { CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS, CRM_LINE_ITEMS } from "../src/config/crm";
 import type { ObjectSpec } from "../src/types";
 
 /**
@@ -24,9 +24,16 @@ const CREATION_ONLY = new Set([
   "hs_object_source_label",  // read-only system metadata: how the record was created
 ]);
 
+/**
+ * ALL FOUR, as of 2026-09-21. Deals and Line Items were absent from this check AND from the manifest,
+ * which is half of why the Products & Services board has never been written to: `hubspot_owner_id` has
+ * been mapped there since 2026-09-14 and no event has ever arrived to act on it.
+ */
 const cases: [string, ObjectSpec, string][] = [
   ["contacts", CRM_CONTACTS, "contact"],
   ["companies", CRM_ACCOUNTS, "company"],
+  ["deals", CRM_DEALS, "deal"],
+  ["line_items", CRM_LINE_ITEMS, "line_item"],
 ];
 
 describe.each(cases)("%s: every mapped property is subscribed", (_label, spec, objectType) => {
@@ -41,8 +48,10 @@ describe.each(cases)("%s: every mapped property is subscribed", (_label, spec, o
 
   // The mirror image: a subscription with no mapping burns webhook deliveries on an event that the
   // reconciler then finds nothing to do with. Not harmful, but it means someone's intent got lost.
+  // The item NAME is a mapping too (nameProps): dealname and a line item's name are what the card is
+  // called, so their propertyChange subscriptions are what let a HubSpot rename reach monday.
   it("has no subscription without a mapping", () => {
-    const mapped = new Set(spec.fields.map(f => f.hs));
+    const mapped = new Set([...spec.fields.map(f => f.hs), ...spec.nameProps, ...(spec.nameFallbackProps ?? [])]);
     expect(subs.propsFor(objectType).filter(p => !mapped.has(p))).toEqual([]);
   });
 
@@ -68,11 +77,26 @@ describe("the app points at the CRM Worker", () => {
   it("does NOT point at the live Work-Management Worker", () =>
     expect(subs.targetUrl).not.toContain("hubspot-monday-sync."));
 
-  // Deals belong to the WM deployment. specByObject returns undefined for deals here, so a deal
-  // subscription would be a logged no-op — but subscribing would also require a Deals scope the CRM
-  // app deliberately does not request.
-  it("subscribes to NO deal events", () =>
-    expect(subs.all.filter(s => s.objectType === "deal")).toEqual([]));
+  /**
+   * WIDENED 2026-09-21 to deals and line items, which is the other half of why the Products & Services
+   * board has never been written to: `hubspot_owner_id` has been mapped there since 2026-09-14 and no
+   * event has ever arrived to act on it.
+   *
+   * The old comment here said deals belong to the WM deployment and `specByObject` returns undefined
+   * for them — true until CRM_DEALS joined CRM_SPECS, and the same expired premise that let a CRM deal
+   * event route onto the live WM board (see legacyDealRouting in sync.ts).
+   */
+  it("subscribes to deal AND line_item events, the two objects that had none", () => {
+    for (const o of ["deal", "line_item"])
+      expect(subs.all.filter(s => s.objectType === o).length,
+        `${o} has no subscriptions`).toBeGreaterThan(0);
+  });
+
+  /** A line item's Account is derived through its deal, so a deal association change is the ONLY
+   *  signal that the derivation has gone stale. Without it the link is written once and rots. */
+  it("subscribes to deal associationChange, which invalidates line items' derived Account", () =>
+    expect(subs.all.some(s => s.objectType === "deal" && s.subscriptionType === "object.associationChange"))
+      .toBe(true));
 
   /**
    * WIDENED 2026-09-16, from "contacts and companies only", for the activity sync into monday's
@@ -87,9 +111,9 @@ describe("the app points at the CRM Worker", () => {
    * activity-events-inert.test.ts pins that the router ignores them rather than misrouting them onto
    * "deal" via the bare-payload fallback.
    */
-  it("covers contacts, companies, and all five activity types", () =>
+  it("covers all four CRM objects and all five activity types", () =>
     expect([...new Set(subs.all.map(s => s.objectType))].sort())
-      .toEqual(["call", "company", "contact", "email", "meeting_event", "note", "task"]));
+      .toEqual(["call", "company", "contact", "deal", "email", "line_item", "meeting_event", "note", "task"]));
 
   /**
    * CREATION, AND ASSOCIATION CHANGE. Creation alone was right while the only destination was the

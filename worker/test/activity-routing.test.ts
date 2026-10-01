@@ -135,7 +135,12 @@ describe("activity sync cannot re-enter the path that failed on 2026-09-15", () 
 
   it("every activity sync call is fired detached, so one cannot fail the batch", () => {
     const code = readCode("webhooks.ts");
-    expect(code).toContain("ectx.waitUntil(syncHubspotActivity(");
-    expect(code).toContain("ectx.waitUntil(syncMondayTimeline(");
+    // Since 2026-09-23 the HubSpot side goes through deliverActivity (queue on the ActivityRetry DO,
+    // inline only as a fallback). Still one detached promise per event, and deliverActivity catches
+    // everything -- activity-deliver-in-do.test.ts proves a throwing sync does not escape.
+    expect(code).toContain("ectx.waitUntil(deliverActivity(");
+    expect(code).toMatch(/async function deliverActivity[\s\S]*?try \{[\s\S]*?\} catch \(e\)/);
+    // The monday side: the wake-up branch, latest-wins per card since 2026-09-30 (activity-doorbell.test.ts).
+    expect(code).toContain("ectx.waitUntil(coalesceLatest(`tl-bell:${itemId}`, () => syncMondayTimeline(");
   });
 });

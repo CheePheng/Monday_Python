@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { CRM_ACCOUNTS, CRM_CONTACTS } from "../src/config/crm";
 import { authorizeWrite } from "../src/ownership";
-import { buildReversePatch, fieldDiffs, reverseFieldValue } from "../src/reconcile";
+import { buildReversePatch, columnEditPatch, fieldDiffs, reverseFieldValue } from "../src/reconcile";
 import { expectedText, itemName } from "../src/mapping";
 import type { Ctx, Env, FieldSpec, HsRecord, MondayItem, ObjectSpec, RunOpts } from "../src/types";
 
@@ -187,15 +187,27 @@ describe("a monday edit produces a patch with EXACTLY that HubSpot property", ()
     expect(patch[row.hs]).toBe(row.patch);
   });
 
-  // Neither CRM spec declares nameReverse (crm.ts:53, crm.ts:233), so a renamed CARD must contribute
-  // NOTHING to the patch. If nameReverse were ever added, this fails and the review is forced.
-  it.each(ROWS)("$object $hs — renaming the card adds no property to the patch", (row) => {
+  // THE REVIEW THIS TEST FORCED (2026-09-23): Accounts now declares nameReverse, so a renamed card is a
+  // real edit. What must still hold is that editing ONE column never drags the title along. On a CRM
+  // board the push is built by columnEditPatch from the edited column alone, and a rename is its own
+  // monday event -- so a stale or renamed title cannot ride along on a City edit.
+  it.each(ROWS)("$object $hs — a renamed card adds nothing to a COLUMN edit's patch", (row) => {
     const rec = recFor(row);
-    const card = cardFor(row.spec, rec, { [fieldOf(row.spec, row.hs).col]: row.md });
+    const col = fieldOf(row.spec, row.hs).col;
+    const card = cardFor(row.spec, rec, { [col]: row.md });
     card.name = "Renamed By A Rep";
-    const diffs = fieldDiffs(rec, card, row.spec, ctx);
-    expect(diffs.some(d => d.kind === "name")).toBe(true);       // the diff IS raised
-    expect(Object.keys(buildReversePatch(diffs, card, row.spec, ctx))).toEqual([row.hs]);
+    expect(Object.keys(columnEditPatch(rec, card, row.spec, ctx, { cols: [col] }).patch)).toEqual([row.hs]);
+  });
+
+  it("the rename itself is its own edit: Accounts sends the name, Contacts heals it", () => {
+    const acct = companyRec();
+    const aCard = cardFor(CRM_ACCOUNTS, acct); aCard.name = "Acme Holdings";
+    expect(columnEditPatch(acct, aCard, CRM_ACCOUNTS, ctx, { cols: [], name: true }).patch).toEqual({ name: "Acme Holdings" });
+    const con = contactRec();
+    const cCard = cardFor(CRM_CONTACTS, con); cCard.name = "Janet Smith";
+    const r = columnEditPatch(con, cCard, CRM_CONTACTS, ctx, { cols: [], name: true });
+    expect(r.patch).toEqual({});        // a contact's title is first + last name: edit those columns instead
+    expect(r.healName).toBe(true);
   });
 
   // Two edits at once must produce two properties and no third — the multi-field version of the same
@@ -252,14 +264,18 @@ describe("the round trip CONVERGES: once HubSpot holds the reversed value, no fi
       expect(buildReversePatch(diffs, card, CRM_CONTACTS, ctx)).toEqual({});   // no HubSpot write
     });
 
-  it("company name behaves the same way (nameProps: [\"name\"], no nameReverse)", () => {
+  // A HubSpot rename of a company leaves only a NAME diff. With nameReverse on Accounts the record-level
+  // builder would now send the stale title back -- which is exactly why CRM boards never use it: a sync
+  // that no person's edit started is forward-only, and an edit that names no column pushes nothing.
+  it("a HubSpot company rename is a pure name diff, and no non-edit sync can push it back", () => {
     const rec = companyRec({ name: "Acme Manufacturing Sdn Bhd" });
     const card = cardFor(CRM_ACCOUNTS, companyRec(),
       { [fieldOf(CRM_ACCOUNTS, "name").col]: "Acme Manufacturing Sdn Bhd" });
     const diffs = fieldDiffs(rec, card, CRM_ACCOUNTS, ctx);
     expect(diffs.filter(d => d.kind === "field")).toEqual([]);
     expect(diffs.map(d => d.kind)).toEqual(["name"]);
-    expect(buildReversePatch(diffs, card, CRM_ACCOUNTS, ctx)).toEqual({});
+    expect(CRM_ACCOUNTS.columnLevelReverse).toBe(true);
+    expect(columnEditPatch(rec, card, CRM_ACCOUNTS, ctx, { cols: [] }).patch).toEqual({});
   });
 
   // Re-running the reverse mapping over its own output must be a FIXED POINT. If it were not, a second
@@ -623,14 +639,21 @@ beforeEach(() => {
   assoc.reverseAssociations.mockResolvedValue(undefined);
 });
 
-/** Drive one monday webhook for `row` with the card edited and the record in the given ownership state. */
+/**
+ * Drive one monday webhook for `row` with the card edited and the record in the given ownership state.
+ *
+ * The webhook names the column it is about, exactly as monday's does (`event.columnId`), so the engine
+ * receives the same `edit` it gets in production. The CRM specs are column-level, and an engine call
+ * that names no column is, correctly, a forward-only sync that writes nothing to HubSpot.
+ */
 async function drive(row: Row, over: Record<string, string>, recOver: Record<string, string> = {},
     syncState = MOD) {
   const rec = recFor(row, recOver);
   const card = cardFor(row.spec, recFor(row, recOver), over, syncState);
   monday.getItem.mockResolvedValue(card);
   hubspot.getRecord.mockResolvedValue(rec);
-  const out = await syncMondayItem(env, row.spec.boardId, card.id, live, { left: 30 });
+  const out = await syncMondayItem(env, row.spec.boardId, card.id, live, { left: 30 }, false, false,
+    { cols: Object.keys(over) });
   return { out, rec, card };
 }
 
@@ -638,35 +661,66 @@ async function drive(row: Row, over: Record<string, string>, recOver: Record<str
 // 2. OWNERSHIP decides, per field, at the engine.
 // ---------------------------------------------------------------------------------------------------
 
-interface State { label: string; stamp?: string; created: string; allowed: boolean }
+/**
+ * `allowed` is the PREDICATE (authorizeWrite, before any claim). `engine` is what a person's edit
+ * actually does, and the two differ in exactly one row: an unstamped record.
+ *
+ * That row is the reported bug. It used to be REFUSED -- the claim rule only accepted records created
+ * after CRM_CUTOVER_AT, ~96% of the portal predates it, so every edit on an older card snapped back
+ * (Lifecycle Stage "1.NEW -> anything -> 1.NEW"). A person's edit on a CRM board is now itself the
+ * claim basis ("human-edit"), so the record is claimed and then written. Explicit stamps are still
+ * never overridden: wm and hold stay refused.
+ */
+interface State { label: string; stamp?: string; created: string; allowed: boolean;
+  engine: "patched" | "claimed" | "refused" }
 const STATES: State[] = [
-  { label: "crm-stamped", stamp: "crm", created: PRE, allowed: true },
-  { label: "unstamped", created: PRE, allowed: false },
-  { label: "wm-stamped", stamp: "wm", created: POST, allowed: false },
-  { label: "parked (hold)", stamp: "hold", created: POST, allowed: false },
+  { label: "crm-stamped", stamp: "crm", created: PRE, allowed: true, engine: "patched" },
+  { label: "unstamped", created: PRE, allowed: false, engine: "claimed" },
+  { label: "wm-stamped", stamp: "wm", created: POST, allowed: false, engine: "refused" },
+  { label: "parked (hold)", stamp: "hold", created: POST, allowed: false, engine: "refused" },
 ];
 
 const stateProps = (s: State): Record<string, string> =>
   s.stamp ? { sync_owner: s.stamp, createdate: s.created } : { createdate: s.created };
 
+/** Fields that the ITEM NAME is built from. Pushing one of them must also refresh the card's title. */
+const feedsName = (row: Row) => row.spec.nameProps.includes(row.hs)
+  || (row.spec.nameFallbackProps ?? []).includes(row.hs);
+
 describe("ownership gates the reverse write, field by field", () => {
   for (const s of STATES) {
     describe(s.label, () => {
-      it.each(ROWS)(`$object $hs -> ${s.allowed ? "PATCHED" : "REFUSED"}`, async (row) => {
+      it.each(ROWS)(`$object $hs -> ${s.engine.toUpperCase()}`, async (row) => {
         const col = fieldOf(row.spec, row.hs).col;
         const { out } = await drive(row, { [col]: row.md }, stateProps(s));
-        if (s.allowed) {
+        if (s.engine !== "refused") {
+          expect(hubspot.claimOwnership).toHaveBeenCalledTimes(s.engine === "claimed" ? 1 : 0);
+          // A human-edit claim, never a cutover one: this record predates the cutover.
+          if (s.engine === "claimed")
+            expect(hubspot.claimOwnership).toHaveBeenCalledWith(env, expect.anything(),
+              expect.objectContaining({ id: row.object === "contacts" ? "301" : "501" }), live, "human-edit");
+          // EXACTLY the edited property, nothing else from the card.
           expect(hubspot.patchRecord).toHaveBeenCalledTimes(1);
           expect(hubspot.patchRecord).toHaveBeenCalledWith(env, expect.anything(),
             row.object === "contacts" ? "301" : "501", { [row.hs]: row.patch }, live,
             expect.objectContaining({ allowed: true }));
-          expect(monday.updateItem).not.toHaveBeenCalled();   // reverse wins; no forward write
+          // The edited cell is never rewritten on the way back. A title built from it is refreshed.
+          if (feedsName(row)) {
+            expect(monday.updateItem).toHaveBeenCalledTimes(1);
+            expect(monday.updateItem.mock.calls[0][4]).not.toHaveProperty(col);
+          } else {
+            expect(monday.updateItem).not.toHaveBeenCalled();
+          }
           expect(out).toContain("updated-hubspot");
         } else {
           expect(hubspot.patchRecord).not.toHaveBeenCalled();
-          // REFUSED FALLS THROUGH TO A FORWARD WRITE rather than freezing the card (sync.ts:217-237).
-          expect(monday.updateItem).toHaveBeenCalledTimes(1);
-          expect(monday.updateItem.mock.calls[0][4]).toMatchObject({ [col]: row.snapBack });
+          expect(hubspot.claimOwnership).not.toHaveBeenCalled();   // an explicit stamp is never overridden
+          // REFUSED HEALS THE EDITED CELL, and only that cell -- the person sees it did not take, and
+          // no other column on the card is touched.
+          expect(monday.setColumns).toHaveBeenCalledTimes(1);
+          const cv = monday.setColumns.mock.calls[0][3] as Record<string, unknown>;
+          expect(cv).toMatchObject({ [col]: row.snapBack });
+          expect(Object.keys(cv).filter(k => k !== col)).toEqual([]);
           expect(out).toContain("updated-monday");
         }
       });
@@ -697,22 +751,37 @@ describe("ownership gates the reverse write, field by field", () => {
   it("a suppressed claim leaves the record unstamped and the write refused", async () => {
     hubspot.claimOwnership.mockResolvedValue(null);   // dry-run / writes disabled
     const row = ROWS[0];
-    const { out } = await drive(row, { [fieldOf(row.spec, row.hs).col]: row.md },
-      { createdate: POST });
+    const col = fieldOf(row.spec, row.hs).col;
+    const { out } = await drive(row, { [col]: row.md }, { createdate: POST });
     expect(hubspot.patchRecord).not.toHaveBeenCalled();
-    expect(monday.updateItem).toHaveBeenCalledTimes(1);
+    // The edited cell is healed back; nothing pretends the edit was saved.
+    expect(monday.setColumns).toHaveBeenCalledWith(env, row.spec.boardId, "CARD1",
+      { [col]: row.snapBack }, live);
     expect(out).toContain("updated-monday");
   });
 
-  // The refusal must not freeze FORWARD-ONLY fields on the same card — the exact regression sync.ts's
-  // fallthrough comment describes (11 sidebar columns starved by one Job Title typo).
-  it("a refused reverse still delivers the forward-only fields on that card", async () => {
+  /**
+   * A refusal must not freeze the rest of the card. The old engine froze it: one refused Job Title typo
+   * kept every later webhook choosing "toHubspot", starving 11 forward-only sidebar columns. Here the
+   * push is refused (wm owns the record) while HubSpot has NEWER changes on other columns -- those
+   * must still arrive in the same pass, and the edited cell must heal.
+   */
+  it("a refused push still delivers HubSpot's newer changes on the other columns", async () => {
     const row = ROWS[0];
-    await drive(row, { [fieldOf(row.spec, row.hs).col]: row.md,
-      [fieldOf(CRM_CONTACTS, "lifecyclestage").col]: "STALE" }, stateProps(STATES[1]));
-    const cv = monday.updateItem.mock.calls[0][4] as Record<string, unknown>;
-    expect(cv[fieldOf(CRM_CONTACTS, "jobtitle").col]).toBe("Sales Manager");
-    expect(cv[fieldOf(CRM_CONTACTS, "lifecyclestage").col]).toEqual({ label: "lead" });
+    const job = fieldOf(CRM_CONTACTS, "jobtitle").col;
+    const life = fieldOf(CRM_CONTACTS, "lifecyclestage").col;
+    const rec = recFor(row, { ...stateProps(STATES[2]), lastmodifieddate: NEW_MOD });
+    // Card last synced at MOD; HubSpot has since moved on (NEW_MOD), so its lifecycle value is newer.
+    const card = cardFor(row.spec, recFor(row, stateProps(STATES[2])), { [job]: row.md, [life]: "STALE" }, MOD);
+    monday.getItem.mockResolvedValue(card);
+    hubspot.getRecord.mockResolvedValue(rec);
+    await syncMondayItem(env, row.spec.boardId, card.id, live, { left: 30 }, false, false, { cols: [job] });
+
+    expect(hubspot.patchRecord).not.toHaveBeenCalled();
+    const cv = monday.setColumns.mock.calls[0][3] as Record<string, unknown>;
+    expect(cv[job]).toBe("Sales Manager");                 // healed: the push was refused
+    expect(cv[life]).toEqual({ label: "lead" });           // HubSpot's newer value delivered
+    expect(cv[row.spec.syncStateCol]).toBe(NEW_MOD);       // and the baseline moved with it
   });
 });
 
@@ -728,9 +797,13 @@ describe("the next webhook after a reverse write is a NO-OP (no rewrite loop)", 
     // PASS 1 — the rep's edit reaches HubSpot.
     await drive(row, { [col]: row.md }, stamped);
     expect(hubspot.patchRecord).toHaveBeenCalledTimes(1);
-    // Sync State is re-baselined to the timestamp the PATCH returned, or monday-edit wins forever.
-    expect(monday.setColumns).toHaveBeenCalledWith(env, row.spec.boardId, "CARD1",
-      { [row.spec.syncStateCol]: NEW_MOD }, live);
+    // Sync State is re-baselined to the timestamp the PATCH returned. A field that feeds the item name
+    // re-baselines through the same write that refreshes the title; any other field, alone.
+    if (feedsName(row))
+      expect(monday.updateItem.mock.calls[0][4]).toMatchObject({ [row.spec.syncStateCol]: NEW_MOD });
+    else
+      expect(monday.setColumns).toHaveBeenCalledWith(env, row.spec.boardId, "CARD1",
+        { [row.spec.syncStateCol]: NEW_MOD }, live);
 
     // PASS 2 — HubSpot now holds the reversed value; the card still shows the rep's raw text.
     vi.clearAllMocks();
@@ -748,27 +821,22 @@ describe("the next webhook after a reverse write is a NO-OP (no rewrite loop)", 
   });
 
   /**
-   * The one residue a reverse write leaves behind. firstname/lastname/name feed nameProps, and the
-   * reverse patch returns before the forward write (sync.ts:244-246), so the card's ITEM NAME is stale
-   * until the next webhook. That next pass raises a `name` diff only, which carries no reversible
-   * property (neither CRM spec declares nameReverse) — so it resolves as a FORWARD RENAME with no
-   * second HubSpot write. Two passes, not a loop. See finding D2 for why "the next pass" matters.
+   * THE STALE-TITLE RESIDUE IS GONE. The record-level engine returned straight after its reverse patch,
+   * so pushing firstname/lastname left the card's ITEM NAME (built from them) stale until some later
+   * webhook -- and on a column-level spec that webhook would never help, because the push's own echo
+   * finds HubSpot no newer than the new Sync State. The push now refreshes the title in the same pass.
    */
   it.each(["firstname", "lastname"])(
-    "a stale item name after reversing %s resolves as a forward rename, not a HubSpot write", async (hs) => {
+    "pushing %s refreshes the item name in the same pass, with one HubSpot write", async (hs) => {
       const row = ROWS.find(r => r.hs === hs)!;
-      const rec = contactRec({ sync_owner: "crm", createdate: PRE, [hs]: row.patch,
-        lastmodifieddate: NEW_MOD });
-      const card = cardFor(CRM_CONTACTS, rec, {}, NEW_MOD);
-      card.name = itemName(contactRec(), CRM_CONTACTS);   // still the PRE-edit name
-      monday.getItem.mockResolvedValue(card);
-      hubspot.getRecord.mockResolvedValue(rec);
+      const col = fieldOf(CRM_CONTACTS, hs).col;
+      const { out } = await drive(row, { [col]: row.md }, { sync_owner: "crm", createdate: PRE });
+      const after = contactRec({ sync_owner: "crm", createdate: PRE, [hs]: row.patch });
 
-      const out = await syncMondayItem(env, CRM_CONTACTS.boardId, "CARD1", live, { left: 30 });
-      expect(hubspot.patchRecord).not.toHaveBeenCalled();
+      expect(hubspot.patchRecord).toHaveBeenCalledTimes(1);
       expect(monday.updateItem).toHaveBeenCalledTimes(1);
-      expect(monday.updateItem.mock.calls[0][3]).toBe(itemName(rec, CRM_CONTACTS));
-      expect(out).toContain("updated-monday");
+      expect(monday.updateItem.mock.calls[0][3]).toBe(itemName(after, CRM_CONTACTS));
+      expect(out).toContain("updated-hubspot");
     });
 
   // Repeating the SAME webhook many times must stay a single write, not accumulate them.
@@ -790,33 +858,37 @@ describe("the next webhook after a reverse write is a NO-OP (no rewrite loop)", 
 // 4 (engine). The blank-column path end to end, plus the staleness it leaves behind.
 // ---------------------------------------------------------------------------------------------------
 
-describe("blanking a monday column: HubSpot keeps its value and the card snaps back", () => {
+/**
+ * A CLEAR IS A REAL EDIT. The record-level engine could not tell "never set" from "just emptied", so it
+ * refused to send any empty monday value and the card snapped back -- a rep could not remove a wrong
+ * Job Title at all. Column-level knows the person edited exactly this cell, so emptying it clears
+ * HubSpot. This also retires finding D2 (a blank riding with a real edit was left blank on the card):
+ * both columns are now edits in their own right and both reach HubSpot.
+ */
+describe("blanking a monday column clears it in HubSpot", () => {
   it.each(ROWS)("$object $hs", async (row) => {
     const col = fieldOf(row.spec, row.hs).col;
     const { out } = await drive(row, { [col]: "" }, { sync_owner: "crm", createdate: PRE });
-    expect(hubspot.patchRecord).not.toHaveBeenCalled();                  // nothing cleared
-    expect(monday.updateItem).toHaveBeenCalledTimes(1);                  // card refilled from HubSpot
-    expect(monday.updateItem.mock.calls[0][4]).toMatchObject({ [col]: row.snapBack });
-    expect(out).toContain("updated-monday");
+    expect(hubspot.patchRecord).toHaveBeenCalledWith(env, expect.anything(),
+      row.object === "contacts" ? "301" : "501", { [row.hs]: "" }, live,
+      expect.objectContaining({ allowed: true }));
+    expect(out).toContain("updated-hubspot");
   });
 
-  /**
-   * FINDING D2, pinned as-is. reconcileRecord RETURNS after a successful reverse patch
-   * (sync.ts:244-246), so anything in the same pass that the patch could not carry — a blanked column,
-   * a stale item name, a forward-only field — is NOT written to monday on that pass. It heals on the
-   * NEXT webhook, and CRM contacts are `skipFullReconcile: true` on a Worker with no cron triggers, so
-   * "the next webhook" may never arrive. The blank stays on the card while HubSpot holds the value.
-   */
-  it("PINS A DEFECT: a blank riding with a real edit is left blank on the card (D2)", async () => {
+  it("two columns edited together both reach HubSpot, the blank as a clear (D2 retired)", async () => {
     const jobtitle = fieldOf(CRM_CONTACTS, "jobtitle").col;
     const phone = fieldOf(CRM_CONTACTS, "phone").col;
     await drive(ROWS[0], { [jobtitle]: "", [phone]: "+1 (234) 567-8900" },
       { sync_owner: "crm", createdate: PRE });
-    // The real edit went to HubSpot, and jobtitle was correctly NOT cleared ...
     expect(hubspot.patchRecord).toHaveBeenCalledWith(env, expect.anything(), "301",
-      { phone: "+12345678900" }, live, expect.objectContaining({ allowed: true }));
-    // ... but no forward write ran, so the card keeps showing an empty Job Title.
-    expect(monday.updateItem).not.toHaveBeenCalled();
+      { jobtitle: "", phone: "+12345678900" }, live, expect.objectContaining({ allowed: true }));
+  });
+
+  /** Only a cell that HOLDS a value in HubSpot is cleared; an empty-on-both cell sends nothing. */
+  it("an empty cell over an empty HubSpot value sends nothing", async () => {
+    const col = fieldOf(CRM_CONTACTS, "jobtitle").col;
+    await drive(ROWS[0], { [col]: "" }, { sync_owner: "crm", createdate: PRE, jobtitle: "" });
+    expect(hubspot.patchRecord).not.toHaveBeenCalled();
   });
 });
 
@@ -828,21 +900,21 @@ describe("an unknown status label reaches HubSpot and the webhook fails", () => 
   // FIXED (D5), at the engine. The unknown label is refused before any HubSpot call, so there is no
   // 400 to escape and no wedged card: patchRecord is never reached, and the engine falls through to a
   // FORWARD write that overwrites the invalid cell with HubSpot's value. Self-healing, not frozen.
-  it("an unknown status label never reaches HubSpot, and the card reconciles forward", async () => {
+  it("an unknown status label never reaches HubSpot, and the edited cell heals", async () => {
     hubspot.patchRecord.mockRejectedValue(new Error("patchRecord must not be called"));
+    const col = fieldOf(CRM_CONTACTS, "hs_lead_status").col;
     const rec = contactRec({ sync_owner: "crm", createdate: PRE });
-    const card = cardFor(CRM_CONTACTS, contactRec(),
-      { [fieldOf(CRM_CONTACTS, "hs_lead_status").col]: "Totally New Label" });
+    const card = cardFor(CRM_CONTACTS, contactRec(), { [col]: "Totally New Label" });
     monday.getItem.mockResolvedValue(card);
     hubspot.getRecord.mockResolvedValue(rec);
 
-    await expect(syncMondayItem(env, CRM_CONTACTS.boardId, "CARD1", live, { left: 30 }))
-      .resolves.toBeDefined();
+    await expect(syncMondayItem(env, CRM_CONTACTS.boardId, "CARD1", live, { left: 30 }, false, false,
+      { cols: [col] })).resolves.toBeDefined();
     expect(hubspot.patchRecord).not.toHaveBeenCalled();
-    // The forward write is what repairs the cell.
-    expect(monday.updateItem).toHaveBeenCalled();
-    // And no Sync State baseline was stamped, so the card re-enters "toHubspot" on every later webhook.
-    expect(monday.setColumns).not.toHaveBeenCalled();
+    // The heal writes HubSpot's value back into that one cell, and no Sync State is stamped: nothing
+    // changed in HubSpot, so the baseline must not move.
+    expect(monday.setColumns).toHaveBeenCalledWith(env, CRM_CONTACTS.boardId, "CARD1",
+      { [col]: { label: "New" } }, live);
   });
 });
 

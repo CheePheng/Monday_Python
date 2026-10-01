@@ -2,7 +2,23 @@ import type { Env, MondayItem, RunOpts } from "./types";
 
 const URL_ = "https://api.monday.com/v2";
 
-export async function gql(env: Env, query: string, variables: Record<string, unknown> = {}, retries = 3): Promise<any> {
+/**
+ * monday refused the request for rate limit / complexity budget on EVERY try. Such a request provably
+ * never executed, so a caller holding a create-once reservation may RELEASE it and retry -- unlike any
+ * other failure after a mutation was sent, which may have landed. Thrown only from the rate-limit branch.
+ */
+export class MondayRateLimitedError extends Error {
+  constructor(msg: string) { super(msg); this.name = "MondayRateLimitedError"; }
+}
+
+/**
+ * `maxRateWaits`: how many rate-limit waits (up to 65 s each) to sit through before giving up with
+ * MondayRateLimitedError. The default suits a webhook or a sweep; a caller racing its own wall-clock
+ * deadline (the marketing poller, inside a 15-minute cron) passes fewer, because six full waits alone
+ * are six and a half minutes.
+ */
+export async function gql(env: Env, query: string, variables: Record<string, unknown> = {}, retries = 3,
+    maxRateWaits = 6): Promise<any> {
   let rateWaits = 0;
   for (let attempt = 1; ; attempt++) {
     try {
@@ -16,14 +32,21 @@ export async function gql(env: Env, query: string, variables: Record<string, unk
       const errText = JSON.stringify(data.errors ?? data.error_message ?? "");
       // Rate limit / complexity budget: the request did NOT apply, so it's always safe to wait and
       // retry — even for mutations. monday resets the complexity budget each minute.
-      if ((resp.status === 429 || /complexity|rate.?limit|budget|too many|throttl/i.test(errText))
-          && rateWaits < 6) {
+      // A reply that carries a result EXECUTED, whatever its errors say: never re-send it, and never call
+      // it rate-limited (a caller would read that as "provably did not run").
+      const returned = !!data?.data && Object.values(data.data).some(v => v !== null && v !== undefined);
+      const limited = !returned
+        && (resp.status === 429 || /complexity|rate.?limit|budget|too many|throttl/i.test(errText));
+      if (limited && rateWaits < maxRateWaits) {
         rateWaits++;
-        const m = /reset in (\d+)/i.exec(errText);
+        // monday says "reset in N seconds" in older replies and `retry_in_seconds` in newer ones.
+        const m = /reset in (\d+)/i.exec(errText) ?? /retry_in_seconds"?\s*:\s*(\d+)/i.exec(errText);
         const waitS = Math.min(m ? Number(m[1]) + 1 : 15, 65);
         await new Promise(res => setTimeout(res, waitS * 1000));
         continue;
       }
+      if (limited)
+        throw new MondayRateLimitedError(`monday ${resp.status}: rate-limited after ${rateWaits} waits: ${errText.slice(0, 200)}`);
       // monday returns some failures (maintenance, auth, bad query) as {error_message,...} with a
       // non-2xx status and NO `errors` key — treat those as failures, not phantom success.
       if (!resp.ok || data.error_message || data.errors) {
@@ -44,11 +67,11 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
     const page: any = cursor
       ? (await gql(env,
           `query ($c:String!) { next_items_page(cursor:$c, limit:500) {
-             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } } } } }`,
+             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } ... on StatusValue { status_index: index } } } } }`,
           { c: cursor })).next_items_page
       : (await gql(env,
           `query ($b:[ID!]) { boards(ids:$b) { items_page(limit:500) {
-             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } } } } } }`,
+             cursor items { id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } ... on StatusValue { status_index: index } } } } } }`,
           { b: [boardId] })).boards[0].items_page;
     items.push(...page.items);
     cursor = page.cursor;
@@ -56,7 +79,7 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
   return items;
 }
 
-const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } }";
+const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } ... on StatusValue { status_index: index } }";
 
 /** Fetch one item by id (webhook fast path). Null if it no longer exists. */
 export async function getItem(env: Env, itemId: string): Promise<MondayItem | null> {
@@ -93,13 +116,13 @@ export async function createSubitem(env: Env, parentItemId: string, name: string
 
 /** Find items on a board whose column equals a value (used to locate a card by HubSpot Deal ID
  * without reading the whole board). */
-export async function findItemByColumn(env: Env, boardId: string, columnId: string, value: string):
-    Promise<MondayItem[]> {
+export async function findItemByColumn(env: Env, boardId: string, columnId: string, value: string,
+    maxRateWaits = 6): Promise<MondayItem[]> {
   const data = await gql(env,
     `query ($b:ID!, $c:String!, $v:[String!]!) {
        items_page_by_column_values(limit:10, board_id:$b,
          columns:[{ column_id:$c, column_values:$v }]) { items { ${ITEM_FIELDS} } } }`,
-    { b: boardId, c: columnId, v: [value] });
+    { b: boardId, c: columnId, v: [value] }, 3, maxRateWaits);
   return data.items_page_by_column_values?.items ?? [];
 }
 
@@ -137,6 +160,29 @@ export async function getItemsColumnText(env: Env, itemIds: string[], columnId: 
       `query ($i:[ID!], $c:[String!]) { items(ids:$i, limit:100) { id column_values(ids:$c) { text } } }`,
       { i: itemIds.slice(i, i + 100), c: [columnId] });
     for (const it of data.items ?? []) out[String(it.id)] = (it.column_values?.[0]?.text ?? "").trim();
+  }
+  return out;
+}
+
+/**
+ * Each item's lifecycle state -- "active", "archived", "deleted" -- keyed by item id.
+ *
+ * Exists for ONE decision: whether a card that left a relation cell was UNLINKED by a person or simply
+ * stopped existing. board_relation columns are paired, so deleting or archiving a card removes it from
+ * every cell it was linked in, and monday reports each of those as an ordinary relation change. Only an
+ * active card's removal is an unlink. `items(ids:)` returns non-active items too unless asked for
+ * `exclude_nonactive`, which is what makes `state` readable here.
+ *
+ * An id that does not come back is simply absent from the map. Callers must read absent as NOT active:
+ * the cost of that is a missed unlink, the cost of the opposite is a deleted HubSpot association.
+ * Chunked with an explicit limit for the same silent-25 reason as getItemsColumnText.
+ */
+export async function getItemStates(env: Env, itemIds: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (let i = 0; i < itemIds.length; i += 100) {
+    const data = await gql(env, `query ($i:[ID!]) { items(ids:$i, limit:100) { id state } }`,
+      { i: itemIds.slice(i, i + 100) });
+    for (const it of data.items ?? []) if (it?.state) out[String(it.id)] = String(it.state);
   }
   return out;
 }

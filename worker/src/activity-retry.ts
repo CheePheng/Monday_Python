@@ -49,9 +49,14 @@ export type ActivityOutcome =
   | "creating"     // another delivery holds the reservation right now
   | "unresolved"   // the contact or its card was not visible — the race this module exists for
   | "blocked"      // the idempotency store was unreachable
-  | "error";       // the create threw AFTER being sent; it may have landed. NEVER retried here.
+  | "error"        // the create threw AFTER being sent; it may have landed. NEVER retried here.
+  /** ACTIVITY_SKIP_MIRRORED_COPIES only, and only on a job's first delivery: a linked Company/Deal was
+   *  deliberately NOT claimed or written in this pass, so monday's own copy has time to land before the
+   *  card is checked. Nothing failed and nothing is reserved for it -- another pass must come. */
+  | "deferred";
 
-const RETRYABLE: ReadonlySet<ActivityOutcome> = new Set<ActivityOutcome>(["unresolved", "blocked", "creating"]);
+const RETRYABLE: ReadonlySet<ActivityOutcome> =
+  new Set<ActivityOutcome>(["unresolved", "blocked", "creating", "deferred"]);
 export const shouldRetry = (o: ActivityOutcome): boolean => RETRYABLE.has(o);
 
 /**
@@ -68,8 +73,29 @@ export const RETRY_SCHEDULE_MS: readonly number[] = [60_000, 5 * 60_000, 15 * 60
  */
 export const RECONCILE_SCHEDULE_MS: readonly number[] = [30_000, 5 * 60_000];
 
+/**
+ * THE FIRST DELIVERY RUNS HERE, NOT IN THE WEBHOOK.
+ *
+ * It used to run in the webhook's waitUntil, which Cloudflare cancels about 30 seconds after the
+ * response. An email to several people is written to its destinations one after another, each costing
+ * a card lookup on a ~96k-item board, a reservation, a create and a settle -- routinely more than 30
+ * seconds. A cancellation that lands between a create and its settle leaves the reservation unsettled;
+ * the next pass then takes it over and writes the entry again, and every destination after it is never
+ * written at all. Measured on 2026-09-23: of 160 (email, card) deliveries since the previous deploy,
+ * 136 held exactly two copies, and the copy was always on ONE destination of a multi-recipient email --
+ * the one being written when the invocation was cut off.
+ *
+ * An alarm is not bound by waitUntil's limit, and it is the path retries already take, so moving the
+ * first attempt here changes WHERE it runs and nothing about WHAT runs. The first slot is 0 -- deliver
+ * now -- and the rest is the ordinary retry schedule, so an unresolved first attempt is retried exactly
+ * as before.
+ */
+export const DELIVER_SCHEDULE_MS: readonly number[] = [0, ...RETRY_SCHEDULE_MS];
+
 export const scheduleFor = (mode?: PendingMode) =>
-  mode === "reconcile" ? RECONCILE_SCHEDULE_MS : RETRY_SCHEDULE_MS;
+  mode === "reconcile" ? RECONCILE_SCHEDULE_MS
+    : mode === "deliver" ? DELIVER_SCHEDULE_MS
+    : RETRY_SCHEDULE_MS;
 
 /** How often a job re-checks whether the feature has come back on. Not an attempt. */
 export const DISABLED_RECHECK_MS = 60 * 60_000;
@@ -98,7 +124,7 @@ export const DEAD_LETTER_CAP = 200;
  * minutes, and then stop. Destination-level idempotency makes a look cost nothing when nothing has
  * changed, and adds exactly one entry when a Company or Deal has since been attached.
  */
-export type PendingMode = "retry" | "reconcile";
+export type PendingMode = "retry" | "reconcile" | "deliver";
 
 export interface PendingActivity {
   /** Absent means "retry", so jobs written before reconciles existed still read correctly. */
@@ -108,7 +134,28 @@ export interface PendingActivity {
   reason: string;        // the outcome that caused the last scheduling
   attempts: number;      // attempts COMPLETED so far
   firstSeenMs: number;   // when the webhook first failed to resolve — the deferral clock
+  /** True once this job's first delivery has held a linked Company/Deal back (outcome "deferred").
+   *  Absent on every job written before, and on every job while ACTIVITY_SKIP_MIRRORED_COPIES is off. */
+  mirrorDeferred?: boolean;
 }
+
+/**
+ * How long a held-back Company/Deal waits for monday's copy of the Contact entry. The reconcile's
+ * first look uses the same delay for the same reason: long enough for monday's side to land.
+ */
+export const MIRROR_SETTLE_MS = RECONCILE_SCHEDULE_MS[0];
+
+/**
+ * MAY THIS PASS HOLD A LINKED COMPANY/DEAL BACK? Only the FIRST delivery of a job, and only once.
+ *
+ * monday copies a Contact's timeline entry onto the Accounts/Deals linked to it, but a card checked a
+ * second after the Contact write may not show the copy yet -- and then the check says "absent" and the
+ * Worker writes the duplicate anyway. Holding those destinations for MIRROR_SETTLE_MS fixes the timing.
+ * Once only: the next pass carries `mirrorDeferred`, so it checks and writes, and the job keeps its whole
+ * retry budget because the deferral does not spend an attempt.
+ */
+export const mayDeferMirror = (job: PendingActivity, flagOn: boolean): boolean =>
+  flagOn && job.mode === "deliver" && job.attempts === 0 && !job.mirrorDeferred;
 
 export interface DeadActivity extends PendingActivity { diedAtMs: number; terminalReason: string }
 
@@ -150,6 +197,36 @@ export type OutcomeStep =
  * a duplicate; the standing reservation, not this queue, is what covers it.
  */
 export function afterOutcome(job: PendingActivity, outcome: ActivityOutcome, _nowMs: number): OutcomeStep {
+  /**
+   * A DELIVERY THAT SETTLED HANDS OVER TO THE RECONCILE -- the same two looks the webhook path used to
+   * schedule after a created/skipped attempt. Same instance, same job slot, so one activity still has
+   * exactly one clock.
+   */
+  if (job.mode === "deliver" && (outcome === "created" || outcome === "skipped"))
+    return { action: "retry", delayMs: RECONCILE_SCHEDULE_MS[0],
+      job: { ...job, mode: "reconcile", attempts: 0, reason: "association-settle" } };
+  /**
+   * A DELIVERY THAT HELD A LINKED COMPANY/DEAL BACK (ACTIVITY_SKIP_MIRRORED_COPIES) comes back as a
+   * DELIVERY -- not a reconcile, whose two looks end "done" whatever happens -- so the held destination
+   * keeps the full retry schedule behind it. The attempt is not counted, and `mirrorDeferred` makes sure
+   * it cannot be held twice. A second "deferred" (impossible by mayDeferMirror) falls through to the
+   * ordinary bounded retry below.
+   */
+  if (job.mode === "deliver" && outcome === "deferred" && !job.mirrorDeferred)
+    return { action: "retry", delayMs: MIRROR_SETTLE_MS,
+      job: { ...job, mirrorDeferred: true, reason: "mirror-settle" } };
+  /**
+   * A DELIVERY THAT ERRORED GETS ONE LATE LOOK -- at 15 minutes, never sooner.
+   *
+   * "error" means a create was sent and its result is unknown, so an immediate retry is exactly how a
+   * duplicate is made, and that rule stands. But at 15 minutes the reservation has gone stale, and a
+   * stale takeover now checks the card before writing (tookOverStale + alreadyOnCard, which fails closed
+   * on "unknown"): a landed entry is found and settled, a lost one is written once. Before this, an
+   * errored destination was never written at all, and nothing said so.
+   */
+  if (job.mode === "deliver" && outcome === "error")
+    return { action: "retry", delayMs: RETRY_SCHEDULE_MS[2],
+      job: { ...job, mode: "retry", attempts: 2, reason: "error" } };
   const reconciling = job.mode === "reconcile";
   /**
    * A reconcile keeps its appointment whatever the outcome. "created" and "skipped" are the ORDINARY
@@ -173,8 +250,19 @@ export const retryName = (object: string, hubspotId: string) => `act:retry:${obj
 /** One well-known instance for the terminal-failure index. Never scheduled, never alarmed. */
 export const DEAD_LETTER_NAME = "act:retry:dead";
 
-const stub = (env: Env, name: string) =>
-  env.ACTIVITY_RETRY.get(env.ACTIVITY_RETRY.idFromName(name)) as unknown as DurableObjectStub<ActivityRetry>;
+/** True only where the retry Durable Object is actually bound, i.e. the CRM deployment. */
+export const activityRetryBound = (env: Env): boolean => !!env.ACTIVITY_RETRY;
+
+/**
+ * Refuses loudly rather than dereferencing an absent namespace. The schedule helpers below already
+ * swallow their failures, so on a deployment without the binding they log this reason and carry on;
+ * anything that cannot tolerate that must ask activityRetryBound() first.
+ */
+const stub = (env: Env, name: string) => {
+  const ns = env.ACTIVITY_RETRY;
+  if (!ns) throw new Error("ACTIVITY_RETRY is not bound on this deployment");
+  return ns.get(ns.idFromName(name)) as unknown as DurableObjectStub<ActivityRetry>;
+};
 
 export const retryStub = (env: Env, object: string, hubspotId: string) =>
   stub(env, retryName(object, hubspotId));
@@ -200,6 +288,28 @@ export async function scheduleReconcile(env: Env, object: string, hubspotId: str
       .schedule({ mode: "reconcile", object, hubspotId, reason: "association-settle", attempts: 0, firstSeenMs: nowMs });
   } catch (e) {
     console.log(`[activity-retry] ${object}=${hubspotId} action=reconcile-schedule-failed reason="${String(e).slice(0, 110)}"`);
+  }
+}
+
+/**
+ * THE WEBHOOK'S WHOLE JOB FOR AN ACTIVITY: record it on its Durable Object, which delivers it at once.
+ * See DELIVER_SCHEDULE_MS for why the delivery must not run in the webhook itself.
+ *
+ * `already-pending` counts as success: that job runs the full sync, which reads the activity afresh.
+ * Returns false only when nothing could be recorded, so the caller can deliver inline instead -- an
+ * attempt that may be cut off still beats none.
+ */
+export async function scheduleDelivery(env: Env, object: string, hubspotId: string,
+    nowMs = Date.now()): Promise<boolean> {
+  if (!activityRetryBound(env)) return false;
+  try {
+    const r = await retryStub(env, object, hubspotId)
+      .schedule({ mode: "deliver", object, hubspotId, reason: "webhook", attempts: 0, firstSeenMs: nowMs });
+    console.log(`[activity-retry] ${object}=${hubspotId} action=${r === "scheduled" ? "delivery-queued" : "already-pending"}`);
+    return true;
+  } catch (e) {
+    console.log(`[activity-retry] ${object}=${hubspotId} action=delivery-schedule-failed reason="${String(e).slice(0, 110)}"`);
+    return false;
   }
 }
 

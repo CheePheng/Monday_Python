@@ -33,24 +33,43 @@ describe("CRM_CONTACTS", () => {
     expect(CRM_CONTACTS.idCol).toBe("text_mm6t71dj");
     expect(CRM_CONTACTS.syncStateCol).toBe("text_mm6twy4w");
     expect(CRM_CONTACTS.linkCol).toBe("link_mm6z7mj");
-    expect(CRM_CONTACTS.groupBy).toEqual({ singleGroup: "topics" });
+    // placeOnly: new cards land in "topics"; the Worker never moves a card (the boss's directive).
+    expect(CRM_CONTACTS.groupBy).toEqual({ singleGroup: "topics", placeOnly: true });
   });
 
   it("uses `lastmodifieddate`, not the deal/company property", () =>
     expect(CRM_CONTACTS.modifiedProp).toBe("lastmodifieddate"));
 
   // THE 2026-09-07 MEETING DECISION.
-  it("creation is HubSpot-only: no createFromMonday, no adoptBy, no createDefaults", () => {
-    expect(CRM_CONTACTS.createFromMonday).toBe(false);
-    expect(CRM_CONTACTS.adoptBy).toBeUndefined();
+  /**
+   * CHANGED 2026-09-21. Creation from monday is now REQUIRED — the 创建/Create form is how the sales
+   * team adds contacts after the migration — so the assertion moves from "creation is impossible" to
+   * "creation cannot duplicate". `createDefaults` stays absent deliberately: a Contact needs no
+   * manufactured property to be valid, and `sales_user` in particular must never be fabricated.
+   */
+  it("creation is enabled, adopts by email, and still manufactures nothing", () => {
+    expect(CRM_CONTACTS.createFromMonday).toBe(true);
+    expect(CRM_CONTACTS.adoptBy).toEqual({ kind: "email", col: "contact_email" });
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
   });
 
-  // sales_user is now DISPLAYED (mapping sheet, 2026-09-08) but the two properties that actually
-  // mattered are unchanged: it is never FABRICATED, and it never decides scope.
-  it("never manufactures sales_user, and shows it display-only", () => {
+  /** The adoption key must reach the birth payload, or createFromMonday refuses the create outright. */
+  // Two-way from 2026-09-23 so a rep can fix a typo'd address. Email is the adoption key only at CREATE;
+  // a card that already has a HubSpot ID is linked by that id, so editing the email cannot re-point it.
+  it("email is written at birth AND is two-way afterwards", () => {
+    const email = CRM_CONTACTS.fields.find(f => f.hs === "email")!;
+    expect(email.col).toBe("contact_email");
+    expect(email.writeOnCreate).toBe(true);
+    expect(email.reverse).toBe(true);
+    expect(CRM_CONTACTS.columnLevelReverse).toBe(true);   // pushed only when someone edits that cell
+  });
+
+  // Two-way since 2026-09-23 (see the field's note in crm.ts). What still must hold: sales_user is never
+  // FABRICATED, it never decides scope, and it reaches HubSpot only as a monday PERSON a rep chose.
+  it("never manufactures sales_user; two-way only as a People column, on a column-level spec", () => {
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
     expect(CRM_CONTACTS.createDefaults?.sales_user).toBeUndefined();
+    expect(CRM_CONTACTS.columnLevelReverse).toBe(true);
     const f = CRM_CONTACTS.fields.find(x => x.hs === "sales_user")!;
     // A PEOPLE COLUMN since 2026-09-15, replacing the single-select dropdown. monday's assignment
     // permission can only be configured against a People column, and Sales User is now the one
@@ -58,10 +77,10 @@ describe("CRM_CONTACTS", () => {
     //
     // It also retires the dropdown's own objection to ever going two-way: a label could not resolve
     // back to one owner, because "Rick Antonio" names two owner ids. A People column resolves through
-    // monday user -> email -> owner id, which is unambiguous. Still forward-only for a DIFFERENT
-    // reason — see the WM scope coupling note in crm.ts — but the ambiguity argument no longer applies.
+    // monday user -> email -> owner id (an email shared by two owners resolves to nothing). The WM-scope
+    // coupling that kept it forward-only until 2026-09-23 is an accepted side effect now; see crm.ts.
     expect(f).toMatchObject({ col: "multiple_person_mm76ygkp", type: "people" });
-    expect(f.reverse).toBeUndefined();      // a monday edit must never reassign it, for now
+    expect(f.reverse).toBe(true);
     expect(f.appReverse).toBeUndefined();
     expect(f.backfill).toBeUndefined();
   });
@@ -79,10 +98,9 @@ describe("CRM_CONTACTS", () => {
     expect(CRM_CREATE_CUTOFF_MS).toBe(Number.POSITIVE_INFINITY);
   });
 
-  it("email is the native email column and is FORWARD-ONLY (it is the dedup key)", () => {
+  it("email is the native email column, two-way, never a backfill", () => {
     const f = CRM_CONTACTS.fields.find(x => x.hs === "email")!;
-    expect(f).toMatchObject({ col: "contact_email", type: "email" });
-    expect(f.reverse).toBeUndefined();
+    expect(f).toMatchObject({ col: "contact_email", type: "email", reverse: true });
     expect(f.backfill).toBeUndefined();
   });
 
@@ -224,7 +242,7 @@ describe("CRM_ACCOUNTS", () => {
     expect(CRM_ACCOUNTS.idCol).toBe("text_mm6tsnwx");
     expect(CRM_ACCOUNTS.syncStateCol).toBe("text_mm6tccd0");
     expect(CRM_ACCOUNTS.linkCol).toBe("link_mm6zyad8");
-    expect(CRM_ACCOUNTS.groupBy).toEqual({ singleGroup: "topics" });
+    expect(CRM_ACCOUNTS.groupBy).toEqual({ singleGroup: "topics", placeOnly: true });
     expect(CRM_ACCOUNTS.modifiedProp).toBe("hs_lastmodifieddate");
   });
 
@@ -274,10 +292,11 @@ describe("CRM_ACCOUNTS", () => {
     expect(CRM_ACCOUNTS.fields.some(x => x.col === "industry")).toBe(false);
   });
 
-  it("partner_with is a DROPDOWN (status cannot hold its 27 labels) and forward-only", () => {
+  // Two-way from 2026-09-23: with neither reverse nor oneWay, a rep edit fired a reconcile that wrote
+  // HubSpot's value straight back. It has a validated dictionary, so an unknown label is refused.
+  it("partner_with is a DROPDOWN (status cannot hold its 27 labels) and two-way", () => {
     const f = CRM_ACCOUNTS.fields.find(x => x.hs === "partner_with")!;
-    expect(f).toMatchObject({ col: "dropdown_mm6zd1ge", type: "dropdown", labels: "partnerWith" });
-    expect(f.reverse).toBeUndefined();
+    expect(f).toMatchObject({ col: "dropdown_mm6zd1ge", type: "dropdown", labels: "partnerWith", reverse: true });
   });
 
   it("type is two-way on the seeded status column", () =>
@@ -285,10 +304,10 @@ describe("CRM_ACCOUNTS", () => {
       .toMatchObject({ col: "color_mm6zwhwt", type: "status", labels: "companyType", reverse: true }));
 
   // THE EMPLOYEE-COUNT DECISION.
-  it("numberofemployees reuses the NATIVE column, ONE-WAY, with no second employee column", () => {
+  // Two-way since 2026-09-23 through reverseAs "integer" (a range like "100-500" is refused, never sent).
+  it("numberofemployees reuses the NATIVE column, two-way only as a whole number, with no second employee column", () => {
     const f = CRM_ACCOUNTS.fields.find(x => x.hs === "numberofemployees")!;
-    expect(f).toMatchObject({ col: "employee_count", type: "text" });
-    expect(f.reverse).toBeUndefined();
+    expect(f).toMatchObject({ col: "employee_count", type: "text", reverse: true, reverseAs: "integer" });
     expect(f.backfill).toBeUndefined();
     expect(CRM_ACCOUNTS.fields.filter(x => /employee/i.test(x.hs))).toHaveLength(1);
   });
@@ -300,13 +319,42 @@ describe("CRM_ACCOUNTS", () => {
   // sales_user is now DISPLAYED here too (it is on the Create Company form), forward-only and never
   // a scope input - the same split as on Contacts.
   it("shows sales_user display-only, and associates ONLY to contacts", () => {
-    const su = CRM_ACCOUNTS.fields.find(f => f.hs === "sales_user")!;
-    expect(su).toMatchObject({ col: "dropdown_mm704kf4", type: "dropdown", labels: "salesUser" });
-    expect(su.reverse).toBeUndefined();
+    // ONE surface since 2026-09-23: the People column. The legacy dropdown was unmapped once the
+    // business decided an owner with no monday seat shows an EMPTY Sales User (its only reason to exist).
+    expect(CRM_ACCOUNTS.fields.filter(f => f.hs === "sales_user").map(f => f.col)).toEqual(["multiple_person_mm7d2qk6"]);
+    expect(CRM_ACCOUNTS.fields.some(f => f.col === "dropdown_mm704kf4")).toBe(false);
     expect(recInScope(CRM_ACCOUNTS, { properties: {} })).toBe(true);
     expect(CRM_ACCOUNTS.associations).toEqual([
       { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: "account_contact" },
     ]);
+  });
+
+  /**
+   * The People column is what a rep sees and what Lark reads. It USED to be forward-only because nine
+   * HubSpot owner ids share one email here, so the inverse could not tell 华南销售 from 华北主管. That
+   * objection is now answered in the engine: buildCtx drops an email claimed by more than one owner, so
+   * such a person is REFUSED and healed rather than guessed (column-level-reverse.test.ts pins it), and
+   * a column-level spec pushes this cell only when someone edits it.
+   */
+  it.each([
+    ["Accounts", "multiple_person_mm7d2qk6"],
+    ["Deals", "multiple_person_mm7df31a"],
+  ])("%s Sales User People column is two-way, on a column-level spec", async (board, col) => {
+    const { CRM_DEALS } = await import("../src/config/crm");
+    const spec = board === "Accounts" ? CRM_ACCOUNTS : CRM_DEALS;
+    const p = spec.fields.find(f => f.col === col)!;
+    expect(p, `${board} has no Sales User People field`).toBeDefined();
+    expect(p.hs).toBe("sales_user");
+    expect(p.type).toBe("people");
+    expect(p.reverse).toBe(true);
+    expect(spec.columnLevelReverse).toBe(true);
+  });
+
+  it("matches the Contacts precedent — same property, same column type, same direction", () => {
+    const contacts = CRM_CONTACTS.fields.find(f => f.col === "multiple_person_mm76ygkp")!;
+    expect(contacts.hs).toBe("sales_user");
+    expect(contacts.type).toBe("people");
+    expect(contacts.reverse).toBe(true);
   });
 });
 
@@ -323,10 +371,19 @@ describe("scope: includeAll is paired with the Task 3B gate, and searchFilters a
     expect(recInScope(spec, { properties: { sales_user: "", createdate: "2019-01-01T00:00:00Z" } })).toBe(true);
   });
 
-  // ...and being in scope must NOT mean a historical record gets a card.
-  it.each(CRM_SPECS.map(s => [s.object, s] as const))("%s: in-scope history still cannot be carded", (_o, spec) => {
-    expect(mayCreateCrmCard({ id: "1", properties: { createdate: "2024-03-01T00:00:00Z" } }, spec.ownership)).toBe(false);
+  // Being in scope now DOES mean a missing card is created, whatever the record's age: the historical
+  // import has run (2026-09-17/18), so a record with no card is a gap. Before, a lead created in HubSpot
+  // on 2026-09-23 got no card at all because it predated a 2026-09-25 cutover. Metadata must still have
+  // been fetched -- an unreadable createdate refuses, so a `hold` stamp can never read as blank.
+  it.each(CRM_SPECS.map(s => [s.object, s] as const))("%s: a missing card is created for any unstamped record", (_o, spec) => {
+    expect(mayCreateCrmCard({ id: "1", properties: { createdate: "2024-03-01T00:00:00Z" } }, spec.ownership)).toBe(true);
     expect(mayCreateCrmCard({ id: "1", properties: {} }, spec.ownership)).toBe(false);
+  });
+
+  // ...but an explicit decision is still honoured.
+  it.each(CRM_SPECS.map(s => [s.object, s] as const))("%s: a parked or WM-owned record still gets no card", (_o, spec) => {
+    expect(mayCreateCrmCard({ id: "1", properties: { sync_owner: "hold", createdate: "2024-03-01T00:00:00Z" } }, spec.ownership)).toBe(false);
+    expect(mayCreateCrmCard({ id: "1", properties: { sync_owner: "wm", createdate: "2024-03-01T00:00:00Z" } }, spec.ownership)).toBe(false);
   });
 
   it("ownership metadata is always fetched, so the gate can never read undefined", () => {
@@ -339,9 +396,9 @@ describe("scope: includeAll is paired with the Task 3B gate, and searchFilters a
 });
 
 describe("PRODUCTION WM specs are untouched", () => {
-  it("no WM spec declares ownership or adoptBy", () => {
+  it("every WM spec is owner \"wm\" and still declares no adoptBy", () => {
     for (const s of ALL_SPECS) {
-      expect(s.ownership).toBeUndefined();
+      expect(s.ownership?.owner).toBe("wm");
       expect(s.adoptBy).toBeUndefined();
     }
   });

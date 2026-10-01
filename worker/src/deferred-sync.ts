@@ -4,8 +4,9 @@
  * WHAT WAS ACTUALLY BROKEN. handleHubspot processes a bounded slice of each webhook batch and logs
  * the rest as `action=deferred ... reason="batch > 15; backup catches overflow"`. On the Work
  * Management Worker that sentence is true: it runs a ten-minute incremental cron that re-reads
- * recently modified records. On THIS Worker it is not — crons were deliberately disabled for Phase 1,
- * so `scheduled()` never fires and the overflow was simply discarded.
+ * recently modified records. On THIS Worker it is not — it has no SYNC crons (its only cron is the 15-minute one,
+ * which dispatches the marketing poller and nothing else; deploy-config.test.ts pins it), so no sweep
+ * ever re-reads a record and the overflow was simply discarded.
  *
  * It is not a small remainder either. HubSpot delivered batches of ~47 contact events during a bulk
  * update, so roughly two thirds of each batch was being dropped, with a log line that read as though
@@ -24,17 +25,26 @@
 import type { Env } from "./types";
 import type { DeferredSync } from "./deferred-sync-do";
 
-export type DeferredType = "contact" | "company";
+// Deals and line items since 2026-09-23 -- see the spill in webhooks.ts.
+export type DeferredType = "contact" | "company" | "deal" | "line_item";
 
 export interface DeferredItem {
   type: DeferredType;
   id: string;
   deleted?: boolean;
+  /**
+   * A LIFECYCLE RE-CHECK, not an update (sync.ts armRecheck, queued before every backward move's clear): the
+   * wave runs recheckDanglingClears for it -- finish a clear whose set never followed, and nothing else.
+   * Never a forward pass: one run at a fixed ~15 s after the move overwrote a person's next edit still on its
+   * way, because HubSpot bumps the record's lastmodifieddate by itself ~7 s after every stage change.
+   */
+  recheck?: boolean;
   attempts?: number;
 }
 
-/** Identity for deduplication. A delete and an update of the same record are different work. */
-export const deferKey = (i: DeferredItem) => `${i.type}:${i.id}:${i.deleted ? "d" : "u"}`;
+/** Identity for deduplication. A delete, an update and a re-check of the same record are different work:
+ *  an update's forward pass does repair a dangling clear, but a re-check cannot stand in for an update. */
+export const deferKey = (i: DeferredItem) => `${i.type}:${i.id}:${i.deleted ? "d" : i.recheck ? "r" : "u"}`;
 
 /** How many records one alarm processes. Matches the webhook path's own per-invocation limit, for
  *  the same subrequest reason. */

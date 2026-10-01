@@ -10,7 +10,11 @@ const live: RunOpts = { dryRun: false, writeHubspot: true, maxWrites: 10 };
 const CUTOVER = Date.parse("2026-10-01T00:00:00Z");
 const own: OwnershipSpec = { prop: "sync_owner", createdProp: "createdate", owner: "crm", cutoverAtMs: CUTOVER };
 const owned: ObjectSpec = { ...DEALS, object: "contacts", ownership: own };
-const plain: ObjectSpec = { ...DEALS };   // no ownership -> legacy production behaviour
+// NO ownership, stated explicitly. This was `{ ...DEALS }` until 2026-09-22, when every WM spec gained
+// an ownership spec so it would refuse crm-stamped records — at which point the spread silently
+// INHERITED ownership and this fixture stopped testing the unowned path at all. The guarantee is about
+// the code path, not about which real spec happens to lack a stamp.
+const plain: ObjectSpec = { ...DEALS, ownership: undefined };
 
 const allow = (forId: string): WriteAuth => ({ allowed: true, reason: "stamped crm", forId });
 const deny = (forId: string): WriteAuth => ({ allowed: false, reason: "owned by wm", forId });

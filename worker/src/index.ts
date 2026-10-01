@@ -1,20 +1,26 @@
-import type { Env, RunOpts, Budget } from "./types";
+import type { Env, RunOpts, Budget, WriteAuth, ObjectSpec, HsRecord } from "./types";
 export { CreateIdempotency } from "./create-idempotency-do";
 export { ActivityRetry } from "./activity-retry-do";
 export { DeferredSync } from "./deferred-sync-do";
 import { pollTasks, reconcileRecentTasks } from "./task-poller";
-import { runAll, runIncremental, syncMondayItem, getCtxCached } from "./sync";
-import { writeModeFor, maxWritesFor } from "./run-opts";
+import { pollMarketingEmails, readLedger } from "./marketing-email-poller";
+import { ladSweepEnabled, sweepDeadline, sweepLastActivity } from "./lad-sweep";
+import { runAll, runIncremental, syncMondayItem, getCtxCached, syncHubspotRecord, legacyDealRouting } from "./sync";
+import { writeModeFor, maxWritesFor, dryRunModeFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
-import { handleHubspot, handleMonday } from "./webhooks";
-import { deadLetterStub } from "./activity-retry";
+import { handleHubspot, handleMonday, safeEq } from "./webhooks";
+import { deadLetterStub, activityRetryBound } from "./activity-retry";
+import { activitySyncEnabled, syncHubspotActivity, syncMondayTimeline } from "./activity-sync";
+import { CRM_CONTACTS } from "./config/crm";
 import { searchObjects, patchLineItem, deleteLineItem, deleteAssociation, putAssociation, archiveDeal, patchRecord, createProduct, createLineItem, getWritablePropOptions, getDealLineItems, getRecord, propertiesForSpec, getAssociatedIds, getRecordsByIds, listPage, listCompanies, listContacts, mapAssocRecord, mapOwners } from "./hubspot";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
 import { verifySessionToken } from "./session";
 import { parseLineItemBody, parseAssociationBody, parseDealBody, parseSyncDealBody, parseClearDealBody, parseCreateLineItemBody, parseContactBody, parseCompanyBody, parseSyncCompanyBody, parseSyncContactBody, parseClearRecordBody } from "./app-routes";
-import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA } from "./config";
-import { getItem, setColumns, findItemByColumn, getBoardItems } from "./monday";
+import { DEALS, LINE_ITEM_SUBITEMS, CONTACTS_MYLA, COMPANIES_MYLA, specByObject } from "./config";
+import { getItem, setColumns, findItemByColumn, getBoardItems, gql } from "./monday";
 import { phoneBackfillCandidates } from "./backfill";
+import { lineItemOwnerSpec, lineItemWriteAuth } from "./write-auth";
+import { authorizeCreate, authorizeWrite, withBirthOwnership } from "./ownership";
 import { syncAssociations } from "./associations";
 import { colText } from "./dedup";
 import { actorLabel } from "./actor-label";
@@ -44,16 +50,68 @@ function appWriteOpts(env: Env): RunOpts {
 // Auth for /app/*: a valid monday session token (browser) OR X-Trigger-Secret (server-to-server).
 // The old static X-App-Secret path is retired (it was exposed in frontend prompt material).
 async function authApp(req: Request, env: Env): Promise<{ ok: boolean; reason: string; userId?: string; accountId?: string }> {
-  const trigger = req.headers.get("x-trigger-secret");
-  if (trigger && env.TRIGGER_SECRET && trigger === env.TRIGGER_SECRET) return { ok: true, reason: "trigger-secret" };
+  if (triggerOk(req, env)) return { ok: true, reason: "trigger-secret" };
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!bearer) return { ok: false, reason: "no session token / trigger secret" };
   const v = await verifySessionToken(env.MONDAY_APP_SESSION_SECRET ?? "", bearer, env.MONDAY_ACCOUNT_ID, Date.now());
   return { ok: v.ok, reason: v.reason, userId: v.userId, accountId: v.accountId };
 }
 
+/** The server-to-server secret, compared in constant time. Fails closed when TRIGGER_SECRET is unset. */
+function triggerOk(req: Request, env: Env): boolean {
+  const provided = req.headers.get("x-trigger-secret") ?? "";
+  return !!env.TRIGGER_SECRET && !!provided && safeEq(provided, env.TRIGGER_SECRET);
+}
+
+/**
+ * /app/* WRITE routes that exist only for the Work-Management Deal Cockpit, refused on the CRM Worker.
+ *
+ * Each hardcodes a WM spec or board (CONTACTS_MYLA, COMPANIES_MYLA, DEALS, the WM subitem board), so
+ * on CRM it either created a wm-stamped HubSpot record plus a card on a WM board (/app/contact,
+ * /app/company), wrote Sync State onto WM cards (/app/backfill-contact-phones), wrote WM subitems
+ * (/app/line-item), archived a HubSpot deal outside the CRM ownership model (/app/deal), or did nothing
+ * while answering {ok:true} (/app/sync-*). The Cockpit talks to the WM Worker; nothing legitimate calls
+ * these on CRM, so a clear 409 is safer than any of those.
+ */
+const WM_ONLY_APP_WRITES = new Set([
+  "/app/contact", "/app/company", "/app/backfill-contact-phones", "/app/line-item", "/app/deal",
+  "/app/sync-deal", "/app/sync-company", "/app/sync-contact",
+]);
+
 function optsFromEnv(env: Env): RunOpts {
   return writeModeFor(env, maxWritesFor(env));
+}
+
+/**
+ * The ownership decision for an EXISTING record, for the /app/* routes that patch one directly.
+ *
+ * Shared rather than hand-rolled per route, because hand-rolling it is exactly how three live routes
+ * came to omit it. Once every WM spec declared `ownership`, hubspot.ts began ASSERTING a WriteAuth,
+ * and a route that passes none does not fail safe -- it throws OwnershipError and answers 502. That
+ * broke clear-deal-fields, clear-record-fields and the phone backfill on the Work Management Worker,
+ * which is the one the Deal Cockpit talks to.
+ *
+ * Returns an undefined auth when the spec declares no ownership (nothing to authorize, unchanged
+ * behaviour), and a REFUSAL rather than a throw when the record cannot be read -- an unreadable record
+ * is not an owned one, and the caller turns that into a 409 the drawer can show.
+ *
+ * It also hands back the SPEC it decided against, which the caller must then use for the patch. That
+ * is not a convenience: withCutover() returns COPIES, so the module constants imported at the top of
+ * this file (DEALS, CONTACTS_MYLA, COMPANIES_MYLA) keep OWN_WM's placeholder cutoverAtMs of Infinity
+ * and never learn this deployment's CRM_CUTOVER_AT. Authorizing against one of those makes every
+ * unstamped record look pre-cutover, so these routes would keep writing records the crons had already
+ * stopped writing -- one Worker disagreeing with itself about who owns what. specByObject() resolves
+ * through specsFor(), which is where the cutover is actually applied.
+ */
+async function recordWriteAuth(env: Env, fallback: ObjectSpec, object: string, id: string):
+    Promise<{ spec: ObjectSpec; auth: WriteAuth | undefined }> {
+  const spec = specByObject(env, object) ?? fallback;
+  if (!spec.ownership) return { spec, auth: undefined };
+  const rec = await getRecord(env, object, id, [spec.ownership.prop, spec.ownership.createdProp]);
+  const auth: WriteAuth = rec
+    ? authorizeWrite(rec, spec.ownership)
+    : { allowed: false, reason: `${object}/${id} not readable`, forId: id };
+  return { spec, auth };
 }
 
 export default {
@@ -70,6 +128,39 @@ export default {
      * job — a five-minute task poll, say — would quietly start a full CRM incremental reconciliation
      * that Phase 1 deliberately disabled. An unrecognised expression must do nothing and say so.
      */
+    if (event.cron === "*/15 * * * *") {
+      /**
+       * RETURNED, NOT waitUntil -- unlike every branch below. A marketing poll spends a minute or two
+       * creating monday timeline entries, and Cloudflare guarantees the full cron budget only to the
+       * promise scheduled() returns; waitUntil is documented at about 30 seconds. A write cut off
+       * between create and settle is the lost-response state behind the doubled emails.
+       *
+       * CRM ONLY, checked here and again inside the poller: the Work Management Worker runs this same
+       * source, and must never poll even if someone adds this expression to its config.
+       */
+      if (env.ENABLE_CRM !== "true") {
+        console.log(`[mkt-poller] action=refused reason="not the CRM Worker" cron="${event.cron}"`);
+        return;
+      }
+      /**
+       * AND THE LAST ACTIVITY BACKSTOP (lad-sweep.ts), when ENABLE_LAD_SWEEP is "true" -- AFTER the poll,
+       * in the same returned promise, never beside it. Beside it, the sweep's whole-record syncs ran in
+       * the same moments as the poll's creates, on one invocation's subrequest ceiling and one monday
+       * complexity budget: hitting either between a create and its settle is the lost-response state
+       * behind the doubled emails. After it, the sweep gets what the cron has left (sweepDeadline: no
+       * sync starts later than 13 minutes in) and a total sync cap, lower when the poll ran
+       * (maxSweepSyncs). Each catches its own failure, so one can never take the other down or leave an
+       * unhandled rejection.
+       */
+      const cronStart = Date.now();
+      const marketing = pollMarketingEmails(env).then(() => undefined)
+        .catch(e => console.log(`[mkt-poller] action=error reason="${String(e).slice(0, 140)}"`));
+      const sweep = () => ladSweepEnabled(env)
+        ? sweepLastActivity(env, { deadlineMs: sweepDeadline(cronStart, Date.now()) }).then(() => undefined)
+          .catch(e => console.log(`[lad-sweep] action=error reason="${String(e).slice(0, 140)}"`))
+        : Promise.resolve();
+      return marketing.then(sweep);
+    }
     if (event.cron === "*/5 * * * *") {
       ectx.waitUntil(pollTasks(env)
         .catch(e => console.log(`[task-poller] action=error reason="${String(e).slice(0, 140)}"`)));
@@ -122,6 +213,10 @@ export default {
           console.log(`[actor] source=app path=${url.pathname} ${a}`)).catch(() => {}));
       }
       const actingAccountId = auth.accountId ?? env.MONDAY_ACCOUNT_ID ?? "acct"; // namespaces idempotency keys
+      if (env.ENABLE_CRM === "true" && req.method !== "GET" && WM_ONLY_APP_WRITES.has(url.pathname)) {
+        console.log(`[app] path=${url.pathname} action=refused reason="Work-Management-only route on the CRM Worker"`);
+        return Response.json({ ok: false, error: "wm-only-route" }, { status: 409, headers: CORS });
+      }
 
       // GET /app/search?type=contacts|companies|products&q=&limit=
       if (url.pathname === "/app/search" && req.method === "GET") {
@@ -311,7 +406,13 @@ export default {
               }
             }
             // 3) create the HubSpot line item (+ associate to the deal).
-            const lineItemId = await createLineItem(env, props, dealId, appWriteOpts(env));
+            // BORN OWNED, like every other record this Worker creates. Origin is the DEPLOYMENT, which
+            // is the only thing provable here: the route is served by whichever Worker holds
+            // MONDAY_APP_SESSION_SECRET, and lineItemOwnerSpec resolves that Worker's own ownership.
+            const liSpec = lineItemOwnerSpec(env);
+            const lineItemId = await createLineItem(env,
+              withBirthOwnership(props, liSpec?.ownership), dealId, appWriteOpts(env),
+              liSpec, liSpec?.ownership ? authorizeCreate(liSpec.ownership) : undefined);
             // 4) write the Line Item ID back onto the subitem — BEST EFFORT: the line item already exists, so
             //    never fail the request over a write-back; returning the id lets the app store it and skip a dup on retry.
             if (lineItemId)
@@ -326,8 +427,18 @@ export default {
         const p = parseLineItemBody(req.method === "POST" ? "PATCH" : "DELETE", body);
         if (!p.ok) return Response.json({ error: p.error }, { status: 400, headers: CORS });
         try {
-          if (req.method === "POST") await patchLineItem(env, p.lineItemId!, p.properties!, appWriteOpts(env));
-          else await deleteLineItem(env, p.lineItemId!, appWriteOpts(env));
+          // OWNERSHIP FIRST. This route was the last production line-item mutation outside the model:
+          // a rep with the board view open could PATCH or DELETE a line item the other deployment owns.
+          // Refused with 409, not 502 — the request is well-formed, it simply is not ours to make.
+          const wa = await lineItemWriteAuth(env, p.lineItemId!);
+          if (wa && !wa.auth.allowed) {
+            console.log(`[app/line-item] ${req.method} ${p.lineItemId} action=refused reason="${wa.auth.reason}"`);
+            return Response.json({ ok: false, error: "not-owned", reason: wa.auth.reason },
+              { status: 409, headers: CORS });
+          }
+          if (req.method === "POST")
+            await patchLineItem(env, p.lineItemId!, p.properties!, appWriteOpts(env), wa?.spec, wa?.auth);
+          else await deleteLineItem(env, p.lineItemId!, appWriteOpts(env), wa?.spec, wa?.auth);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/line-item] ${req.method} ${p.lineItemId} error="${String(e).slice(0, 160)}"`);
@@ -341,8 +452,26 @@ export default {
         const a = parseAssociationBody(await req.json().catch(() => ({})));
         if (!a.ok) return Response.json({ error: a.error }, { status: 400, headers: CORS });
         try {
-          if (req.method === "POST") await putAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
-          else await deleteAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env));
+          // OWNERSHIP FIRST, on the INITIATING record — the same rule reverseAssociations follows: an
+          // association is a link, not a field on the far record, so you must own the end you are
+          // editing from. Without this the drawer could link or unlink records the other deployment
+          // owns, which is the same escape hatch /app/line-item had.
+          const aSpec = specByObject(env, a.fromObject!);
+          let aAuth: WriteAuth | undefined;
+          if (aSpec?.ownership) {
+            const fromRec = await getRecord(env, a.fromObject!, a.fromId!,
+              [aSpec.ownership.prop, aSpec.ownership.createdProp]);
+            aAuth = fromRec
+              ? authorizeWrite(fromRec, aSpec.ownership)
+              : { allowed: false, reason: `${a.fromObject}/${a.fromId} not readable`, forId: a.fromId! };
+            if (!aAuth.allowed) {
+              console.log(`[app/association] ${req.method} ${a.fromObject}/${a.fromId} action=refused reason="${aAuth.reason}"`);
+              return Response.json({ ok: false, error: "not-owned", reason: aAuth.reason },
+                { status: 409, headers: CORS });
+            }
+          }
+          if (req.method === "POST") await putAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env), aSpec, aAuth);
+          else await deleteAssociation(env, a.fromObject!, a.fromId!, a.toObject!, a.toId!, appWriteOpts(env), aSpec, aAuth);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/association] ${req.method} ${a.fromObject}/${a.fromId}->${a.toObject}/${a.toId} error="${String(e).slice(0, 140)}"`);
@@ -356,7 +485,20 @@ export default {
         const d = parseDealBody(body);
         if (!d.ok) return Response.json({ error: d.error }, { status: 400, headers: CORS });
         try {
-          await archiveDeal(env, d.hubspotDealId!, appWriteOpts(env));
+          // The one HubSpot DELETE the app can make, so it answers to ownership like every other write:
+          // the WM Cockpit must not archive a deal the CRM Worker owns (HubSpot's delete webhook would
+          // then remove the CRM card too).
+          // Already gone in HubSpot: nothing is left to own, and the Cockpit treated this as success before.
+          if (!(await getRecord(env, "deals", d.hubspotDealId!, ["hs_object_id"]))) {
+            console.log(`[app/deal] archive ${d.hubspotDealId} action=already-gone`);
+            return Response.json({ ok: true }, { headers: CORS });
+          }
+          const own = await recordWriteAuth(env, DEALS, "deals", d.hubspotDealId!);
+          if (own.auth && !own.auth.allowed) {
+            console.log(`[app/deal] archive ${d.hubspotDealId} action=refused reason="${own.auth.reason}"`);
+            return Response.json({ ok: false, error: "not-owned", reason: own.auth.reason }, { status: 409, headers: CORS });
+          }
+          await archiveDeal(env, d.hubspotDealId!, appWriteOpts(env), own.spec, own.auth);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/deal] archive ${d.hubspotDealId} error="${String(e).slice(0, 160)}"`);
@@ -377,7 +519,12 @@ export default {
         try {
           const props = Object.fromEntries(c.fields!.map(f => [f, ""]));
           console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} fields=${c.fields!.join(",")}`);
-          await patchRecord(env, DEALS, c.hubspotDealId!, props, appWriteOpts(env));
+          const d = await recordWriteAuth(env, DEALS, "deals", c.hubspotDealId!);
+          if (d.auth && !d.auth.allowed) {
+            console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} action=refused reason="${d.auth.reason}"`);
+            return Response.json({ ok: false, error: "not-owned", reason: d.auth.reason }, { status: 409, headers: CORS });
+          }
+          await patchRecord(env, d.spec, c.hubspotDealId!, props, appWriteOpts(env), d.auth);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/clear-deal-fields] deal=${c.hubspotDealId} error="${String(e).slice(0, 160)}"`);
@@ -396,7 +543,12 @@ export default {
         try {
           const props = Object.fromEntries(c.fields!.map(f => [f, ""]));
           console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} fields=${c.fields!.join(",")}`);
-          await patchRecord(env, spec, c.hubspotId!, props, appWriteOpts(env));
+          const r = await recordWriteAuth(env, spec, c.object!, c.hubspotId!);
+          if (r.auth && !r.auth.allowed) {
+            console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} action=refused reason="${r.auth.reason}"`);
+            return Response.json({ ok: false, error: "not-owned", reason: r.auth.reason }, { status: 409, headers: CORS });
+          }
+          await patchRecord(env, r.spec, c.hubspotId!, props, appWriteOpts(env), r.auth);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {
           console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} error="${String(e).slice(0, 160)}"`);
@@ -466,26 +618,47 @@ export default {
           // the Worker's subrequest ceiling. `candidates`/`remaining` therefore become LOWER BOUNDS when the
           // scan stops early (`scanComplete` says which) — call again to continue.
           const phoneById: Record<string, string | null> = {};
+          // The ownership props ride along on the read that was already happening. This loop patches
+          // many contacts, and a WriteAuth must be computed PER RECORD (assertMayWrite rejects an auth
+          // whose forId belongs to another record), so the alternative was one extra HubSpot GET per
+          // contact -- on a path whose whole design is about staying under the subrequest ceiling.
+          // The deployment's contacts spec, for the same reason recordWriteAuth resolves one: the
+          // imported CONTACTS_MYLA constant carries OWN_WM's placeholder Infinity cutover.
+          const cSpec = specByObject(env, "contacts") ?? CONTACTS_MYLA;
+          const ownProps = cSpec.ownership
+            ? [cSpec.ownership.prop, cSpec.ownership.createdProp] : [];
+          const recById: Record<string, HsRecord> = {};
           const candidates: typeof cards = [];
           let scanned = 0, scanComplete = true;
           for (let i = 0; i < cards.length; i += 100) {
             const slice = cards.slice(i, i + 100);
-            for (const r of await getRecordsByIds(env, "contacts", slice.map(c => c.hubspotId), ["phone"]))
+            for (const r of await getRecordsByIds(env, "contacts", slice.map(c => c.hubspotId), ["phone", ...ownProps])) {
               phoneById[r.id] = r.properties.phone ?? "";
+              recById[r.id] = r;
+            }
             scanned += slice.length;
             candidates.push(...phoneBackfillCandidates(slice, phoneById));
             if (candidates.length >= limit && i + 100 < cards.length) { scanComplete = false; break; }
           }
           const batch = candidates.slice(0, limit);
-          let written = 0;
+          let written = 0, refused = 0;
           if (!dryRun) {
             for (const c of batch) {
+              // A contact the CRM Worker owns is not this Worker's to backfill. Skipped and COUNTED,
+              // never thrown: one unowned contact must not abort the whole batch, and a silent skip
+              // would read as "nothing needed doing".
+              const own = cSpec.ownership;
+              const pAuth = own
+                ? (recById[c.hubspotId] ? authorizeWrite(recById[c.hubspotId], own)
+                   : { allowed: false, reason: `contacts/${c.hubspotId} not readable`, forId: c.hubspotId })
+                : undefined;
+              if (pAuth && !pAuth.allowed) { refused++; continue; }
               // Canonical phone, NOT monday's rendered column text (which carries a country suffix once a
               // rep picks the flag) — identical rule to reverseFieldValue's phone branch.
               const digits = c.phone.replace(/[^\d]/g, "");
               if (!digits) continue;
               const value = c.phone.trim().startsWith("+") ? "+" + digits : digits;
-              const newMod = await patchRecord(env, CONTACTS_MYLA, c.hubspotId, { phone: value }, appWriteOpts(env));
+              const newMod = await patchRecord(env, cSpec, c.hubspotId, { phone: value }, appWriteOpts(env), pAuth);
               // Stamp the POST-patch timestamp, exactly as the reconcile path does. The PATCH bumps the
               // contact's lastmodifieddate, so without this the next incremental sweep reads hs > synced,
               // decides "HubSpot is newer", and overwrites the monday card — reverting any unsynced rep edit.
@@ -536,7 +709,10 @@ export default {
         if (!/^\d+$/.test(hubspotId))
           return Response.json({ error: "hubspotId must be a numeric string" }, { status: 400, headers: CORS });
         try {
-          const spec = object === "contacts" ? CONTACTS_MYLA : COMPANIES_MYLA;
+          // THIS DEPLOYMENT'S spec. The WM constants were hardcoded here, so on the CRM Worker this route
+          // would have created the card on a Work-Management board -- a cross-deployment write.
+          // specByObject resolves exactly those constants on WM, so WM behaves as before.
+          const spec = specByObject(env, object) ?? (object === "contacts" ? CONTACTS_MYLA : COMPANIES_MYLA);
           const ctx = await getCtxCached(env);
           const rec = await getRecord(env, spec.object, hubspotId, propertiesForSpec(spec));
           if (!rec) return Response.json({ error: "record-not-found" }, { status: 404, headers: CORS });
@@ -635,16 +811,168 @@ export default {
      * finally gives up. Read-only, guarded by the same trigger secret as /run and /import.
      */
     if (url.pathname === "/activity-dead-letters" && req.method === "GET") {
-      const provided = req.headers.get("x-trigger-secret") ?? "";
-      if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
+      if (!triggerOk(req, env))
         return new Response("forbidden", { status: 403 });
+      // The Work Management deployment serves this route -- it has TRIGGER_SECRET -- but has no
+      // retry namespace to read. Say so, rather than dereferencing undefined and returning a 500.
+      if (!activityRetryBound(env))
+        return Response.json({ enabled: false, reason: "ACTIVITY_RETRY not bound on this deployment" });
       const dead = await deadLetterStub(env).listDead();
       return Response.json({ count: dead.length, dead });
     }
 
+    /**
+     * POST /resync {object, ids[]} -- re-sync specific HubSpot records onto THIS deployment's board.
+     *
+     * The repair tool. Runs the same code a HubSpot webhook runs (syncHubspotRecord), so a missing card is
+     * created through the deduped reservation and an existing card is brought in line -- never a
+     * re-implementation in a script. `forceForward` makes HubSpot authoritative for these records even
+     * when their Sync State says nothing changed: the old engine stamped cards without applying some
+     * changes (a filled People cell was never updated), so the ordinary rule cannot see that drift.
+     * Column-level specs only (refused otherwise), which never write HubSpot from this path: a
+     * HubSpot-originated reconcile is forward-only.
+     */
+    if (url.pathname === "/resync" && req.method === "POST") {
+      if (!triggerOk(req, env))
+        return new Response("forbidden", { status: 403 });
+      const body: any = await req.json().catch(() => ({}));
+      const object = String(body?.object ?? "");
+      const spec = ["contacts", "companies", "deals", "line_items"].includes(object) ? specByObject(env, object) : undefined;
+      if (!spec) return Response.json({ error: "object not owned by this deployment" }, { status: 400 });
+      if (object === "deals" && legacyDealRouting(env))
+        return Response.json({ error: "WM deals route across boards; use the deal webhook path" }, { status: 400 });
+      // COLUMN-LEVEL SPECS ONLY. On a record-level (Work-Management) spec forceForward does not exist
+      // and the engine may decide "toHubspot" for any card that differs, which would push stale monday
+      // values -- the opposite of what a repair is for.
+      if (!spec.columnLevelReverse)
+        return Response.json({ error: "resync is for this deployment's column-level specs only" }, { status: 400 });
+      const ids: string[] = [...new Set<string>((Array.isArray(body?.ids) ? body.ids : []).map(String)
+        .filter((i: string) => /^\d+$/.test(i)))];
+      if (!ids.length || ids.length > 10) return Response.json({ error: "1-10 numeric ids" }, { status: 400 });
+      /**
+       * `dryRun: true` (a literal true only) runs the SAME engine with every write suppressed, so a repair
+       * can be sized by the code that will perform it rather than by a script's re-implementation of it.
+       * The per-record result says what it would have done.
+       */
+      const dryRun = body?.dryRun === true;
+      const opts = dryRun ? dryRunModeFor(env, maxWritesFor(env)) : optsFromEnv(env);
+      const results: Record<string, string> = {};
+      for (const id of ids) {
+        try { results[id] = await syncHubspotRecord(env, spec, id, opts, { left: 30 }, undefined, body?.forceForward === true); }
+        catch (e) { results[id] = `error: ${String(e).slice(0, 140)}`; }
+      }
+      return Response.json({ object, dryRun, results });
+    }
+
+    /**
+     * POST /resync-activity {object, ids[]} -- deliver specific HubSpot activities to their cards.
+     *
+     * For the ones the live path missed (819 inbox-imported emails refused by the old cutover rule, and
+     * activities whose card did not exist yet). Same function a webhook runs, with verifyExisting so an
+     * activity already on a card is found rather than written twice.
+     */
+    if (url.pathname === "/resync-activity" && req.method === "POST") {
+      if (!triggerOk(req, env))
+        return new Response("forbidden", { status: 403 });
+      if (!activitySyncEnabled(env)) return Response.json({ error: "activity sync is off" }, { status: 409 });
+      const body: any = await req.json().catch(() => ({}));
+      const object = String(body?.object ?? "");
+      if (!["emails", "calls", "notes", "meetings", "tasks"].includes(object))
+        return Response.json({ error: "object must be emails|calls|notes|meetings|tasks" }, { status: 400 });
+      const ids: string[] = [...new Set<string>((Array.isArray(body?.ids) ? body.ids : []).map(String)
+        .filter((i: string) => /^\d+$/.test(i)))];
+      if (!ids.length || ids.length > 10) return Response.json({ error: "1-10 numeric ids" }, { status: 400 });
+      const results: Record<string, string> = {};
+      for (const id of ids) {
+        try { results[id] = await syncHubspotActivity(env, object, id, { verifyExisting: true }); }
+        catch (e) { results[id] = `error: ${String(e).slice(0, 140)}`; }
+      }
+      return Response.json({ object, results });
+    }
+
+    /**
+     * POST /marketing-poll {dryRun?, limit?} -- one marketing email poll, on demand.
+     *
+     * For the canary ("does exactly one entry appear, and does a second poll add none?") and for looking
+     * before switching anything on. DRY BY DEFAULT: only a literal `dryRun: false` writes, and the
+     * `limit` (1-10, default 3) can only lower the per-poll cap. Every gate the cron obeys still applies,
+     * and it shares the cron's lock, so the two can never work the same window at once.
+     */
+    if (url.pathname === "/marketing-poll" && req.method === "POST") {
+      // CRM-ONLY ROUTES. The Work Management Worker shares this fetch handler; there these paths must
+      // stay exactly what they were before the poller existed -- "not found", reading nothing.
+      if (env.ENABLE_CRM !== "true") return new Response("not found", { status: 404 });
+      if (!triggerOk(req, env))
+        return new Response("forbidden", { status: 403 });
+      const body: any = await req.json().catch(() => ({}));
+      const n = Number(body?.limit ?? 3);
+      const limit = Number.isFinite(n) ? Math.min(Math.max(Math.floor(n), 1), 10) : 3;
+      try {
+        return Response.json(await pollMarketingEmails(env, { dryRun: body?.dryRun !== false, maxWrites: limit }));
+      } catch (e) {
+        return Response.json({ status: "error", reason: String(e).slice(0, 200) }, { status: 500 });
+      }
+    }
+
+    /**
+     * POST /wake-timeline {itemIds[]} -- read these Contacts cards' timelines and push their native Notes
+     * and Calls to HubSpot, exactly as a doorbell ring would (syncMondayTimeline).
+     *
+     * The catch-up for the gap when nothing rang: automations #09/#10 went off at 2026-09-30T09:00:42Z,
+     * and until the bell workflow (1940472437) stamped the Activity bell, reps' monday notes and calls
+     * reached nobody -- and a Call summary still does not ring a Note-only bell.
+     *
+     * IT WRITES HUBSPOT WHATEVER DRY_RUN OR WRITE_HUBSPOT SAY, exactly like a ring: the activity push is
+     * gated by ENABLE_ACTIVITY_SYNC alone (activitySyncEnabled below), never by the record-sync write
+     * mode.
+     * scripts/wake-timelines.mjs finds the cards. Repeats are safe -- the durable registry makes an
+     * entry already pushed cost one read and create nothing -- and entries before the activity cutover
+     * are never pushed. Contacts cards only (one read checks the board), 1-20 ids per request.
+     */
+    if (url.pathname === "/wake-timeline" && req.method === "POST") {
+      // CRM-ONLY, like the marketing routes: on Work Management this path stays "not found".
+      if (env.ENABLE_CRM !== "true") return new Response("not found", { status: 404 });
+      if (!triggerOk(req, env))
+        return new Response("forbidden", { status: 403 });
+      if (!activitySyncEnabled(env)) return Response.json({ error: "activity sync is off" }, { status: 409 });
+      const body: any = await req.json().catch(() => ({}));
+      const ids: string[] = [...new Set<string>((Array.isArray(body?.itemIds) ? body.itemIds : []).map(String)
+        .filter((i: string) => /^\d+$/.test(i)))];
+      if (!ids.length || ids.length > 20) return Response.json({ error: "1-20 numeric itemIds" }, { status: 400 });
+      let boardOf: Record<string, string>;
+      try {
+        const d = await gql(env, `query ($i: [ID!]) { items(ids: $i) { id board { id } } }`, { i: ids }, 2);
+        boardOf = Object.fromEntries(((d?.items ?? []) as any[]).map(it => [String(it.id), String(it.board?.id ?? "")]));
+      } catch (e) {
+        return Response.json({ error: `board check failed: ${String(e).slice(0, 140)}` }, { status: 502 });
+      }
+      const results: Record<string, string> = {};
+      for (const id of ids) {
+        if (boardOf[id] !== CRM_CONTACTS.boardId) {
+          results[id] = boardOf[id] ? `skipped: not a Contacts card (board ${boardOf[id]})` : "skipped: item not found";
+          continue;
+        }
+        try { results[id] = await syncMondayTimeline(env, id); }
+        catch (e) { results[id] = `error: ${String(e).slice(0, 140)}`; }
+      }
+      return Response.json({ results });
+    }
+
+    /** GET /marketing-ledger?hour=YYYY-MM-DDTHH -- what the marketing poller wrote that hour, for rollback. */
+    if (url.pathname === "/marketing-ledger" && req.method === "GET") {
+      if (env.ENABLE_CRM !== "true") return new Response("not found", { status: 404 });
+      if (!triggerOk(req, env))
+        return new Response("forbidden", { status: 403 });
+      const hour = url.searchParams.get("hour") ?? "";
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(hour))
+        return Response.json({ error: "hour must be YYYY-MM-DDTHH (UTC)" }, { status: 400 });
+      const rows = await readLedger(env, hour);
+      return Response.json({ hour, count: rows.length,
+        rows: rows.map(([timelineId, cardId, object, eventKey, contactId]) => ({ timelineId, cardId, object, eventKey, contactId })) });
+    }
+
     if (url.pathname === "/run") {
-      const provided = req.headers.get("x-trigger-secret") ?? "";
-      if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
+      if (!triggerOk(req, env))
         return new Response("forbidden", { status: 403 });
       const mode = url.searchParams.get("mode") ?? "dry";
       const n = Number(url.searchParams.get("maxWrites") ?? "300");
@@ -662,8 +990,7 @@ export default {
     //   /import?object=companies&after=<cursor>  — one list-API page per call; upsert each card via the
     // real (deduped) path. NO association pass (Phase 1 = cards only). Driven page-by-page by a script.
     if (url.pathname === "/import" && req.method === "GET") {
-      const provided = req.headers.get("x-trigger-secret") ?? "";
-      if (!env.TRIGGER_SECRET || provided !== env.TRIGGER_SECRET)
+      if (!triggerOk(req, env))
         return new Response("forbidden", { status: 403 });
       const object = url.searchParams.get("object") ?? "";
       if (!["companies", "company-associations"].includes(object))
@@ -671,6 +998,9 @@ export default {
       const after = url.searchParams.get("after") || undefined;
       const ctx = await getCtxCached(env);
       const opts = optsFromEnv(env);
+      // THIS DEPLOYMENT'S companies spec -- see /app/ensure-card. Hardcoded COMPANIES_MYLA would card every
+      // company onto the Work-Management board when run against the CRM Worker.
+      const coSpec = specByObject(env, "companies") ?? COMPANIES_MYLA;
 
       // Phase 2: per company, run the association pass — creates each linked contact's card (deduped) and
       // writes the company->contact link. Heavier per record than the card import, so small pages.
@@ -684,7 +1014,7 @@ export default {
         let shardI = 0, shardN = 1;
         const shard = url.searchParams.get("shard");
         if (shard && /^\d+\/\d+$/.test(shard)) { const [i, n] = shard.split("/").map(Number); if (n >= 1 && i >= 0 && i < n) { shardI = i; shardN = n; } }
-        const { records: page, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
+        const { records: page, next } = await listPage(env, "companies", after, propertiesForSpec(coSpec), limit);
         const records = shardN > 1 ? page.filter(r => Number(r.id) % shardN === shardI) : page;
         let linked = 0, missing = 0, errors = 0;
         // Bounded concurrency: each company's association pass is independent and I/O-bound (HubSpot reads +
@@ -693,10 +1023,10 @@ export default {
         // same work — just overlapped), so it stays well under the Worker limit. Mirrors the Phase 1 import.
         for (let i = 0; i < records.length; i += conc) {
           const results = await Promise.all(records.slice(i, i + conc).map(async rec => {
-            const card = (await findItemByColumn(env, COMPANIES_MYLA.boardId, COMPANIES_MYLA.idCol, rec.id))[0];
+            const card = (await findItemByColumn(env, coSpec.boardId, coSpec.idCol, rec.id))[0];
             if (!card) return "missing" as const;
             const budget: Budget = { left: 60 };
-            try { await syncAssociations(env, COMPANIES_MYLA, rec, card, ctx, opts, budget); return "linked" as const; }
+            try { await syncAssociations(env, coSpec, rec, card, ctx, opts, budget); return "linked" as const; }
             catch (e) { console.log(`[import assoc] company=${rec.id} error="${String(e).slice(0, 140)}"`); return "error" as const; }
           }));
           for (const r of results) { if (r === "linked") linked++; else if (r === "missing") missing++; else errors++; }
@@ -707,13 +1037,13 @@ export default {
       // Phase 1: card import (object === "companies").
       const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "40"), 1), 100);
       const conc = Math.min(Math.max(Number(url.searchParams.get("conc") ?? "5"), 1), 10);
-      const { records, next } = await listPage(env, "companies", after, propertiesForSpec(COMPANIES_MYLA), limit);
+      const { records, next } = await listPage(env, "companies", after, propertiesForSpec(coSpec), limit);
       let created = 0, existing = 0;
       // Bounded concurrency: each company's ensureCardForRecord is independent (its own DO instance), so a
       // few in parallel cut the per-request latency without overrunning monday's rate limit.
       for (let i = 0; i < records.length; i += conc) {
         const results = await Promise.all(records.slice(i, i + conc).map(rec =>
-          ensureCardForRecord(env, COMPANIES_MYLA, ctx, rec, opts).catch(() => ({ status: "error" as const }))));
+          ensureCardForRecord(env, coSpec, ctx, rec, opts).catch(() => ({ status: "error" as const }))));
         for (const r of results) { if (r.status === "created") created++; else if (r.status === "existing") existing++; }
       }
       return Response.json({ processed: records.length, created, existing, after: next ?? null, done: !next });

@@ -9,17 +9,23 @@ const prod = {} as { ENABLE_CRM?: string };                 // production Worker
 const crmEnv = { ENABLE_CRM: "true" } as { ENABLE_CRM?: string };
 
 const WM_BOARDS = [DEALS.boardId, CONTACTS_MYLA.boardId, COMPANIES_MYLA.boardId];
-const CRM_BOARDS = [CRM_CONTACTS.boardId, CRM_ACCOUNTS.boardId];
+// Derived from the specs, not hand-listed: this used to name only Contacts and Accounts, which is how
+// Deals (5028000494) and Products & Services (5028000489) came to have ZERO monday webhooks while the
+// guard below still read as green.
+const CRM_BOARDS = CRM_SPECS.map(s => s.boardId);
 
 describe("CRM specs are invisible to a production deploy", () => {
   it("ALL_SPECS and SPEC_BY_BOARD still contain ONLY the WM specs", () => {
-    expect(ALL_SPECS.every(s => !s.ownership)).toBe(true);
+    // The point of this assertion is that no CRM spec leaked into ALL_SPECS, which is now expressed
+    // by OWNER rather than by the absence of an ownership spec.
+    expect(ALL_SPECS.every(s => s.ownership?.owner === "wm")).toBe(true);
     for (const b of CRM_BOARDS) expect(SPEC_BY_BOARD[b]).toBeUndefined();
   });
 
   it("the WM deployment resolves ONLY WM specs", () => {
     expect(specsFor(prod)).toEqual(ALL_SPECS);
-    expect(specsFor(prod).some(s => s.ownership)).toBe(false);
+    // WM declares ownership since 2026-09-22; what must hold is that none of it is CRM-owned.
+    expect(specsFor(prod).some(s => s.ownership?.owner === "crm")).toBe(false);
   });
 
   // EXCLUSIVE, not a union. A union would make the CRM Worker a second processor for the WM boards,
@@ -57,7 +63,7 @@ describe("board resolution is one-way in each deployment", () => {
 
   it("a WM board webhook never resolves a CRM spec, in either environment", () => {
     for (const b of WM_BOARDS) {
-      expect(specByBoard(prod, b)?.ownership).toBeUndefined();
+      expect(specByBoard(prod, b)?.ownership?.owner).toBe("wm");
       expect(specByBoard(crmEnv, b)).toBeUndefined();
     }
   });
@@ -141,10 +147,18 @@ describe("monday webhook registration events", () => {
     expect(DELIVERED_EVENT_ALIASES.create_item).toContain("create_pulse");
   });
 
-  it("targets exactly the two CRM boards and no WM board", async () => {
+  it("targets EVERY CRM board and no WM board", async () => {
     const { CRM_BOARDS: boards } = await import("../scripts/register-crm-webhooks.mjs");
+    // Every board the CRM deployment owns must be registered. A board with no webhook is silently
+    // one-directional: its 创建/Create form produces cards the Worker never hears about.
     expect(Object.keys(boards).sort()).toEqual([...CRM_BOARDS].sort());
     for (const b of WM_BOARDS) expect(boards[b]).toBeUndefined();
+  });
+
+  it("covers Deals and Products & Services, the two boards that had none", async () => {
+    const { CRM_BOARDS: boards } = await import("../scripts/register-crm-webhooks.mjs");
+    expect(boards["5028000494"], "Deals board unregistered").toBeDefined();
+    expect(boards["5028000489"], "Products & Services board unregistered").toBeDefined();
   });
 
   // IDEMPOTENCE. These use config: "{}" because that is what monday ACTUALLY returns — verified live

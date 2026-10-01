@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reverseFieldValue, buildReversePatch, buildCreateProperties, fieldDiffs } from "../src/reconcile";
-import { CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS } from "../src/config/crm";
+import { CRM_CONTACTS, CRM_ACCOUNTS, CRM_DEALS, CRM_LINE_ITEMS } from "../src/config/crm";
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "../src/types";
 
 /**
@@ -99,26 +99,51 @@ describe("the batch is enabled, and only the batch", () => {
    * HAS_PROPERTY`, so a CRM-side reverse write would pull contacts into the live WM Worker's scope.
    * Enabling reverse here is a scope decision, not a mapping tweak.
    */
-  it("sales_user is the one assignment field, a People column, and still forward-only", () => {
+  // TWO-WAY since 2026-09-23. The WM-scope side effect (a contact given its first Sales User also
+  // appears on the legacy CONTACTS_MYLA board) was accepted; see the field's note in crm.ts.
+  it("sales_user is the one assignment field, a People column, now two-way", () => {
     const su = f(CRM_CONTACTS, "sales_user");
     expect(su.type).toBe("people");
     expect(su.col).toBe("multiple_person_mm76ygkp");
-    expect(su.reverse).toBeUndefined();
+    expect(su.reverse).toBe(true);
   });
 
   it("accounts.timezone is now reverse:true", () =>
     expect(f(CRM_ACCOUNTS, "timezone").reverse).toBe(true));
 
   // HELD BACK, with the reason asserted so it cannot be quietly enabled later without a guard.
-  it("numberofemployees stays FORWARD-ONLY: a text column on a HubSpot NUMBER property", () => {
+  /**
+   * A text column on a HubSpot NUMBER property. It was forward-only because a text cell has no numeric
+   * validation and "100-500" would 400 the write. reverseAs "integer" is that validation.
+   */
+  const noLabels = { labels: {}, ownersById: {}, mondayUsersByEmail: {} } as unknown as Ctx;
+  it("numberofemployees reverses ONLY a whole number: a text column on a HubSpot NUMBER property", () => {
     const noe = f(CRM_ACCOUNTS, "numberofemployees");
-    expect(noe.reverse).toBeUndefined();
     expect(noe.type).toBe("text");   // not "numbers", so numText never runs on it
+    expect(noe.reverseAs).toBe("integer");
+    expect(reverseFieldValue(noe, "1,500", noLabels)).toBe("1500");
+    expect(reverseFieldValue(noe, " 250 ", noLabels)).toBe("250");
+    for (const bad of ["100-500", "approx 500", "5k", "1.5", "-3"])
+      expect(reverseFieldValue(noe, bad, noLabels), bad).toBe("");
   });
 
-  // Identity, system and computed fields must stay one-way regardless of the "monday is the system"
-  // goal — a monday edit to any of these breaks record matching or fights HubSpot's own computation.
-  it.each(["email", "createdate", "registration_date", "hubspot_owner_assigneddate", "notes_last_updated"])(
+  it("currency codes reverse as a bare ISO code and nothing else (Deals and P&S)", () => {
+    for (const spec of [CRM_DEALS, CRM_LINE_ITEMS]) {
+      const cur = spec.fields.find(x => /currency_code$/.test(x.hs))!;
+      expect(cur.reverseAs, spec.object).toBe("currency");
+      expect(cur.labels, `${spec.object}: no dictionary -- HubSpot resolves these options dynamically`).toBeUndefined();
+      expect(reverseFieldValue(cur, "CNY", noLabels)).toBe("CNY");
+      expect(reverseFieldValue(cur, "usd", noLabels)).toBe("USD");
+      for (const bad of ["Sales Pipeline", "US Dollar", "USD,CNY", "RM"])
+        expect(reverseFieldValue(cur, bad, noLabels), bad).toBe("");
+    }
+  });
+
+  // System and computed fields must stay one-way regardless of the "monday is the system" goal — a
+  // monday edit to any of these fights HubSpot's own computation. `email` LEFT this set on 2026-09-23:
+  // it matches a card to a record only at CREATE; a card holding a HubSpot ID is matched by that id, so
+  // correcting the address cannot break matching (crm-config.test.ts pins it two-way).
+  it.each(["createdate", "registration_date", "hubspot_owner_assigneddate", "notes_last_updated"])(
     "contacts.%s stays one-way", (hs) => expect(f(CRM_CONTACTS, hs).reverse).toBeUndefined());
 
   it.each(["createdate", "hs_object_source_label"])(
@@ -143,11 +168,30 @@ describe("the batch is enabled, and only the batch", () => {
   });
 
   // Deliberate holds, each for its own stated reason.
-  it("lifecyclestage stays one-way — it fires HubSpot workflows, so it is a business decision", () =>
-    expect(f(CRM_CONTACTS, "lifecyclestage").reverse).toBeUndefined());
+  /**
+   * REVERSED 2026-09-22, by the same kind of business decision that made it one-way.
+   *
+   * The hold was "lifecycle stage fires HubSpot workflows, so monday must not drive it". That held
+   * while people worked in HubSpot. The confirmed process now has the rep contact a newly assigned
+   * Contact, log the activity and move the stage off "1.NEW" — from monday. Forward-only did not merely
+   * prevent that, it actively undid it: the edit fired a reconcile that wrote HubSpot's value back
+   * (contact 549865853636, whose HubSpot history shows one entry from a 2026-09-10 form and nothing
+   * since). What made the hold safe to lift is that all ten labels invert uniquely, which is asserted
+   * in lifecycle-stage-reverse.test.ts rather than assumed here.
+   */
+  it("lifecyclestage is two-way, and its dictionary makes the inverse a function", () => {
+    expect(f(CRM_CONTACTS, "lifecyclestage").reverse).toBe(true);
+    expect(f(CRM_CONTACTS, "lifecyclestage").labels).toBe("lifecycleStage");
+    // Still refuses anything the dictionary does not know, so a renamed label cannot reach HubSpot.
+    expect(reverseFieldValue(f(CRM_CONTACTS, "lifecyclestage"), "Unqualified", ctx)).toBe("");
+  });
 
-  it("sales_user stays one-way — two owner ids share the name \"Rick Antonio\"", () =>
-    expect(f(CRM_CONTACTS, "sales_user").reverse).toBeUndefined());
+  // The "Rick Antonio names two owner ids" objection belonged to the old NAME-based dropdown. A People
+  // cell resolves person -> email -> owner id, and an email shared by two owners resolves to nothing.
+  it("sales_user reverses by PERSON, never by name", () => {
+    expect(f(CRM_CONTACTS, "sales_user").type).toBe("people");
+    expect(f(CRM_CONTACTS, "sales_user").peopleByName).toBeUndefined();
+  });
 
   it("hubspot_owner_id stays on the app-save path, never a plain reverse", () => {
     expect(f(CRM_CONTACTS, "hubspot_owner_id").appReverse).toBe(true);
@@ -208,9 +252,12 @@ describe("each newly-enabled type reverses correctly", () => {
   // defect class is not: deals.sales_user is now the one reversible field on either CRM board that
   // carries a REP IDENTITY, and it is the same shape — an enum-backed column whose dictionary is the
   // only thing between a typed rep name and a 400. So the scar moves to the field that still has it.
+  // The Deals dropdown this pinned was UNMAPPED on 2026-09-23 (Sales User is the People column only).
+  // The engine mechanism is still there for any enum-backed rep identity, so it is kept pinned on an
+  // equivalent field: a dictionary is the only thing between a typed rep name and a 400.
   it("a reversible rep-identity field maps a real owner, and REFUSES a rep who is not one", () => {
-    const su = f(CRM_DEALS, "sales_user");
-    expect(su.labels).toBe("salesUser");
+    const su = { hs: "sales_user", col: "x", type: "dropdown", labels: "salesUser", reverse: true } as const;
+    expect(CRM_DEALS.fields.some(x => x.col === "dropdown_mm76ncf5")).toBe(false);
     // salesUser is OWNER ID -> owner name, so the reverse is a genuine label -> id translation.
     expect(reverseFieldValue(su, "Emily You", ctx)).toBe("77771");
     expect(reverseFieldValue(su, "Ada", ctx)).toBe("");
@@ -220,10 +267,13 @@ describe("each newly-enabled type reverses correctly", () => {
   // The contacts side of that same guarantee, now structural rather than dictionary-enforced: the one
   // assignment field left on Contacts is a People column, and it is forward-only — so there is no path
   // at all by which a typed name on a Contact card reaches HubSpot.
-  it("no reversible CRM CONTACT field carries a rep identity any more", () => {
+  // The guarantee this protects is that a TYPED NAME can never become a HubSpot owner. It still holds:
+  // the only rep-identity fields that reverse are People columns, which resolve a monday person through
+  // a unique email -- no text or dropdown label on a Contact card reaches an owner property.
+  it("no TEXT or DROPDOWN field on a CRM contact carries a rep identity to HubSpot", () => {
     for (const fs of CRM_CONTACTS.fields)
-      if (["sales_person", "sales_user", "hubspot_owner_id"].includes(fs.hs))
-        expect(fs.reverse, `contacts.${fs.hs} reverses a rep identity`).toBeUndefined();
+      if (["sales_person", "sales_user", "hubspot_owner_id"].includes(fs.hs) && (fs.reverse || fs.appReverse))
+        expect(fs.type, `contacts.${fs.hs} reverses a rep identity from a ${fs.type} cell`).toBe("people");
   });
 
   it("dropdown WITH a dictionary validates and drops the unknown part", () => {
@@ -268,8 +318,10 @@ describe("each newly-enabled type reverses correctly", () => {
     for (const hs of ["leadsource", "department_3__c", "city_1__c"])
       expect(reverseFieldValue(f(CRM_CONTACTS, hs), "Anything", emptyCtx)).toBe("");
     // deals.sales_user belongs in this set too, and matters most: a failed owner fetch must refuse an
-    // assignment, never forward the typed name.
-    expect(reverseFieldValue(f(CRM_DEALS, "sales_user"), "Anything", emptyCtx)).toBe("");
+    // assignment, never forward the typed name. The DROPDOWN is the reversible surface; the People
+    // column beside it is forward-only and so cannot reach HubSpot at all (asserted in crm-config).
+    const dropdown = { hs: "sales_user", col: "x", type: "dropdown", labels: "salesUser", reverse: true } as const;
+    expect(reverseFieldValue(dropdown, "Anything", emptyCtx)).toBe("");
   });
 
   it("phone canonicalises, keeping a leading +", () => {

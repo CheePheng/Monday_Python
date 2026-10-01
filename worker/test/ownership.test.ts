@@ -164,7 +164,7 @@ describe("an unusable create date fails closed in BOTH directions", () => {
 // invariant instead of letting six call sites throw in production.
 describe("Phase 1 tripwire", () => {
   it("no production spec declares ownership yet", () =>
-    expect(ALL_SPECS.every(s => !s.ownership)).toBe(true));
+    expect(ALL_SPECS.every(s => s.ownership?.owner === "wm")).toBe(true));
   it("no production spec declares adoptBy yet", () =>
     expect(ALL_SPECS.every(s => !s.adoptBy)).toBe(true));
 });

@@ -11,10 +11,10 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./types";
 import {
   stepForAlarm, afterOutcome, nextDelayMs, deadLetterStub,
-  DEAD_LETTER_CAP, scheduleFor,
+  DEAD_LETTER_CAP, scheduleFor, mayDeferMirror,
   type PendingActivity, type DeadActivity,
 } from "./activity-retry";
-import { syncHubspotActivity, activitySyncEnabled } from "./activity-sync";
+import { syncHubspotActivity, activitySyncEnabled, skipMirroredCopies } from "./activity-sync";
 
 export class ActivityRetry extends DurableObject<Env> {
   /**
@@ -26,7 +26,19 @@ export class ActivityRetry extends DurableObject<Env> {
    */
   async schedule(job: PendingActivity): Promise<"scheduled" | "already-pending"> {
     return this.ctx.blockConcurrencyWhile(async () => {
-      if (await this.ctx.storage.get<PendingActivity>("job")) return "already-pending" as const;
+      if (await this.ctx.storage.get<PendingActivity>("job")) {
+        /**
+         * A JOB WITH NO ALARM IS NOT PENDING, IT IS ORPHANED -- an alarm the runtime killed outright
+         * (wall clock, eviction, deploy) after its own retries. Since the webhook now hands every
+         * delivery here, answering "already-pending" for it would swallow every later webhook for this
+         * activity forever. Re-arm it instead; the job's attempt count is unchanged.
+         */
+        if ((await this.ctx.storage.getAlarm()) === null) {
+          await this.ctx.storage.setAlarm(Date.now());
+          return "scheduled" as const;
+        }
+        return "already-pending" as const;
+      }
       await this.ctx.storage.put("job", job);
       await this.ctx.storage.setAlarm(Date.now() + scheduleFor(job.mode)[0]);
       return "scheduled" as const;
@@ -60,7 +72,11 @@ export class ActivityRetry extends DurableObject<Env> {
       // The FULL sync path, not a reimplementation of it: the flag, the cutover, the monday-origin
       // marker, the association lookup, canary scope, the card lookup and the durable create-once
       // mapping are all enforced exactly once, in the place they are already tested.
-      const outcome = await syncHubspotActivity(this.env, job.object, job.hubspotId);
+      // ACTIVITY_SKIP_MIRRORED_COPIES: only a job's first delivery may hold a linked Company/Deal back
+      // (mayDeferMirror). Flag off, the call is exactly the three-argument call it has always been.
+      const outcome = mayDeferMirror(job, skipMirroredCopies(this.env))
+        ? await syncHubspotActivity(this.env, job.object, job.hubspotId, { deferMirrorCheck: true })
+        : await syncHubspotActivity(this.env, job.object, job.hubspotId);
       const next = afterOutcome(job, outcome, Date.now());
       if (next.action === "done") {
         await this.ctx.storage.deleteAll();

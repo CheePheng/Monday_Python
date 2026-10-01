@@ -12,10 +12,13 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
 
-  // NO CRONS in Phase 1. The production config carries */10 (incremental) and 0 3 (full sweep);
-  // inheriting those would start unattended sweeps on day one — see handoff §5, §19.
-  // Re-enable the 10-minute incremental only after webhook behaviour is proven, and only with the
-  // CRM ownership scope enforced. The 03:00 full sweep stays off permanently for CRM.
+  // ONE CRON, and only this one: */15 drives the HubSpot marketing email poller, which does nothing
+  // until ENABLE_MARKETING_EMAIL_SYNC is "true" (and ENABLE_ACTIVITY_SYNC, and the monday activity
+  // type exists), and beside it the bounded Last Activity backstop sweep, which does nothing until
+  // ENABLE_LAD_SWEEP is "true" (lad-sweep.ts). Every other expression index.ts knows is deliberately ABSENT: */5 would start the
+  // Task poller, */10 and 0 3 the CRM incremental and full sweeps (off permanently for CRM since the
+  // 09-07 decision -- handoff §5, §19), 0 4 the Task sweep. deploy-config.test.ts pins exactly this list.
+  "triggers": { "crons": ["*/15 * * * *"] },
 
   // DRY_RUN starts TRUE: Phase A writes nothing at all. Phase B flips this to "false" while the
   // code path keeps writeHubspot=false, giving real HubSpot -> monday CRM writes with every
@@ -24,7 +27,38 @@
   // deployed CRM Worker resolves the WORK MANAGEMENT specs and becomes a second processor for the
   // live WM boards — writing them twice, with a token that can also write HubSpot. Exactly the
   // failure the exclusive gate exists to prevent. Only the literal string "true" enables CRM mode.
-  "vars": { "DRY_RUN": "true", "WRITE_HUBSPOT": "false", "MAX_WRITES": "25", "ENABLE_CRM": "true" },
+  // PS_ACCOUNT_REVERSE ships "false": the Products & Services "Accounts/Companies" cell is derived
+  // (line item -> deal -> company) and every edit of it snaps back. "true" lets a person's edit FILL
+  // an empty company on the line item's single deal, and nothing more. See fillDealCompany.
+  "vars": { "DRY_RUN": "true", "WRITE_HUBSPOT": "false", "MAX_WRITES": "25", "ENABLE_CRM": "true",
+            "PS_ACCOUNT_REVERSE": "false",
+            // Deals native coarse Stage (deal_stage): "true" lets a PERSON's edit of it set the deal's stage
+            // within its current pipeline (coarseStageEdit, reconcile.ts); automations and our own echoes
+            // never push. Ships OFF: the column stays one-way and its events are ignored until passed.
+            "STAGE_COARSE_REVERSE": "false",
+            // Marketing email poller (marketing-email-poller.ts). Ships OFF with no cursors: the deploy
+            // passes the real values as --var, like every live setting here.
+            "ENABLE_MARKETING_EMAIL_SYNC": "false", "MARKETING_CUTOVER_AT": "", "MARKETING_BACKFILL_FROM": "",
+            "MARKETING_MAX_WRITES_PER_POLL": "60",
+            // Last Activity backstop (lad-sweep.ts): at most 10 non-forced syncs per object per */15 tick
+            // for records whose notes_last_updated moved. Ships OFF; the deploy passes "true" as --var.
+            "ENABLE_LAD_SWEEP": "false",
+            // KILL SWITCHES for two create-path features, flippable from the dashboard without a deploy.
+            // BORN_ATTACHED_LINKS: a person's monday-created record gets the card's relation links pushed
+            // to HubSpot after the create (sync.ts bornAttached). CREATE_WINDOW_REPLAY: an edit made while
+            // the record is being created is queued and replayed instead of lost (sync.ts
+            // createWindowReplayOn). Both ship OFF -- a bare deploy is the old create path -- and the
+            // deploy passes "true" as --var. Only the literal "true" arms either.
+            "BORN_ATTACHED_LINKS": "false", "CREATE_WINDOW_REPLAY": "false",
+            // monday copies a Contact's timeline entry onto its linked Accounts/Deals; "true" stops the
+            // Worker writing a second copy there when a bounded read finds monday's (activity-sync.ts,
+            // skipMirroredCopies). Ships OFF: deploying the code changes nothing until it is passed.
+            "ACTIVITY_SKIP_MIRRORED_COPIES": "false",
+            // People log into monday as the token user ("ask ada", 104118038), whose every event reads as
+            // our own echo. "true" reads monday's activity log for such an event on a two-way column (or a
+            // create) and treats it as a PERSON's when the row proves a UI action (ui-actor.ts). Ships OFF:
+            // off, no query is made and every event of ours is an echo, exactly as before.
+            "ASK_ADA_UI_EDITS": "false" },
 
   "observability": { "enabled": true },
 

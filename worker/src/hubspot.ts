@@ -1,7 +1,7 @@
 import type { Env, HsRecord, ObjectSpec, RunOpts, WriteAuth } from "./types";
 import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
 import { normalizeDomain } from "./normalize";
-import { canClaimCrmOwnership, claimPatch } from "./ownership";
+import { canClaimCrmOwnership, claimPatch, NEW_RECORD_ID, type ClaimBasis } from "./ownership";
 
 const BASE = "https://api.hubapi.com";
 
@@ -46,8 +46,14 @@ export class OwnershipError extends Error {
  * A spec that declares `ownership` may not be mutated without an explicit allow — so a forgotten
  * call site becomes a loud error rather than a silent write to a record another sync owns. Placed at
  * the HTTP chokepoint on purpose: a predicate that only callers consult is one missed call away from
- * writing to the wrong place. Specs without `ownership` (every production WM spec) return
- * immediately, so their behaviour is unchanged.
+ * writing to the wrong place.
+ *
+ * "Specs without `ownership` (every production WM spec) return immediately, so their behaviour is
+ * unchanged" -- that sentence used to be here and is now FALSE. Every WM spec declares OWN_WM, so this
+ * assert is live on BOTH deployments, and the early-out below is effectively dead for production
+ * specs. Reading it as still true is how /app/clear-deal-fields, /app/clear-record-fields and the
+ * phone backfill shipped with no WriteAuth: each looked safe on the assumption that WM never reached
+ * the assert. A call site that omits `auth` does not degrade gracefully -- it throws.
  */
 function assertMayWrite(spec: ObjectSpec, id: string, auth: WriteAuth | undefined): void {
   if (!spec.ownership) return;
@@ -69,6 +75,9 @@ function propertiesFor(spec: ObjectSpec): string[] {
   const props = new Set<string>([...spec.nameProps, ...(spec.nameFallbackProps ?? []), spec.modifiedProp]);
   for (const f of spec.fields) props.add(f.hs);
   if ("prop" in spec.groupBy) props.add(spec.groupBy.prop);
+  // Not a mapped field either: the coarse Stage's reverse reads it (see STAGE_ENTERED_PROP). Unfetched, it
+  // would be absent, and the reverse would read every card as in line on the stage.
+  if (spec.stagePipelinePairing) props.add(STAGE_ENTERED_PROP);
   // Ownership metadata is INFRASTRUCTURE, not a mapped field: it must be fetched even though no
   // monday column displays it. Omitting it makes authorizeWrite read undefined and classify every
   // record as unstamped, which would hand records to the wrong Worker. Specs without `ownership`
@@ -160,10 +169,92 @@ export async function getAssociatedIds(env: Env, fromObject: string, id: string,
   return (await getAssociatedPage(env, fromObject, id, toObject)).ids;
 }
 
-/** Create a DEFAULT association (idempotent PUT) between two records — used to reverse a monday
- * Connect-Boards link into a HubSpot association. Additive: callers never delete. */
 /**
- * Link two HubSpot records. Idempotent PUT, so it converges with the forward pass.
+ * EVERY association of one record, PAGED -- and still honest about when it gave up.
+ *
+ * getAssociatedPage reads one page of 100 and stops. That is fine for the forward pass, which refuses on
+ * `truncated`, and wrong for a decision that must see the whole set: "is this link already in HubSpot?"
+ * answered from the first 100 of an Account's 300 contacts says "missing" for 200 links that exist, and
+ * "what does HubSpot hold?" for a snap-back must not rewrite a cell from a fraction of the truth.
+ *
+ * Follows HubSpot's cursor up to `maxPages` pages of 500 (v4's own maximum). Past that it returns what it
+ * has with `truncated: true`, and every caller treats that as a refusal, never as the answer.
+ */
+export async function getAllAssociatedIds(env: Env, fromObject: string, id: string, toObject: string,
+    maxPages = 10): Promise<AssocPage> {
+  const ids = new Set<string>();
+  let after: string | undefined;
+  for (let page = 0; page < maxPages; page++) {
+    const qs = `limit=500${after ? `&after=${encodeURIComponent(after)}` : ""}`;
+    const res = await hs(env, "GET", `/crm/v4/objects/${fromObject}/${id}/associations/${toObject}?${qs}`, undefined, 3);
+    for (const r of res?.results ?? []) {
+      const x = String(r.toObjectId);
+      if (/^\d+$/.test(x)) ids.add(x);
+    }
+    after = res?.paging?.next?.after;
+    if (!after) return { ids: [...ids], truncated: false };
+  }
+  return { ids: [...ids], truncated: true };
+}
+
+/** HubSpot's own "Primary" association type for deal -> company. Verified live against this portal:
+ *  `/crm/v4/associations/deals/companies/labels` returns typeId 5 HUBSPOT_DEFINED "Primary" alongside
+ *  typeId 341 HUBSPOT_DEFINED with a null label. */
+const PRIMARY_TYPE_ID = 5;
+
+/**
+ * TWO-LEG ASSOCIATION READ: `fromObject` -> `viaObject` -> `toObject`.
+ *
+ * Exists because HubSpot defines no line_item -> company association at all (the labels endpoint returns
+ * an empty set), so the only way to know a line item's company is to ask its deal.
+ *
+ * FAILS CLOSED ON EITHER LEG. `truncated` is not a warning here, it is a refusal: syncRelationColumn
+ * writes a relation column by FULL REPLACEMENT, so acting on a partial read deletes every link outside
+ * the page it managed to see. That is exactly the incident the single-leg `truncated` flag was added for
+ * (contact 2855936605, links set and cleared on a cycle across 2026-09-10..12). A two-leg read has two
+ * chances to be partial, so both are checked and either one returns `{ ids: [], truncated: true }` —
+ * which the caller's existing guard turns into "keep what is there", not "clear it".
+ *
+ * `primaryOnly` breaks a tie, it does not filter. See AssocSpec.viaPrimary.
+ */
+export async function getAssociatedVia(env: Env, fromObject: string, id: string, viaObject: string,
+    toObject: string, primaryOnly = false): Promise<AssocPage> {
+  const leg1 = await getAssociatedPage(env, fromObject, id, viaObject);
+  if (leg1.truncated) return { ids: [], truncated: true };
+  if (!leg1.ids.length) return { ids: [], truncated: false };
+
+  const all = new Set<string>();
+  const primary = new Set<string>();
+  for (const viaId of leg1.ids) {
+    const res = await hs(env, "GET",
+      `/crm/v4/objects/${viaObject}/${viaId}/associations/${toObject}?limit=100`, undefined, 3);
+    // Read the raw results rather than reusing getAssociatedPage: that helper drops `associationTypes`,
+    // and the Primary tie-break is expressed entirely in them.
+    if (res.paging?.next?.after) return { ids: [], truncated: true };
+    for (const r of res.results ?? []) {
+      const farId = String(r.toObjectId);
+      if (!/^\d+$/.test(farId)) continue;
+      all.add(farId);
+      if ((r.associationTypes ?? []).some((t: any) => Number(t.typeId) === PRIMARY_TYPE_ID)) primary.add(farId);
+    }
+  }
+
+  // Exactly one answer needs no tie-break, and a lone unlabelled company must still link.
+  if (!primaryOnly || all.size <= 1) return { ids: [...all], truncated: false };
+  if (primary.size === 1) return { ids: [...primary], truncated: false };
+  // Ambiguous: several Primaries, or none at all. Hand back everything and let the caller log it,
+  // rather than silently picking one of two companies a human can see on the deal.
+  console.log(`source=hubspot object=${fromObject} id=${id} via=${viaObject} to=${toObject}`
+    + ` found=${all.size} primary=${primary.size} action=no-primary-tiebreak`);
+  return { ids: [...all], truncated: false };
+}
+
+/**
+ * Link two HubSpot records with the DEFAULT (unlabelled) association type. Idempotent PUT, so it
+ * converges with the forward pass. Used to reverse a monday Connect-Boards link a person ADDED; its
+ * inverse, deleteAssociation, is used for a link a person removed -- on CRM both only from the
+ * column-level reverse path, which acts on monday's own before/after and never on a card read. A
+ * LABELLED link (e.g. deal -> company as Primary) goes through putAssociationTypes instead.
  *
  * OWNERSHIP-GUARDED since 2026-09-08, which is what retires the P2-1 blanket refusal in
  * associations.ts. `fromSpec` + `auth` are the same fail-closed contract patchRecord has: for a spec
@@ -177,10 +268,17 @@ export async function getAssociatedIds(env: Env, fromObject: string, id: string,
  * association the business actually has. An association is a link, not a field on the far record, so
  * the rule matches a field write: you must own the record whose monday card was edited. The far end
  * only has to exist.
+ *
+ * PAIRED CELLS ARE ONE EDIT, NOT TWO. A monday relation column is paired with one on the far board, so
+ * a single click may be reported on both cards. Authorising each report on its own record would turn
+ * "the initiating record only" into "either record", and a refusal on one end into a write on the
+ * other. The webhook therefore keeps only the first report of a pair (isPairedEcho in relation-edit.ts);
+ * this helper still sees exactly one initiating record per click.
  */
 export async function putAssociation(env: Env, fromObject: string, fromId: string,
     toObject: string, toId: string, opts: RunOpts, fromSpec?: ObjectSpec, auth?: WriteAuth): Promise<void> {
   if (fromSpec) assertMayWrite(fromSpec, fromId, auth);
+  assertAssociationDefined(fromObject, toObject);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
     return;
@@ -189,9 +287,21 @@ export async function putAssociation(env: Env, fromObject: string, fromId: strin
   console.log(`hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
 }
 
-/** Remove a DEFAULT association between two records (reverse of putAssociation). Idempotent; 404 -> gone. */
+/**
+ * Remove the association between two records (reverse of putAssociation). Idempotent; 404 -> gone.
+ *
+ * NOT "the default association only": the v4 pair DELETE removes EVERY association type between the two
+ * records, labels included -- a deal's Primary company link goes with it. That is the right meaning for a
+ * person removing the card from a relation cell (the cell shows the pair, not a label), and the reason a
+ * caller must be certain the removal was intended. See the unlink path in reverseAssociations.
+ */
 export async function deleteAssociation(env: Env, fromObject: string, fromId: string,
-    toObject: string, toId: string, opts: RunOpts): Promise<boolean> {
+    toObject: string, toId: string, opts: RunOpts,
+    /** Same fail-closed contract as putAssociation. Was absent entirely, which left /app/association's
+     *  DELETE branch able to unlink records belonging to the other ownership domain. */
+    fromSpec?: ObjectSpec, auth?: WriteAuth): Promise<boolean> {
+  if (fromSpec) assertMayWrite(fromSpec, fromId, auth);   // BEFORE dry-run: a refusal is not a skip
+  assertAssociationDefined(fromObject, toObject);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot UNASSOC ${fromObject}/${fromId} -> ${toObject}/${toId}`);
     return false;
@@ -207,10 +317,54 @@ export async function deleteAssociation(env: Env, fromObject: string, fromId: st
   return true;
 }
 
+/**
+ * HubSpot defines NO line_item <-> company association: `/crm/v4/associations/line_items/companies/labels`
+ * returns [] in both directions, verified live. A request for one cannot succeed, so it is refused here,
+ * at the chokepoint, before any call -- the Products & Services "Accounts/Companies" cell is DERIVED
+ * through the deal, and the only HubSpot edit it may ever cause is on the deal (see fillDealCompany).
+ */
+function assertAssociationDefined(fromObject: string, toObject: string): void {
+  const pair = [fromObject, toObject].sort().join("|");
+  if (pair === "companies|line_items")
+    throw new Error(`hubspot association ${fromObject} -> ${toObject} refused: HubSpot defines no line_items <-> companies association`);
+}
+
+/** One association type to write, exactly as the v4 labelled-association PUT takes it. */
+export interface AssociationType {
+  associationCategory: "HUBSPOT_DEFINED" | "USER_DEFINED" | "INTEGRATOR_DEFINED";
+  associationTypeId: number;
+}
+
+/**
+ * Link two records WITH specific association types (labels), e.g. deal -> company as HubSpot's Primary
+ * (HUBSPOT_DEFINED 5). putAssociation's `/associations/default/` path can only ever write the unlabelled
+ * type; a Primary company has to be said out loud.
+ *
+ * Same fail-closed contract as putAssociation, and STRICTER in one respect: `fromSpec` is required, so a
+ * caller cannot reach HubSpot by leaving the spec off. assertMayWrite runs first -- before the pair
+ * check, the dry-run branch and any request.
+ */
+export async function putAssociationTypes(env: Env, fromObject: string, fromId: string,
+    toObject: string, toId: string, types: AssociationType[], opts: RunOpts,
+    fromSpec: ObjectSpec, auth: WriteAuth | undefined): Promise<void> {
+  assertMayWrite(fromSpec, fromId, auth);
+  assertAssociationDefined(fromObject, toObject);
+  if (!types.length)
+    throw new Error(`hubspot labelled association ${fromObject}/${fromId} -> ${toObject}/${toId}: no types`);
+  const label = types.map(t => `${t.associationCategory}:${t.associationTypeId}`).join(",");
+  if (opts.dryRun || !opts.writeHubspot) {
+    console.log(`DRY hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId} types=${label}`);
+    return;
+  }
+  await hs(env, "PUT", `/crm/v4/objects/${fromObject}/${fromId}/associations/${toObject}/${toId}`, types, 3);
+  console.log(`hubspot ASSOC ${fromObject}/${fromId} -> ${toObject}/${toId} types=${label}`);
+}
+
 /** Create a line item and associate it to a deal (line_item->deal default type = 20). Returns the new
  * id. Requires crm.objects.line_items.write — throws 403 until the private app's scope is added. */
 export async function createLineItem(env: Env, properties: Record<string, string>, dealId: string,
-    opts: RunOpts): Promise<string | null> {
+    opts: RunOpts, spec?: ObjectSpec, auth?: WriteAuth): Promise<string | null> {
+  assertMayWriteLineItem(spec, NEW_RECORD_ID, auth);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot CREATE line_item on deal ${dealId}: ${JSON.stringify(properties)}`);
     return null;
@@ -247,8 +401,28 @@ export async function getWritablePropOptions(env: Env, object: string, names: st
 }
 
 /** Update an existing HubSpot line item by id (qty/price/etc.). retries=3 (PATCH is idempotent). */
+/**
+ * OWNERSHIP GUARD FOR THE LINE-ITEM WRITE PATH, added 2026-09-22.
+ *
+ * patchLineItem / createLineItem / deleteLineItem were the last unguarded HubSpot mutations. They do
+ * not take an ObjectSpec, so assertMayWrite never covered them — and the live WM Worker runs
+ * LINE_ITEM_WRITE=true with reverseSubitemEdit able to patch any line item a rep edits as a subitem.
+ * So a line item CRM owns was writable by WM with no check at all.
+ *
+ * Optional on purpose: a caller that passes no spec keeps the previous behaviour exactly, which is what
+ * the CRM Deal-Cockpit app endpoints rely on. A caller that DOES pass one gets the same fail-closed
+ * contract as patchRecord — no auth, wrong record, or a refusal all throw rather than writing.
+ */
+function assertMayWriteLineItem(spec: ObjectSpec | undefined, lineItemId: string,
+    auth: WriteAuth | undefined): void {
+  if (!spec) return;
+  assertMayWrite(spec, lineItemId, auth);
+}
+
 export async function patchLineItem(env: Env, lineItemId: string,
-    properties: Record<string, string>, opts: RunOpts): Promise<boolean> {
+    properties: Record<string, string>, opts: RunOpts,
+    spec?: ObjectSpec, auth?: WriteAuth): Promise<boolean> {
+  assertMayWriteLineItem(spec, lineItemId, auth);   // before the dry-run branch: a refusal is not a skip
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot PATCH line_item ${lineItemId}: ${JSON.stringify(properties)}`);
     return false;
@@ -259,7 +433,9 @@ export async function patchLineItem(env: Env, lineItemId: string,
 }
 
 /** Delete a HubSpot line item by id (archive). retries=3 (DELETE is idempotent). 404 -> already gone. */
-export async function deleteLineItem(env: Env, lineItemId: string, opts: RunOpts): Promise<boolean> {
+export async function deleteLineItem(env: Env, lineItemId: string, opts: RunOpts,
+    spec?: ObjectSpec, auth?: WriteAuth): Promise<boolean> {
+  assertMayWriteLineItem(spec, lineItemId, auth);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot DELETE line_item ${lineItemId}`);
     return false;
@@ -275,7 +451,10 @@ export async function deleteLineItem(env: Env, lineItemId: string, opts: RunOpts
 }
 
 /** Archive (soft-delete) a HubSpot deal by id. Idempotent; 404 -> already gone. */
-export async function archiveDeal(env: Env, dealId: string, opts: RunOpts): Promise<boolean> {
+export async function archiveDeal(env: Env, dealId: string, opts: RunOpts,
+    spec?: ObjectSpec, auth?: WriteAuth): Promise<boolean> {
+  // Same guard as every other record write: before the dry-run check, so a refusal never looks like a skip.
+  if (spec) assertMayWrite(spec, dealId, auth);
   if (opts.dryRun || !opts.writeHubspot) { console.log(`DRY hubspot ARCHIVE deal ${dealId}`); return false; }
   try {
     await hs(env, "DELETE", `/crm/v3/objects/deals/${dealId}`, undefined, 3);
@@ -585,22 +764,34 @@ export async function patchRecord(env: Env, spec: ObjectSpec, id: string,
   }
   const res = await hs(env, "PATCH", `/crm/v3/objects/${spec.object}/${id}`, { properties });
   console.log(`hubspot PATCH ${spec.object}/${id}: ${Object.keys(properties).join(",")}`);
+  reportIgnoredWrites(spec, id, properties, res?.properties);
   return res.properties?.[spec.modifiedProp] ?? null;
 }
 
 /** CREATE a new record from a monday card. Returns {id, modified}, or null when not written. */
 export async function createRecord(env: Env, spec: ObjectSpec, properties: Record<string, string>,
-    opts: RunOpts, auth?: WriteAuth): Promise<{ id: string; modified: string } | null> {
+    opts: RunOpts, auth?: WriteAuth,
+    /** Parent links sent WITH the create. See ObjectSpec.createParent — a line item whose association
+     *  were PUT afterwards would be an orphan for as long as that second call took, and permanently if
+     *  it failed. HubSpot accepts them atomically, so this takes the atomic route. */
+    associations?: { toId: string; associationTypeId: number }[]): Promise<{ id: string; modified: string } | null> {
   assertMayWrite(spec, "(new)", auth);
   if (opts.dryRun || !opts.writeHubspot) {
-    console.log(`DRY hubspot CREATE ${spec.object}: ${JSON.stringify(properties)}`);
+    console.log(`DRY hubspot CREATE ${spec.object}: ${JSON.stringify(properties)}`
+      + (associations?.length ? ` assoc=${associations.map(a => a.toId).join(",")}` : ""));
     return null;
   }
+  const body: Record<string, unknown> = { properties };
+  if (associations?.length) body.associations = associations.map(a => ({
+    to: { id: a.toId },
+    types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: a.associationTypeId }],
+  }));
   // retries=1: a CREATE is not idempotent — a network retry after HubSpot already processed the POST
   // would make a duplicate record. (A 429 means it was NOT processed, but with retries=1 we simply
   // surface it and let the card re-create next tick, which is safe.)
-  const res = await hs(env, "POST", `/crm/v3/objects/${spec.object}`, { properties }, 1);
-  console.log(`hubspot CREATE ${spec.object} -> ${res.id}`);
+  const res = await hs(env, "POST", `/crm/v3/objects/${spec.object}`, body, 1);
+  console.log(`hubspot CREATE ${spec.object} -> ${res.id}`
+    + (associations?.length ? ` on ${associations.map(a => a.toId).join(",")}` : ""));
   return { id: String(res.id), modified: res.properties?.[spec.modifiedProp] ?? "" };
 }
 
@@ -613,15 +804,17 @@ export async function createRecord(env: Env, spec: ObjectSpec, properties: Recor
  * monday is a different case — it is born owned via withBirthOwnership() in the create payload.
  */
 export async function claimOwnership(env: Env, spec: ObjectSpec, rec: HsRecord,
-    opts: RunOpts): Promise<string | null> {
+    opts: RunOpts, basis: ClaimBasis = "cutover"): Promise<string | null> {
   if (!spec.ownership) throw new OwnershipError(`claimOwnership on ${spec.object}: no ownership spec`);
   // Eligibility is asserted HERE, not left to the caller. authorizeWrite returns allowed:false for
   // two very different reasons — "unstamped: crm must claim" and "owned by wm" — so the natural
   // wiring `if (!auth.allowed) claim()` would stamp crm onto every WM-owned record. This repo has a
   // live incident of exactly that shape (silent owner reassignment on a passive reconcile), and the
   // guard's own principle is that a predicate only callers consult is one missed call from disaster.
-  if (!canClaimCrmOwnership(rec, spec.ownership)) throw new OwnershipError(
-    `claim refused for ${spec.object}/${rec.id}: not eligible (stamp/cutover)`);
+  // The basis is re-checked with the SAME value the caller used, so a human-edit claim cannot be
+  // smuggled in by a path that only proved the cutover rule, or the reverse.
+  if (!canClaimCrmOwnership(rec, spec.ownership, basis)) throw new OwnershipError(
+    `claim refused for ${spec.object}/${rec.id}: not eligible (stamp/${basis})`);
   const properties = claimPatch(spec.ownership);
   if (opts.dryRun || !opts.writeHubspot) {
     console.log(`DRY hubspot CLAIM ${spec.object}/${rec.id}: ${JSON.stringify(properties)}`);
@@ -754,9 +947,19 @@ export interface CrmStageDicts {
  * roughly 19 labels; the import was two labels from wedging the column for everyone.
  */
 export const COARSE_STAGES = ["New", "Proposal", "Negotiation", "Won", "Lost"] as const;
+export type CoarseStage = typeof COARSE_STAGES[number];
 
 /** HubSpot stage metadata arrives as the STRINGS "true"/"false" as often as as booleans. */
 const isTrue = (x: unknown): boolean => x === true || x === "true";
+
+type PipelineStage = { id: unknown; displayOrder?: unknown; metadata?: Record<string, unknown> };
+
+/** A pipeline's stages in funnel order: by displayOrder, ties keeping HubSpot's array order. The ONE
+ *  ordering both coarseStageOf and coarseStageTargets read, so "first" (or "last") in a bucket means the
+ *  same stage to both. */
+function byDisplayOrder<T extends PipelineStage>(stages: T[]): T[] {
+  return [...stages].sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0));
+}
 
 /**
  * One pipeline's stages -> coarse label, keyed by stage id.
@@ -772,11 +975,10 @@ const isTrue = (x: unknown): boolean => x === true || x === "true";
  * labels without either needing a hand-written table that would rot the next time someone edits a
  * pipeline in the HubSpot UI.
  */
-export function coarseStageOf(stages: { id: unknown; displayOrder?: unknown; metadata?: Record<string, unknown> }[]):
-    Record<string, string> {
+export function coarseStageOf(stages: PipelineStage[]): Record<string, string> {
   const out: Record<string, string> = {};
   const open: string[] = [];
-  const ordered = [...stages].sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0));
+  const ordered = byDisplayOrder(stages);
   for (const s of ordered) {
     const sid = String(s.id);
     const md = s.metadata ?? {};
@@ -793,11 +995,80 @@ export function coarseStageOf(stages: { id: unknown; displayOrder?: unknown; met
   return out;
 }
 
-/** One call to the pipelines API yields all four maps; splitting them would quadruple the requests. */
-export async function getCrmStageDicts(env: Env): Promise<CrmStageDicts> {
-  const res = await hs(env, "GET", "/crm/v3/pipelines/deals");
+/**
+ * THE WAY BACK FROM A COARSE LABEL, for ONE pipeline: label -> the stage a person's edit of the native
+ * Stage column moves a deal to (STAGE_COARSE_REVERSE; see columnEditPatch).
+ *
+ * Always a stage coarseStageOf itself puts in that bucket. Not a second copy of the rule: the bucket IS
+ * coarseStageOf's answer, so a stage chosen here always reads back as the very label that chose it, and
+ * the round trip cannot drift. WHICH stage of the bucket, by displayOrder:
+ *   - New / Proposal / Negotiation: the FIRST open stage of that third;
+ *   - Won: the FIRST closed-won stage (isClosedWon, or closed at probability 1). The Sales Pipeline's
+ *     later `Trustpilot邀约评价（已成交）` (closed, probability 1) is a post-sale step after Closed Won;
+ *   - Lost: the LAST other closed stage -- the pipeline's terminal lost stage.
+ *
+ * WHY LOST IS THE LAST ONE. Measured 2026-10-01 (GET /crm/v3/pipelines/deals): each of the three
+ * Salesforce pipelines -- about 7,900 of the portal's 8,651 deals -- holds TWO closed, not-won stages,
+ * `暂停` (Paused) and `输单` (Lost), with the same metadata ({isClosed: "true", probability: "0.0"}),
+ * and 暂停 comes FIRST (displayOrder 6 / 13 / 13 against 8 / 17 / 17). Metadata cannot tell them apart,
+ * so "first" sent a person's Lost to Paused. The last closed-not-won stage is 输单 / closedlost /
+ * Closed Lost on all five live pipelines; a pause step sits before the terminal outcome, never after it.
+ * (coarseStageOf still shows 暂停 as Lost -- there is no sixth label for it.)
+ *
+ * A label the pipeline has no stage for is absent.
+ */
+export function coarseStageTargets(stages: PipelineStage[]): Partial<Record<CoarseStage, string>> {
+  const bucket = coarseStageOf(stages);
+  const out: Partial<Record<CoarseStage, string>> = {};
+  for (const s of byDisplayOrder(stages)) {
+    const label = bucket[String(s.id)] as CoarseStage | undefined;
+    // Lost keeps overwriting, so the last one in funnel order stands; every other label keeps its first.
+    if (label && (label === "Lost" || !(label in out))) out[label] = String(s.id);
+  }
+  return out;
+}
+
+/** pipeline id -> coarseStageTargets for that pipeline. */
+export type CoarseTargets = Record<string, Partial<Record<CoarseStage, string>>>;
+
+/**
+ * The targets, keyed by the `coarse` dictionary they were built beside.
+ *
+ * WHY A SIDE TABLE. buildCtx hands the reverse path exactly `coarse`, `stages`, `pipelines` and
+ * `pipelineByStage` -- flat maps that cannot say which stage comes FIRST in a pipeline -- and adding a
+ * fifth map to Ctx is a change to buildCtx and the Ctx type for one flagged column. Keyed by the object
+ * itself, the targets can only ever be read beside the dictionary they were built with, never a stale or
+ * foreign one. A dictionary built any other way (a test's hand-made ctx, a copy) has no entry, and the
+ * reverse REFUSES rather than guessing a stage: see coarseTargetsFor's callers.
+ */
+const COARSE_TARGETS = new WeakMap<Record<string, string>, CoarseTargets>();
+
+/** The coarse -> stage targets built beside this `coarse` dictionary, or undefined if there are none. */
+export function coarseTargetsFor(coarse: Record<string, string> | undefined): CoarseTargets | undefined {
+  return coarse ? COARSE_TARGETS.get(coarse) : undefined;
+}
+
+/**
+ * WHEN THE DEAL ENTERED ITS CURRENT STAGE: the one HubSpot time that moves with the stage and with nothing
+ * else. Fetched for every spec with a stagePipelinePairing (propertiesFor), read by the coarse Stage's
+ * reverse to tell a card behind HubSpot ON THE STAGE from one behind it for any other reason.
+ *
+ * WHY NOT hs_lastmodifieddate. It moves for everything: a customer's email reply
+ * (hs_latest_sales_email_reply_date, a rollup no webhook reports), a post-create recalculation, a clone,
+ * an edit of any other property. Measured live 2026-10-01 (read-only): 29 of the 150 most recently updated
+ * Deals cards have hs_lastmodifieddate after Sync State, and this property is after it on ONE of them --
+ * the one whose stage a HubSpot user really changed. On 150 of 150 it equals the dealstage history's own
+ * latest timestamp; it is ISO text (epoch milliseconds are read too); and on the 12 cards whose stage an
+ * integration last wrote it is 344 ms or more BEFORE Sync State, so our own push never reads as a change.
+ */
+export const STAGE_ENTERED_PROP = "hs_v2_date_entered_current_stage";
+
+/** The four maps (and the coarse targets) from the pipelines API's `results`. Pure: see getCrmStageDicts. */
+export function crmStageDictsOf(results: { id: unknown; label?: unknown; stages?: (PipelineStage & { label?: unknown })[] }[]):
+    CrmStageDicts {
   const out: CrmStageDicts = { pipelines: {}, stages: {}, pipelineByStage: {}, coarse: {} };
-  for (const p of res.results ?? []) {
+  const targets: CoarseTargets = {};
+  for (const p of results) {
     const pid = String(p.id);
     const plabel = String(p.label ?? pid);
     out.pipelines[pid] = plabel;
@@ -810,14 +1081,104 @@ export async function getCrmStageDicts(env: Env): Promise<CrmStageDicts> {
     // Bucketed PER PIPELINE, so "first third of the open stages" means first third of THAT pipeline's
     // funnel rather than of a meaningless merged list across five different funnels.
     Object.assign(out.coarse, coarseStageOf(p.stages ?? []));
+    targets[pid] = coarseStageTargets(p.stages ?? []);
   }
+  COARSE_TARGETS.set(out.coarse, targets);
   return out;
 }
+
+/** One call to the pipelines API yields all four maps; splitting them would quadruple the requests. */
+export async function getCrmStageDicts(env: Env): Promise<CrmStageDicts> {
+  const res = await hs(env, "GET", "/crm/v3/pipelines/deals");
+  return crmStageDictsOf(res.results ?? []);
+}
+
+/** Must equal reconcile.ts's OPTION_ORDER_KEY; lifecycle-backward-clear.test.ts pins the pair. */
+const OPTION_ORDER_KEY = "dkm-crm-sync:hubspot-option-order";
 
 export async function getPropertyOptions(env: Env, object: string, prop: string):
     Promise<Record<string, string>> {
   const res = await hs(env, "GET", `/crm/v3/properties/${object}/${prop}`);
   const out: Record<string, string> = {};
   for (const o of res.options ?? []) out[String(o.value)] = String(o.label);
+  // The options' own order rides on the dictionary, from the same response: see optionOrderOf in
+  // reconcile.ts, which reads it under this same registered key (it cannot be imported from there
+  // without a reconcile <-> hubspot import cycle). Non-enumerable: the dictionary is unchanged as data.
+  const order = optionDisplayOrder(res.options ?? []);
+  if (order) Object.defineProperty(out, Symbol.for(OPTION_ORDER_KEY), { value: order, enumerable: false, configurable: true });
   return out;
+}
+
+/**
+ * value -> displayOrder for a property's options, or undefined when they cannot be ordered unambiguously:
+ * no options, an option without a usable displayOrder (HubSpot uses -1 for "unordered"), or two options
+ * sharing one. A partial or ambiguous order is not an order -- backwardClearPlan then treats every move
+ * as unknown and sends one PATCH, rather than clearing on a guess. Pure.
+ *
+ * Read live 2026-10-01, contacts AND companies `lifecyclestage` (and both lifecycle pipelines agree):
+ * lead 0, marketingqualifiedlead 1, 1028988526 2, 1029059094 3, 1029060900 4, 1029059095 5,
+ * opportunity 6, customer 7, 1029055302 8, 1135842429 9 -- i.e. "1.NEW" ... "10.Other".
+ */
+export function optionDisplayOrder(options: { value?: unknown; displayOrder?: unknown }[]):
+    Record<string, number> | undefined {
+  if (!options.length) return undefined;
+  const order: Record<string, number> = Object.create(null);
+  const used = new Set<number>();
+  for (const o of options) {
+    const n = typeof o.displayOrder === "number" ? o.displayOrder : NaN;
+    if (!Number.isInteger(n) || n < 0 || used.has(n)) return undefined;
+    used.add(n);
+    order[String(o.value)] = n;
+  }
+  return order;
+}
+
+/** One version of a property, as HubSpot's propertiesWithHistory lists it. */
+export interface PropertyVersion {
+  value: string;
+  timestamp: string;
+  /** Who made the change: "INTEGRATION" (an app's API write, this Worker's among them), "CRM_UI", "DEALS", ... */
+  sourceType: string;
+  sourceId?: string;
+}
+
+/**
+ * One property's history on one record, as HubSpot returns it (newest first). A single read, retried like
+ * any GET. Only the lifecycle re-check reads it -- to tell an empty stage that OUR clear left behind from one
+ * a person or another source emptied (see repairDanglingClears in sync.ts) -- so it runs only for a record
+ * whose stage HubSpot holds empty while its card shows one.
+ */
+export async function getPropertyHistory(env: Env, object: string, id: string, prop: string): Promise<PropertyVersion[]> {
+  const p = encodeURIComponent(prop);
+  const res = await hs(env, "GET", `/crm/v3/objects/${object}/${id}?properties=${p}&propertiesWithHistory=${p}`);
+  const list: unknown = res?.propertiesWithHistory?.[prop];
+  if (!Array.isArray(list)) return [];
+  return list.map((v: any) => ({
+    value: String(v?.value ?? ""), timestamp: String(v?.timestamp ?? ""), sourceType: String(v?.sourceType ?? ""),
+    ...(v?.sourceId != null ? { sourceId: String(v.sourceId) } : {}),
+  }));
+}
+
+/**
+ * A 200 THAT CHANGED NOTHING. HubSpot answers a lifecycle stage it will not apply (a move to an earlier
+ * stage, without the clear) with success and the OLD value, and nothing else in this Worker can tell:
+ * Sync State is stamped from the response, so the card simply goes on showing a stage HubSpot never took.
+ * That is how every backward move from monday was lost until 2026-10-01 (see FieldSpec.backwardNeedsClear).
+ *
+ * So for the properties that can do this, the response is compared with what was sent, and a mismatch is
+ * LOGGED -- never retried and never written back, so it cannot loop. A property the response does not
+ * carry is not judged. Every caller of patchRecord gets it, whatever path built the patch.
+ */
+function reportIgnoredWrites(spec: ObjectSpec, id: string, sent: Record<string, string>,
+    stored: Record<string, unknown> | undefined): void {
+  if (!stored) return;
+  for (const f of spec.fields) {
+    if (!f.backwardNeedsClear || !Object.hasOwn(sent, f.hs) || !Object.hasOwn(stored, f.hs)) continue;
+    const want = String(sent[f.hs] ?? "").trim();
+    const got = String(stored[f.hs] ?? "").trim();
+    if (got !== want)
+      console.log(`[reverse] object=${spec.object} hubspot_id=${id} field=${f.hs} sent=${JSON.stringify(want)}`
+        + ` stored=${JSON.stringify(got)} action=lifecycle-noop reason="HubSpot answered 200 but still holds`
+        + ` another value: the write did not land"`);
+  }
 }

@@ -58,7 +58,12 @@ const RESERVE_STALE_MS = 15 * 60_000;
 export type ActivityClaim =
   | { status: "have"; id: string }   // already synced — this is the counterpart's id
   | { status: "creating" }           // in flight, or an unresolved create: do NOT write
-  | { status: "proceed" }            // reservation held: write, then settle()
+  /** Reservation held: write, then settle().
+   *  `tookOverStale` = we inherited an ABANDONED reservation, so a previous attempt may already have
+   *  written. The caller must check the destination before creating, or a lost response becomes a
+   *  duplicate — measured: 906 of 1,382 post-cutover email entries duplicated this way under the
+   *  load of the historical import. */
+  | { status: "proceed"; tookOverStale: boolean }
   | { status: "blocked" };           // guard unavailable: fail closed, retry later
 
 function stub(env: Env, key: string) {
@@ -88,9 +93,10 @@ const h2mKey = (object: string, hubspotId: string, destKind: string, destId: str
 
 async function claim(env: Env, key: string): Promise<ActivityClaim> {
   try {
-    const c: CardClaim = await stub(env, key).claimCard(Date.now(), RESERVE_STALE_MS);
+    const c: CardClaim = await stub(env, key).claimCard(Date.now(), RESERVE_STALE_MS, true);   // never expires
     if (c.status === "have") return { status: "have", id: c.itemId };
-    return c.status === "creating" ? { status: "creating" } : { status: "proceed" };
+    if (c.status === "creating") return { status: "creating" };
+    return { status: "proceed", tookOverStale: c.tookOverStale === true };
   } catch (e) {
     // FAIL CLOSED. Writing without the guard is how duplicates are made.
     console.log(`[activity-registry] ${key} action=blocked reason="idempotency store unavailable: ${String(e).slice(0, 90)}"`);
@@ -146,6 +152,70 @@ export const settleActivityToMonday = (env: Env, object: string, hubspotId: stri
   settle(env, h2mKey(object, hubspotId, destKind, destId), timelineItemId);
 export const unresolvedActivityToMonday = (object: string, hubspotId: string, destKind: string,
     destId: string, err: unknown) => markUnresolved(h2mKey(object, hubspotId, destKind, destId), err);
+
+/**
+ * HAS THIS ALREADY BEEN WRITTEN? A READ, never a reservation.
+ *
+ * For the marketing poller, which re-reads overlapping windows by design and would otherwise spend a
+ * monday card lookup (and a reservation) on every event it has already delivered. Only a SETTLED
+ * mapping answers "have"; an in-flight reservation reads "absent" here and is still caught by the claim
+ * that follows, which is the real guard. A failed read is "unknown" -- the caller must not write on it.
+ */
+export async function peekActivityToMonday(env: Env, object: string, hubspotId: string,
+    destKind: string, destId: string): Promise<"have" | "absent" | "unknown"> {
+  try { return (await stub(env, h2mKey(object, hubspotId, destKind, destId)).getCard()) ? "have" : "absent"; }
+  catch { return "unknown"; }
+}
+
+/**
+ * A SINGLE-HOLDER LOCK, OWNER-CHECKED.
+ *
+ * Two polls over the same window (the cron and an on-demand run, or a cron that overran) would not
+ * duplicate anything -- the registry sees to that -- but they would contend for the same reservations
+ * and each stall on the other's "creating". Held for at most `holdMs`; a crashed holder's lock goes
+ * stale and is taken over. `owner` is the run's own id and only that run may release it: an overrunning
+ * poll that freed the lock unconditionally would free the NEWER poll's lock and let a third start.
+ * FAILS CLOSED: an unreachable store means no poll, not an unguarded one.
+ */
+export async function acquireLock(env: Env, name: string, holdMs: number, owner: string): Promise<boolean> {
+  try { return await stub(env, `lock:${name}`).claimLock(Date.now(), holdMs, owner); }
+  catch (e) {
+    console.log(`[activity-registry] lock:${name} action=blocked reason="${String(e).slice(0, 90)}"`);
+    return false;
+  }
+}
+export async function releaseLock(env: Env, name: string, owner: string): Promise<void> {
+  try {
+    if (!(await stub(env, `lock:${name}`).releaseLock(owner)))
+      console.log(`[activity-registry] lock:${name} action=release-skipped reason="held by a newer run (this one overran its hold)"`);
+  } catch (e) { console.log(`[activity-registry] lock:${name} action=release-failed reason="${String(e).slice(0, 90)}"`); }
+}
+
+/**
+ * SOFT durable notes -- a retry counter, a ledger page. Unlike the watermark these FAIL SOFT: losing
+ * one costs a diagnostic, never a duplicate, so a storage blip must not stop the work they describe.
+ */
+export async function readNote(env: Env, name: string): Promise<string | null> {
+  try { return await stub(env, `note:${name}`).getCard(); }
+  catch { return null; }
+}
+/**
+ * A note read that TELLS ABSENT FROM UNREADABLE: null only when nothing is stored, a throw when the
+ * store could not answer. For the one note whose read decides what a write overwrites (the rollback
+ * ledger): readNote's soft null there would make a storage blip look like an empty page, and the next
+ * write would replace the rows earlier polls saved.
+ */
+export async function readNoteStrict(env: Env, name: string): Promise<string | null> {
+  try { return await stub(env, `note:${name}`).getCard(); }
+  catch (e) { throw new Error(`note ${name} unreadable: ${String(e).slice(0, 90)}`); }
+}
+export async function writeNote(env: Env, name: string, value: string): Promise<boolean> {
+  try { await stub(env, `note:${name}`).rememberPermanent(value); return true; }
+  catch (e) {
+    console.log(`[activity-registry] note:${name} action=save-failed reason="${String(e).slice(0, 90)}"`);
+    return false;
+  }
+}
 
 /**
  * Release a reservation once something has PROVEN the write never happened.

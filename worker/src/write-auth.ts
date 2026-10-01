@@ -1,6 +1,7 @@
 import type { Budget, Env, HsRecord, ObjectSpec, RunOpts, WriteAuth } from "./types";
-import { claimOwnership } from "./hubspot";
-import { authorizeWrite, canClaimCrmOwnership } from "./ownership";
+import { claimOwnership, getRecord } from "./hubspot";
+import { authorizeWrite, canClaimCrmOwnership, withBirthOwnership, type ClaimBasis } from "./ownership";
+import { specByObject } from "./config";
 
 /**
  * CLAIM-THEN-WRITE, evaluated LAZILY at the moment a HubSpot business write is actually required.
@@ -20,16 +21,18 @@ import { authorizeWrite, canClaimCrmOwnership } from "./ownership";
  */
 export async function ensureHubspotWriteAuth(env: Env, spec: ObjectSpec, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> },
-    opts: RunOpts): Promise<WriteAuth | undefined> {
+    opts: RunOpts, basis: ClaimBasis = "cutover"): Promise<WriteAuth | undefined> {
   const o = spec.ownership;
   if (!o) return undefined;                    // legacy WM behaviour, byte-for-byte
   const hsRec = rec as HsRecord;
 
   // Eligibility is re-proven inside claimOwnership too; this is not a substitute for that. It exists so
   // an INELIGIBLE record never even reaches the claim call, keeping the refusal a quiet log rather than
-  // a thrown OwnershipError on the normal path.
-  if (canClaimCrmOwnership(hsRec, o)) {
-    const mod = await claimOwnership(env, spec, hsRec, opts);
+  // a thrown OwnershipError on the normal path. `basis` defaults to the cutover rule: only the
+  // column-level reverse path, which runs for a person's monday edit and nothing else, passes
+  // "human-edit".
+  if (canClaimCrmOwnership(hsRec, o, basis)) {
+    const mod = await claimOwnership(env, spec, hsRec, opts, basis);
     budget.left--;
     if (mod === null) {
       // Dry-run, or writeHubspot disabled. NOTHING was written, so the record is still unstamped and
@@ -53,4 +56,40 @@ export async function ensureHubspotWriteAuth(env: Env, spec: ObjectSpec, budget:
   if (!auth.allowed)
     console.log(`ownership object=${spec.object} id=${rec.id} action=write-refused reason="${auth.reason}"`);
   return auth;
+}
+
+/**
+ * WHICH SPEC'S OWNERSHIP GOVERNS A LINE-ITEM WRITE ON THIS DEPLOYMENT.
+ *
+ * CRM has a real `line_items` ObjectSpec. WM has none — there, a line item exists only as a SUBITEM of
+ * a deal, so the deals spec's ownership governs it. Both resolve to the same `sync_owner`/`createdate`
+ * contract; only the `owner` differs, which is exactly the distinction that matters.
+ */
+export function lineItemOwnerSpec(env: Env): ObjectSpec | undefined {
+  return specByObject(env, "line_items") ?? specByObject(env, "deals");
+}
+
+/**
+ * MAY THIS DEPLOYMENT MUTATE THIS EXISTING HUBSPOT LINE ITEM?
+ *
+ * The line item is authorized on its OWN stamp, not its deal's — a deal and its lines can in principle
+ * be owned differently, and guessing from the parent would be the kind of inference this model exists
+ * to avoid. Fetches only the two ownership properties.
+ *
+ * FAILS CLOSED: an unreadable line item yields no auth, and `assertMayWriteLineItem` throws on a
+ * missing auth rather than writing.
+ */
+export async function lineItemWriteAuth(env: Env, lineItemId: string):
+    Promise<{ spec: ObjectSpec; auth: WriteAuth } | undefined> {
+  const spec = lineItemOwnerSpec(env);
+  if (!spec?.ownership) return undefined;              // no ownership configured -> legacy behaviour
+  const rec = await getRecord(env, "line_items", lineItemId,
+    [spec.ownership.prop, spec.ownership.createdProp]);
+  if (!rec) {
+    return { spec, auth: { allowed: false, reason: "line item not readable", forId: lineItemId } };
+  }
+  const auth = authorizeWrite(rec, spec.ownership);
+  if (!auth.allowed)
+    console.log(`ownership object=line_items id=${lineItemId} action=write-refused reason="${auth.reason}"`);
+  return { spec, auth };
 }

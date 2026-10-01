@@ -242,7 +242,11 @@ describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
     H.assoc.set("deals:1:companies", ["11"]);              // HubSpot already has company 11
     H.links.set("100:conn_co", ["901", "902"]);            // monday deal card 100 links cards 901, 902
     H.targetHsId.set("901", "11"); H.targetHsId.set("902", "22"); // linked card -> its HubSpot id
-    await reverseAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), opts, budget());
+    // createdate is carried because propertiesForSpec fetches it for every ownership spec, and WM
+    // became one on 2026-09-22. Pre-cutover, so this record is WM's to write. Without it
+    // authorizeWrite fails CLOSED on unusable metadata — correct, but not what this test is about.
+    await reverseAssociations(env, relSpec as any,
+      { id: "1", properties: { createdate: "2026-01-01T00:00:00Z" } }, item("100"), opts, budget());
     expect(H.puts).toEqual([["deals", "1", "companies", "22"]]); // only 22 is missing -> PUT; 11 skipped
   });
 

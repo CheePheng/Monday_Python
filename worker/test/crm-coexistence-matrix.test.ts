@@ -89,8 +89,10 @@ describe("B. CRM discovery and historical-import protection", () => {
   it.each(specs)("%s: post-cutover WITH sales_user -> card allowed", (_o, s) =>
     expect(mayCreateCrmCard(rec({ createdate: POST, sales_user: "1739141284" }), s.ownership)).toBe(true));
 
-  it.each(specs)("%s: pre-cutover unstamped -> NO card", (_o, s) =>
-    expect(mayCreateCrmCard(rec({ createdate: PRE }), s.ownership)).toBe(false));
+  // Was "NO card". The historical import is complete (2026-09-17/18), so a record without a card is a
+  // gap to fill, whatever its age -- a lead created in HubSpot today must appear in monday today.
+  it.each(specs)("%s: pre-cutover unstamped -> card allowed (the gap is filled)", (_o, s) =>
+    expect(mayCreateCrmCard(rec({ createdate: PRE }), s.ownership)).toBe(true));
 
   it.each(specs)("%s: sync_owner=wm -> NO card", (_o, s) =>
     expect(mayCreateCrmCard(rec({ sync_owner: "wm", createdate: POST }), s.ownership)).toBe(false));
@@ -115,12 +117,15 @@ describe("B. CRM discovery and historical-import protection", () => {
     expect(typeof src.isRetryable).toBe("function");
   });
 
-  it("an adopted pre-cutover record keeps receiving HubSpot -> monday updates", () => {
-    // The gate is consulted ONLY when no card exists; an existing card short-circuits before it.
-    // Forward writes touch monday only, so they never consult ownership at all.
+  it("a pre-cutover record: carded, forward-synced, and writable only once a person's edit claims it", () => {
+    // Forward writes touch monday only, so they never consult ownership at all. The WRITE still needs
+    // ownership: unstamped is refused until a claim, and only a person's edit can make that claim.
+    const o = withCutover(CRM_CONTACTS, FINITE).ownership!;
     const historical = rec({ createdate: PRE });
-    expect(mayCreateCrmCard(historical, withCutover(CRM_CONTACTS, FINITE).ownership)).toBe(false);
-    expect(authorizeWrite(historical, withCutover(CRM_CONTACTS, FINITE).ownership!).allowed).toBe(false);
+    expect(mayCreateCrmCard(historical, o)).toBe(true);
+    expect(authorizeWrite(historical, o).allowed).toBe(false);
+    expect(canClaimCrmOwnership(historical, o)).toBe(false);               // not by date
+    expect(canClaimCrmOwnership(historical, o, "human-edit")).toBe(true);  // but by a person's edit
   });
 });
 
@@ -170,16 +175,22 @@ describe("C. ownership and write matrix", () => {
 // ------------------------------------------------------------------ D. Creation behaviour
 
 describe("D. creation behaviour — Contacts", () => {
-  it("HubSpot -> monday only: createFromMonday is false", () =>
-    expect(CRM_CONTACTS.createFromMonday).toBe(false));
+  // CHANGED 2026-09-21: two-way creation is the confirmed requirement — the 创建/Create form is the
+  // sales team's entry point after the migration. What must remain true is that creating cannot
+  // DUPLICATE, and that nothing is fabricated.
+  it("creation from monday is enabled", () =>
+    expect(CRM_CONTACTS.createFromMonday).toBe(true));
 
-  it("no email adoption path is active", () => expect(CRM_CONTACTS.adoptBy).toBeUndefined());
+  it("and it adopts an existing contact by email rather than duplicating", () =>
+    expect(CRM_CONTACTS.adoptBy).toEqual({ kind: "email", col: "contact_email" }));
 
   it("no createDefaults at all, so no sales_user can be fabricated", () => {
     expect(CRM_CONTACTS.createDefaults).toBeUndefined();
-    // sales_user IS displayed since 2026-09-08, but forward-only and never as a scope input.
+    // sales_user is two-way since 2026-09-23 -- as a People column a rep sets -- but it is still never
+    // fabricated at birth and never a scope input.
     const f = CRM_CONTACTS.fields.find(x => x.hs === "sales_user")!;
-    expect(f.reverse).toBeUndefined();
+    expect(f.type).toBe("people");
+    expect(CRM_CONTACTS.createDefaults?.sales_user).toBeUndefined();
     expect(recInScope(CRM_CONTACTS, { properties: {} })).toBe(true);
   });
 });
@@ -231,7 +242,12 @@ describe("E. delete direction", () => {
   it("a deal deletion is routable on CRM and restores rather than deletes", () => {
     const s = specByObject(crmEnv, "deals")!;
     expect(s.restoreOnDelete).toBe(true);
-    expect(s.createFromMonday).toBe(false);
+    // Creation is enabled (2026-09-21) and is a SEPARATE direction from deletion: a monday deletion
+    // still only restores the card, and no code path deletes a HubSpot record — asserted just below.
+    expect(s.createFromMonday).toBe(true);
+    // A deal must be born with a legal pipeline+stage pair, or HubSpot rejects it outright.
+    expect(s.createDefaults?.pipeline).toBeTruthy();
+    expect(s.createDefaults?.dealstage).toBeTruthy();
   });
 
   // monday -> HubSpot deletion is STRUCTURALLY impossible for Contacts/Companies: the worker exposes no
@@ -255,42 +271,52 @@ describe("E. delete direction", () => {
 
 // --------------------------------------- F. Phase-B consequence of the inert cutover
 
-describe("F. the shipped Infinity cutover refuses everything (the rollout consequence)", () => {
+/**
+ * F. WHAT THE CUTOVER STILL DECIDES, AND WHAT IT NO LONGER DOES.
+ *
+ * This section used to pin a Phase-1 rollout fact: with the shipped Infinity cutover the CRM sync could
+ * card and claim NOTHING unstamped. Both halves were retired on 2026-09-23. Carding no longer depends on
+ * the cutover at all (the historical import is done), and a person's edit on a CRM card claims the
+ * record whatever its age. What the cutover still governs is the DATE-based claim -- and that one must
+ * still refuse under Infinity, so no path without a person behind it can ever claim history.
+ */
+describe("F. what the cutover still decides", () => {
   it("CRM_CUTOVER_AT_MS is infinite as shipped", () =>
     expect(CRM_CUTOVER_AT_MS).toBe(Number.POSITIVE_INFINITY));
 
-  // THE HEADLINE FACT. With the shipped config the CRM sync can create ZERO monday cards from
-  // unstamped records — which is every record, because `sync_owner` does not exist in the portal yet.
   it.each(CRM_SPECS.map(s => [s.object, s] as const))(
-    "%s: NO unstamped record is cardable as shipped, however recent", (_o, s) => {
+    "%s: any unstamped record is cardable, whatever the cutover", (_o, s) => {
       for (const d of [POST, PRE, new Date().toISOString()])
-        expect(mayCreateCrmCard(rec({ createdate: d }), s.ownership)).toBe(false);
+        expect(mayCreateCrmCard(rec({ createdate: d }), s.ownership)).toBe(true);
     });
 
   it.each(CRM_SPECS.map(s => [s.object, s] as const))(
-    "%s: nor claimable, so no HubSpot write is possible either", (_o, s) => {
+    "%s: the DATE-based claim still refuses under Infinity -- only a person's edit claims", (_o, s) => {
       expect(canClaimCrmOwnership(rec({ createdate: POST }), s.ownership!)).toBe(false);
+      expect(canClaimCrmOwnership(rec({ createdate: POST }), s.ownership!, "human-edit")).toBe(true);
       expect(authorizeWrite(rec({ createdate: POST }), s.ownership!).allowed).toBe(false);
     });
 
-  // OPTION 1 (recommended): a finite cutover makes the forward path work with NO HubSpot schema change.
-  it("a FINITE cutover restores normal forward behaviour for records created after it", () => {
-    const s = withCutover(CRM_CONTACTS, FINITE);
-    expect(mayCreateCrmCard(rec({ createdate: POST }), s.ownership)).toBe(true);
-    expect(mayCreateCrmCard(rec({ createdate: PRE }), s.ownership)).toBe(false);  // history still safe
+  it("a FINITE cutover lets the date-based claim reach records created after it, and only those", () => {
+    const o = withCutover(CRM_CONTACTS, FINITE).ownership!;
+    expect(canClaimCrmOwnership(rec({ createdate: POST }), o)).toBe(true);
+    expect(canClaimCrmOwnership(rec({ createdate: PRE }), o)).toBe(false);
   });
 
-  // OPTION 2: an explicit crm stamp also works — but requires the sync_owner property to EXIST, which
-  // is a Phase-2 HubSpot schema change that Phase 1 forbids.
-  it("an explicitly crm-stamped record is cardable even under the Infinity cutover", () => {
+  it("an explicitly crm-stamped record is cardable under any cutover", () => {
     for (const s of CRM_SPECS)
       expect(mayCreateCrmCard(rec({ sync_owner: "crm" }), s.ownership)).toBe(true);
   });
 
-  // Both options keep history safe, which is the property that must not be traded away for convenience.
-  it("neither option makes a pre-cutover unstamped record cardable", () => {
-    expect(mayCreateCrmCard(rec({ createdate: PRE }), withCutover(CRM_CONTACTS, FINITE).ownership)).toBe(false);
-    expect(mayCreateCrmCard(rec({ createdate: PRE }), CRM_CONTACTS.ownership)).toBe(false);
+  // The explicit decisions are the property that must not be traded away.
+  it("no cutover and no basis ever cards or claims a parked or WM-owned record", () => {
+    for (const stamp of ["hold", "wm"]) {
+      const r = rec({ sync_owner: stamp, createdate: PRE });
+      for (const o of [withCutover(CRM_CONTACTS, FINITE).ownership!, CRM_CONTACTS.ownership!]) {
+        expect(mayCreateCrmCard(r, o)).toBe(false);
+        expect(canClaimCrmOwnership(r, o, "human-edit")).toBe(false);
+      }
+    }
   });
 });
 
@@ -374,7 +400,7 @@ describe("I. WM regression", () => {
 
   it("no WM spec declares CRM ownership or adoption metadata", () => {
     for (const s of ALL_SPECS) {
-      expect(s.ownership).toBeUndefined();
+      expect(s.ownership?.owner).toBe("wm");   // declared since 2026-09-22, but never "crm"
       expect(s.adoptBy).toBeUndefined();
     }
   });
@@ -385,7 +411,9 @@ describe("I. WM regression", () => {
   });
 
   it("WM specs request no ownership properties from HubSpot", () => {
-    for (const s of ALL_SPECS) expect(propertiesForSpec(s)).not.toContain("sync_owner");
+    // INVERTED 2026-09-22: WM authorizes its own writes now, so it MUST fetch the ownership metadata.
+    // Omitting it would make authorizeWrite read undefined and classify every record as unstamped.
+    for (const s of ALL_SPECS) expect(propertiesForSpec(s)).toContain("sync_owner");
   });
 
   it("CRM specs request them on every fetch, so the gate never reads undefined by accident", () => {

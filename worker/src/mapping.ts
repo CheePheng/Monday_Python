@@ -21,6 +21,31 @@ export function clampLongText(s: string): string {
   return s.length > LONG_TEXT_MAX ? s.slice(0, LONG_TEXT_MAX) : s;
 }
 
+/**
+ * The business timezone, as a fixed offset. Asia/Shanghai is UTC+8 and observes NO daylight saving, so
+ * a constant is exact here rather than an approximation — which is why this is a number and not an
+ * Intl.DateTimeFormat call. A portal in a DST-observing zone would need the real thing.
+ */
+const BUSINESS_UTC_OFFSET_MINUTES = 8 * 60;
+
+/**
+ * The calendar day a monday date column should show for a HubSpot value.
+ *
+ * Plain `slice(0, 10)` unless the field says the property is an instant (see FieldSpec.localDate), and
+ * it falls back to exactly that for anything unparseable — so a malformed value degrades to the old
+ * behaviour instead of throwing or writing "Invalid Date" into a live cell.
+ *
+ * Used by BOTH formatValue and expectedText. That pairing is not optional: a transform applied to only
+ * one of them makes every comparison differ, so the card is rewritten on every pass forever — the trap
+ * FieldSpec.scale already documents.
+ */
+export function dateCell(f: FieldSpec, v: string): string {
+  if (!f.localDate) return v.slice(0, 10);
+  const t = Date.parse(v);
+  if (!Number.isFinite(t)) return v.slice(0, 10);
+  return new Date(t + BUSINESS_UTC_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
+}
+
 export function formatValue(f: FieldSpec, value: string | null | undefined, ctx: Ctx): unknown {
   if (value === null || value === undefined || value === "") return null;
   const v = applyScale(f, String(value));
@@ -45,7 +70,7 @@ export function formatValue(f: FieldSpec, value: string | null | undefined, ctx:
       const labels = v.split(";").map(s => s.trim()).filter(Boolean).map(s => dict(f, ctx)[s] ?? s);
       return labels.length ? { labels } : null;
     }
-    case "date": return { date: v.slice(0, 10) };
+    case "date": return { date: dateCell(f, v) };
     case "people": {
       // peopleByName: the property stores an owner's display NAME (sales_person), so the owner id has
       // to be looked up first. Everything after that hop is identical — resolution still ends at an
@@ -346,7 +371,9 @@ export function expectedText(f: FieldSpec, value: string | null | undefined, ctx
   // no write, no churn. Must stay in lockstep with formatValue's identical check.
   if (f.type === "email") return emailStorable(v) ? v.toLowerCase() : "";
   switch (f.type) {
-    case "date": return v.slice(0, 10);
+    // Same helper as formatValue — see dateCell. If these two ever disagreed, every dated card would
+    // be rewritten on every pass chasing a value it had just written.
+    case "date": return dateCell(f, v);
     // numText, so the diff, the forward write and the reverse write all canonicalise identically.
     case "numbers": return numText(v) || v;
     // A monday link column echoes its TEXT part, which formatValue sets equal to the url.

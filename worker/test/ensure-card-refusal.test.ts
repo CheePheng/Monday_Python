@@ -95,7 +95,7 @@ describe("/app/ensure-card response contract", () => {
 // no registry entry is left behind. This pins the OTHER half: the endpoint's WM route cannot be refused.
 describe("the WM route can never reach the terminal response", () => {
   it("/app/ensure-card resolves WM specs only, and neither declares ownership", () => {
-    for (const s of [CONTACTS_MYLA, COMPANIES_MYLA]) expect(s.ownership).toBeUndefined();
+    for (const s of [CONTACTS_MYLA, COMPANIES_MYLA]) expect(s.ownership?.owner).toBe("wm");
   });
 
   // mayCreateCrmCard returns true when spec.ownership is undefined, so status "refused" is unreachable

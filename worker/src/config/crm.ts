@@ -29,11 +29,17 @@ const OWN_ACCOUNTS: OwnershipSpec = { ...OWN_CONTACTS };
 /**
  * CRM CONTACTS — board 5028000495, group `topics` ("Active Contacts").
  *
- * CREATION IS HUBSPOT-ONLY (2026-09-07 meeting): `createFromMonday: false`. Approved fields still sync
- * two-way once the Contact exists; a row typed straight into the monday board creates nothing in HubSpot
- * (`sync.ts:576` logs reason="board not create-enabled"). Consequently there is NO `adoptBy` — adoption
- * by normalised email exists only to serve the monday->HubSpot create path — and NO `createDefaults`,
- * in particular no `createDefaults.sales_user`.
+ * CREATION IS TWO-WAY as of 2026-09-21, reversing the 2026-09-07 decision. The business confirmed that
+ * the monday "创建/Create" form must produce a HubSpot Contact, because that form is how ~50 sales users
+ * will add contacts once they no longer have HubSpot seats. Until now it produced a monday card and
+ * nothing else, silently.
+ *
+ * Duplicate protection is `adoptBy` on normalised EMAIL: a rep adding someone HubSpot already knows
+ * LINKS to that contact instead of minting a second one. There is still NO `createDefaults` — nothing
+ * about a Contact needs manufacturing, and `sales_user` in particular must never be fabricated.
+ *
+ * Creation is nonetheless INERT as shipped: `createCutoffMs` is Infinity until the deployment sets
+ * CRM_CREATE_CUTOFF_AT. See ObjectSpec.createCutoffMs for why that guard is not optional.
  *
  * `sales_user` plays NO part in CRM scope and is not mapped. `includeAll: true` bypasses the engine's
  * hardcoded sales_user/createdate gate (`sync.ts:458`), which would otherwise silently drop the ~1 in 3
@@ -64,7 +70,7 @@ export const CRM_CONTACTS: ObjectSpec = {
   idCol: "text_mm6t71dj",                    // "HubSpot ID"
   syncStateCol: "text_mm6twy4w",             // "Sync State"
   linkCol: "link_mm6z7mj",                   // "HubSpot Link" (created Task 5)
-  groupBy: { singleGroup: "topics" },        // Active/Inactive group sync is out of Phase 1 scope
+  groupBy: { singleGroup: "topics", placeOnly: true },   // new cards land here; the Worker never moves a card
   includeAll: true,                          // SAFE ONLY WITH Task 3B's mayCreateCrmCard
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,
@@ -72,15 +78,31 @@ export const CRM_CONTACTS: ObjectSpec = {
   // An event caused by our own token is an echo: reconcile forward, never write back. See the
   // ObjectSpec note — 1,207 HubSpot Companies were created from such echoes during the import.
   suppressSelfOriginWrites: true,
+  columnLevelReverse: true,   // a person's edit pushes only that column; nothing else writes HubSpot
   fillEmptyFromMonday: true,                 // a monday value may FILL an empty HubSpot field (never clear one)
-  createFromMonday: false,                   // HubSpot is the creation source for Contacts
-  // no createDefaults, no adoptBy
-  // CONTACT <-> COMPANY, HUBSPOT -> MONDAY ONLY. Fills the board's NATIVE `contact_account` relation
-  // with the CRM Account cards for this contact's HubSpot company associations. The reverse direction is
-  // blocked in code, not by convention: reverseAssociations returns immediately for any spec declaring
-  // `ownership`, because putAssociation/deleteAssociation take no spec and so cannot be ownership-guarded
-  // yet (P2-1). No `col` — no comma-joined text column is wanted. NO DEAL RELATION: `contact_deal`
-  // points at board 5028000494, a third board outside Phase 1 whose deals the WM boards already own.
+  /**
+   * CREATION ENABLED 2026-09-21, reversing the 2026-09-07 decision, because the business confirmed the
+   * monday "创建/Create" form is how ~50 sales users will add Contacts once they leave HubSpot. Until
+   * now that form produced a monday card and nothing else — silently: no HubSpot record, no error, and
+   * no feedback to the rep who filled it in.
+   */
+  createFromMonday: true,
+  // Inert as shipped (CRM_CREATE_CUTOFF_MS is Infinity): no monday card is old enough to be
+  // NEWER than it, so nothing creates until CRM_CREATE_CUTOFF_AT names a go-live timestamp.
+  createCutoffMs: CRM_CREATE_CUTOFF_MS,
+  // ADOPT BY NORMALISED EMAIL, never by name. A rep adding someone who is already in HubSpot must LINK
+  // to that contact rather than mint a second one; email is the only key that identifies a person
+  // uniquely, and searchContactByEmail normalises before matching.
+  adoptBy: { kind: "email", col: "contact_email" },
+  // CONTACT <-> COMPANY, into the board's NATIVE `contact_account` relation. FORWARD: the forward pass
+  // fills it with the CRM Account cards for this contact's HubSpot company associations. REVERSE, at
+  // column level (reverseAssociations, 2026-09-28): a PERSON's edit of this cell pushes only the cards
+  // they added and unlinks only the ones they removed (monday's own before/after), each ownership-guarded
+  // on the contact through putAssociation/deleteAssociation; a refusal or HubSpot error undoes the
+  // person's edit at once, judged against HubSpot's current set; a card that was deleted or archived never
+  // unlinks; the paired Accounts-side report of the same click is dropped (see the Accounts spec); an
+  // automation's edit or our own token's echo never pushes. No `col` — no comma-joined text column is wanted. NO DEAL RELATION:
+  // `contact_deal` points at board 5028000494 and is not mapped on this spec.
   associations: [
     { toObject: "companies", nameProps: ["name"], relationCol: "contact_account" },
   ],
@@ -89,7 +111,14 @@ export const CRM_CONTACTS: ObjectSpec = {
     { hs: "lastname", col: "text_mm6snp6r", type: "text", reverse: true },
     // Native monday email column. Forward-only: email is the contact dedup key, so a monday edit must
     // never rewrite it (the WM spec excludes email from backfill for the same reason).
-    { hs: "email", col: "contact_email", type: "email" },
+    // `writeOnCreate`, NOT `reverse`: the record must be BORN with its email, because email is
+    // adoptBy.col and createFromMonday refuses to mint a record whose adoption key is absent — nothing
+    // could ever match it again, and the next card would create a duplicate. A later monday edit must
+    // still never rewrite it. See FieldSpec.writeOnCreate.
+    // TWO-WAY from 2026-09-23, so a rep can fix a typo'd address. It is the adoption key only at CREATE
+    // time; a card with a HubSpot ID is linked by that id, so changing the email cannot re-point it. An
+    // address another contact already holds is rejected by HubSpot and the cell heals.
+    { hs: "email", col: "contact_email", type: "email", writeOnCreate: true, reverse: true },
     { hs: "jobtitle", col: "text_mm6szy4q", type: "text", reverse: true },
     // HubSpot's free-text `company` is DELIBERATELY NOT MAPPED (removed 2026-09-08, meeting decision).
     //
@@ -128,14 +157,16 @@ export const CRM_CONTACTS: ObjectSpec = {
     // Registration Date - verified type `date` in HubSpot, so it maps to a real date column.
     { hs: "registration_date", col: "date_mm70x5xn", type: "date", oneWay: true },
     { hs: "event_name", col: "text_mm6t8bxb", type: "text", reverse: true },
-    { hs: "createdate", col: "date_mm6z33nk", type: "date", oneWay: true },
+    { hs: "createdate", col: "date_mm6z33nk", type: "date", oneWay: true, localDate: true },
     // --- added 2026-09-08 from the reviewed mapping sheet ---
     // Owner assigned date. HubSpot RESETS this on reassignment, which is exactly the semantics the
     // future 24-hour follow-up reminder needs, so it is the trigger field rather than a custom counter.
-    { hs: "hubspot_owner_assigneddate", col: "date_mm70pa4c", type: "date", oneWay: true },
+    // An instant (HubSpot `datetime`), and a candidate clock for the Day 1/3/5 follow-up reminder —
+    // a day's error here would fire a reminder a day early for anyone assigned after local midnight.
+    { hs: "hubspot_owner_assigneddate", col: "date_mm70pa4c", type: "date", oneWay: true, localDate: true },
     // Last Activity Date into a real DATE column. HubSpot sets notes_last_updated automatically from
     // calls/chats/LinkedIn/mail/meetings/notes/email/SMS/WhatsApp, so monday must never write it back.
-    { hs: "notes_last_updated", col: "date_mm7054jz", type: "date", oneWay: true },
+    { hs: "notes_last_updated", col: "date_mm7054jz", type: "date", oneWay: true, localDate: true },
     // HubSpot priority in its OWN status column, labels seeded from the exact 4 SLA options. The board's
     // native Priority (High/Medium/Low) stays UNMAPPED — same concept name, different meaning.
     { hs: "priority__c", col: "color_mm70ahh7", type: "status", labels: "contactPriority", reverse: true },
@@ -210,16 +241,57 @@ export const CRM_CONTACTS: ObjectSpec = {
      *  on `sales_user HAS_PROPERTY` (config.ts), so a CRM-side reverse write would pull contacts into
      *  the live Work-Management Worker's scope — ~957 candidates created since 2026-06-01 among the
      *  38,135 carrying no sales_user. Enabling reverse here is a WM scope decision, not a mapping
-     *  tweak, and the WM deployment must stay untouched. Asserted in reverse-enabled-batch.test.ts. */
-    { hs: "sales_user", col: "multiple_person_mm76ygkp", type: "people" },
+     *  tweak, and the WM deployment must stay untouched. Asserted in reverse-enabled-batch.test.ts.
+     *
+     *  TWO-WAY FROM 2026-09-23. The business asked for it outright ("Sales User doesn't update"), and
+     *  both objections to it are now answered in the engine rather than by keeping the column one-way:
+     *    - AMBIGUITY (the shared-email collapse -- nine owners share idaliang@dkmeco.com): buildCtx drops an
+     *      email claimed by more than one owner, so assigning such a person is REFUSED and healed, never
+     *      guessed. A person with a unique email is assigned exactly.
+     *    - STALE OVERWRITE: columnLevelReverse means this column is pushed only when a person edits THIS
+     *      column. The record-level engine would have sent whatever the cell held on any edit.
+     *  Known side effect, accepted: CONTACTS_MYLA (the legacy Work-Management board) scopes on
+     *  `sales_user HAS_PROPERTY`, so giving a contact its first Sales User here also brings it onto that
+     *  board. That board is no longer where sales work happens, and it touches no CRM data. */
+    { hs: "sales_user", col: "multiple_person_mm76ygkp", type: "people", reverse: true },
     // Lifecycle Stage. This portal replaced HubSpot's defaults with a 10-stage Chinese pipeline
     // (生命周期阶段管道), and its option VALUES are a mix of semantic strings (lead/opportunity/customer)
     // and raw numeric ids (1028988526) - so the label dictionary is load-bearing, not cosmetic: without
     // it monday would display "1028988526" instead of "3.Competitors".
-    // FORWARD-ONLY, deliberately. Lifecycle stage drives HubSpot workflows and automation, so a monday
-    // edit pushing someone to "8.The customer generating the transaction" could fire real business
-    // process. HubSpot stays the authority.
-    { hs: "lifecyclestage", col: "color_mm70k2wk", type: "status", labels: "lifecycleStage" },
+    /**
+     * TWO-WAY as of 2026-09-22, reversing the forward-only decision above it.
+     *
+     * The old reasoning was that lifecycle stage drives HubSpot workflows, so a monday edit could fire
+     * real business process, and HubSpot should stay the authority. That was coherent while HubSpot was
+     * where people worked. It stopped being coherent once the sales team moved to monday: the confirmed
+     * process is that a rep contacts a newly assigned Contact, logs the activity, and moves the stage
+     * off "1.NEW". Forward-only made that impossible in a particularly nasty way — see below.
+     *
+     * THE BUG IT CAUSED, on contact 549865853636 (monday item 2856478689). The field had neither
+     * `reverse` NOR `oneWay`. `oneWay` is what puts a column into ignoredColumns(), so without it a
+     * monday edit still fired a reconcile; without `reverse` that reconcile had nothing to send; and the
+     * forward pass then wrote HubSpot's value straight back. The rep's own edit triggered the write that
+     * erased it, roughly a second later. HubSpot's history for that contact shows ONE lifecyclestage
+     * entry ever — 2026-09-10, source FORM — so nothing on the HubSpot side was involved at all.
+     *
+     * SAFE TO REVERSE, verified against the live portal rather than assumed: all 10 monday labels
+     * translate back to a HubSpot option, and all 10 HubSpot labels are UNIQUE, so the inverse is a
+     * function. An unknown label (a rep renaming one) resolves to "" and is omitted rather than sent —
+     * reverseFieldValue refuses a status it cannot translate instead of inventing a value.
+     *
+     * OWNERSHIP STILL GOVERNS, and that is the real limit: a reverse write on an unstamped contact is
+     * refused and falls through to the forward write, so the edit still snaps back. That covers 97.9% of
+     * contacts created since 2026-09-10 (1,642 of 1,677 are crm-stamped) but almost none of the 94,244
+     * historical ones, which no rep is being assigned.
+     *
+     * BACKWARD MOVES NEED A CLEAR FIRST (2026-10-01). HubSpot accepts a PATCH to an EARLIER lifecycle stage
+     * with a 200 and ignores it, so every backward edit from monday silently never landed: 7 -> 3 on
+     * contact 42000269320 (Matthew Ng), 10 -> 6 -> 5 -> 6 on 553232416501 (hiffer), no history entry for
+     * either. See FieldSpec.backwardNeedsClear: an earlier stage is now sent as "" and then the stage, in
+     * the pipeline order HubSpot itself reports (displayOrder, 1.NEW = 0 ... 10.Other = 9, read live).
+     */
+    { hs: "lifecyclestage", col: "color_mm70k2wk", type: "status", labels: "lifecycleStage", reverse: true,
+      backwardNeedsClear: true },
     // 状态 - the LEGACY custom status field, internal name `leadstatus`. NOT HubSpot's built-in
     // `hs_lead_status`: the names differ by a single underscore and the two hold different data, which
     // is why this one took several attempts to locate (the API property search matches internal names,
@@ -303,12 +375,16 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   // domain name column; only the card label changes. See ObjectSpec.nameFallbackTransform.
   nameFallbackProps: ["domain"],
   nameFallbackTransform: "domainStem",
-  // nameReverse omitted: a renamed card must not rewrite the HubSpot company name.
+  // TWO-WAY from 2026-09-23. It was one-way so a stale card title could never ride along on an unrelated
+  // edit and overwrite HubSpot -- a record-level-engine risk. With columnLevelReverse the name is sent
+  // only when a person renames the card. It is also the only way a monday-created record gets a name:
+  // buildCreateProperties sends the item name through nameReverse and nothing else.
+  nameReverse: "name",
   boardId: "5028000496",
   idCol: "text_mm6tsnwx",
   syncStateCol: "text_mm6tccd0",
   linkCol: "link_mm6zyad8",                  // created Task 5
-  groupBy: { singleGroup: "topics" },
+  groupBy: { singleGroup: "topics", placeOnly: true },
   includeAll: true,                          // SAFE ONLY WITH Task 3B's mayCreateCrmCard
   skipFullReconcile: true,
   ownership: OWN_ACCOUNTS,
@@ -316,12 +392,23 @@ export const CRM_ACCOUNTS: ObjectSpec = {
   // An event caused by our own token is an echo: reconcile forward, never write back. See the
   // ObjectSpec note — 1,207 HubSpot Companies were created from such echoes during the import.
   suppressSelfOriginWrites: true,
+  columnLevelReverse: true,   // a person's edit pushes only that column; nothing else writes HubSpot
   fillEmptyFromMonday: true,                 // a monday value may FILL an empty HubSpot field (never clear one)
   createFromMonday: true,
+  // Inert as shipped (CRM_CREATE_CUTOFF_MS is Infinity): no monday card is old enough to be
+  // NEWER than it, so nothing creates until CRM_CREATE_CUTOFF_AT names a go-live timestamp.
+  createCutoffMs: CRM_CREATE_CUTOFF_MS,
   adoptBy: { kind: "domain", col: "company_domain" },   // native Domain link column, NOT the name column
-  // The mirror image of the Contacts relation, into the native `account_contact` column. HubSpot ->
-  // monday only, by the same reverseAssociations ownership gate. `account_deal` is a monday MIRROR that
-  // resolves through account_contact, so it is never written directly and needs no entry here.
+  // The mirror image of the Contacts relation, into the native `account_contact` column, under the same
+  // rules: forward fill from HubSpot, and a person's column-level edit pushes only what they added or
+  // removed (ownership decided on the COMPANY), snapping back on refusal. The two cells are paired, and
+  // one click must be ONE decision: if monday also reports the paired side, judging each side on its own
+  // record would let a refusal on the Contact be bypassed by a write authorised on the Company, or let a
+  // refused side's snap-back undo the other side's allowed edit. So the webhook drops the card from the
+  // paired echo's diff -- the first event of the pair to arrive owns it (isPairedEcho, relation-edit.ts;
+  // whether monday sends the echo, and in which order, is still to be confirmed from a live payload).
+  // `account_deal` is a monday MIRROR that resolves through account_contact, so it is never written
+  // directly and needs no entry here.
   associations: [
     { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: "account_contact" },
   ],
@@ -370,7 +457,9 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     // partner_with is a DROPDOWN, not a status: monday status columns reject its 27 labels with a 500
     // (16 ok, 20+ fail). Also the safer branch — dropdown reverse DROPS an unknown label where
     // status/text sends it raw to the HubSpot enum. Forward-only in Phase 1.
-    { hs: "partner_with", col: "dropdown_mm6zd1ge", type: "dropdown", labels: "partnerWith" },
+    // TWO-WAY from 2026-09-23: it had neither reverse nor oneWay, so a rep edit fired a reconcile that wrote
+    // HubSpot's value straight back -- the Lifecycle Stage bug class. It has a validated dictionary.
+    { hs: "partner_with", col: "dropdown_mm6zd1ge", type: "dropdown", labels: "partnerWith", reverse: true },
     { hs: "city", col: "text_mm6tdrdn", type: "text", reverse: true },
     { hs: "state", col: "text_mm6t5tv", type: "text", reverse: true },
     { hs: "zip", col: "text_mm6t7ha4", type: "text", reverse: true },
@@ -383,22 +472,55 @@ export const CRM_ACCOUNTS: ObjectSpec = {
     // payload, stable diffs) but the reverse does not — a text column has no numeric validation, so
     // "approx 500" / "500-1000" would reach a HubSpot NUMBER property and 400 every tick. Contacts in
     // this portal really do carry ranges like "100-500" in the sibling `numemployees` property.
-    { hs: "numberofemployees", col: "employee_count", type: "text" },
+    // TWO-WAY since 2026-09-23, through reverseAs "integer": a whole number reaches HubSpot, a range or
+    // any other text is refused and the cell healed -- the failure described above cannot happen.
+    { hs: "numberofemployees", col: "employee_count", type: "text", reverse: true, reverseAs: "integer" },
     { hs: "hubspot_owner_id", col: "multiple_person_mm6z8mwy", type: "people", appReverse: true },
-    { hs: "createdate", col: "date_mm6zmtf8", type: "date", oneWay: true },
+    { hs: "createdate", col: "date_mm6zmtf8", type: "date", oneWay: true, localDate: true },
+    /**
+     * LAST ACTIVITY DATE — the exact mirror of the Contacts column (date_mm7054jz), same property and
+     * same title, so the two boards cannot disagree about what "last activity" means.
+     *
+     * oneWay is mandatory, not stylistic: HubSpot reports modificationMetadata.readOnlyValue=true, so a
+     * reverse write would 400. It also puts the column into ignoredColumns(), which stops a bulk fill
+     * from storming the reconciler with one full record sync per card.
+     *
+     * Expect it to read EMPTY on ~79% of Accounts. That is HubSpot's own coverage — 5,997 of 28,586
+     * carded companies have any logged activity at all — not a broken sync.
+     */
+    { hs: "notes_last_updated", col: "date_mm7dtzwm", type: "date", oneWay: true, localDate: true },
     // Sales User, DISPLAY-ONLY, in a SINGLE-SELECT DROPDOWN (was text_mm6twxwe, a text column).
     // Identical treatment and identical reasoning to Contacts above — 41 seeded owner names, dropdown
     // because 42 breaks a status column, limit_select so it stays single-choice, labels resolved from
     // the OWNER list because `sales_user` has no static options, and forward-only because two owner ids
     // share the name "Rick Antonio". See the Contacts mapping for the full note.
-    { hs: "sales_user", col: "dropdown_mm704kf4", type: "dropdown", labels: "salesUser" },
+    /**
+     * SALES USER AS A PEOPLE COLUMN — the shape the business asked for, and the shape Contacts already
+     * uses (multiple_person_mm76ygkp). An avatar a rep recognises, and the column Lark will read to
+     * decide who a follow-up reminder goes to.
+     *
+     * FORWARD-ONLY, and that is not caution for its own sake. The people path joins HubSpot owners to
+     * monday users by EMAIL, and nine owner ids in this portal share ida***@dkmeco.com — 华南销售,
+     * 华东销售, 华北销售, 华北主管, 华南主管, Commercial, Maintenance, ADMIN A and Ida Liang. Forward they
+     * all resolve to one monday user, which is a display loss. BACKWARD there is no way to tell them
+     * apart at all, so a reverse write would pick one arbitrarily and silently reassign ~1,255 Accounts
+     * to the wrong department. Reverse stays off until each of those owners has its own email.
+     *
+     * THE DROPDOWN IS KEPT, hidden rather than deleted, until the People column is populated and
+     * verified: it is the only place the nine departments remain distinguishable, and deleting a column
+     * a live spec still names 400s every write to the board (the text_mm6sdvkq incident).
+     */
+    // TWO-WAY from 2026-09-23 -- see the Contacts Sales User note: an ambiguous (shared-email) person is
+    // refused by the engine, and column-level reverse pushes this cell only when someone edits it.
+    { hs: "sales_user", col: "multiple_person_mm7d2qk6", type: "people", reverse: true },
     // SIDEBAR PARITY, 2026-09-08. The only field on the company sidebar with no column.
     // TEXT despite being an enumeration, which looks like a rule violation and is not: the property
     // returns `options: []` from the API (dynamic/external options, exactly like sales_user), so a
     // dropdown cannot be SEEDED — and an unseeded one would grow without bound past the 88-label
     // ceiling via create_labels_if_missing, because HubSpot adds record sources on its own schedule.
     // Read-only system metadata ("CRM UI", "Import", "Integration"), so forward-only regardless.
-    { hs: "hs_object_source_label", col: "text_mm707cf3", type: "text" },
+    // A read-only HubSpot system property: oneWay, so a monday edit is ignored instead of reconciled and reverted.
+    { hs: "hs_object_source_label", col: "text_mm707cf3", type: "text", oneWay: true },
   ],
 };
 
@@ -416,7 +538,8 @@ const OWN_LINE_ITEMS: OwnershipSpec = { ...OWN_CONTACTS };
  * off. So:
  *
  *   - `deal_stage` (the native monday status, 6 labels) stays HUBSPOT -> MONDAY ONLY. Many HubSpot
- *     stages map onto one monday label and a many-to-one map has no inverse.
+ *     stages map onto one monday label and a many-to-one map has no inverse. Behind STAGE_COARSE_REVERSE
+ *     a PERSON's edit of it CHOOSES one (see the field below): never a guess, never another pipeline.
  *   - `HubSpot Stage` carries the exact stage two-way, with PIPELINE-QUALIFIED labels
  *     ("SF-Maint / 赢单") from getCrmStageDicts. Qualifying is what restores uniqueness.
  *   - `stagePipelinePairing` sends `pipeline` with every `dealstage` write, because HubSpot rejects a
@@ -439,19 +562,43 @@ export const CRM_DEALS: ObjectSpec = {
   searchFilters: [],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["dealname"],
-  // nameReverse omitted: renaming a card must not rewrite the HubSpot deal name.
+  // TWO-WAY from 2026-09-23. It was one-way so a stale card title could never ride along on an unrelated
+  // edit and overwrite HubSpot -- a record-level-engine risk. With columnLevelReverse the name is sent
+  // only when a person renames the card. It is also the only way a monday-created record gets a name:
+  // buildCreateProperties sends the item name through nameReverse and nothing else.
+  nameReverse: "dealname",
   boardId: "5028000494",
   idCol: "text_mm76kxz4",
   syncStateCol: "text_mm7668db",
   linkCol: "link_mm76z640",
-  groupBy: { singleGroup: "topics" },
+  groupBy: { singleGroup: "topics", placeOnly: true },
   includeAll: true,
   skipFullReconcile: true,
   ownership: OWN_DEALS,
   restoreOnDelete: true,
   suppressSelfOriginWrites: true,
+  columnLevelReverse: true,   // a person's edit pushes only that column; nothing else writes HubSpot
   fillEmptyFromMonday: true,
-  createFromMonday: false,
+  createFromMonday: true,
+  // Inert as shipped (CRM_CREATE_CUTOFF_MS is Infinity): no monday card is old enough to be
+  // NEWER than it, so nothing creates until CRM_CREATE_CUTOFF_AT names a go-live timestamp.
+  createCutoffMs: CRM_CREATE_CUTOFF_MS,
+  /**
+   * A DEAL CANNOT BE BORN WITHOUT A VALID PIPELINE + STAGE PAIR — HubSpot rejects the record otherwise,
+   * and the monday form leaves both unanswered: Deal Pipeline is hidden on it and Stage is not
+   * mandatory. These are the FLOOR, used only when the rep supplies nothing usable.
+   *
+   * "default" is HubSpot's own Sales Pipeline and `appointmentscheduled` its first, open stage (both
+   * verified live). A floor rather than a guess at intent: deals created since 2026-08-01 split across
+   * three pipelines — Maintenance 47, default 41, Shared Selling 12 — so there is no majority to infer.
+   * The real answer is to make Pipeline visible and Stage mandatory on the form; this only guarantees a
+   * create can never 400, and never lands in a CLOSED stage.
+   *
+   * NO adoptBy, deliberately: deal NAMES are not unique (this portal holds three deals called
+   * "test123"), so adopting on one would link a new deal to an unrelated record. Duplicate protection
+   * comes from claimHubspotForItem instead, which is keyed on the monday ITEM.
+   */
+  createDefaults: { pipeline: "default", dealstage: "appointmentscheduled" },
   stagePipelinePairing: { stageProp: "dealstage", pipelineProp: "pipeline" },
   // All three association directions, into the paired Connect Boards columns created 2026-09-14.
   // `deal_account` is a monday MIRROR resolving through deal_contact and is never written directly.
@@ -487,25 +634,64 @@ export const CRM_DEALS: ObjectSpec = {
      * The exact, authoritative stage is the pipeline-qualified dropdown below; this one is the coarse
      * surface those automations read.
      */
+    /*
+     * STAGE_COARSE_REVERSE (ships "false"): a PERSON may edit it through. Still `oneWay` here on purpose:
+     * with the flag off that keeps every event on it ignored, and with it on the webhook lets only a
+     * person's edit past (never automation 31010016's Stage = New, never our own echo), and
+     * coarseStageEdit (reconcile.ts) turns the label into ONE stage within the deal's current pipeline:
+     * nothing when HubSpot's stage already reads as it, else the first stage of that bucket -- the LAST
+     * for Lost, so it is 输单 and never the 暂停 (Paused) before it (coarseStageTargets). Only the five
+     * labels are accepted; the leftovers and a blank are refused and snapped back -- but never back onto
+     * Won, because that write re-runs 31010010 and 31010017 (a duplicate Client Project): a refused edit
+     * of an already-Won deal is left as set and logged. An edit of HubSpot Stage in the same change wins.
+     * The forward direction is unchanged. A monday-born deal is still created from createDefaults when
+     * HubSpot Stage is empty: the create cannot tell a person's Stage from 31010016's New, so this column
+     * never feeds it.
+     */
     { hs: "dealstage", col: "deal_stage", type: "status", labels: "crmCoarseStage",
       oneWay: true, strictDict: true },
     // TWO-WAY: the exact stage, pipeline-qualified so the inverse is a function.
     { hs: "dealstage", col: "dropdown_mm7624zd", type: "dropdown", labels: "crmStage", reverse: true },
     { hs: "pipeline", col: "dropdown_mm76s7kk", type: "dropdown", labels: "crmPipeline", reverse: true },
     { hs: "amount", col: "deal_value", type: "numbers", reverse: true },
-    { hs: "closedate", col: "deal_expected_close_date", type: "date", reverse: true },
+    /**
+     * localDate: HubSpot stores a Close Date picked in its UI as LOCAL midnight (16:00Z the day before,
+     * portal Asia/Shanghai). A UTC slice showed the day BEFORE on 7,094 of 8,632 deals (2026-09-23).
+     * The reverse sends a plain YYYY-MM-DD, stored at 00:00Z, which reads back as the same local day --
+     * so the round trip is stable in both directions.
+     */
+    { hs: "closedate", col: "deal_expected_close_date", type: "date", reverse: true, localDate: true },
     // HubSpot stores a FRACTION (0.2); the column renders `%`. Without scale a 20% deal reads 0.2%,
     // and the board's Forecast Value formula multiplies that error into money.
     { hs: "hs_deal_stage_probability", col: "deal_close_probability", type: "numbers", reverse: true, scale: 100 },
     { hs: "dealtype", col: "dropdown_mm76sh6x", type: "dropdown", labels: "dealtype", reverse: true },
     { hs: "hs_priority", col: "color_mm76tdww", type: "status", labels: "priority", reverse: true },
-    { hs: "deal_currency_code", col: "dropdown_mm76570x", type: "dropdown", labels: "pipeline", reverse: true, unvalidatedEnum: true },
+    // No dictionary: HubSpot resolves these options dynamically, and `labels: "pipeline"` (the value
+    // until 2026-09-23) was the wrong dictionary outright, so every edit was refused. See reverseAs.
+    { hs: "deal_currency_code", col: "dropdown_mm76570x", type: "dropdown", reverse: true, reverseAs: "currency" },
     { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm76dtzq", type: "dropdown", labels: "vendor", reverse: true },
-    { hs: "sales_user", col: "dropdown_mm76ncf5", type: "dropdown", labels: "salesUser", reverse: true },
+    // The People column the business asked for. FORWARD-ONLY — see the Accounts twin above for why the
+    // shared-email collapse makes the inverse unsafe. The dropdown below keeps its reverse for now, so
+    // a rep can still reassign a deal until the People path is proven.
+    // TWO-WAY from 2026-09-23 -- see the Contacts Sales User note. The dropdown stays for now: it is the
+    // only place deals owned by people without a monday seat (joan zhang, the shared-email departments)
+    // still show a Sales User, so deleting it would blank ~390 cards.
+    { hs: "sales_user", col: "multiple_person_mm7df31a", type: "people", reverse: true },
     // Record OWNERSHIP: appReverse, so a stale people column cannot silently reassign a deal.
     { hs: "hubspot_owner_id", col: "deal_owner", type: "people", appReverse: true },
     // HubSpot-computed: there is nothing to push back.
-    { hs: "notes_last_updated", col: "date__1", type: "date", oneWay: true },
+    { hs: "notes_last_updated", col: "date__1", type: "date", oneWay: true, localDate: true },
+    /**
+     * CREATED DATE — the HubSpot deal's, not the monday card's.
+     *
+     * Deliberately NOT monday's built-in Creation Log: that records when the CARD was made, and every
+     * card on this board was made during the 2026-09-14/15 import, so it would assert that all 8,665
+     * deals were created that week. Measured: 0 of 20 sampled cards share a calendar day with their
+     * HubSpot deal. Creation Log is also read-only, so the engine could not populate it either way.
+     *
+     * Population is essentially total (8,664 of 8,665), so this fills in on virtually every card.
+     */
+    { hs: "createdate", col: "date_mm7dgxym", type: "date", oneWay: true, localDate: true },
   ],
 };
 
@@ -531,20 +717,67 @@ export const CRM_LINE_ITEMS: ObjectSpec = {
   searchFilters: [],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["name"],
+  // TWO-WAY from 2026-09-23. It was one-way so a stale card title could never ride along on an unrelated
+  // edit and overwrite HubSpot -- a record-level-engine risk. With columnLevelReverse the name is sent
+  // only when a person renames the card. It is also the only way a monday-created record gets a name:
+  // buildCreateProperties sends the item name through nameReverse and nothing else.
+  nameReverse: "name",
   boardId: "5028000489",
   idCol: "text_mm76qwtw",
   syncStateCol: "text_mm76kcss",
   linkCol: "link_mm76mcap",
-  groupBy: { singleGroup: "topics" },
+  groupBy: { singleGroup: "topics", placeOnly: true },
   includeAll: true,
   skipFullReconcile: true,
   ownership: OWN_LINE_ITEMS,
   restoreOnDelete: true,
   suppressSelfOriginWrites: true,
+  columnLevelReverse: true,   // a person's edit pushes only that column; nothing else writes HubSpot
   fillEmptyFromMonday: true,
-  createFromMonday: false,
+  /**
+   * CREATION ENABLED 2026-09-21. The P&S form's own description says what it is for — "等同之前在
+   * hubspot中新增：Line items" — and until now it added a monday card and no Line Item.
+   *
+   * NO adoptBy: a line item has no natural key. Two rows of "Intercom, qty 5" on one deal are two
+   * legitimate line items, not a duplicate, so matching on name or SKU would silently merge real data.
+   * Duplicate protection is claimHubspotForItem, keyed on the monday ITEM, which is the only thing that
+   * genuinely identifies "this row the rep just added".
+   */
+  createFromMonday: true,
+  // Inert as shipped (CRM_CREATE_CUTOFF_MS is Infinity): no monday card is old enough to be
+  // NEWER than it, so nothing creates until CRM_CREATE_CUTOFF_AT names a go-live timestamp.
+  createCutoffMs: CRM_CREATE_CUTOFF_MS,
+  /**
+   * BORN ON ITS DEAL. typeId 20 is HubSpot's line_item -> deal association, read live from
+   * /crm/v4/associations/line_items/deals/labels rather than assumed. The Deal relation is already
+   * mandatory on the form, so a rep cannot normally reach the refusal — but a Deal card that has not
+   * itself synced yet can, and that is exactly when refusing is right.
+   */
+  createParent: { toObject: "deals", relationCol: "board_relation_mm76w9y5", associationTypeId: 20 },
   associations: [
     { toObject: "deals", nameProps: ["dealname"], relationCol: "board_relation_mm76w9y5" },
+    /**
+     * THE ACCOUNT, DERIVED — so nobody has to pick it by hand.
+     *
+     * A line item carries no company in HubSpot: `/crm/v4/associations/line_items/companies/labels`
+     * returns an EMPTY set, verified live, so this is not a direct association written the long way,
+     * it is the only way the link can be known. `via: "deals"` walks line_item -> deal -> company.
+     *
+     * NO `col:` AND NO Company Name FIELD, deliberately. lookup_mm7cte64 ("Company name") is a monday
+     * MIRROR already resolving through this very relation column onto the Accounts board's
+     * text_mm6t1q4h. Populating the relation makes the name appear by itself; adding a text copy would
+     * be the second source of truth the Contacts spec removed `company` for.
+     *
+     * `viaPrimary` matters on ~5% of the board: a deal may link two companies, one of them flagged
+     * Primary (typeId 5). Without it a line item would show both Accounts.
+     *
+     * REVERSE: a person's edit of this cell never writes a line item association (none can exist).
+     * Behind PS_ACCOUNT_REVERSE (off by default) it may FILL the company of the line item's single deal
+     * when that deal has none -- deal -> company, Primary -- and every other edit snaps the cell back to
+     * this derived set. See fillDealCompany in associations.ts.
+     */
+    { toObject: "companies", nameProps: ["name"], relationCol: "board_relation_mm7cz3v8",
+      via: "deals", viaPrimary: true },
   ],
   fields: [
     /**
@@ -568,6 +801,18 @@ export const CRM_LINE_ITEMS: ObjectSpec = {
     { hs: "hs_cost_of_goods_sold", col: "numeric_mm76yzc4", type: "numbers", reverse: true },
     { hs: "discount", col: "numeric_mm76kfhq", type: "numbers", reverse: true },
     { hs: "deposit", col: "numeric_mm762vb", type: "numbers", reverse: true },
+    /**
+     * NET PRICE — HubSpot's own label for `amount`, and HubSpot's own arithmetic.
+     *
+     * NEVER compute this as price x quantity. That formula reproduces `hs_pre_discount_amount`, not
+     * `amount`: live line item 9956357489 is 15,400 x 1 with an amount of 12,320, because a discount
+     * that the `discount` property does not show is folded in. Recomputing would overstate that row by
+     * 3,080 and nothing would flag it.
+     *
+     * oneWay because the property is calculated/read-only in HubSpot — a reverse write is rejected.
+     * Populated on 9,970 of 9,970 line items, so the column fills on every card.
+     */
+    { hs: "amount", col: "numeric_mm7dezck", type: "numbers", oneWay: true },
     { hs: "service_date", col: "date_mm76shxe", type: "date", reverse: true },
     { hs: "hs_recurring_billing_start_date", col: "date_mm76qejs", type: "date", reverse: true },
     { hs: "brand_isv", col: "dropdown_mm76atcg", type: "dropdown", labels: "liBrand", reverse: true },
@@ -578,7 +823,9 @@ export const CRM_LINE_ITEMS: ObjectSpec = {
     // Stores a tax-rate GROUP ID and displays a label, so the dictionary is mandatory rather than cosmetic.
     { hs: "hs_tax_rate_group_id", col: "dropdown_mm76ftmq", type: "dropdown", labels: "liTaxRate", reverse: true },
     { hs: "is_active", col: "color_mm76w1cs", type: "status", labels: "liIsActive", reverse: true },
-    { hs: "hs_line_item_currency_code", col: "dropdown_mm76dqnc", type: "dropdown", labels: "liCurrency", reverse: true },
+    // No dictionary: the property's options are externalOptions, so `liCurrency` fetched EMPTY and every
+    // edit was refused. The cells hold bare ISO codes. See reverseAs.
+    { hs: "hs_line_item_currency_code", col: "dropdown_mm76dqnc", type: "dropdown", reverse: true, reverseAs: "currency" },
   ],
 };
 

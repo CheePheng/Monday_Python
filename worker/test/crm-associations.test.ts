@@ -5,12 +5,16 @@ import { adoptionKey, isPublicEmailDomain } from "../src/adopt";
 import type { HsRecord, MondayItem, ObjectSpec, RunOpts } from "../src/types";
 
 /**
- * CONTACT <-> COMPANY ASSOCIATIONS — HubSpot -> monday ONLY, enforced in code.
+ * CONTACT <-> COMPANY ASSOCIATIONS — the reverse direction is governed in code, never by convention.
  *
- * The reverse direction is blocked by an ownership gate inside reverseAssociations rather than by not
- * declaring associations, because "remember not to declare it" is not a safety property. This matters
- * specifically because reverseAssociations is NOT deals-only: sync.ts:567 is in syncMondayItem's generic
- * "already linked" branch and /app/sync-contact routes contacts through it.
+ * The reverse direction is gated by ownership inside reverseAssociations rather than by not declaring
+ * associations, because "remember not to declare it" is not a safety property. This matters
+ * specifically because reverseAssociations is NOT deals-only: syncMondayItem's generic "already linked"
+ * branch reaches it, and /app/sync-contact routes contacts through it.
+ *
+ * UPDATED 2026-09-28. The calls below pass no scope, which is the WHOLE-CELL pass (WM, drawer save) and
+ * is unchanged. A CRM person's webhook edit takes the column-level path, which pushes only what the edit
+ * added (bottom of this file; association-link-diff.test.ts has the rest).
  */
 
 const crmEnv = { ENABLE_CRM: "true" } as { ENABLE_CRM?: string };
@@ -67,12 +71,15 @@ describe("the CRM specs declare exactly the native Contact<->Company relations",
 
 const hs = vi.hoisted(() => ({
   putAssociation: vi.fn(), getAssociatedIds: vi.fn(), getRecordsByIds: vi.fn(),
+  getAllAssociatedIds: vi.fn(), deleteAssociation: vi.fn(), putAssociationTypes: vi.fn(),
+  getAssociatedVia: vi.fn(),
   getRecord: vi.fn(), patchLineItem: vi.fn(), createLineItem: vi.fn(), propertiesForSpec: vi.fn(() => []),
 }));
 const monday = vi.hoisted(() => ({
   getLinkedItemIds: vi.fn(), getItemsColumnText: vi.fn(), findItemIdsByColumn: vi.fn(),
   createItem: vi.fn(), createSubitem: vi.fn(), deleteItem: vi.fn(), getItem: vi.fn(),
   getParentItemId: vi.fn(), getSubitems: vi.fn(), setColumns: vi.fn(), updateItem: vi.fn(),
+  getItemStates: vi.fn(),
 }));
 
 vi.mock("../src/hubspot", () => hs);
@@ -168,14 +175,58 @@ describe("editing a monday CRM relation produces ZERO HubSpot association mutati
   });
 });
 
-describe("WM REGRESSION: the reverse pass still works for specs without ownership", () => {
-  it("a WM spec with associations DOES reach putAssociation", async () => {
-    await reverseAssociations({} as never, DEALS, rec, item, live, { left: 30 });
+describe("CRM column-level edit: only what the person added, never the stale rest of the cell", () => {
+  const owned: HsRecord = { id: "9001", properties: { sync_owner: "crm", createdate: "2026-09-05T00:00:00Z" } };
+  const colEdit = (spec: ObjectSpec, col: string, linked?: string[]) =>
+    reverseAssociations({} as never, spec, owned, item, live, { left: 30 },
+      { onlyCols: new Set([col]), basis: "human-edit", unlinked: { [col]: [] },
+        ...(linked ? { linked: { [col]: linked } } : {}) });
+  beforeEach(() => {
+    monday.getLinkedItemIds.mockResolvedValue(["c1", "c2"]);
+    monday.getItemsColumnText.mockImplementation(async (_e: unknown, ids: string[]) =>
+      Object.fromEntries(ids.map(id => [id, id === "c1" ? "5555" : "6666"])));
+    monday.findItemIdsByColumn.mockResolvedValue({});
+    hs.getAllAssociatedIds.mockResolvedValue({ ids: [], truncated: false });
+  });
+
+  it.each([["contacts", CRM_CONTACTS, "contact_account"], ["companies", CRM_ACCOUNTS, "account_contact"]] as const)(
+    "%s: the stale linked card is not pushed; the added one is", async (_o, spec, col) => {
+      await colEdit(spec, col, ["c2"]);
+      expect(hs.putAssociation).toHaveBeenCalledTimes(1);
+      expect(hs.putAssociation.mock.calls[0][4]).toBe("6666");
+    });
+
+  it("no before-value: nothing is pushed, even though HubSpot lacks both cards", async () => {
+    await colEdit(CRM_CONTACTS, "contact_account");
+    expect(hs.putAssociation).not.toHaveBeenCalled();
+  });
+});
+
+describe("WM REGRESSION: the reverse pass still works for WM-owned records", () => {
+  /**
+   * RETARGETED 2026-09-22. WM declares ownership now, so this no longer proves "an unowned spec is
+   * ungated" — it proves the stronger and more useful thing: a record WM legitimately owns still gets
+   * its association written. The fixture carries a pre-cutover `createdate` because that is what
+   * propertiesForSpec fetches in production; without it authorizeWrite fails CLOSED on unusable
+   * metadata, which is correct behaviour and exactly what the bare fixture was accidentally testing.
+   */
+  it("a WM spec with associations DOES reach putAssociation for a record it owns", async () => {
+    const wmRec = { id: "1", properties: { createdate: "2026-01-01T00:00:00Z" } };
+    await reverseAssociations({} as never, DEALS, wmRec, item, live, { left: 30 });
     expect(hs.putAssociation).toHaveBeenCalled();
   });
 
-  it("no WM spec declares ownership, so none of them is gated", () => {
-    for (const s of ALL_SPECS) expect(s.ownership).toBeUndefined();
+  it("and REFUSES the same write once the record is stamped crm", async () => {
+    const claimed = { id: "1", properties: { createdate: "2026-01-01T00:00:00Z", sync_owner: "crm" } };
+    await reverseAssociations({} as never, DEALS, claimed, item, live, { left: 30 });
+    expect(hs.putAssociation).not.toHaveBeenCalled();
+  });
+
+  it("every WM spec is owner \"wm\" — never crm, so it never claims", () => {
+    // CHANGED 2026-09-22: WM now DECLARES ownership (owner "wm") so it refuses crm-stamped and
+    // held records. What must stay true is that it is never "crm" — it never claims, and its card
+    // creation is never gated by the no-historical-import rule.
+    for (const s of ALL_SPECS) expect(s.ownership?.owner).toBe("wm");
   });
 
   it("WM contacts keep their own two relation columns, untouched", () => {
@@ -230,12 +281,32 @@ describe("PA-1: public email providers can never be a company adoption key", () 
   // SCOPE. This guard is about COMPANY DOMAIN matching only. A contact whose email is at a provider is a
   // perfectly valid contact and syncs normally — contact email is never a company matching key, and the
   // CRM Contacts spec maps email forward-only with no adoptBy at all.
-  it("says nothing about Contacts: their email is never an adoption key", () => {
-    expect(CRM_CONTACTS.adoptBy).toBeUndefined();
-    const emailField = CRM_CONTACTS.fields.find(f => f.hs === "email")!;
-    expect(emailField.reverse).toBeUndefined();
+  /**
+   * CHANGED 2026-09-21: Contacts now DO adopt by email. The guard's scope is unchanged and this test
+   * now proves why that is still safe — a contact is matched on the FULL ADDRESS, never on its domain,
+   * so two people at gmail.com are two keys. The company guard and the contact key never meet.
+   */
+  it("still says nothing about Contacts: they match on the address, not the domain", () => {
+    expect(CRM_CONTACTS.adoptBy).toEqual({ kind: "email", col: "contact_email" });
     expect(isPublicEmailDomain("gmail.com")).toBe(true);   // blocked as a COMPANY domain...
-    expect(emailField.col).toBe("contact_email");          // ...while the contact field is untouched
+    const contact = (e: string): MondayItem =>
+      ({ id: "c1", name: "Someone", created_at: "", updated_at: "", group: { id: "g" },
+         column_values: [{ id: "contact_email", text: e }] as never });
+    // ...while two contacts at that very provider remain distinct, adoptable records
+    expect(adoptionKey(contact("john@gmail.com"), CRM_CONTACTS)).toBe("john@gmail.com");
+    expect(adoptionKey(contact("mary@gmail.com"), CRM_CONTACTS)).toBe("mary@gmail.com");
+  });
+
+  /** The company key and the contact key must never be computed the same way. */
+  it("a provider domain is a company key of \"\" but a perfectly good contact key", () => {
+    const acct = (d: string): MondayItem =>
+      ({ id: "a1", name: "Co", created_at: "", updated_at: "", group: { id: "g" },
+         column_values: [{ id: "company_domain", text: d }] as never });
+    const cont = (e: string): MondayItem =>
+      ({ id: "c1", name: "P", created_at: "", updated_at: "", group: { id: "g" },
+         column_values: [{ id: "contact_email", text: e }] as never });
+    expect(adoptionKey(acct("qq.com"), CRM_ACCOUNTS)).toBe("");
+    expect(adoptionKey(cont("someone@qq.com"), CRM_CONTACTS)).toBe("someone@qq.com");
   });
 
   it("the WM company path does not use adoptionKey, so it is unchanged by this guard", () =>

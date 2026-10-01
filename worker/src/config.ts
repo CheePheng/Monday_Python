@@ -1,6 +1,6 @@
 import { CRM_SPECS } from "./config/crm";
 import { cutoverFromEnv } from "./ownership";
-import type { ObjectSpec, SubitemSpec } from "./types";
+import type { ObjectSpec, OwnershipSpec, SubitemSpec } from "./types";
 
 // ---- Discovered constants (worker_discovery.py / add_id_columns.py, 2026-07-03) ----
 // sales_user values are raw HubSpot owner ids (the property has no labeled options).
@@ -81,6 +81,31 @@ export const LINE_ITEM_SUBITEMS: SubitemSpec = {
   ],
 };
 
+/**
+ * WORK MANAGEMENT OWNS ITS RECORDS, AND MUST REFUSE THE OTHER SIDE'S — the symmetric half of the
+ * ownership model, added 2026-09-22.
+ *
+ * `authorizeWrite` has implemented the whole rule since 2026-09-07; the WM specs simply never declared
+ * `ownership`, so it returned "allowed" for them unconditionally and the guard existed on one side only.
+ * That is not a theoretical asymmetry: 15 live deals in the `default` pipeline sit in BOTH Workers'
+ * write scope, and once CRM claims one, WM would have carried on patching it.
+ *
+ * What declaring this changes, and nothing else:
+ *   - a record stamped `crm` or `hold` is now REFUSED to WM (the fix);
+ *   - a record stamped `wm` is allowed, as before;
+ *   - an UNSTAMPED record is allowed when `createdate < cutoverAtMs`. With no CRM_CUTOVER_AT var the
+ *     cutover is Infinity, so every unstamped record stays writable and WM behaves byte-for-byte as it
+ *     does today. Closing the remaining blank-post-cutover window needs the SAME finite timestamp on
+ *     both Workers — which is why it is deployment config and not a constant here.
+ *
+ * HubSpot -> monday mirroring is untouched: a refusal falls through to the forward write (sync.ts:243),
+ * so a WM card keeps updating from HubSpot even for a record WM may not write back to.
+ */
+const OWN_WM: OwnershipSpec = {
+  prop: "sync_owner", createdProp: "createdate", owner: "wm",
+  cutoverAtMs: Number.POSITIVE_INFINITY,   // overridden per-deployment by specsFor()
+};
+
 export const DEALS: ObjectSpec = {
   object: "deals",
   objectTypeId: "0-3",
@@ -97,6 +122,7 @@ export const DEALS: ObjectSpec = {
   linkCol: "link_mm4ns4nn",
   // Group by stage; deals with no sales_user go to the "Unassigned Deals" group instead.
   groupBy: { prop: "dealstage", map: STAGE_GROUPS, reverse: true, noSalesUserGroup: UNASSIGNED_GROUP },
+  ownership: OWN_WM,
   createFromMonday: true,
   // A card added by a salesperson creates a Sales-Pipeline deal; owner/sales_user get set in HubSpot
   // afterward — until then it sits in the Unassigned group.
@@ -158,6 +184,7 @@ export const COMPANIES_MYLA: ObjectSpec = {
   associations: [
     { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: COMPANY_REL_CONTACT },
   ],
+  ownership: OWN_WM,
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
@@ -214,6 +241,7 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { toObject: "companies", nameProps: ["name"], relationCol: CONTACT_REL_COMPANY },
     { toObject: "deals", nameProps: ["dealname"], relationCol: CONTACT_REL_DEAL },
   ],
+  ownership: OWN_WM,
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
@@ -274,22 +302,62 @@ export const SPEC_BY_OBJECT: Record<string, ObjectSpec> = {
  *
  * When the var is absent (every test, and the checked-in config) the ORIGINAL spec objects are
  * returned unchanged, so object identity is preserved for callers that compare by reference. */
-export function specsFor(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }): ObjectSpec[] {
-  if (env.ENABLE_CRM !== "true") return ALL_SPECS;
-  if (env.CRM_CUTOVER_AT === undefined) return CRM_SPECS;
-  const cutoverAtMs = cutoverFromEnv(env.CRM_CUTOVER_AT);
-  if (cutoverAtMs === Number.POSITIVE_INFINITY) return CRM_SPECS;   // fail-closed: no override
-  return CRM_SPECS.map(s => s.ownership ? { ...s, ownership: { ...s.ownership, cutoverAtMs } } : s);
+export function specsFor(env: CrmEnv): ObjectSpec[] {
+  // THE SAME TIMESTAMP MUST REACH BOTH DEPLOYMENTS, or each side disagrees about who owns an unstamped
+  // record — the split-brain the model exists to prevent. WM reads it here exactly as CRM does below;
+  // absent, it stays Infinity and WM keeps writing every unstamped record, which is today's behaviour.
+  if (env.ENABLE_CRM !== "true") return withCutover(ALL_SPECS, env.CRM_CUTOVER_AT);
+  return withCutover(withCreateCutoff(CRM_SPECS, env), env.CRM_CUTOVER_AT);
+}
+
+/**
+ * Apply the deployment's ownership cutover to whichever specs declare ownership.
+ *
+ * Shared by both branches on purpose. It used to live inline in the CRM branch only, which is exactly
+ * how the WM side ended up with no cutover to honour even after it was given an ownership spec.
+ *
+ * Identity is preserved when there is nothing to apply — absent or implausible input returns the
+ * ORIGINAL spec objects, because callers compare by reference.
+ */
+function withCutover(specs: ObjectSpec[], raw: string | undefined): ObjectSpec[] {
+  if (raw === undefined) return specs;
+  const cutoverAtMs = cutoverFromEnv(raw);
+  if (cutoverAtMs === Number.POSITIVE_INFINITY) return specs;       // fail-closed: no override
+  return specs.map(s => s.ownership ? { ...s, ownership: { ...s.ownership, cutoverAtMs } } : s);
+}
+
+export type CrmEnv = { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string; CRM_CREATE_CUTOFF_AT?: string };
+
+/**
+ * WHEN MAY A MONDAY CARD CREATE A HUBSPOT RECORD? Never, unless a go-live timestamp says so.
+ *
+ * `CRM_CREATE_CUTOFF_MS` has sat in config/crm.ts as POSITIVE_INFINITY since Phase 1, read by nothing,
+ * while the create path used the Work-Management constant (2026-07-03) for CRM cards too. Harmless only
+ * because createFromMonday was false almost everywhere; now that all four CRM boards create from their
+ * 创建/Create form, that stale constant would have admitted every pre-existing card on those boards —
+ * including the ~1,301 id-less Accounts cards monday's Item Association manufactured in September.
+ *
+ * Read from the environment through the same range-bounded, FAIL-CLOSED parser as the ownership
+ * cutover, so a missing or malformed value means "create nothing" rather than "create everything".
+ */
+function withCreateCutoff(specs: ObjectSpec[], env: CrmEnv): ObjectSpec[] {
+  // Identity is load-bearing: when the var is absent — every test, and the checked-in config — the
+  // ORIGINAL spec objects must come back, because callers compare by reference. The shipped specs
+  // already carry the inert CRM_CREATE_CUTOFF_MS, so there is nothing to override.
+  if (env.CRM_CREATE_CUTOFF_AT === undefined) return specs;
+  const createCutoffMs = cutoverFromEnv(env.CRM_CREATE_CUTOFF_AT);
+  if (createCutoffMs === Number.POSITIVE_INFINITY) return specs;    // fail-closed: no override
+  return specs.map(s => (s.createFromMonday ? { ...s, createCutoffMs } : s));
 }
 
 /** boardId -> spec for THIS deployment. Undefined for a board this deployment does not own, which is
  *  what makes a cross-deployment webhook a no-op instead of a double write. */
-export function specByBoard(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }, boardId: string): ObjectSpec | undefined {
+export function specByBoard(env: CrmEnv, boardId: string): ObjectSpec | undefined {
   return specsFor(env).find(s => s.boardId === boardId);
 }
 
 /** HubSpot object -> spec for THIS deployment. Deals exist only in the WM deployment. */
-export function specByObject(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }, object: string): ObjectSpec | undefined {
+export function specByObject(env: CrmEnv, object: string): ObjectSpec | undefined {
   return specsFor(env).find(s => s.object === object);
 }
 

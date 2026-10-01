@@ -367,4 +367,36 @@ describe("the first bounce, guarded by the marker as well as the mapping", () =>
     // ...and the reverse direction is claimed at creation, while the pair is still known
     expect(reg.settled.get(`act:h2m:notes:hs1:${CONTACT}`)).toBe("monday:77123");
   });
+
+  /**
+   * THE BELL RINGS FOR OUR OWN ENTRIES TOO -- a bell whose filter is "Any activity" stamps it for every
+   * Emails & Activities entry, the marketing poller's included -- so the read it triggers must push nothing of ours back.
+   * Otherwise each marketing email would become a HubSpot Note dated at the send, and that Note's own
+   * webhook would come round again.
+   */
+  it("a ring caused by the marketing poller's entry pushes nothing (no loop)", async () => {
+    timeline = [
+      { id: "88001", type: "custom_activity", title: "HubSpot Marketing Email: Sent -- Autumn offer",
+        content: "Autumn offer [hubspot:marketing_email:k_1:550936454903]", custom_activity_id: "19000123",
+        created_at: "2026-09-30T10:00:00Z" },
+      // The one reply that drops the type id must not slip through either: the marker alone refuses it.
+      { id: "88002", type: "note", title: "x", content: "[hubspot:marketing_email_open:k_2:550936454903]",
+        custom_activity_id: null, created_at: "2026-09-30T10:01:00Z" },
+    ];
+
+    const out = await syncMondayTimeline(env, CARD);
+
+    expect(posted).toEqual([]);
+    expect(reg.claimActivityToHubspot).not.toHaveBeenCalled();
+    expect(out).toContain("nothing-to-sync");
+  });
+
+  it("reports what it pushed, for the catch-up route", async () => {
+    timeline = [{ id: "77124", type: "note", title: "n", content: "Spoke again",
+      custom_activity_id: null, created_at: "2026-09-12T11:00:00Z" }];
+    expect(await syncMondayTimeline(env, CARD)).toMatch(/action=done pushed=1 fresh=1/);
+    // A repeat ring finds it already pushed and creates nothing.
+    expect(await syncMondayTimeline(env, CARD)).toMatch(/action=done pushed=0 fresh=1/);
+    expect(posted).toHaveLength(1);
+  });
 });

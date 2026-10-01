@@ -5,6 +5,7 @@ import { getUserById } from "./monday";
 import { resolveActor, OWNER_UNASSIGNED_MESSAGE } from "./actor";
 import { normalizeDomain } from "./normalize";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
+import { authorizeCreate, withBirthOwnership } from "./ownership";
 import type { CreateResult } from "./idempotency";
 
 export interface CreateInput {
@@ -57,7 +58,16 @@ export async function createContactOrCompany(
         result.hubspotId = found.id; result.existing = true;                 // reuse — do not touch its owner
       } else {
         step = "hubspot";
-        const created = await createRecord(env, spec, { ...properties, ...ownerProps }, opts);
+        // BORN STAMPED, AND AUTHORIZED TO BE BORN. Both halves matter and both were missing.
+        //
+        // Every WM spec now declares `ownership`, so hubspot.ts asserts a WriteAuth before the POST and
+        // this call -- the Deal Cockpit's Create Contact / Create Company -- threw OwnershipError on
+        // every genuinely new record. withBirthOwnership is the other half: without the stamp the
+        // record is born unstamped, and after CRM_CUTOVER_AT the CRM Worker would be free to claim a
+        // record this Worker had just created. Same pair as the reverse-create path in sync.ts.
+        const created = await createRecord(env, spec,
+          withBirthOwnership({ ...properties, ...ownerProps }, spec.ownership), opts,
+          spec.ownership ? authorizeCreate(spec.ownership) : undefined);
         if (!created) {
           // Dry-run / writes disabled: nothing was written. Report it as a FAILURE so the key is released
           // and the UI says so — otherwise the caller would store an "in_progress" result as done and the

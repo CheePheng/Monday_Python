@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readWranglerConfig } from "../scripts/read-wrangler.mjs";
+import { readWranglerConfig, readWmConfig } from "../scripts/read-wrangler.mjs";
 import { scanWriteMode } from "../scripts/scan-write-mode.mjs";
 import { writeModeFor, maxWritesFor, webhookOpts } from "../src/run-opts";
-import { labelDictsFor } from "../src/sync";
+import { birthLinksOn, createWindowReplayOn, labelDictsFor } from "../src/sync";
 import { specsFor, specByBoard, specByObject, ALL_SPECS } from "../src/config";
 import { CRM_SPECS } from "../src/config/crm";
 import { cutoverFromEnv } from "../src/ownership";
@@ -41,9 +41,64 @@ describe("the deployable CRM Wrangler config", () => {
   it("ships with WRITE_HUBSPOT=\"false\" so no HubSpot mutation is possible", () =>
     expect(vars.WRITE_HUBSPOT).toBe("false"));
 
-  it("declares NO cron triggers — no unattended sweeps on day one", () => {
-    expect(cfg.triggers).toBeUndefined();
-    expect(JSON.stringify(cfg)).not.toContain("crons");
+  /**
+   * AN ALLOWLIST OF EXACTLY ONE. The marketing email poller needs the 15-minute cron; every other
+   * expression index.ts dispatches would switch on something deliberately off on CRM -- the 5-minute
+   * one the Task poller, the 10-minute and 03:00 ones the CRM incremental and full sweeps (ruled out
+   * 2026-09-07), 04:00 the Task sweep.
+   */
+  it("declares exactly ONE cron, */15, for the marketing poller -- no unattended sweeps", () => {
+    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *"]);
+    for (const off of ["*/5 * * * *", "*/10 * * * *", "0 3 * * *", "0 4 * * *"])
+      expect(cfg.triggers?.crons).not.toContain(off);
+  });
+
+  it("ships the marketing poller OFF, with no cursors and the default cap", () => {
+    expect(vars.ENABLE_MARKETING_EMAIL_SYNC).toBe("false");
+    expect(vars.MARKETING_CUTOVER_AT).toBe("");
+    expect(vars.MARKETING_BACKFILL_FROM).toBe("");
+    expect(vars.MARKETING_MAX_WRITES_PER_POLL).toBe("60");
+    expect(vars.MARKETING_CANARY_CONTACT_IDS).toBeUndefined();
+  });
+
+  /**
+   * The Last Activity backstop sweep (lad-sweep.ts) rides the 15-minute cron, and ships OFF: only the literal
+   * "true" arms it, which the deploy passes as --var once the webhook fix has been watched live.
+   */
+  it("ships the Last Activity sweep OFF (ENABLE_LAD_SWEEP=\"false\"), on the one existing cron", () => {
+    expect(vars.ENABLE_LAD_SWEEP).toBe("false");
+    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *"]);   // no cron of its own
+  });
+
+  /** The derived P&S Account reverse (line item's Account -> its deal's company) is opt-in. Shipped
+   *  "false", and only the literal "true" arms it, so a missing or odd value keeps the cell read-only. */
+  it("ships with PS_ACCOUNT_REVERSE=\"false\" -- the derived P&S Account cell stays read-only", () =>
+    expect(vars.PS_ACCOUNT_REVERSE).toBe("false"));
+
+  it("the WM config does not arm it either", () =>
+    expect(((readWmConfig().vars ?? {}) as Record<string, string>).PS_ACCOUNT_REVERSE).not.toBe("true"));
+
+  /**
+   * THE TWO CREATE-PATH KILL SWITCHES ship OFF, so a bare `wrangler deploy` is the old create path: no birth
+   * links (BORN_ATTACHED_LINKS) and no create-window replay (CREATE_WINDOW_REPLAY). The deploy passes both
+   * as "true" with --var, and either can be flipped back in the dashboard without a code change.
+   */
+  it("ships BORN_ATTACHED_LINKS=\"false\" and CREATE_WINDOW_REPLAY=\"false\" -- a bare deploy is the old create path", () => {
+    expect(vars.BORN_ATTACHED_LINKS).toBe("false");
+    expect(vars.CREATE_WINDOW_REPLAY).toBe("false");
+    // ...and the shipped values really do read as OFF where the code asks.
+    expect(birthLinksOn(vars)).toBe(false);
+    for (const s of specsFor(vars)) expect(createWindowReplayOn(vars, s)).toBe(false);
+    // The deploy's --var value arms them on these boards (so the check above is not vacuous).
+    expect(birthLinksOn({ ...vars, BORN_ATTACHED_LINKS: "true" })).toBe(true);
+    expect(specsFor(vars).filter(s => createWindowReplayOn({ ...vars, CREATE_WINDOW_REPLAY: "true" }, s)).length)
+      .toBeGreaterThan(0);
+  });
+
+  it("the WM config does not arm either create-path switch", () => {
+    const wmVars = (readWmConfig().vars ?? {}) as Record<string, string>;
+    expect(wmVars.BORN_ATTACHED_LINKS).not.toBe("true");
+    expect(wmVars.CREATE_WINDOW_REPLAY).not.toBe("true");
   });
 
   it("does NOT commit a temporary test cutover", () => {
@@ -99,8 +154,9 @@ describe("write mode — every combination", () => {
 
   // REGRESSION, found 2026-09-08. run-opts.ts calls itself "THE SINGLE PLACE that decides whether
   // writes actually happen" and it was not: webhooks.ts computed its own `{ writeHubspot: live }` and
-  // never read WRITE_HUBSPOT. That is the ONLY live path on the CRM deployment — no crons, and both
-  // CRM specs set skipFullReconcile — so Phase B's HubSpot kill switch was inert exactly where it
+  // never read WRITE_HUBSPOT. That is the only live SYNC path on the CRM deployment — no sync crons (the
+  // only cron, */15, dispatches the marketing poller and nothing else), and both CRM specs set
+  // skipFullReconcile — so Phase B's HubSpot kill switch was inert exactly where it
   // mattered, and the sole thing refusing reverse writes was the ownership gate.
   it("the WEBHOOK path honours WRITE_HUBSPOT — it is the only live path on the CRM worker", () => {
     expect(webhookOpts({ DRY_RUN: "false", WRITE_HUBSPOT: "false" }))
@@ -170,9 +226,10 @@ describe("spec-driven metadata: each deployment fetches only what its specs refe
                 "contactLeadSourceSub", "contactPriority", "contactSource",
                 "contactStatus", "contactVendor", "crmCoarseStage", "crmPipeline", "crmStage",
                 "dealtype", "leadStatus",
-                "liBillingFreq", "liBrand", "liCurrency", "liFamily", "liIsActive", "liPricingModel",
-                "liSubcategory", "liTaxRate", "lifecycleStage", "partnerWith", "pipeline", "priority",
-                "salesUser", "vendor"]));
+                "liBillingFreq", "liBrand", "liFamily", "liIsActive", "liPricingModel",
+                "liSubcategory", "liTaxRate", "lifecycleStage", "partnerWith", "priority",
+                "vendor"]));   // `pipeline` left too: its only CRM user was deal_currency_code, wired to it by mistake   // `salesUser` left on 2026-09-23 with the two unmapped Sales User dropdowns;
+                               // `liCurrency` left the same day (it fetched EMPTY -- see FieldSpec.reverseAs)
 
   // WM REGRESSION: it must still load everything it loaded before the refactor.
   it("WM still loads every dictionary it used to fetch unconditionally", () => {
@@ -224,10 +281,19 @@ describe("CRM_CUTOVER_AT is deployment config, and fails closed", () => {
     expect(con.fields).toBe(CRM_SPECS[1].fields);     // same field array, not a rebuilt one
   });
 
-  it("the WM deployment ignores CRM_CUTOVER_AT entirely", () => {
-    expect(specsFor({ CRM_CUTOVER_AT: "2026-09-07T11:00:00Z" })).toBe(ALL_SPECS);
-    for (const s of specsFor({ CRM_CUTOVER_AT: "2026-09-07T11:00:00Z" }))
-      expect(s.ownership).toBeUndefined();
+  it("the WM deployment now HONOURS CRM_CUTOVER_AT — the same timestamp must reach both", () => {
+    // NOT the same objects any more: a finite cutover is applied to the WM specs too, so specsFor
+    // returns copies carrying it. That IS the fix — a cutover only one side honours is precisely the
+    // split-brain the ownership model exists to prevent.
+    const AT = "2026-09-07T11:00:00Z";
+    const wm = specsFor({ CRM_CUTOVER_AT: AT });
+    expect(wm).toHaveLength(ALL_SPECS.length);
+    for (const s of wm) {
+      expect(s.ownership?.owner).toBe("wm");
+      expect(s.ownership?.cutoverAtMs).toBe(Date.parse(AT));
+    }
+    // Identity is still preserved when the var is absent, which callers compare on.
+    expect(specsFor({})).toBe(ALL_SPECS);
   });
 
   it("board/object resolution still works with a cutover set", () => {
@@ -237,4 +303,82 @@ describe("CRM_CUTOVER_AT is deployment config, and fails closed", () => {
     // Deals resolve on CRM since 2026-09-14 — to the CRM board, never the WM one.
     expect(specByObject(env, "deals")?.boardId).toBe("5028000494");
   });
+});
+
+/**
+ * THE SAME CLASS OF BUG, ON THE OTHER WORKER.
+ *
+ * The ownership guard has to ship to the LIVE Work Management Worker, and this repo's wrangler.jsonc
+ * is the CRM Worker's. master carries a WM config, but it has regressed since the deploy that created
+ * WM's Durable Object: it dropped the CREATE_IDEMPOTENCY binding, dropped the migration that made the
+ * class, and dropped LINE_ITEM_WRITE. Deploying master's config would silently switch off reverse
+ * line-item writes and detach live create-dedup state.
+ *
+ * wrangler.wm.jsonc is reconciled against commit d801b50 -- the config that actually created that
+ * namespace -- and against what the deployed Worker reports today. These tests pin it, because
+ * `wrangler deploy --dry-run` validates the bundle and never once contacts the Worker it targets.
+ */
+describe("the deployable Work Management Wrangler config", () => {
+  const wm = readWmConfig();
+  const wmVars = (wm.vars ?? {}) as Record<string, string>;
+
+  it("targets the LIVE WM Worker, not the CRM one", () => {
+    expect(wm.name).toBe("hubspot-monday-sync");
+    expect(wm.name).not.toBe("hubspot-monday-crm-sync");
+  });
+
+  // Omitting ENABLE_CRM is what makes this Worker resolve the WM specs. Asserting the ABSENCE is the
+  // point: setting it would aim a second processor at the CRM boards.
+  it("does NOT set ENABLE_CRM, so it resolves the Work Management specs", () => {
+    expect(wmVars.ENABLE_CRM).toBeUndefined();
+    expect(specsFor(wmVars).map(s => s.boardId).sort()).toEqual(ALL_SPECS.map(s => s.boardId).sort());
+    for (const s of specsFor(wmVars)) expect(CRM_SPECS).not.toContain(s);
+  });
+
+  it("keeps production's write posture — this Worker is live and must stay live", () => {
+    expect(wmVars.DRY_RUN).toBe("false");
+    expect(writeModeFor(wmVars, maxWritesFor(wmVars))).toMatchObject({ dryRun: false, writeHubspot: true });
+  });
+
+  // Each of these three was present on the deploy that built the live Worker and is absent from
+  // master's current config. Dropping any one of them is a silent production regression.
+  it("keeps LINE_ITEM_WRITE=true, which master's config dropped", () =>
+    expect(wmVars.LINE_ITEM_WRITE).toBe("true"));
+
+  it("keeps MAX_WRITES at the deployed value", () =>
+    expect(wmVars.MAX_WRITES).toBe("100"));
+
+  it("keeps BOTH crons — deploying the CRM config's shape would disable the sweeps", () =>
+    expect(wm.triggers?.crons).toEqual(["*/10 * * * *", "0 3 * * *"]));
+
+  /** WM runs the same source, so the marketing poller must have no way in: no 15-minute cron, no flag. */
+  it("never schedules or enables the marketing poller", () => {
+    expect(wm.triggers?.crons).not.toContain("*/15 * * * *");
+    for (const k of Object.keys(wmVars)) expect(k.startsWith("MARKETING_")).toBe(false);
+    expect(wmVars.ENABLE_MARKETING_EMAIL_SYNC).toBeUndefined();
+  });
+
+  /** Nor the Last Activity sweep: no flag, and no 15-minute cron to run it on. */
+  it("never enables the Last Activity sweep", () => {
+    expect(wmVars.ENABLE_LAD_SWEEP).toBeUndefined();
+    expect(wm.triggers?.crons).not.toContain("*/15 * * * *");
+  });
+
+  it("re-declares CREATE_IDEMPOTENCY and its original v1 migration, and nothing else", () => {
+    expect(wm.durable_objects?.bindings)
+      .toEqual([{ name: "CREATE_IDEMPOTENCY", class_name: "CreateIdempotency" }]);
+    // Exactly the tag and form from d801b50, so the already-applied migration replays as a no-op.
+    expect(wm.migrations).toEqual([{ tag: "v1", new_sqlite_classes: ["CreateIdempotency"] }]);
+  });
+
+  // index.ts exports all three DO classes, but WM binds only one. v2/v3 belong to the CRM Worker;
+  // replaying them here would create two live namespaces on a Worker that never asked for them.
+  it("does NOT bind or migrate the activity namespaces", () => {
+    const text = JSON.stringify(wm);
+    expect(text).not.toContain("ActivityRetry");
+    expect(text).not.toContain("DeferredSync");
+  });
+
+  it("does not commit a cutover value — CRM_CUTOVER_AT is a secret, already set on the Worker", () =>
+    expect(wmVars.CRM_CUTOVER_AT).toBeUndefined());
 });

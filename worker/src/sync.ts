@@ -1,27 +1,34 @@
-import type { Budget, Ctx, Env, HsRecord, LabelDict, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth } from "./types";
-import { reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
+import type {
+  Budget, Ctx, Env, FieldSpec, HsRecord, LabelDict, MondayEdit, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth,
+} from "./types";
+import type { CreateSnapshot, PendingEdit } from "./create-idempotency-do";
+import { pushBirthAssociations, reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
   CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS, DEALS, PORTAL_ID,
   specByBoard, specByObject, specsFor,
 } from "./config";
-import { buildColumnValues, itemName } from "./mapping";
+import { buildColumnValues, expectedText, formatValue, itemName, linkText, numText, phoneDigits } from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
-import { lookupCard, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem } from "./card-registry";
+import {
+  lookupCard, lookupCardOwner, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem,
+  createWindowOf, noteCreateWindowEdit,
+} from "./card-registry";
 import { ensureCardForRecord } from "./ensure-card";
 import { adoptionKey } from "./adopt";
 import { ensureHubspotWriteAuth } from "./write-auth";
 import { authorizeCreate, authorizeWrite, canClaimCrmOwnership, withBirthOwnership } from "./ownership";
 import { targetGroup } from "./routing";
 import {
-  buildCreateProperties, buildReversePatch, buildUpdatePayload, decideDirection, fieldDiffs,
-  reverseFieldValue, type Diff,
+  backwardClearPlan, buildCreateProperties, buildReversePatch, buildUpdatePayload, columnEditPatch, danglingClearVerdict,
+  decideDirection, emptiedFlaggedFields, fieldDiffs, reverseFieldValue, type Diff,
 } from "./reconcile";
+import { spillDeferred } from "./deferred-sync";
 import {
-  createItem, deleteItem, findItemByColumn, getBoardItems, getItem, getUsersByEmail, moveItem,
-  setColumns, updateItem,
+  createItem, deleteItem, findItemByColumn, getBoardItems, getItem, getItemsColumnText,
+  getLinkedItemIds, getUsersByEmail, moveItem, setColumns, updateItem,
 } from "./monday";
 import {
-  claimOwnership, createRecord, getCrmStageDicts, getDealStageLabels, getOwners, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
+  claimOwnership, createRecord, getCrmStageDicts, getDealStageLabels, getOwners, getPropertyHistory, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
   propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
@@ -154,8 +161,23 @@ export async function buildCtx(env: Env): Promise<Ctx> {
   // Reverse lookups for people-column reverse-sync: monday person id -> email -> HubSpot owner id.
   const mondayEmailByUserId: Record<string, string> = {};
   for (const [email, id] of Object.entries(mondayUsersByEmail)) mondayEmailByUserId[id] = email;
+  /**
+   * Email -> owner id, for turning a monday PERSON back into a HubSpot owner. An email claimed by more
+   * than one owner is REMOVED, exactly like the name map below: nine HubSpot owners in this portal share
+   * idaliang@dkmeco.com (Commercial, 华东销售, 华北销售, 华南销售, 华南主管, 华北主管, Maintenance, ADMIN A,
+   * Ida Liang), and "last one wins" would assign whichever the API happened to list last. An ambiguous
+   * person therefore resolves to nothing, and the edit is refused and healed rather than guessed.
+   * Forward display is unaffected: every one of those owners still shows as Ida Liang.
+   */
   const ownerIdByEmail: Record<string, string> = {};
-  for (const [id, o] of Object.entries(ownersById)) if (o.email) ownerIdByEmail[o.email.toLowerCase()] = id;
+  const emailSeen = new Set<string>();
+  for (const [id, o] of Object.entries(ownersById)) {
+    const e = (o.email ?? "").trim().toLowerCase();
+    if (!e) continue;
+    if (emailSeen.has(e)) { delete ownerIdByEmail[e]; continue; }
+    emailSeen.add(e);
+    ownerIdByEmail[e] = id;
+  }
   /**
    * Owner NAME -> owner id, for `peopleByName` fields. A name claimed by more than one owner is
    * REMOVED rather than resolved to the first match: this portal holds two distinct owners both named
@@ -179,7 +201,13 @@ export async function buildCtx(env: Env): Promise<Ctx> {
 /** HubSpot -> monday for one record, plus monday-edit -> HubSpot when monday is the newer side. */
 async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem | undefined,
-    stats: Stats, appSave = false, selfOrigin = false): Promise<void> {
+    stats: Stats, appSave = false, selfOrigin = false, edit?: MondayEdit,
+    /** A deliberate repair: HubSpot is authoritative for this record now. See reconcileForwardOnly. */
+    forceForward = false,
+    /** A stopped creator's create window, handed over already: by its row's own alarm
+     *  (settleAbandonedCreate), which runs inside that Durable Object, or by a 'have' read that took it
+     *  (replayOnLinked). It is not asked for again. */
+    takeover?: Takeover): Promise<void> {
   const group = targetGroup(rec, spec);
   if (!group) { stats.skipped++; return; }
   const recModified = rec.properties[spec.modifiedProp] ?? "";
@@ -193,7 +221,47 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
     return;
   }
 
+  // A CARD STILL INSIDE ITS CREATE WINDOW (a monday row whose HubSpot record was made seconds ago). See
+  // createWindowFor. While its creator is alive, the creator brings the card into line: a forward pass
+  // here would copy HubSpot's create-time values over a person's edits -- HubSpot's own post-create
+  // recalculation makes the record look newer than the card's Sync State -- so it is left to the creator,
+  // and an edit sends only itself. Once the creator has stalled or died, this sync settles the card in its
+  // place, by the rules of the creator's own round (settleTakeover) -- or the row's alarm does, or a
+  // 'have' read, and hands it in as `takeover`. A drawer save and an operator's forced repair are never
+  // affected. Only while the CREATE_WINDOW_REPLAY switch is on (createWindowReplayOn): off, the card syncs
+  // as it always did.
+  let holdForward = false;
+  let take: Takeover | undefined;
+  if (createWindowReplayOn(env, spec) && spec.createFromMonday && !appSave && !forceForward) {
+    if (takeover) take = takeover;
+    else {
+      const w = await createWindowFor(env, spec, rec, existing, edit, selfOrigin);
+      if (w.leave) { stats.skipped++; return; }
+      holdForward = w.holdForward;
+      take = w.takeover;
+      // The read may predate the Sync State the creator's settle wrote (it was made while the creator was
+      // still settling): judged by the older stamp, HubSpot's post-create recalculation would read as
+      // newer than every cell the settle held, and copy HubSpot's values over them.
+      if (w.baseline) existing = withBaseline(existing, spec, { baseline: w.baseline });
+    }
+  }
+
   await maintainShared(env, spec, rec, existing, opts, budget); // toggle the Shared team on sales_user change
+
+  // COLUMN-LEVEL SPECS take their own path for everything except a drawer save. See
+  // ObjectSpec.columnLevelReverse: a person's edit pushes only what they edited; anything else only
+  // ever writes monday. The drawer (appSave) is explicit intent over every field it shows, so it keeps
+  // the record-level behaviour below.
+  if (spec.columnLevelReverse && !appSave) {
+    // A stalled or dead creator's create window, settled by this sync in its place (with this event's own
+    // edit, if it carries a person's or an automation's): its queue is sent as the edits it is, and the
+    // card is brought into line as the creator would have, rather than by a forward pass.
+    if (take) return settleTakeover(env, spec, ctx, opts, budget, rec, existing, stats, take,
+      edit && (edit.cols.length || edit.name) && !selfOrigin ? edit : undefined);
+    if (edit && (edit.cols.length || edit.name) && !selfOrigin)
+      return reconcileColumnEdit(env, spec, ctx, opts, budget, rec, existing, stats, edit, holdForward);
+    return reconcileForwardOnly(env, spec, ctx, opts, budget, rec, existing, stats, forceForward);
+  }
 
   const lastSynced = colText(existing, spec.syncStateCol);
   // APP SAVE = INTENT. The rep just edited this card in a drawer, so monday wins and an empty HubSpot
@@ -251,8 +319,10 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
         // Job Title — starved every FORWARD-only field on that card indefinitely: all 11 new sidebar
         // columns, Lifecycle Stage, 状态, everything. And because Sync State was left unstamped,
         // decideDirection kept choosing "toHubspot" on every later webhook, so the card never healed
-        // except by someone editing the record in HubSpot. With skipFullReconcile and no crons, nothing
-        // else ever retried it.
+        // except by someone editing the record in HubSpot. With skipFullReconcile and no SYNC crons (the
+        // CRM Worker's only cron is */15: the marketing poller, and the LAD sweep, which revisits a record
+        // only when its notes_last_updated moves -- pinned by deploy-config.test.ts), nothing else ever
+        // retried it.
         //
         // Falling through is also the correct SEMANTIC: if monday may not write to HubSpot, then
         // HubSpot is the authority and the card should be brought back into line with it. The rep's
@@ -264,7 +334,7 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
         // no return — the forward write below reconciles the card to HubSpot
       } else {
         const filled = diffs.filter(d => d.backfill && d.f && patch[d.f.hs] !== undefined);
-        const newMod = await patchRecord(env, spec, rec.id, patch, opts, auth);
+        const newMod = await sendPatch(env, spec, ctx, rec, existing.id, patch, opts, auth);
         // Audit trail for the controlled backfill (a failed patch throws and is logged by the caller).
         for (const d of filled)
           console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} field=${d.f!.hs} previous="" value="${patch[d.f!.hs]}" result=${newMod === null ? "dry-run" : "written"}`);
@@ -283,6 +353,495 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
   cv[spec.syncStateCol] = stampMod;   // post-backfill timestamp (see the note above)
   await updateItem(env, spec.boardId, existing.id, itemName(rec, spec), cv, opts);
   stats.toMonday++; budget.left--;
+}
+
+/**
+ * COLUMN-LEVEL, FORWARD-ONLY: a sync that no person's monday edit started -- a HubSpot webhook, a
+ * sweep, our own token's echo, a monday event that names no column. It writes MONDAY or nothing.
+ *
+ * It acts only when HubSpot has changed since the card's Sync State. If it has not, every difference
+ * on the card is monday-side, and that is either a person's edit whose column-level push is still in
+ * flight or a value that push refused and already healed -- in neither case is overwriting it right.
+ * The record-level engine read the same situation as "monday is newer, push it", which is exactly the
+ * stale-overwrite this spec flag exists to remove.
+ *
+ * Never backfills and never claims: both are HubSpot writes, and this path has no person behind it.
+ */
+async function reconcileForwardOnly(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
+    stats: Stats,
+    /**
+     * FORCE: forward every difference even though HubSpot is not newer than Sync State.
+     *
+     * Needed because the OLD engine stamped Sync State without applying some changes -- a filled People
+     * cell was never updated, but the pass that ignored it still stamped the card. On such a card Sync
+     * State equals HubSpot's last change while the cell is stale, so the ordinary rule reads the stale
+     * cell as a person's pending edit and never heals it. Only the /resync repair route passes this,
+     * for records an operator has chosen; ordinary traffic never does.
+     */
+    force = false): Promise<void> {
+  // THE ONE HUBSPOT WRITE THIS PATH MAKES: a backward move's clear whose set never followed, finished from
+  // the card (repairDanglingClears). Not finished now -> the pass still brings the card into line, but
+  // leaves Sync State where it was and then throws, so the queue retries and the next event still sees it.
+  const unfinished = await repairDanglingClears(env, spec, ctx, opts, budget, rec, existing);
+  const recModified = rec.properties[spec.modifiedProp] ?? "";
+  const lastSynced = colText(existing, spec.syncStateCol);
+  const diffs = fieldDiffs(rec as HsRecord, existing, spec, ctx, false)
+    .filter(d => !d.backfill);   // a backfill is a HubSpot write; formatValue("") would write nothing anyway
+  const dir = force && diffs.length ? "toMonday" : decideDirection(diffs, recModified, lastSynced);
+
+  if (dir !== "toMonday") {
+    if (dir === "none") stats.inSync++; else stats.skipped++;
+    // Establish a baseline so a later monday edit and a later HubSpot change are both distinguishable.
+    // Only when the card is genuinely in line: stamping over a pending monday-side diff would bury it.
+    if (dir === "none" && recModified && lastSynced !== recModified && !unfinished) {
+      await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: recModified }, opts);
+      budget.left--;
+    }
+    if (unfinished) throw unfinished;
+    return;
+  }
+
+  if (diffs.some(d => d.kind === "group")) {
+    const group = targetGroup(rec as HsRecord, spec);
+    if (group) await moveItem(env, spec.boardId, existing.id, group, opts);
+  }
+  const cv = buildUpdatePayload(diffs, rec as HsRecord, spec, ctx);
+  if (!unfinished) cv[spec.syncStateCol] = recModified;
+  await updateItem(env, spec.boardId, existing.id, itemName(rec as HsRecord, spec), cv, opts);
+  stats.toMonday++; budget.left--;
+  if (unfinished) throw unfinished;
+}
+
+/**
+ * COLUMN-LEVEL, A PERSON'S EDIT: push exactly the columns they changed, and nothing else.
+ *
+ * Order matters, and each step is there for a failure it prevents:
+ *   1. If HubSpot changed since the card was last synced, apply THOSE changes to the columns the person
+ *      did NOT edit, first. Otherwise stamping Sync State after the push would bury HubSpot's change:
+ *      the card would look current while still holding the stale value. That is precisely how contact
+ *      394787683005's Sales User would have stayed "Myla" forever after the next Job Title edit.
+ *      EXCEPT a cell the push reports as held (ColumnEditResult.hold): it carries a person's edit still on
+ *      its way in its own run, and Sync State then stays put (see the stamp below).
+ *   2. Claim the record for CRM on this basis -- a person working it in CRM -- then write the edited
+ *      columns. The claim is lazy: an edit that changes nothing sends nothing and claims nothing.
+ *   3. Anything that could not be sent (refused value, ownership refusal, HubSpot rejection) is healed
+ *      back to HubSpot's value on that column only, so the person sees it did not take.
+ *
+ * `holdForward`: skip step 1's "HubSpot changed" half. Only for an edit that lands while a live creator
+ * is still settling its brand-new card (see createWindowFor): HubSpot's post-create recalculation makes
+ * the record read as newer than the card, but that is the creator's to bring across, from a read that
+ * can tell it apart from a person's pending edit. The push's own consequences still come back.
+ *
+ * Before all of it: a backward move an EARLIER run left half done -- HubSpot holding "" from our clear -- is
+ * finished from the card (repairDanglingClears), because stamping this edit's push time would hide it from
+ * every later re-check. Not finished now: everything else proceeds, Sync State stays where it was, and the
+ * re-check is armed again.
+ */
+async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
+    stats: Stats, edit: MondayEdit, holdForward = false): Promise<void> {
+  const repaired = new Set<string>();
+  const unfinished = await repairDanglingClears(env, spec, ctx, opts, budget, rec, existing,
+    { skip: new Set(edit.cols), repaired });
+  const recModified = rec.properties[spec.modifiedProp] ?? "";
+  const lastSynced = colText(existing, spec.syncStateCol);
+  const editedCols = new Set(edit.cols);
+  const hubspotNewer = !holdForward && (Date.parse(recModified) || 0) > (Date.parse(lastSynced) || 0);
+
+  // 1. The person's edit.
+  const { patch, heal, healName, newMod, fields, hold, pending } = await pushColumnEdit(env, spec, ctx, opts, budget,
+    rec, existing, stats, edit);
+  // Cells this change did not edit that hold a person's edit still on its way in its own run (today only
+  // the HubSpot Stage cell beside a coarse Stage edit: see coarseStageEdit). Never written over below.
+  const held = new Set(hold ?? []);
+
+  // 2. What monday must now show, judged against HubSpot's state AFTER the push. Two sources:
+  //   - HubSpot's own newer changes, on columns this person did not edit (only when HubSpot really
+  //     changed since Sync State -- otherwise a difference there is someone's pending edit);
+  //   - the push's own consequences: the item name when it is built from a pushed property, and any
+  //     OTHER column mapped from a pushed property. Without this, editing First name leaves the card's
+  //     title stale for good, because the push's echo finds HubSpot no newer than the new Sync State.
+  const pushed = newMod !== null ? patch : {};
+  const effective: HsRecord = { id: rec.id, properties: { ...rec.properties, ...pushed } };
+  const pushedProps = new Set(Object.keys(pushed));
+  const nameFedByPush = [...spec.nameProps, ...(spec.nameFallbackProps ?? [])].some(p => pushedProps.has(p));
+  const forward = fieldDiffs(effective, existing, spec, ctx, false).filter(d => {
+    if (d.backfill || d.kind === "group") return false;
+    // The name: never over a name this person just pushed; healed separately when refused; otherwise
+    // only when HubSpot changed or the push itself changed what the name is built from. A difference
+    // with neither cause is someone's rename still on its way, and must be left alone.
+    if (d.kind === "name") return !edit.name && !healName && (hubspotNewer || nameFedByPush);
+    if (d.kind !== "field" || !d.f || editedCols.has(d.f.col)) return false;
+    // A repaired stage: HubSpot now holds what the card showed when re-read, newer than `existing`.
+    if (repaired.has(d.f.col)) return false;
+    // A held cell: HubSpot's value over it would revert that edit before its own run reads it, and that
+    // run would then find nothing to send.
+    if (held.has(d.f.col)) {
+      console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} col=${d.f.col}`
+        + ` action=forward-held reason="a person's edit of it is still on its way, in its own run"`);
+      return false;
+    }
+    return hubspotNewer || pushedProps.has(d.f.hs);
+  });
+
+  // 3. One monday write for everything that has to come back.
+  // A People cell healed to an owner with no monday seat (or no owner at all) is emptied, not left
+  // showing the person HubSpot refused.
+  const healDiffs: Diff[] = heal.map(f => ({ kind: "field", f, hsText: "", mdText: "",
+    ...(f.type === "people" && !formatValue(f, effective.properties[f.hs], ctx) ? { peopleClear: true } : {}) }));
+  const cv = buildUpdatePayload([...forward, ...healDiffs], effective, spec, ctx);
+  // Stamp the newest HubSpot state monday now reflects. After a push that is the push's own timestamp;
+  // without one, only a forward pass over HubSpot's changes justifies moving the baseline -- and not one
+  // that held a cell back: monday does not reflect HubSpot there. The held edit's own run stamps its push;
+  // and were the cell ever not a person's edit after all (a lagging stage time, see coarseStageEdit), the
+  // change it hides still reads as newer, so its own webhook brings it rather than finding it buried.
+  // Not the push's own time while a backward move is pending (ColumnPush.pending): that time is the clear's.
+  // And nothing at all while an earlier one is unfinished: Sync State behind it is what keeps it visible.
+  const stamp = unfinished ? "" : (pending ? null : newMod) ?? (hubspotNewer && !held.size ? recModified : "");
+  if (stamp) cv[spec.syncStateCol] = stamp;
+  if (unfinished) await rearmRecheck(env, spec, opts, rec.id, existing.id);
+  const renames = healName || forward.some(d => d.kind === "name");
+  if (renames) {
+    await updateItem(env, spec.boardId, existing.id, itemName(effective, spec), cv, opts);
+    budget.left--;
+  } else if (Object.keys(cv).length) {
+    await setColumns(env, spec.boardId, existing.id, cv, opts);
+    budget.left--;
+  }
+  if (forward.length || heal.length || healName) stats.toMonday++;
+  if (!fields.length && !forward.length && !heal.length && !healName) stats.inSync++;
+}
+
+/** What sending one column-level edit produced: see pushColumnEdit. */
+interface ColumnPush {
+  /** What columnEditPatch built, less anything HubSpot did not take -- i.e. what HubSpot now holds from this
+   *  edit when newMod !== null (only then was anything sent). */
+  patch: Record<string, string>;
+  /** Edited fields that did not take -- refused, ownership-refused, or rejected by HubSpot. */
+  heal: FieldSpec[];
+  healName: boolean;
+  /** HubSpot's modified timestamp after the PATCH; null when nothing was sent (or a dry run). */
+  newMod: string | null;
+  fields: string[];
+  /** Unedited cells holding a person's edit still on its way (ColumnEditResult.hold); absent when none. */
+  hold?: string[];
+  /**
+   * Properties a backward move left EMPTY in HubSpot -- its clear landed, its set and restore did not
+   * (BackwardSetError) -- whose cells keep the person's value for the queued re-check to send. While any is
+   * pending, Sync State must NOT move to the clear's timestamp: the re-check acts only on a record HubSpot
+   * changed after Sync State (repairDanglingClears). Absent when none.
+   */
+  pending?: string[];
+}
+
+/**
+ * STEP 1 OF A COLUMN-LEVEL EDIT, on its own: send exactly what the person changed, claiming the record
+ * lazily, and report what could not be sent so the caller can heal it. Shared by the ordinary edit path
+ * (reconcileColumnEdit) and the create window's own replay (settleRound), which differ only in what they
+ * write back to monday afterwards.
+ */
+async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
+    stats: Stats, edit: MondayEdit): Promise<ColumnPush> {
+  const hsRec = rec as HsRecord;
+  const editedCols = new Set(edit.cols);
+  const r = columnEditPatch(hsRec, existing, spec, ctx, edit);
+  for (const why of r.refusals)
+    console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} action=refused reason="${why}"`);
+  const heal = [...r.heal];
+  let healName = r.healName;
+  let newMod: string | null = null;
+  let landed = r.patch;
+  let pending: string[] | undefined;
+  const fields = Object.keys(r.patch);
+  if (fields.length) {
+    // An automation can write to a record CRM already owns, but only a PERSON can claim one.
+    const auth = await ensureHubspotWriteAuth(env, spec, budget, rec, opts,
+      edit.byAutomation ? "cutover" : "human-edit");
+    const sentFields = spec.fields.filter(f => editedCols.has(f.col) && f.hs in r.patch);
+    if (auth && !auth.allowed) {
+      console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+        + ` action=refused-forward-instead fields=${fields.join(",")} reason="${auth.reason}"`);
+      heal.push(...sentFields);
+      if (edit.name && spec.nameReverse && spec.nameReverse in r.patch) healName = true;
+      stats.skipped++;
+    } else {
+      try {
+        newMod = await sendPatch(env, spec, ctx, rec, existing.id, r.patch, opts, auth);
+        budget.left--; stats.toHubspot++;
+        console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+          + ` action=written fields=${fields.join(",")}${fields.some(f => r.patch[f] === "") ? " (includes a clear)" : ""}`);
+      } catch (e) {
+        // HubSpot rejected it (validation rule, required property, bad value). Heal what did not take and
+        // carry on: an unguarded throw here would skip the forward write and freeze the card.
+        //
+        // EXCEPT A BACKWARD MOVE WHOSE CLEAR LANDED (BackwardSetError): that clear carried every other
+        // property of the edit (sendPatch, step 1), so only the move did not take -- the rest is written and
+        // is not healed back. Restored, HubSpot holds the previous stage again and the cell is healed to it.
+        // Not restored, HubSpot holds "", which the card must not be told: it keeps the person's stage for
+        // the re-check sendPatch armed, and `pending` keeps Sync State behind the clear until then.
+        const partial = e instanceof BackwardSetError ? e : undefined;
+        const failed = new Set(partial ? partial.props : fields);
+        landed = Object.fromEntries(Object.entries(r.patch).filter(([p]) => !failed.has(p)));
+        if (partial) {
+          newMod = partial.landedMod; budget.left--;
+          if (!partial.restored) pending = partial.props;
+        }
+        if (!partial || partial.restored) heal.push(...sentFields.filter(f => failed.has(f.hs)));
+        if (!partial && edit.name && spec.nameReverse && spec.nameReverse in r.patch) healName = true;
+        const sent = Object.keys(landed);
+        if (sent.length) stats.toHubspot++; else stats.skipped++;
+        console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+          + ` action=${sent.length ? `written fields=${sent.join(",")} not-landed=${[...failed].join(",")}`
+            : `rejected fields=${fields.join(",")}`}${pending ? ` pending=${pending.join(",")}` : ""}`
+          + ` reason="${String(e).slice(0, 160)}"`);
+      }
+    }
+  }
+
+  return { patch: landed, heal, healName, newMod, fields, ...(pending ? { pending } : {}), ...(r.hold ? { hold: r.hold } : {}) };
+}
+
+/**
+ * A backward move's clear LANDED -- carrying every other property of the write -- but the move itself did
+ * not. Thrown by sendPatch after the restore was tried; pushColumnEdit turns it into a partial result.
+ */
+export class BackwardSetError extends Error {
+  constructor(
+    /** HubSpot's modified timestamp after the last PATCH that landed: the restore's, else the clear's. */
+    readonly landedMod: string | null,
+    /** The properties whose move did not land. Everything else in the write did, with the clear. */
+    readonly props: string[],
+    /** true: each is back at its previous value (the restore was answered 200). false: HubSpot holds "". */
+    readonly restored: boolean,
+    cause: unknown,
+  ) {
+    super(`backward move of ${props.join(",")} did not land (${restored ? "previous value restored" : "left empty"}):`
+      + ` ${String(cause).slice(0, 200)}`);
+    this.name = "BackwardSetError";
+  }
+}
+
+/**
+ * ONE MONDAY -> HUBSPOT WRITE, sent as two PATCHes when a property must be cleared before it can move back.
+ * Every business-field PATCH this file sends goes through here. See FieldSpec.backwardNeedsClear.
+ *
+ * Nothing to clear (a forward move, a first fill, a clear, an unchanged or unflagged property, an order it
+ * cannot place): exactly the one patchRecord call it always was. Otherwise:
+ *   0. ARM THE RE-CHECK, before anything is cleared: the record goes to the durable queue (DEFERRED_SYNC) as
+ *      a re-check, which ~15 s later finishes a clear its set never followed and does nothing else
+ *      (recheckDanglingClears: no forward write, so it cannot overwrite the person's next edit). Before,
+ *      not after: this run lives in a waitUntil Cloudflare cancels about 30 s after the response, and an
+ *      isolate that dies between the clear and the set runs nothing after it -- no retry, no restore, no log.
+ *   1. PATCH EVERYTHING ELSE, WITH THE CLEAR: the backward-moving properties as "", every other property at
+ *      its new value. So a 400 that another property causes fails HERE, before anything is cleared, and the
+ *      only thing that can still fail after it is the move itself. Same spec, record and WriteAuth as the
+ *      real write, so patchRecord's ownership assert refuses the clear exactly when it would refuse the
+ *      write. A throw here changed nothing and goes to the caller like any rejected PATCH.
+ *   2. PATCH the moving properties alone, to their new value.
+ *   3. If that fails, once more; if it fails again, put back what the clear removed (from empty, any stage is
+ *      accepted) and throw BackwardSetError, saying whether the restore was confirmed. Confirmed, the caller
+ *      heals the cell to that value, which HubSpot holds again. Not confirmed, HubSpot holds "" and the card
+ *      must NOT be told otherwise: it keeps the person's value, Sync State stays behind the clear, and the
+ *      re-check armed in step 0 sends that value (from empty: a forward move, which HubSpot always takes).
+ * Returns the modified timestamp of the PATCH that carried the move (null in a dry run).
+ *
+ * THE ECHO OF THE CLEAR IS HARMLESS: a HubSpot webhook re-reads the record (it never uses the event's
+ * value), the read almost always finds the stage already set, and an empty HubSpot value never blanks a
+ * monday cell. A read that does land between the two PATCHes finds OUR clear in the history and sends the
+ * card's value -- the same one the set is sending. Pinned in lifecycle-backward-clear.test.ts.
+ */
+async function sendPatch(env: Env, spec: ObjectSpec, ctx: Ctx, rec: { id: string; properties: Record<string, string | null> },
+    itemId: string, patch: Record<string, string>, opts: RunOpts, auth: WriteAuth | undefined): Promise<string | null> {
+  const plan = backwardClearPlan(spec, patch, rec.properties, ctx);
+  const where = `[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${itemId}`;
+  for (const p of plan.unknown)
+    console.log(`${where} field=${p} previous=${JSON.stringify(rec.properties[p] ?? "")} value=${JSON.stringify(patch[p])}`
+      + ` action=lifecycle-order-unknown reason="the option order is not loaded or does not hold both values; sent`
+      + ` as one PATCH, which HubSpot ignores if it is a move to an earlier stage"`);
+  const cleared = Object.keys(plan.clear);
+  if (!cleared.length) return patchRecord(env, spec, rec.id, patch, opts, auth);
+
+  const moves = cleared.map(p => `${p}:${plan.previous[p]}->${patch[p]}`).join(",");
+  const move: Record<string, string> = Object.fromEntries(cleared.map(p => [p, patch[p]]));
+  if (!opts.dryRun && opts.writeHubspot) await armRecheck(env, spec, rec.id, where);
+  const clearedMod = await patchRecord(env, spec, rec.id, { ...patch, ...plan.clear }, opts, auth);
+  let failure: unknown;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const newMod = await patchRecord(env, spec, rec.id, move, opts, auth);
+      console.log(`${where} moves=${moves} action=lifecycle-backward-clear-set`
+        + `${attempt > 1 ? " retried=1" : ""} result=${newMod === null ? "dry-run" : "written"}`);
+      return newMod;
+    } catch (e) { failure = e; }
+  }
+  let restore = "ok", restoredMod: string | null = null;
+  try { restoredMod = await patchRecord(env, spec, rec.id, plan.previous, opts, auth); }
+  catch (e) { restore = `failed: ${String(e).slice(0, 120)}`; }
+  const restored = restore === "ok";
+  console.log(`${where} moves=${moves} action=lifecycle-backward-failed restore="${restore}"`
+    + (restored ? "" : ` pending=${cleared.join(",")} next="HubSpot holds it empty; the card keeps the person's`
+      + ` value, and the queued re-check sends it"`)
+    + ` reason="${String(failure).slice(0, 160)}"`);
+  throw new BackwardSetError(restored ? (restoredMod ?? clearedMod) : clearedMod, cleared, restored, failure);
+}
+
+/**
+ * Queue this record's RE-CHECK shortly after (DEFERRED_SYNC, as DeferredItem.recheck): the durable repair
+ * behind every backward move (sendPatch, step 0), which the queue runs as recheckDanglingClears -- never as a
+ * forward pass. Its queue dedups, retries a re-check that throws (MAX_ATTEMPTS) and survives this isolate. A
+ * re-check that finds the move landed costs two reads and writes nothing. Without the binding (the WM
+ * deployment, whose specs flag no field) or for an object it does not take, nothing is queued and the log
+ * says so; spillDeferred itself fails soft and logs.
+ */
+async function armRecheck(env: Env, spec: ObjectSpec, id: string, where: string): Promise<void> {
+  const type = (Object.keys(SPEC_OBJECT_FOR_EVENT) as HsEventObject[]).find(k => SPEC_OBJECT_FOR_EVENT[k] === spec.object);
+  if (!type || !env.DEFERRED_SYNC) {
+    console.log(`${where} action=lifecycle-recheck-unarmed reason="${type ? "no DEFERRED_SYNC binding" : "no queue type"}`
+      + ` for ${spec.object}; a clear its set cannot follow waits for the next HubSpot event on the record"`);
+    return;
+  }
+  await spillDeferred(env, [{ type, id, recheck: true }]);
+}
+
+/** A repair an edit path could not finish (repairDanglingClears with `fromEdit`): queue the re-check again --
+ *  the one the move armed may have run, or been abandoned, already. Not when nothing would be written anyway. */
+async function rearmRecheck(env: Env, spec: ObjectSpec, opts: RunOpts, id: string, itemId: string): Promise<void> {
+  if (opts.dryRun || !opts.writeHubspot) return;
+  await armRecheck(env, spec, id, `[reverse] object=${spec.object} hubspot_id=${id} monday_item=${itemId}`);
+}
+
+/**
+ * THE QUEUED RE-CHECK ITSELF (DeferredItem.recheck): finish a backward move's clear whose set never followed
+ * -- repairDanglingClears -- and NOTHING ELSE. No forward write, no Sync State, no card created, no
+ * associations: it writes monday nothing at all.
+ *
+ * Why not the ordinary forward pass it used to be. It runs at a fixed ~15 s after the move, when the person
+ * is often still working the card, and HubSpot bumps the record's lastmodifieddate by itself (sourceType API)
+ * ~7 s after every stage change -- our own write included (contact 553232416501: INTEGRATION at 03:10:17.297,
+ * API at 03:10:24.585 and .740). So that pass almost always read HubSpot as newer than Sync State and copied
+ * HubSpot's value over any cell that differed: a Job Title typed at +13 s was overwritten at +15 s, and lost
+ * if its own run read the card after that, or left HubSpot and the card disagreeing for good if before.
+ * Before backward moves were sent at all, no bump followed them, so no such pass ran.
+ *
+ * HubSpot first, THEN the card: the clear this looks for was made after the person's edit that caused it, so
+ * a card read after a HubSpot read that shows the clear shows that edit too (see "WHICH CARD" on
+ * repairDanglingClears). Throws when the repair could not be finished now, so the queue tries again.
+ */
+export async function recheckDanglingClears(env: Env, objectType: HsEventObject, id: string, opts: RunOpts,
+    budget: Budget): Promise<string> {
+  const via = "via=lifecycle-recheck";
+  const spec = specByObject(env, SPEC_OBJECT_FOR_EVENT[objectType]);
+  if (!spec) return wlog(objectType, id, "skipped", `reason="object not in scope for this deployment" ${via}`);
+  if (!spec.fields.some(f => f.backwardNeedsClear))
+    return wlog(spec.object, id, "skipped", `reason="no field of ${spec.object} is moved back by a clear" ${via}`);
+  const ctx = await getCtxCached(env);
+  const rec = await getRecord(env, spec.object, id, [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])]);
+  if (!rec) return wlog(spec.object, id, "skipped", `reason="record not found (deleted/archived)" ${via}`);
+  let card: MondayItem | undefined = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
+  if (!card) {
+    const known = await lookupCard(env, spec.boardId, id);
+    if (known) card = (await getItem(env, known)) ?? undefined;
+  }
+  if (!card) return wlog(spec.object, id, "skipped", `reason="no linked monday card" ${via}`);
+  const left = budget.left;
+  const unfinished = await repairDanglingClears(env, spec, ctx, opts, budget, rec, card);
+  if (unfinished) throw unfinished;
+  return wlog(spec.object, id, budget.left < left ? "repaired-hubspot" : "skipped-in-sync", `board=${spec.boardId} ${via}`);
+}
+
+/** How a pass started by a PERSON'S EDIT asks for the repair: see repairDanglingClears. */
+interface RepairFromEdit {
+  /** The columns the edit itself sends: their own push handles an emptied stage (from empty, one PATCH). */
+  skip: ReadonlySet<string>;
+  /** Filled with the columns repaired, whose value came from the card as re-read: HubSpot now holds what that
+   *  read showed, so the caller must not forward it over its own, older read of the card. */
+  repaired: Set<string>;
+}
+
+/**
+ * THE RE-CHECK: FINISH A BACKWARD MOVE WHOSE SET NEVER FOLLOWED ITS CLEAR. Run by the queued re-check
+ * (recheckDanglingClears), at the start of every forward-only pass (so the clear's own HubSpot echo and any
+ * later event reach it), and -- `fromEdit` -- before a person's edit (reconcileColumnEdit) or a create
+ * window's round (settleRound) stamps Sync State.
+ *
+ * WHY THE EDIT PATHS TOO. A clear whose set and restore failed leaves HubSpot "" and Sync State behind the
+ * clear, which is all that lets the repair see it (the guard below). A person's next edit of ANOTHER column
+ * used to stamp its own push time over that -- and from then on every re-check and echo found HubSpot "not
+ * newer", so the stage stayed empty for good (review round 3, B1). A person's edit is an even stronger basis
+ * for this write than the queue's. Not finished there, the caller leaves Sync State where it was and arms the
+ * re-check again.
+ *
+ * A `backwardNeedsClear` field HubSpot holds EMPTY while the card shows a stage (emptiedFlaggedFields) is
+ * exactly what a clear without its set leaves -- and nothing else repairs it: an empty HubSpot value raises
+ * no forward diff, and the card is not a person's edit any more. So, and only when HubSpot has changed since
+ * Sync State (sendPatch keeps the stamp behind such a clear; anything older is not news):
+ *   - ownership first: only a record CRM owns (the clear itself required it); otherwise nothing is read;
+ *   - the history decides (danglingClearVerdict): the newest version must be an integration's clear of a set
+ *     value, within the window, and NEWER than Sync State. A person's clear in HubSpot, or anyone else's, is
+ *     left exactly as it is -- and so is a person's clear sent from monday, which Sync State already took;
+ *   - then the card's value is sent. From empty that is a forward move, so it lands in one PATCH. It is the
+ *     person's stage when the run died or a restore failed (the card kept it), or the previous stage when
+ *     an earlier run healed to it -- either way HubSpot and the card agree again.
+ * A HubSpot write from a pass with no person behind it, deliberately: it completes the write a person's edit
+ * already started and claimed, and is confined to that shape.
+ *
+ * WHICH CARD. A forward pass and the queued re-check read HubSpot first and the card after, so their card
+ * already shows the edit that caused the clear. A person's edit path reads the card FIRST: that read can
+ * predate the very stage edit whose clear it finds (its Job Title event was read just before the stage was
+ * changed), and sending the stage it shows would undo that edit -- a later stage blocks the set behind it,
+ * which HubSpot then ignores. So `fromEdit` re-reads the card once the history says the clear is ours.
+ *
+ * Returns the failure, if the history, the card or the PATCH could not be had now: the caller finishes its
+ * pass WITHOUT moving Sync State, then throws it or re-arms, so the queue tries again and the next event still
+ * sees the record as changed. On success the record is updated in place (value and modified time), as a claim is.
+ */
+async function repairDanglingClears(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, card: MondayItem,
+    fromEdit?: RepairFromEdit): Promise<Error | undefined> {
+  const fills = emptiedFlaggedFields(spec, rec as HsRecord, card, ctx).filter(x => !fromEdit?.skip.has(x.f.col));
+  if (!fills.length) return undefined;
+  if (!(timeOf(rec.properties[spec.modifiedProp]) > timeOf(colText(card, spec.syncStateCol)))) return undefined;
+  const where = `[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${card.id}`;
+  const names = fills.map(x => x.f.hs).join(",");
+  const auth = spec.ownership ? authorizeWrite(rec as HsRecord, spec.ownership) : undefined;
+  if (auth && !auth.allowed) {
+    console.log(`${where} fields=${names} action=lifecycle-clear-repair-refused reason="${auth.reason}"`);
+    return undefined;
+  }
+  const patch: Record<string, string> = {};
+  try {
+    const ours: typeof fills = [];
+    const syncedAt = timeOf(colText(card, spec.syncStateCol));
+    for (const x of fills) {
+      const why = danglingClearVerdict(await getPropertyHistory(env, spec.object, rec.id, x.f.hs), Date.now(), syncedAt);
+      if (why) console.log(`${where} field=${x.f.hs} card=${JSON.stringify(x.value)} action=lifecycle-empty-left reason="${why}"`);
+      else ours.push(x);
+    }
+    if (!ours.length) return undefined;
+    const now = fromEdit ? await getItem(env, card.id) : card;
+    const cols: string[] = [];
+    for (const { f } of ours) {
+      const value = now ? reverseFieldValue(f, colText(now, f.col), ctx) : "";
+      if (value) { patch[f.hs] = value; cols.push(f.col); }
+      else console.log(`${where} field=${f.hs} action=lifecycle-empty-left reason="${now ? "the card no longer shows a stage"
+        : "the card is gone"}: nothing to send"`);
+    }
+    if (!Object.keys(patch).length) return undefined;
+    const newMod = await patchRecord(env, spec, rec.id, patch, opts, auth);
+    budget.left--;
+    for (const c of cols) fromEdit?.repaired.add(c);
+    for (const [p, v] of Object.entries(patch))
+      console.log(`${where} field=${p} value=${JSON.stringify(v)} action=lifecycle-clear-repaired`
+        + ` result=${newMod === null ? "dry-run" : "written"} reason="HubSpot held it empty from our own clear, whose`
+        + ` set never followed; sent the card's value"`);
+    if (newMod !== null) { Object.assign(rec.properties, patch); rec.properties[spec.modifiedProp] = newMod; }
+    return undefined;
+  } catch (e) {
+    console.log(`${where} fields=${names} action=lifecycle-clear-repair-failed reason="${String(e).slice(0, 160)}"`);
+    return new Error(`lifecycle re-check of ${spec.object}/${rec.id} ${names} could not finish: ${String(e).slice(0, 200)}`);
+  }
 }
 
 /** Objects that take the direction-INDEPENDENT backfill path. Deliberately contacts-only — see the note
@@ -307,7 +866,8 @@ async function writeSafeBackfills(env: Env, spec: ObjectSpec, ctx: Ctx, opts: Ru
   // CRM specs alone. Without this branch a fill would only happen when the monday edit is itself the
   // trigger (decideDirection returns "toHubspot"); a HubSpot-triggered pass over a company whose monday
   // card holds a value HubSpot lacks would leave it unfilled forever, because CRM specs are
-  // skipFullReconcile on a Worker with no crons and nothing else ever revisits them.
+  // skipFullReconcile on a Worker with no SYNC crons (its only cron, */15, dispatches the marketing
+  // poller and nothing else) and nothing else ever revisits them.
   if (!INDEPENDENT_BACKFILL_OBJECTS.has(spec.object) && !spec.fillEmptyFromMonday) return null;
   const fills = diffs.filter(d => d.kind === "field" && d.backfill && d.f?.reverse);
   if (!fills.length) return null;
@@ -330,7 +890,9 @@ async function writeSafeBackfills(env: Env, spec: ObjectSpec, ctx: Ctx, opts: Ru
   }
   let newMod: string | null = null;
   try {
-    newMod = await patchRecord(env, spec, rec.id, patch, opts, auth); budget.left--;
+    // A fill has nothing to move back from (HubSpot is empty by construction), so this is always one PATCH;
+    // routed through sendPatch only so no write of a backwardNeedsClear property can bypass it.
+    newMod = await sendPatch(env, spec, ctx, rec, item.id, patch, opts, auth); budget.left--;
   } catch (e) {
     console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${item.id} fields=${Object.keys(patch).join(",")} result=error reason="${String(e).slice(0, 160)}" path=independent`);
     return null;
@@ -362,24 +924,451 @@ async function maintainShared(env: Env, spec: ObjectSpec,
 }
 
 /** monday card with no HubSpot id (added after go-live) -> create/adopt a HubSpot record. */
+/**
+ * The HubSpot id of the parent a child record must be born attached to, or "" if it cannot be resolved.
+ *
+ * Follows the chain a rep would: the Connect-Boards column they filled on the form -> the linked monday
+ * card -> that card's HubSpot id. Every hop can legitimately fail — the rep left Deal blank, or picked a
+ * Deal card that has not itself synced yet — and all of them mean the same thing: not yet. Returning ""
+ * lets the caller refuse visibly rather than create an orphan.
+ *
+ * EXACTLY ONE parent. Where a rep has linked several, the first is not a guess worth making: a line item
+ * belongs to one deal, and picking arbitrarily would put revenue on the wrong one.
+ */
+async function resolveCreateParent(env: Env, spec: ObjectSpec, item: MondayItem): Promise<string> {
+  const p = spec.createParent;
+  if (!p) return "";
+  const target = specByObject(env, p.toObject);
+  if (!target) return "";
+  const linked = await getLinkedItemIds(env, item.id, p.relationCol);
+  if (linked.length !== 1) {
+    console.log(`${spec.object} card ${item.id} parent=${p.relationCol} linked=${linked.length}`
+      + ` action=unresolved reason="${linked.length ? "more than one parent linked" : "no parent linked"}"`);
+    return "";
+  }
+  const byCard = await getItemsColumnText(env, linked, target.idCol);
+  const hsId = (byCard[linked[0]] ?? "").trim();
+  if (!/^\d+$/.test(hsId)) {
+    console.log(`${spec.object} card ${item.id} parent_card=${linked[0]} action=unresolved`
+      + ` reason="the linked ${p.toObject} card carries no HubSpot id yet"`);
+    return "";
+  }
+  return hsId;
+}
+
+/** Who caused a monday event, as the webhook resolved it, beyond `selfOrigin`. See syncMondayItem. */
+export interface MondayActor { id: string; byAutomation: boolean }
+
+/**
+ * WHO STARTED A CREATE, which is what the birth pass is allowed on. It sends the links a card shows on
+ * the authority of a PERSON having made the card, so anything else is suppressed (fail closed):
+ *   - "person": an event that is neither our own token's (the provenance gate refused those already)
+ *     nor an automation's. The Create form and "+ Add" arrive as the rep who used them;
+ *   - "automation": monday attributes automation and workflow actions to a negative pseudo-user (-4).
+ *     An automation's relation edit never pushes (reverseAssociations), and a create it started is the
+ *     same kind of act: a configured rule, not a person picking these links, and able to fire in bulk;
+ *   - "sweep": the nightly create loop, which no event started (CRM boards skip it; WM has no birth pass).
+ */
+interface CreateTrigger { kind: "person" | "automation" | "sweep"; actor?: string }
+
+/**
+ * The row turned out to stand for a record ALREADY -- a "have" claim, an adoption, or the card-owner
+ * index -- and there is something still to apply to it: see replayOnLinked.
+ */
+interface AlreadyLinked {
+  recordId: string;
+  /** The event's own edit, a person's (or an adoption's replay): applied as an edit of the linked card. */
+  replay?: MondayEdit;
+  /** What a stopped creator left, settled by the same sync (see Takeover). */
+  takeover?: Takeover;
+  /** The Sync State this Worker last wrote for the record (CardEntry.baseline). See withBaseline. */
+  baseline?: string;
+  /** No baseline is known, but the card was made FROM the record by this Worker (the card-owner index):
+   *  it stands for the record as HubSpot had it when the card was made. See withBaseline. */
+  fromCard?: boolean;
+  /** A read to replay on, when the event's own read predates the edits being replayed (an adoption). */
+  card?: MondayItem;
+  /** For the log: why the row was already linked. */
+  why: string;
+}
+
+/**
+ * A STOPPED CREATOR'S CREATE WINDOW, handed to whoever settles the card in its place: the row's alarm, a
+ * sync that found the hold stale, a 'have' read. `entries` is its queue with the notes beside it;
+ * `snapshot` is there when the window was never settled (see CreateSnapshot) -- then the stand-in runs
+ * the creator's own round (settleTakeover).
+ */
+export interface Takeover {
+  entries: PendingEdit[];
+  snapshot?: CreateSnapshot;
+  /** Filled in by the round (settleTakeover): the Sync State it left on the card. The row's alarm records
+   *  it, as a creator's release records its own, for a read that predates it (createWindowFor). */
+  settled?: string;
+}
+
+/** The monday name edit, as a column key in the create window's per-column baselines. */
+const NAME_KEY = "~name";
+
+/** The Connect-Boards columns of a spec. A relation edit made mid-create is sent by the birth pass (it
+ *  reads the cells after the id write-back), never by a column replay, which has no before/after diff. */
+function relationColsOf(spec: ObjectSpec): Set<string> {
+  return new Set((spec.associations ?? []).flatMap(a => a.relationCol ? [a.relationCol] : []));
+}
+
+/** What an event's edit leaves for a create in flight: which columns, and whose. Nothing for an event
+ *  that names no column (item created, moved) or for the sweep. */
+function pendingEditOf(edit: MondayEdit | undefined, actorClass: PendingEdit["actorClass"] | null,
+    actor?: string): PendingEdit | undefined {
+  if (!edit || !actorClass || (!edit.cols.length && !edit.name)) return undefined;
+  return { cols: [...edit.cols], ...(edit.name ? { name: true } : {}), actorClass,
+    ...(actor ? { actor } : {}), at: Date.now() };
+}
+
+/**
+ * WHOSE IS EACH COLUMN NOW, by a create window's queue and notes: its LATEST entry decides (a tie goes to
+ * the later one in queue order, which is arrival order). A fresh read cannot say who put a value there,
+ * so a column a person edited and an automation -- or our own token, a note -- then overwrote is not the
+ * person's any more, and the other way round it is. The one rule for every replay: the creator's round,
+ * a takeover, a 'have' read, an adoption. Relation columns are left out: no before/after diff survives
+ * the queue, and a created record's birth pass reads those cells itself. Keyed by column id, and NAME_KEY.
+ */
+function latestEntries(spec: ObjectSpec, entries: PendingEdit[]): Map<string, PendingEdit> {
+  const relation = relationColsOf(spec);
+  const latest = new Map<string, PendingEdit>();
+  const see = (k: string, e: PendingEdit) => {
+    const cur = latest.get(k);
+    if (!cur || e.at >= cur.at) latest.set(k, e);
+  };
+  for (const e of entries) {
+    for (const c of e.cols) if (!relation.has(c)) see(c, e);
+    if (e.name) see(NAME_KEY, e);
+  }
+  return latest;
+}
+
+/** A latest entry that is a person's edit to replay (not an automation's, not a note). */
+const replayable = (e: PendingEdit) => e.actorClass === "person" && !e.note;
+
+/**
+ * The PEOPLE's columns of a create-window queue, as one column edit: those whose latest entry is a
+ * person's (latestEntries). Everything else is never sent -- logged by logDroppedEntries.
+ */
+function personReplayOf(spec: ObjectSpec, entries: PendingEdit[]): MondayEdit | undefined {
+  const cols: string[] = [];
+  let name = false;
+  let actor: string | undefined;
+  for (const [k, e] of latestEntries(spec, entries)) {
+    if (!replayable(e)) continue;
+    if (k === NAME_KEY) name = true; else cols.push(k);
+    actor = e.actor ?? actor;
+  }
+  if (!cols.length && !name) return undefined;
+  return { cols, ...(name ? { name: true } : {}), ...(actor ? { actor } : {}) };
+}
+
+/** The log line for a column a replay does not send because its latest entry is not a person's edit. */
+function droppedLine(spec: ObjectSpec, itemId: string, recordId: string, key: string, e: PendingEdit,
+    shown = false): string {
+  const who = e.actorClass === "integration" ? "our own token" : `an ${e.actorClass}`;
+  return `${spec.object} card ${itemId} hubspot_id=${recordId} cols=${key === NAME_KEY ? "name" : key}`
+    + `${e.actor ? ` actor=${e.actor}` : ""} class=${e.actorClass} action=create-window-edit-dropped reason="${
+      e.note ? `the cell was last written by ${who} while the record's create window was open; it is not sent as a person's edit`
+        : `an ${e.actorClass}'s edit made while the record was being created is not sent${shown ? "; the card shows HubSpot's value" : ""}`}"`;
+}
+
+function logDroppedEntries(spec: ObjectSpec, itemId: string, recordId: string, entries: PendingEdit[]): void {
+  for (const [k, e] of latestEntries(spec, entries))
+    if (!replayable(e)) console.log(droppedLine(spec, itemId, recordId, k, e));
+}
+
+/**
+ * How long after its record was created (or after the edit, for a record older than it) a queued edit is
+ * replayed exactly as the creator would have replayed it. A replay later than this -- a takeover that
+ * failed and was retried or given up, a queue nothing took until the next sync of the card, minutes or
+ * hours on -- first asks whether HubSpot has changed that property since (hubspotMovedOn): a HubSpot
+ * user's newer change is kept, and shown on the card, rather than overwritten with an older value from
+ * monday. Two minutes covers the creator's own round and the row's first alarm (35 s after the hold),
+ * with room for a slow HubSpot create; it is the create-window gate of the version before the alarm.
+ */
+export const REPLAY_FRESH_MS = 2 * 60_000;
+
+/**
+ * HAS HUBSPOT MOVED ON FROM THE CREATE, for the property behind `key` (a column id, or NAME_KEY)? As far
+ * as can be told without its history:
+ *   - a property the create sent (`sent`): HubSpot holds something else now -- a HubSpot user's change,
+ *     or a workflow's;
+ *   - one it did not send: HubSpot holds anything at all. A create default (the pipeline) and a later
+ *     change cannot be told apart, so a LATE replay does not risk the latter.
+ * Compared as the card would show it, so a value HubSpot re-rendered (a date) is not a change. Only a late
+ * replay asks (REPLAY_FRESH_MS): a timely one is what the creator's round would have sent.
+ */
+function hubspotMovedOn(spec: ObjectSpec, ctx: Ctx, rec: { properties: Record<string, string | null> },
+    key: string, sent: Record<string, string>): boolean {
+  const f = key === NAME_KEY ? undefined : spec.fields.find(x => x.col === key);
+  const prop = key === NAME_KEY ? spec.nameReverse : f?.hs;
+  if (!prop) return false;
+  const now = String(rec.properties[prop] ?? "").trim();
+  if (!(prop in sent)) return now !== "";
+  const was = String(sent[prop] ?? "").trim();
+  if (now === was) return false;
+  if (f && f.type !== "people") {
+    const shown = expectedText(f, now, ctx);
+    if (shown !== null && shown === expectedText(f, was, ctx)) return false;
+  }
+  return true;
+}
+
+/** Is a replay of an edit made at `at` late (REPLAY_FRESH_MS), for this record? */
+function lateReplay(spec: ObjectSpec, rec: { properties: Record<string, string | null> }, at: number): boolean {
+  const born = timeOf(rec.properties[spec.ownership?.createdProp ?? "createdate"]);
+  return Date.now() - Math.max(at, Number.isFinite(born) ? born : 0) > REPLAY_FRESH_MS;
+}
+
+function refusedLine(spec: ObjectSpec, itemId: string, recordId: string, key: string): string {
+  const prop = key === NAME_KEY ? spec.nameReverse : spec.fields.find(x => x.col === key)?.hs;
+  return `${spec.object} card ${itemId} hubspot_id=${recordId} cols=${key === NAME_KEY ? "name" : key}`
+    + ` action=create-window-edit-refused reason="HubSpot changed ${prop ?? key} after this edit was made, and`
+    + ` the replay comes late: HubSpot's newer value is kept, and shown on the card"`;
+}
+
+/**
+ * THE 'have' RACE: an edit that arrives once the record exists but before monday serves the id written
+ * for it. Re-stamping alone (the old answer) kept the record but dropped the edit, which is the live
+ * bug's other half. So the edit is handed back to be applied as what it is -- an edit of the now-linked
+ * card, through the ordinary linked path -- together with whatever a stalled or dead creator left
+ * (`left`), which the same sync settles in its place (settleTakeover).
+ *
+ * The event's own edit only when it is a PERSON's (the old re-stamp-only answer stands for an
+ * automation's). What a creator left is taken when it holds a person's edit or was never settled (a
+ * snapshot); otherwise it is only logged. The event's OWN relation edit carries its diff and goes through
+ * reverseAssociations like any linked relation edit.
+ */
+function replayOnLinked(env: Env, spec: ObjectSpec, itemId: string, recordId: string, edit: MondayEdit | undefined,
+    trigger: CreateTrigger, left: Takeover | undefined,
+    link: Omit<AlreadyLinked, "recordId" | "replay" | "takeover">): AlreadyLinked | undefined {
+  if (!spec.columnLevelReverse) return undefined;   // record-level (WM): unchanged, re-stamp only
+  // The kill switch: off, a 'have' claim (or a card-owner re-stamp) re-stamps only, as before. Nothing
+  // queues while it is off, so leftovers can only be a create that was in flight when it was flipped.
+  if (!createWindowReplayOn(env, spec)) {
+    const queued = left?.entries.filter(e => !e.note).length ?? 0;
+    if (queued)
+      console.log(`${spec.object} hubspot_id=${recordId} queued=${queued} action=create-window-replay-disabled`
+        + ` reason="CREATE_WINDOW_REPLAY is off: edits queued before the switch was turned off are not replayed"`);
+    return undefined;
+  }
+  const own = trigger.kind === "person" && edit && (edit.cols.length || edit.name) ? edit : undefined;
+  const take = left && (left.snapshot || personReplayOf(spec, left.entries)) ? left : undefined;
+  if (left && !take) logDroppedEntries(spec, itemId, recordId, left.entries);
+  if (!own && !take) return undefined;
+  return { recordId, ...link, ...(own ? { replay: own } : {}), ...(take ? { takeover: take } : {}) };
+}
+
+/**
+ * A takeover is settled from a FRESH read of the card. This event's own read was taken before its claim,
+ * and the queue it took may be younger than that read -- behind a card-owner re-stamp it always is: the
+ * edits queued while this very event held the claim. Replayed on the older read, a queued edit that
+ * filled a cell would find it empty and send nothing (or a clear). An unreadable card keeps the old read.
+ */
+async function withFreshCard(env: Env, itemId: string, linked: AlreadyLinked | undefined): Promise<AlreadyLinked | undefined> {
+  if (!linked?.takeover || linked.card) return linked;
+  const fresh = await getItem(env, itemId);
+  return fresh ? { ...linked, card: fresh } : linked;
+}
+
+/**
+ * OUR OWN TOKEN'S EDIT OF A CARD WITH NO ID YET, noted for the row's create window (the provenance gate
+ * then refuses it). Its event never reaches a claim, so without a note a replay of a person's queued edit
+ * of the same column would read our value off the card and send it as theirs. CREATE_WINDOW_REPLAY only;
+ * a no-op for a row with no window open, and it fails open.
+ */
+async function noteOwnEdit(env: Env, spec: ObjectSpec, itemId: string, edit: MondayEdit | undefined,
+    actor: MondayActor | undefined): Promise<void> {
+  if (!createWindowReplayOn(env, spec) || !spec.createFromMonday) return;
+  const note = pendingEditOf(edit, "integration", actor?.id || edit?.actor);
+  if (!note) return;
+  try { await noteCreateWindowEdit(env, spec.boardId, itemId, note); }
+  catch (e) { console.log(`[md-create] note item=${itemId} error="${String(e).slice(0, 120)}"`); }
+}
+
+/**
+ * AN ADOPTION'S REPLAY: the people's edits that queued WHILE the adoption was searching HubSpot, sent to
+ * the record it found -- from a FRESH read, since the adopter's own read predates them (replayed on it,
+ * an edit that filled an empty cell would read as one that emptied it, and clear HubSpot's value).
+ *
+ * Only where the card has changed since the adoption read it. A value the card already held then -- a
+ * form's own field, whose event trails the item's creation -- is the new card's starting state, not an
+ * edit of the record, and an adoption has never pushed a new card's starting values onto an existing
+ * record. The adopter's own event is not replayed, for the same reason.
+ */
+async function adoptionReplay(env: Env, spec: ObjectSpec, item: MondayItem, adopt: { id: string; modified: string },
+    queued: PendingEdit[]): Promise<AlreadyLinked | undefined> {
+  logDroppedEntries(spec, item.id, adopt.id, queued);
+  const want = personReplayOf(spec, queued);
+  if (!want) return undefined;
+  const fresh = await getItem(env, item.id);
+  if (!fresh) return undefined;
+  const cols = want.cols.filter(c => {
+    const f = spec.fields.find(x => x.col === c);
+    return f ? cellKey(f, fresh) !== cellKey(f, item) : colText(fresh, c) !== colText(item, c);
+  });
+  const name = !!want.name && fresh.name.trim() !== item.name.trim();
+  if (!cols.length && !name) {
+    console.log(`${spec.object} card ${item.id} hubspot_id=${adopt.id} action=adoption-replay-skipped`
+      + ` reason="nothing queued during the adoption differs from what the adoption read"`);
+    return undefined;
+  }
+  return { recordId: adopt.id, card: fresh, baseline: adopt.modified,
+    why: "a person edited the card while it was being adopted; the edit is applied to the adopted record",
+    replay: { cols, ...(name ? { name: true } : {}), ...(want.actor ? { actor: want.actor } : {}) } };
+}
+
+/**
+ * The card as a read that lags monday cannot show it: carrying the Sync State the card really holds.
+ *
+ * A replay's read is missing the id (that is why it is a replay) and so the Sync State written in the same
+ * mutation. Reconciled as it is, an empty Sync State makes HubSpot read as "newer" than the card, and the
+ * column-level engine copies HubSpot's values over every other column the person has changed -- the live
+ * bug, by another road. So the ordinary freshness rule is given the baseline it would have read: the one
+ * this Worker last wrote for the record, or -- for a card made from the record, with no baseline known
+ * (`fromCard`) -- the moment the card was made (its created_at). The card was built from the record as
+ * HubSpot had it then, so a HubSpot change made AFTER it still reads as newer and comes across. (Judging
+ * it by the record as it is now, the version before, buried that change for good: the replay's push then
+ * stamped Sync State past it, and the change's own webhook found nothing newer to bring.) A read that does
+ * show a Sync State keeps it: for a card made from the record, whatever it shows; otherwise when it is
+ * the later one.
+ */
+function withBaseline(item: MondayItem, spec: ObjectSpec, link: Pick<AlreadyLinked, "baseline" | "fromCard">): MondayItem {
+  const shown = colText(item, spec.syncStateCol);
+  const want = link.fromCard
+    ? (shown || item.created_at || "")
+    : (link.baseline && !(timeOf(shown) >= timeOf(link.baseline)) ? link.baseline : shown);
+  return want && want !== shown ? withColumn(item, spec.syncStateCol, want) : item;
+}
+
+/**
+ * THE CREATE_WINDOW_REPLAY KILL SWITCH: is the create-window machinery on for this spec?
+ *
+ * Only the literal "true" arms it, and only on a column-level spec (the only kind that ever had it).
+ * Anything else, including absent, is the create path exactly as it was before the machinery existed,
+ * and every one of its ENTRY POINTS asks this, so the off path is that old path rather than a new one
+ * that happens to agree with it:
+ *   - the claim is made WITHOUT the event's edit, so an event that finds the create in flight is skipped
+ *     and nothing queues (createFromMonday);
+ *   - the create records its id with a plain finish: no hold, no heartbeat, no settle round, no release;
+ *   - a 'have' claim and a card-owner re-stamp re-stamp only (replayOnLinked), and an adoption settles
+ *     with a plain finish and replays nothing;
+ *   - a sync of a young linked card never consults the create window (reconcileRecord).
+ * Read on every event, so flipping the var in the Cloudflare dashboard takes effect without a code change.
+ */
+export function createWindowReplayOn(env: { CREATE_WINDOW_REPLAY?: string }, spec: ObjectSpec): boolean {
+  return !!spec.columnLevelReverse && env.CREATE_WINDOW_REPLAY === "true";
+}
+
+/**
+ * THE BORN_ATTACHED_LINKS KILL SWITCH: does a monday-born record get the card's relation links (the birth
+ * pass, bornAttached)? Only the literal "true" arms it; anything else, including absent, is the create path
+ * as it was before the pass existed -- no association write follows a monday-born record. It gates the
+ * LINKS only: the card-owner re-stamp and the create's provenance are duplicate-record guards and stay on.
+ * Read on every create, so flipping the var in the Cloudflare dashboard takes effect without a code change.
+ * (pushBirthAssociations repeats the same test, so no other caller can get past it.)
+ */
+export function birthLinksOn(env: { BORN_ATTACHED_LINKS?: string }): boolean {
+  return env.BORN_ATTACHED_LINKS === "true";
+}
+
 async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
-    item: MondayItem, emailCol: string | undefined, stats: Stats): Promise<void> {
+    item: MondayItem, emailCol: string | undefined, stats: Stats, trigger: CreateTrigger,
+    /** The edit that started this event (column-level specs): queued if a create is already in flight,
+     *  replayed by this create's own settle if this event becomes the creator. */
+    edit?: MondayEdit): Promise<AlreadyLinked | undefined> {
   // Cross-isolate guard. monday fires create_pulse AND change_column_value for one new row; those land in
   // different isolates where `coalesce` (per-isolate) can't see each other, so both used to reach here and
   // each created its own HubSpot record — leaving one orphan that the sync then carded separately.
-  const claim = await claimHubspotForItem(env, spec.boardId, item.id);
+  //
+  // COLUMN-LEVEL: the claim also QUEUES this event's edit when a create is in flight. It used to be
+  // skipped and lost: a person changing HubSpot Stage twice on a brand-new card saw the first change
+  // create the deal, the second land here as "creating", and the forward pass that followed HubSpot's
+  // creation webhook copy the first value back over the card (2026-09-30 17:40Z, user 104231430).
+  // With CREATE_WINDOW_REPLAY off (createWindowReplayOn) the claim carries no edit: the old skip-and-drop.
+  const windowOn = createWindowReplayOn(env, spec);
+  const defer = windowOn
+    ? pendingEditOf(edit, trigger.kind === "sweep" ? null : trigger.kind, trigger.actor) : undefined;
+  const claim = defer
+    ? await claimHubspotForItem(env, spec.boardId, item.id, defer)
+    : await claimHubspotForItem(env, spec.boardId, item.id);
   if (claim.status === "creating") {
+    // Skipping is still right. When a PERSON's event started the create in flight, this skip loses no
+    // relation edit: that create reads the card's links AFTER its id write-back (pushBirthAssociations),
+    // so anything linked now is sent then. When an AUTOMATION's event started it, the birth pass is
+    // suppressed and a link made now is not sent (logged there as birth-assoc-suppressed). With
+    // BORN_ATTACHED_LINKS off there is no birth pass, and the log says only what it always said.
     stats.skipped++;
-    console.log(`${spec.object} card ${item.id} create already in flight — skipping (would duplicate)`);
+    console.log(`${spec.object} card ${item.id} create already in flight — skipping (would duplicate)`
+      + (spec.columnLevelReverse && birthLinksOn(env)
+        ? `; its links are read by that create's birth pass, unless an automation's event started it` : ""));
+    if (claim.deferred && defer)
+      console.log(`${spec.object} card ${item.id} cols=${defer.cols.join(",")}${defer.name ? " name" : ""}`
+        + `${defer.actor ? ` actor=${defer.actor}` : ""} class=${defer.actorClass} action=deferred-to-create reason="${
+          defer.actorClass === "person"
+            ? "queued: the creator replays it from a fresh read of the card once the record exists"
+            : "recorded, not sent: an automation's edit made while the record is being created"}"`);
     return;
   }
   if (claim.status === "have") {
-    // A previous attempt created the record but its id write-back failed. Re-stamp instead of creating again.
+    // The record exists: a previous attempt created it but its id write-back failed -- or this read lags
+    // the write-back of a create that is still settling. Re-stamp instead of creating again (idempotent
+    // beside a write-back still in flight).
     await setColumns(env, spec.boardId, item.id,
       { [spec.idCol]: claim.itemId, ...linkValue(spec, ctx, claim.itemId) }, opts);
     stats.adopted++; budget.left--;
-    console.log(`${spec.object} card ${item.id} re-stamped with ${claim.itemId} (earlier write-back had failed)`);
-    return;
+    console.log(`${spec.object} card ${item.id} re-stamped with ${claim.itemId} (${claim.settling
+      ? "its create is still settling; this read lags the id written for it" : "earlier write-back had failed"})`);
+    // With CREATE_WINDOW_REPLAY off that is all: replayOnLinked hands nothing back (the old re-stamp).
+    // On, what a stopped creator left (its queue, and its snapshot when it never settled) goes with it.
+    const left: Takeover | undefined = claim.pending?.length || claim.snapshot
+      ? { entries: claim.pending ?? [], ...(claim.snapshot ? { snapshot: claim.snapshot } : {}) } : undefined;
+    return withFreshCard(env, item.id, replayOnLinked(env, spec, item.id, claim.itemId, edit, trigger, left,
+      { baseline: claim.baseline,
+        why: "the record exists but monday had not served its id yet; the edit is applied to it, not dropped" }));
+  }
+
+  /**
+   * THE CARD ALREADY STANDS FOR A RECORD. Every card this Worker makes for a HubSpot record (a HubSpot-born
+   * record's card, a restore) goes through ensureCardForRecord, whose finishCard writes the card-owner
+   * index -- but never this per-item claim, so the claim above said "proceed". An empty id in THIS read
+   * is then monday's id-read lag, the misreading the provenance gate in syncMondayItem exists for, reached
+   * by an event that is not our token's: an automation on item-created, or a person's edit inside the
+   * lag. Creating would DUPLICATE the record, and the birth pass would copy onto the duplicate the links
+   * the forward pass wrote into the cell from the real one. So it is re-stamped instead, like "have".
+   *
+   * The claim is settled on that record FIRST, so a failed re-stamp still leaves the next event reading
+   * "have" rather than reaching a create. CRM boards only (suppressSelfOriginWrites): the Work-Management
+   * create path is left as it is. Fails open like the claim: an index that cannot be read returns null.
+   */
+  if (spec.suppressSelfOriginWrites) {
+    const owner = await lookupCardOwner(env, spec.boardId, item.id);
+    if (owner) {
+      // With CREATE_WINDOW_REPLAY on, settled as a LINK: this claim made the row read "creating" for a
+      // moment, so a person's edit inside the lag may have queued behind it (an automation's item-created
+      // event holding the claim, say). A plain finish stranded that queue, watched by nothing, for whichever
+      // sync came next -- an hour on, a HubSpot user's change, which the stale value then overwrote. The
+      // link hands it back, and it is applied now with this event. Off: the plain finish, as before.
+      const queued = windowOn
+        ? (await finishHubspotForItem(env, spec.boardId, item.id, owner, "link")) ?? []
+        : (await finishHubspotForItem(env, spec.boardId, item.id, owner), []);
+      await setColumns(env, spec.boardId, item.id, { [spec.idCol]: owner, ...linkValue(spec, ctx, owner) }, opts);
+      stats.adopted++; budget.left--;
+      console.log(`${spec.object} card ${item.id} hubspot_id=${owner} action=re-stamped`
+        + ` reason="the card-owner index already pairs this card with that record; an empty id read does not make it a new row"`);
+      // The same lag as the 'have' race, on a card this Worker made for a HubSpot record: a person's edit
+      // inside it is still an edit of that record. No baseline is recorded for such a card, but it was
+      // made FROM the record, so it is judged against the record as HubSpot had it when the card was made
+      // (see withBaseline). The re-stamp itself is a duplicate-record guard and runs whatever the switches
+      // say; only this replay is CREATE_WINDOW_REPLAY's (replayOnLinked).
+      return withFreshCard(env, item.id, replayOnLinked(env, spec, item.id, owner, edit, trigger,
+        queued.length ? { entries: queued } : undefined,
+        { fromCard: true, why: "the card-owner index pairs this card with the record; the edit is applied to it, not dropped" }));
+    }
   }
 
   // CRM specs declare their adoption key. A SEPARATE branch so the production WM adoption paths below
@@ -407,10 +1396,20 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       // reverse write remains blocked by authorizeWrite. Recreating history must never migrate ownership.
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
-      await finishHubspotForItem(env, spec.boardId, item.id, adopt.id);
+      // Column-level: settled as a link, handing back the edits that queued while the search ran. With
+      // CREATE_WINDOW_REPLAY off nothing queued, and the plain finish is the old one.
+      const queued = windowOn
+        ? (await finishHubspotForItem(env, spec.boardId, item.id, adopt.id, "link", { baseline: adopt.modified })) ?? []
+        : (await finishHubspotForItem(env, spec.boardId, item.id, adopt.id), []);
       stats.adopted++; budget.left--;
       console.log(`${spec.object} card ${item.id} action=adopted hubspot_id=${adopt.id} by=${spec.adoptBy.kind}`);
-      return;
+      // NOT BORN HERE, SO NOT BORN ATTACHED. The birth pass writes on the authority of the stamp this
+      // Worker put in its own create payload; an adopted record carries no such stamp, and its links are
+      // a person's edit to make through the ordinary, ownership-checked column-level path.
+      console.log(`${spec.object} card ${item.id} hubspot_id=${adopt.id} action=birth-links-skipped reason=adopted`);
+      // A person's edit that arrived WHILE the adoption ran was queued, not sent: it is an edit of the
+      // record just adopted, and goes through that same ordinary path now. See adoptionReplay.
+      return windowOn ? adoptionReplay(env, spec, item, adopt, queued) : undefined;
     }
   } else if (spec.object === "contacts") {
     const email = emailCol ? colText(item, emailCol) : "";
@@ -466,10 +1465,36 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       return;
     }
   }
+  /**
+   * A CHILD RECORD IS BORN ATTACHED, OR NOT AT ALL.
+   *
+   * Resolved before the create and sent inside it. Refusing is the safe direction here in a way it is
+   * not elsewhere: a line item created without its deal is invisible in HubSpot's UI — no quote, no
+   * deal amount, nothing linking back — and monday cannot delete a HubSpot record to tidy it up. The
+   * card keeps everything the rep typed and says why on Sync State, so the fix is to fill in the Deal
+   * and let the next event retry.
+   */
+  let parentAssoc: { toId: string; associationTypeId: number }[] | undefined;
+  if (spec.createParent) {
+    const parentHsId = await resolveCreateParent(env, spec, item);
+    if (!parentHsId) {
+      stats.skipped++;
+      await forgetHubspotForItem(env, spec.boardId, item.id);
+      await setColumns(env, spec.boardId, item.id,
+        { [spec.syncStateCol]: `not synced — needs a linked ${spec.createParent.toObject.replace(/s$/, "")}` },
+        opts).catch(() => {});
+      console.log(`${spec.object} card ${item.id} action=skip-create`
+        + ` reason="its ${spec.createParent.relationCol} does not resolve to a HubSpot`
+        + ` ${spec.createParent.toObject} id; a parentless record would be unreachable"`);
+      return;
+    }
+    parentAssoc = [{ toId: parentHsId, associationTypeId: spec.createParent.associationTypeId }];
+  }
+
   let created: { id: string; modified: string } | null;
   try {
     created = await createRecord(env, spec, props, opts,
-      spec.ownership ? authorizeCreate(spec.ownership) : undefined);
+      spec.ownership ? authorizeCreate(spec.ownership) : undefined, parentAssoc);
   } catch (e) {
     await forgetHubspotForItem(env, spec.boardId, item.id); // release so a later pass may retry
     throw e;
@@ -477,7 +1502,17 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   if (created) {
     // Record the pairing BEFORE the write-back: if the write-back fails, the next pass re-stamps from here
     // instead of creating a second HubSpot record.
-    await finishHubspotForItem(env, spec.boardId, item.id, created.id);
+    //
+    // COLUMN-LEVEL: as a HOLD, with the Sync State the write-back is about to stamp as its baseline. The
+    // id is just as durable; the hold only says this creator is alive and will bring the new card into
+    // line (settleCreateWindow), so a forward pass leaves the card to it. The queue closes here: an edit
+    // arriving from now on is an edit of an existing record and sends itself. With it goes what this
+    // creator knows (CreateSnapshot), for whoever has to settle the card should it stop. With
+    // CREATE_WINDOW_REPLAY off: the plain finish, as before -- no hold, so nothing below waits on this creator.
+    if (windowOn)
+      await finishHubspotForItem(env, spec.boardId, item.id, created.id, "hold",
+        { baseline: created.modified, snapshot: createSnapshot(spec, item, props, edit, trigger) });
+    else await finishHubspotForItem(env, spec.boardId, item.id, created.id);
     // The write-back is idempotent -> retries hard (setColumns retries=3). If it still fails, the
     // HubSpot record exists but the card has no id and would re-create next tick: log the orphan and
     // signal the caller to STOP creating this run so the failure can't cascade into duplicates.
@@ -488,11 +1523,509 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       // indexed the id we just stamped, and would otherwise create a second card for this record.
       await finishCard(env, spec.boardId, created.id, item.id);
     } catch (e) {
+      // Stop holding: nothing will settle this create now. The next event re-stamps the card, applies its
+      // edit, and takes the queue with it. No baseline either: the card was never stamped.
+      if (windowOn) await finishHubspotForItem(env, spec.boardId, item.id, created.id);
       console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
       throw new Error("WRITEBACK_FAILED");
     }
   }
   stats.createdInHubspot++; budget.left--;
+  // HEARTBEAT before the birth pass: it can wait on monday's rate limit, and a hold that went stale while
+  // this creator was still alive would hand the card to a forward pass it is about to settle.
+  if (created && windowOn)
+    await finishHubspotForItem(env, spec.boardId, item.id, created.id, "renew");
+  // BORN ATTACHED. Only a record this call genuinely created (not a dry run, which returns null; not an
+  // adoption or a re-stamp, which returned above), only AFTER the id write-back (see
+  // pushBirthAssociations for why that ordering is what covers a relation edit made mid-create), only
+  // for a create a person's event started (see bornAttached), and only while the BORN_ATTACHED_LINKS
+  // switch is on. Off, the pass is not run at all -- no read of the cells, no association write -- which
+  // is the create path as it was before it existed; one line per create says so.
+  if (created) {
+    if (birthLinksOn(env)) await bornAttached(env, spec, item, created.id, props, opts, budget, trigger);
+    else if (spec.columnLevelReverse)
+      console.log(`${spec.object} card ${item.id} hubspot_id=${created.id} action=birth-links-disabled`
+        + ` reason="BORN_ATTACHED_LINKS is off: the card's links are not sent to the new record"`);
+  }
+  // Then close the create window: replay what people changed while the record was being made, bring the
+  // card into line with what HubSpot did on its own, and set the baseline. CREATE_WINDOW_REPLAY only.
+  if (created && windowOn)
+    await settleCreateWindow(env, spec, ctx, opts, budget, item, created.id, props, stats);
+}
+
+/**
+ * What this creator knows, kept with its hold for whoever settles the card in its place (CreateSnapshot):
+ * the two-way cells as it read them, what it sent, and its own event -- the columns that event named,
+ * and whose it was (none for the sweep).
+ */
+function createSnapshot(spec: ObjectSpec, built: MondayItem, sent: Record<string, string>,
+    edit: MondayEdit | undefined, trigger: CreateTrigger): CreateSnapshot {
+  const relation = relationColsOf(spec);
+  const cols = (edit?.cols ?? []).filter(c => !relation.has(c));
+  const own = trigger.kind !== "sweep" && (cols.length || edit?.name)
+    ? { cols, ...(edit?.name ? { name: true } : {}), actorClass: trigger.kind,
+        ...(trigger.actor ? { actor: trigger.actor } : {}) } : undefined;
+  return { built: builtCells(spec, built), sent: { ...sent }, ...(own ? { trigger: own } : {}), at: Date.now() };
+}
+
+/** Each two-way cell of a card, and its name, as cellKey reads them: a create's `built`, by column. */
+function builtCells(spec: ObjectSpec, item: MondayItem): Record<string, string> {
+  const out: Record<string, string> = { [NAME_KEY]: item.name.trim() };
+  for (const f of spec.fields) if (f.reverse || f.appReverse) out[f.col] = cellKey(f, item);
+  return out;
+}
+
+/**
+ * THE CREATE WINDOW, CLOSED BY THE CREATOR.
+ *
+ * Two halves, split at the moment the record exists (the hold):
+ *   - BEFORE it, there is nothing to send an edit to. A claim answers "creating" and queues the event's
+ *     edit (CreateIdempotency.claimCard) instead of dropping it. This settle replays the queue.
+ *   - FROM it, an edit is an edit of an existing record and sends itself, whether its read shows the id
+ *     (the linked path) or lags it (the 'have' race): nothing waits on this creator, so nothing is lost
+ *     if it dies. What waits is only the FORWARD half -- HubSpot's creation webhook, the association
+ *     webhooks the birth pass sets off, our own echoes -- because judged by Sync State, HubSpot's
+ *     post-create recalculation makes every difference on the card read as HubSpot's (createWindowFor).
+ *
+ * One round (settleRound) therefore settles it: nothing can join the queue after the hold. This event's
+ * own edit is NOT replayed: its value is what the create was built from, and a later change of the same
+ * column -- a second event folded into this run by the webhook, or one still on its way -- is on the
+ * card, held there by the absorb, and sent by its own event. (Replaying it here sent whatever the cell
+ * held on the basis of a PERSON's edit, even when an automation or our own token had put it there.)
+ *
+ * The hold is a HEARTBEAT (renewed here, and before the birth pass). A creator that stalls or dies lets it
+ * go stale, and whoever gets there first settles the card IN ITS PLACE, by this same round: the row's own
+ * alarm, set for that moment (settleAbandonedCreate), or a sync of the card (settleTakeover). The hold
+ * recorded what they need (CreateSnapshot) -- including that a folded re-run of this event, which died
+ * with it, is now theirs to send. The queue is acknowledged only once the round has run, so a creator
+ * that dies mid-replay leaves it for them instead of losing it.
+ *
+ * Fenced like the birth pass: the record exists and is counted, so a failure here is logged, never thrown,
+ * and the hold is ALWAYS released.
+ */
+async function settleCreateWindow(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    built: MondayItem, recordId: string, sent: Record<string, string>, stats: Stats): Promise<void> {
+  // The heartbeat, and the edits that queued while HubSpot was making the record, with the notes beside
+  // them (read, not yet removed).
+  const queued = (await finishHubspotForItem(env, spec.boardId, built.id, recordId, "renew")) ?? [];
+  let settled: string | null = null;
+  try {
+    settled = await settleCreateRound(env, spec, ctx, opts, budget, built, recordId, queued, sent, stats);
+  } catch (e) {
+    console.log(`${spec.object} card ${built.id} hubspot_id=${recordId} action=create-settle-error`
+      + ` reason="${String(e).slice(0, 160)}"`);
+  }
+  // Acknowledged only if the round ran to the end, and only the queue it was given (notes are not
+  // counted); otherwise the queue, the hold's baseline and its snapshot stay, and the row settles the card.
+  await finishHubspotForItem(env, spec.boardId, built.id, recordId, "release",
+    settled === null ? {} : { ack: queued.filter(e => !e.note).length, ...(settled ? { baseline: settled } : {}) });
+}
+
+/** A card cell normalised exactly as fieldDiffs normalises the monday side, so a value this Worker wrote
+ *  and monday re-rendered (a phone reformatted, a number with separators) still reads as the same cell. */
+function cellKey(f: FieldSpec, item: MondayItem): string {
+  if (f.type === "people") {
+    const cv = item.column_values.find(c => c.id === f.col);
+    return (cv?.persons_and_teams ?? []).filter(p => p.kind === "person").map(p => String(p.id)).sort().join(",");
+  }
+  const t = colText(item, f.col);
+  switch (f.type) {
+    case "phone": return phoneDigits(t);
+    case "email": return t.trim().toLowerCase();
+    case "link": return linkText(t);
+    case "numbers": return numText(t);
+    default: return t;
+  }
+}
+
+/** The creator's round, on its own fresh reads: HubSpot FIRST, then the card. An edit whose push lands
+ *  between the two reads is then seen on the card with the later Sync State it stamped, so the baseline
+ *  never moves back past it (read the other way round, the card would predate that stamp and the settle
+ *  would write an older one over it). null when either cannot be read. See settleRound. */
+async function settleCreateRound(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    built: MondayItem, recordId: string, batch: PendingEdit[], sent: Record<string, string>,
+    stats: Stats): Promise<string | null> {
+  const rec = await getRecord(env, spec.object, recordId, propertiesForSpec(spec));
+  if (!rec) return null;
+  const fresh = await getItem(env, built.id);
+  if (!fresh) return null;
+  // monday may not serve the id this create stamped yet; the card IS linked to this record.
+  return settleRound(env, spec, ctx, opts, budget, rec, withColumn(fresh, spec.idCol, recordId), recordId,
+    { entries: batch, built: builtCells(spec, built), sent }, stats);
+}
+
+/** What one round of a create window is given. See settleRound. */
+interface Round {
+  /** The queue, with the notes beside it (PendingEdit.note). */
+  entries: PendingEdit[];
+  /** The two-way cells as the create read them (CreateSnapshot.built). */
+  built: Record<string, string>;
+  /** What the create sent (CreateSnapshot.sent). */
+  sent: Record<string, string>;
+  /** A stand-in's only: the creator's own event, whose folded re-run died with it, and when it held. */
+  trigger?: CreateSnapshot["trigger"];
+  heldAt?: number;
+  /** A stand-in's only: the edit of the sync that is standing in, sent with the rest as its own. */
+  own?: MondayEdit;
+  /** Run in the creator's place (settleTakeover), not by the creator. For the log. */
+  standIn?: boolean;
+}
+
+/**
+ * THE CREATE WINDOW'S ROUND: send what people changed while the record was being made, take what HubSpot
+ * changed on its own, set the baseline. Run by the creator (settleCreateRound), and by whoever settles the
+ * card in its place when it stops (settleTakeover): the same rules, on the same record of what the create
+ * read and sent. Returns the Sync State the card now holds ("" if none is known).
+ *
+ * 1. REPLAY. Every column whose LATEST entry is a PERSON's edit (latestEntries) is sent through the
+ *    ordinary column-level push (pushColumnEdit), from the card as it is now -- so HubSpot gets what is on
+ *    screen, however many edits queued. An automation's edit is not sent (as before this existed); its
+ *    column is shown as HubSpot has it, which is what the forward pass used to do to it. A column our own
+ *    token (or a dropped automation event) wrote last -- a note -- is not sent either, and is left as it is.
+ *    A stand-in also sends the creator's own column when it has changed since the create read it and
+ *    nothing queued explains it: that is the webhook's folded re-run of the creator's event, which died
+ *    with the creator -- sent as the lost run would have sent it, and only for a person's event (an
+ *    automation's create sends nothing on its behalf; the cell is held, below).
+ *    A LATE replay (REPLAY_FRESH_MS) is not sent over a newer HubSpot change of the same property
+ *    (hubspotMovedOn): that value is kept, and shown on the card.
+ *
+ * 2. ABSORB, and why it cannot be the ordinary forward pass. HubSpot recalculates a new record right after
+ *    creating it (stage probability, created date, derived fields), which moves its modified timestamp
+ *    past the create's. Judged by Sync State, EVERY difference on the card then reads as "HubSpot is
+ *    newer" and is copied over it -- including a person's edit whose own event has not arrived yet. That
+ *    was the live bug's last step. The create's read (`built`) tells the two apart per column:
+ *      - a column HubSpot owns (one-way), or a two-way cell NOBODY has touched since `built`: the
+ *        difference is HubSpot's -- a create default the card never showed (the pipeline), its own
+ *        recalculation (probability), a workflow's value, a replay's consequence -> shown on the card;
+ *      - a two-way cell that HAS changed since: a person's edit (its event on the way, or folded into a
+ *        re-run of the creator's event) -> left alone, for that event to push. This is also where a value
+ *        our own token or an automation put there after `built` stays: the engine's ordinary rule for a
+ *        difference HubSpot did not cause (reconcileForwardOnly).
+ *    Sync State plays no part in it, which is why a stand-in brings HubSpot's post-create state across
+ *    even after a person's push during the hold stamped Sync State past it.
+ *
+ * 3. BASELINE. Sync State is stamped with HubSpot's timestamp as read (or the replay's own) -- never
+ *    moved backwards past one a person's edit wrote meanwhile. From here the engine's ordinary rule
+ *    holds: a later forward pass acts only if HubSpot changes AGAIN, and every difference it finds before
+ *    then is monday's -- which is exactly what the cells left alone in (2) are. So HubSpot's creation
+ *    webhook, arriving after this, has nothing to copy back.
+ */
+async function settleRound(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: HsRecord, card: MondayItem, recordId: string, r: Round, stats: Stats): Promise<string> {
+  const itemId = card.id;
+  const relation = relationColsOf(spec);
+  const keyOf = (c: string): string => {
+    if (c === NAME_KEY) return card.name.trim();
+    const f = spec.fields.find(x => x.col === c);
+    return f ? cellKey(f, card) : colText(card, c);
+  };
+  /** Changed since the create read it. Only a cell the create recorded can say (two-way, and the name). */
+  const touched = (c: string) => r.built[c] !== undefined && keyOf(c) !== r.built[c];
+
+  // 1. Whose is each column now, and what is sent.
+  const latest = latestEntries(spec, r.entries);
+  const send = new Set<string>();      // replayed: column ids and NAME_KEY
+  const dropped = new Set<string>();   // an automation's: not sent, shown as HubSpot has it
+  const refused = new Set<string>();   // HubSpot moved on after the edit: not sent, shown as HubSpot has it
+  const replay = (c: string, at: number) => {
+    if (lateReplay(spec, rec, at) && hubspotMovedOn(spec, ctx, rec, c, r.sent)) {
+      refused.add(c);
+      console.log(refusedLine(spec, itemId, recordId, c));
+    } else send.add(c);
+  };
+  for (const [c, e] of latest) {
+    if (replayable(e)) { replay(c, e.at); continue; }
+    if (!e.note) dropped.add(c);
+    console.log(droppedLine(spec, itemId, recordId, c, e, !e.note));
+  }
+  const t = r.trigger;
+  if (t?.actorClass === "person")
+    for (const c of [...t.cols.filter(x => !relation.has(x)), ...(t.name ? [NAME_KEY] : [])])
+      if (!latest.has(c) && touched(c)) {
+        console.log(`${spec.object} card ${itemId} hubspot_id=${recordId} cols=${c === NAME_KEY ? "name" : c}`
+          + `${t.actor ? ` actor=${t.actor}` : ""} action=create-window-rerun-replayed reason="changed since the`
+          + ` create read it, by nothing queued: the re-run of the creator's own event, which stopped with it"`);
+        replay(c, r.heldAt ?? Date.now());
+      }
+  const own = r.own;
+  const cols = new Set([...(own?.cols ?? []), ...[...send].filter(c => c !== NAME_KEY)]);
+  const name = !!own?.name || send.has(NAME_KEY);
+
+  // A backward move's clear an earlier run left unfinished: finished before this round stamps Sync State over
+  // it (see repairDanglingClears). Not finished now -> no restamp, and the re-check is armed again.
+  const repaired = new Set<string>();
+  const unfinished = await repairDanglingClears(env, spec, ctx, opts, budget, rec, card, { skip: cols, repaired });
+
+  let push: ColumnPush = { patch: {}, heal: [], healName: false, newMod: null, fields: [] };
+  if (cols.size || name)
+    push = await pushColumnEdit(env, spec, ctx, opts, budget, rec, card, stats,
+      { ...(own ?? {}), cols: [...cols], ...(name ? { name: true } : {}) });
+  const pushed = push.newMod !== null ? push.patch : {};
+  const effective: HsRecord = { id: rec.id, properties: { ...rec.properties, ...pushed } };
+
+  // 2. Absorb.
+  const held: string[] = [];
+  const forward = fieldDiffs(effective, card, spec, ctx, false).filter(d => {
+    if (d.backfill || d.kind === "group") return false;   // a backfill is monday's value HubSpot lacks
+    if (d.kind === "name") {
+      if (name || push.healName) return false;          // the replay's own rename: sent, or healed below
+      if (!spec.nameReverse || dropped.has(NAME_KEY) || refused.has(NAME_KEY)) return true;
+      if (!touched(NAME_KEY)) return true;              // HubSpot builds the name, or nobody renamed it
+      held.push("name");
+      return false;
+    }
+    const f = d.f;
+    if (!f || cols.has(f.col)) return false;             // the replay's own edit: sent, or healed below
+    if (repaired.has(f.col)) return false;               // HubSpot now holds what the card showed when re-read
+    if (!(f.reverse || f.appReverse)) return true;       // HubSpot's column: nothing on it is monday's
+    if (dropped.has(f.col) || refused.has(f.col)) return true;   // not sent: shown as HubSpot has it
+    if (!touched(f.col)) return true;                    // untouched since the create read it
+    held.push(f.col);
+    return false;
+  });
+
+  // 3. One monday write: HubSpot's changes, heals of what could not be sent, and the baseline.
+  const healDiffs: Diff[] = push.heal.map(f => ({ kind: "field", f, hsText: "", mdText: "",
+    ...(f.type === "people" && !formatValue(f, effective.properties[f.hs], ctx) ? { peopleClear: true } : {}) }));
+  const cv = buildUpdatePayload([...forward, ...healDiffs], effective, spec, ctx);
+  const shown = colText(card, spec.syncStateCol);
+  // Never the clear's own time while a backward move is pending (ColumnPush.pending).
+  const stamp = (push.pending ? null : push.newMod) ?? rec.properties[spec.modifiedProp] ?? "";
+  // Forwards only: an edit sent while this ran (holdForward) stamped its own, later, push time. A push it
+  // makes after the card read is still a race this cannot see; its event's own stamp lands after.
+  const restamp = !unfinished && !!stamp && !(timeOf(shown) >= timeOf(stamp));
+  if (restamp) cv[spec.syncStateCol] = stamp;
+  if (unfinished) await rearmRecheck(env, spec, opts, rec.id, itemId);
+  const renames = push.healName || forward.some(d => d.kind === "name");
+  if (renames) {
+    await updateItem(env, spec.boardId, itemId, itemName(effective, spec), cv, opts);
+    budget.left--;
+  } else if (Object.keys(cv).length) {
+    await setColumns(env, spec.boardId, itemId, cv, opts);
+    budget.left--;
+  }
+  if (forward.length || healDiffs.length || push.healName) stats.toMonday++;
+  if (!push.fields.length && !forward.length && !healDiffs.length && !push.healName) stats.inSync++;
+  const baseline = restamp ? stamp : shown;
+  console.log(`${spec.object} card ${itemId} hubspot_id=${recordId} action=create-window-settled`
+    + ` sent=${push.newMod !== null ? push.fields.join(",") : "-"}`
+    + ` shown=${forward.map(d => d.kind === "name" ? "name" : d.f?.col).join(",") || "-"}`
+    + ` held=${held.join(",") || "-"} dropped=${[...dropped].join(",") || "-"}`
+    + ` refused=${[...refused].join(",") || "-"} baseline=${baseline || "-"}${r.standIn ? " by=stand-in" : ""}`);
+  return baseline;
+}
+
+/** The card as it is, but showing `text` in column `col` (the id monday has not served back yet). */
+function withColumn(item: MondayItem, col: string, text: string): MondayItem {
+  return { ...item, column_values: [...item.column_values.filter(c => c.id !== col), { id: col, text }] };
+}
+
+/**
+ * Records younger than this are checked for a monday-row create window (createWindowFor): as long as
+ * the row can hold anything for them. A LIVE hold lasts CREATE_CLAIM_STALE_MS past its last heartbeat,
+ * but a stalled or dead creator's QUEUE stays until someone takes it -- the row's alarm, normally within
+ * seconds, or failing that the first sync of the card -- and the row keeps it for its whole retention
+ * (CreateIdempotency's RETENTION_MS, 24 h after its last write). A 2-minute gate here once let a queue
+ * outlive every sync that could read it: the next event, minutes later, reverted the card instead. The
+ * extra hour covers a row whose last write came after the create (a takeover's retries, a release).
+ * Pinned against RETENTION_MS by test/create-window-edits.test.ts. An older record is never asked. What
+ * a LATE reader may still send is bounded separately, per property (REPLAY_FRESH_MS, hubspotMovedOn).
+ */
+export const CREATE_WINDOW_MS = 25 * 60 * 60_000;
+
+/** epoch-ms or ISO -> ms; NaN when neither. */
+function timeOf(v: unknown): number {
+  const s = String(v ?? "").trim();
+  return /^\d+$/.test(s) ? Number(s) : Date.parse(s);
+}
+
+/**
+ * A SYNC OF A LINKED CARD THAT IS STILL INSIDE ITS CREATE WINDOW. See settleCreateWindow.
+ *
+ * Only a RECENT record is asked about (its own created date, fetched with every CRM record for the
+ * ownership rules; see CREATE_WINDOW_MS), so an established card never pays the Durable Object read and
+ * behaves exactly as before. A young record whose row holds nothing -- HubSpot-born, or a create that
+ * settled -- syncs exactly as before too, judged by the Sync State the row recorded (`baseline`) when the
+ * read shows an older one. Then:
+ *   - its creator is ALIVE (a fresh hold): an edit that carries a column -- a person's or an
+ *     automation's -- is an edit of an existing record and is sent now, by the ordinary column-level
+ *     path, with `holdForward` (HubSpot's post-create changes are the creator's to bring across). Nothing
+ *     is parked on the creator, so nothing is lost if it dies. A sync with no edit of its own -- HubSpot's
+ *     creation webhook, an association webhook, our own echo, an event that names no column -- would only
+ *     copy HubSpot's values over the card, so it is LEFT to the creator (`leave`).
+ *   - its creator stalled or died (a stale hold), or never settled (its release left the window open):
+ *     this sync settles the card in its place (`takeover`, see settleTakeover), with its own edit.
+ * Our own token's edit is never sent; it is NOTED for the window (CreateIdempotency.noteEdit), so that no
+ * replay sends what we wrote there as a person's edit.
+ * Fails open: an unreadable state, like an old record, syncs as it always did.
+ */
+async function createWindowFor(env: Env, spec: ObjectSpec,
+    rec: { id: string; properties: Record<string, string | null> }, card: MondayItem,
+    edit: MondayEdit | undefined, selfOrigin: boolean):
+    Promise<{ leave: boolean; holdForward: boolean; baseline?: string; takeover?: Takeover }> {
+  const ordinary = { leave: false, holdForward: false };
+  const born = timeOf(rec.properties[spec.ownership?.createdProp ?? "createdate"]);
+  if (!Number.isFinite(born) || Date.now() - born > CREATE_WINDOW_MS) return ordinary;
+  const note = selfOrigin ? pendingEditOf(edit, "integration", edit?.actor) : undefined;
+  let w: Awaited<ReturnType<typeof createWindowOf>>;
+  try { w = await createWindowOf(env, spec.boardId, card.id, note); }
+  catch { return ordinary; }    // a registry that cannot answer must never block a sync
+  const own = edit && (edit.cols.length || edit.name) && !selfOrigin ? edit : undefined;
+  if (w.settling) {
+    if (own) {
+      console.log(`${spec.object} card ${card.id} hubspot_id=${rec.id} cols=${own.cols.join(",") || "-"}`
+        + `${own.name ? " name" : ""} class=${own.byAutomation ? "automation" : "person"} action=applied-inside-create-window`
+        + ` reason="an edit of a record that exists is sent now; the creator brings the rest of the card into line"`);
+      return { leave: false, holdForward: true };
+    }
+    console.log(`${spec.object} card ${card.id} hubspot_id=${rec.id} action=left-to-settling-create`
+      + ` reason="the record's create is still settling; its creator brings the card into line with HubSpot itself`
+      + ` (its row takes over if the creator stops)"`);
+    return { leave: true, holdForward: false };
+  }
+  const base = w.baseline ? { baseline: w.baseline } : {};
+  if (!w.leftovers?.length && !w.snapshot) return { ...ordinary, ...base };
+  return { ...ordinary, ...base,
+    takeover: { entries: w.leftovers ?? [], ...(w.snapshot ? { snapshot: w.snapshot } : {}) } };
+}
+
+/**
+ * A STOPPED CREATOR'S CREATE WINDOW, SETTLED BY THIS SYNC IN ITS PLACE: whoever finds it -- the row's
+ * alarm (settleAbandonedCreate), a sync that finds the hold stale (createWindowFor), a 'have' read
+ * (replayOnLinked) -- with its own edit (`own`), if it carries one.
+ *
+ * With the creator's snapshot (a window it never settled): the creator's own round (settleRound). Without
+ * one -- a queue behind a create made with the switch off, or behind a claim that turned out to stand for
+ * a record already (the card-owner index) -- there is no create read to judge the card by: its people's
+ * edits are sent as the edit they are (by the latest-entry rule, and not over a newer HubSpot change when
+ * late), with this sync's own, through the ordinary engine.
+ */
+async function settleTakeover(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, card: MondayItem, stats: Stats,
+    take: Takeover, own: MondayEdit | undefined): Promise<void> {
+  const queued = take.entries.filter(e => !e.note);
+  console.log(`${spec.object} card ${card.id} hubspot_id=${rec.id} queued=${queued.length}`
+    + `${take.snapshot ? "" : " snapshot=none"} action=create-window-leftovers-replayed reason="its creator stopped`
+    + ` before it settled the card; this sync settles it in its place"`);
+  if (take.snapshot) {
+    const settled = await settleRound(env, spec, ctx, opts, budget, rec as HsRecord, card, rec.id, { entries: take.entries,
+      built: take.snapshot.built, sent: take.snapshot.sent, trigger: take.snapshot.trigger,
+      heldAt: take.snapshot.at, own, standIn: true }, stats);
+    if (settled) take.settled = settled;
+    return;
+  }
+  const replay = leftoversReplay(spec, ctx, rec, card, own, take.entries);
+  if (replay) return reconcileColumnEdit(env, spec, ctx, opts, budget, rec, card, stats, replay);
+  if (own) return reconcileColumnEdit(env, spec, ctx, opts, budget, rec, card, stats, own);
+  return reconcileForwardOnly(env, spec, ctx, opts, budget, rec, card, stats);
+}
+
+/**
+ * A queue without a snapshot, as one edit: its people's columns (latestEntries), less any a LATE replay
+ * would send over a newer HubSpot value (hubspotMovedOn, with nothing known to have been sent), merged
+ * with the sync's own edit. An automation's own edit keeps its (weaker, never-claiming) basis for the
+ * whole push; a record born in this window is CRM's already, so the person's edits still go through.
+ */
+function leftoversReplay(spec: ObjectSpec, ctx: Ctx, rec: { id: string; properties: Record<string, string | null> },
+    card: MondayItem, own: MondayEdit | undefined, entries: PendingEdit[]): MondayEdit | undefined {
+  logDroppedEntries(spec, card.id, rec.id, entries);
+  const cols: string[] = [];
+  let name = false;
+  let actor: string | undefined;
+  for (const [k, e] of latestEntries(spec, entries)) {
+    if (!replayable(e)) continue;
+    if (lateReplay(spec, rec, e.at) && hubspotMovedOn(spec, ctx, rec, k, {})) {
+      console.log(refusedLine(spec, card.id, rec.id, k));
+      continue;
+    }
+    if (k === NAME_KEY) name = true; else cols.push(k);
+    actor = e.actor ?? actor;
+  }
+  if (!cols.length && !name) return undefined;
+  if (!own) return { cols, ...(name ? { name: true } : {}), ...(actor ? { actor } : {}) };
+  return { ...own, cols: [...new Set([...own.cols, ...cols])], ...(own.name || name ? { name: true } : {}) };
+}
+
+/**
+ * A CREATE WINDOW WHOSE CREATOR STOPPED, SETTLED BY ITS OWN ROW (CreateIdempotency.alarm).
+ *
+ * The creator's hold lapsed before its settle round ran (or its release left the window open), and
+ * HubSpot's creation webhook -- which lands inside the live hold -- was left to it. So nothing else is
+ * coming. Without this the card waited for whichever event came next, and that event reverted it to the
+ * create-time values instead (a HubSpot change forwarding them, or an unrelated edit's step 1 copying
+ * them across). This is that next sync, run now, standing in for the creator (settleTakeover): the queue
+ * is sent as the person's edits it holds, a folded re-run of the creator's own event that died with it is
+ * sent as that run would have, and HubSpot's own changes (its post-create recalculation, pipeline,
+ * created date, the summary Stage) come to the card. Two things the row knows besides:
+ *   - the card is this record's even when its read shows no id (a write-back that never landed): it is
+ *     re-stamped, as a 'have' claim would re-stamp it;
+ *   - a read without the id lacks the Sync State written with it, so it is judged against the baseline
+ *     the hold recorded (withBaseline), not an empty cell.
+ * Returns the outcome line, and throws on a failure the alarm should retry (a monday or HubSpot error). A
+ * card or record that is gone, a card showing another record now, or the switch turned off since, is an
+ * outcome and not a failure: logged, and the window is closed.
+ */
+export async function settleAbandonedCreate(env: Env, boardId: string, itemId: string, recordId: string,
+    take: Takeover, baseline: string | undefined, opts: RunOpts, budget: Budget): Promise<string> {
+  const via = "via=create-window-alarm";
+  const spec = specByBoard(env, boardId);
+  if (!spec) return wlog("monday", itemId, "skipped", `reason="board ${boardId} not configured" ${via}`);
+  if (!createWindowReplayOn(env, spec) || !spec.createFromMonday) {
+    console.log(`${spec.object} card ${itemId} hubspot_id=${recordId} queued=${take.entries.filter(e => !e.note).length}`
+      + ` action=create-window-replay-disabled reason="CREATE_WINDOW_REPLAY is off: a stopped create's queue is not replayed"`);
+    return wlog("monday", itemId, "skipped", `reason="CREATE_WINDOW_REPLAY is off" ${via}`);
+  }
+  const ctx = await getCtxCached(env);
+  const rec = await getRecord(env, spec.object, recordId, propertiesForSpec(spec));
+  if (!rec) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${recordId} not in HubSpot" ${via}`);
+  const item = await getItem(env, itemId);
+  if (!item) return wlog("monday", itemId, "skipped", `reason="item not found (deleted)" ${via}`);
+  const shown = colText(item, spec.idCol).trim();
+  if (shown && shown !== recordId)
+    return wlog("monday", itemId, "skipped", `reason="the card shows ${spec.object} ${shown} now, not ${recordId}" ${via}`);
+  let card = item;
+  if (!shown) {
+    await setColumns(env, spec.boardId, item.id, { [spec.idCol]: recordId, ...linkValue(spec, ctx, recordId) }, opts);
+    budget.left--;
+    await finishCard(env, spec.boardId, recordId, item.id);
+    console.log(`${spec.object} card ${item.id} re-stamped with ${recordId} (its create stopped before monday served the id)`);
+    card = withColumn(item, spec.idCol, recordId);
+  }
+  card = withBaseline(card, spec, { baseline });
+  const stats = emptyStats();
+  await reconcileRecord(env, spec, ctx, opts, budget, rec, card, stats, false, false, undefined, false, take);
+  return wlog("monday", itemId, actionOf(stats), `board=${boardId} deal=${recordId} ${via}`);
+}
+
+/**
+ * The birth pass, fenced off from the create. The create already happened and is counted, and the id is
+ * stamped. A failure here must never surface as a create error, and never as WRITEBACK_FAILED, which
+ * would stop the cron's create loop. One line per created record: the summary, or why there was none.
+ *
+ * PROVENANCE, checked here because pushBirthAssociations reads the WHOLE cell and cannot tell who put a
+ * card in it. The provenance gate upstream only refuses our own token's events, so without this an
+ * automation's event on a new row pushed every card in its relation cells. Suppressed, not refused: the
+ * cells are left as they are, exactly as reverseAssociations leaves an automation's relation edit.
+ */
+async function bornAttached(env: Env, spec: ObjectSpec, item: MondayItem, recordId: string,
+    props: Record<string, string>, opts: RunOpts, budget: Budget, trigger: CreateTrigger): Promise<void> {
+  if (!spec.columnLevelReverse) return;   // record-level (WM): no birth pass, and nothing new logged
+  if (trigger.kind !== "person") {
+    console.log(`source=monday object=${spec.object} id=${recordId} item=${item.id}`
+      + `${trigger.actor ? ` actor=${trigger.actor}` : ""} action=birth-assoc-suppressed reason="${
+        trigger.kind === "automation"
+          ? "the create was triggered by a monday automation, not a person"
+          : "no person's event is behind this create (the nightly sweep)"}"`);
+    return;
+  }
+  try {
+    const r = await pushBirthAssociations(env, spec, recordId, props, item, opts, budget);
+    if (r) console.log(`${spec.object} card ${item.id} hubspot_id=${recordId} action=born-attached`
+      + ` links=${r.links} skipped=${r.skipped} refused=${r.refused}`);
+  } catch (e) {
+    console.log(`${spec.object} card ${item.id} hubspot_id=${recordId} action=born-attached-error`
+      + ` reason="${String(e).slice(0, 160)}"`);
+  }
 }
 
 export async function syncSpec(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget): Promise<Stats> {
@@ -522,9 +2055,12 @@ export async function syncSpec(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
     for (const item of items) {
       if (budget.left <= 0) break;
       if (colText(item, spec.idCol)) continue;                       // already linked to HubSpot
-      if ((Date.parse(item.created_at) || 0) <= CREATE_CUTOFF_MS) continue; // pre-go-live: leave orphans alone
+      if ((Date.parse(item.created_at) || 0) <= createCutoffFor(spec)) continue; // pre-go-live: leave orphans alone
       try {
-        await createFromMonday(env, spec, ctx, opts, budget, item, emailCol, stats);
+        // The sweep carries no edit, so createFromMonday hands nothing back to replay for it. (A dead
+        // creator's leftovers only exist on column-level specs, and every one of those is
+        // skipFullReconcile, so runAll never sweeps them.)
+        await createFromMonday(env, spec, ctx, opts, budget, item, emailCol, stats, { kind: "sweep" });
       } catch (e) {
         stats.errors++;
         console.log(`error create-from-monday ${spec.object} item ${item.id}: ${String(e).slice(0, 300)}`);
@@ -567,6 +2103,9 @@ export async function getCtxCached(env: Env, ttlMs = 60_000): Promise<Ctx> {
   cachedCtxAt = Date.now();
   return cachedCtx;
 }
+/** Test-only: drop the cached ctx, so a test that builds its own owner/user map cannot leak it into the
+ *  next one through the 60 s TTL. */
+export function resetCtxCache(): void { cachedCtx = null; cachedCtxAt = 0; }
 
 /** Structured single-line webhook log. */
 function wlog(source: string, id: string, action: string, extra = ""): string {
@@ -586,6 +2125,43 @@ function actionOf(s: Stats): string {
 }
 
 /** Which deal board a HubSpot deal belongs to (or null if out of scope). */
+/**
+ * DOES THIS DEPLOYMENT ROUTE DEALS ACROSS SEVERAL BOARDS BY PIPELINE?
+ *
+ * Only Work Management does. `syncHubspotDeal` exists for that shape: `specForDeal` picks a board from
+ * the deal's pipeline and `findLinkedDealItem` dedups across `DEAL_SPECS`. The CRM deployment has ONE
+ * deals board (5028000494, `groupBy.singleGroup`, `includeAll`), so its deals belong on the ordinary
+ * single-board path that contacts, companies and line items already use.
+ *
+ * THIS REPLACES A PREMISE THAT SILENTLY EXPIRED. Three call sites asserted, in comments, that
+ * `specByObject(env, "deals")` is undefined on the CRM deployment — true when they were written, false
+ * since CRM_DEALS joined CRM_SPECS. Every one of them therefore let a CRM deal through a guard designed
+ * to stop it and on into the WM path, which reads `propertiesForSpec(DEALS)` and writes board
+ * 5029480547 — the LIVE Work-Management board this deployment must never touch. The delete path was the
+ * sharp end: a HubSpot deal deletion arriving here would have deleted a WM card.
+ *
+ * Latent only because nothing currently subscribes deal events to this Worker. Adding one — which the
+ * Lark work and monday-form deal creation both require — would have made it real.
+ *
+ * Compared by BOARD ID, not by reference: `specsFor` returns copies of CRM specs when CRM_CUTOVER_AT is
+ * set, so identity is not a safe discriminator even though it happens to hold for WM today.
+ */
+/**
+ * The go-live line for THIS spec: cards older than it never create a HubSpot record.
+ *
+ * Falls back to the Work-Management constant only for specs that declare nothing — the CRM specs are
+ * given `createCutoffMs` by `specsFor`, and it fails closed to Infinity when the environment does not
+ * name a go-live timestamp. See ObjectSpec.createCutoffMs for why that matters on the Accounts board.
+ */
+function createCutoffFor(spec: ObjectSpec): number {
+  return spec.createCutoffMs ?? CREATE_CUTOFF_MS;
+}
+
+export function legacyDealRouting(env: { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string }): boolean {
+  const spec = specByObject(env, "deals");
+  return !!spec && DEAL_SPECS.some(s => s.boardId === spec.boardId);
+}
+
 export function specForDeal(deal: { properties: Record<string, string | null> }): ObjectSpec | null {
   // One shared board: any Sales-Pipeline deal (all sales users, all dates). A deal with no sales_user
   // still routes here — it just lands in the Unassigned group (see targetGroup / noSalesUserGroup).
@@ -679,7 +2255,7 @@ export function recInScope(spec: ObjectSpec, rec: { properties: Record<string, s
 /** HubSpot contact/company changed -> reconcile the one matching card on its single board.
  * (Deals use syncHubspotDeal, which also routes across the Myla/Unassigned boards.) */
 export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, opts: RunOpts,
-    budget: Budget, ignoreItemId?: string): Promise<string> {
+    budget: Budget, ignoreItemId?: string, forceForward = false): Promise<string> {
   const ctx = await getCtxCached(env);
   // Always fetch sales_user + createdate so we can scope-check even when they aren't mapped fields.
   const props = [...new Set([...propertiesForSpec(spec), "sales_user", "createdate",
@@ -711,21 +2287,34 @@ export async function syncHubspotRecord(env: Env, spec: ObjectSpec, id: string, 
     }
   }
   const stats = emptyStats();
-  await reconcileRecord(env, spec, ctx, opts, budget, rec, existing, stats);
+  await reconcileRecord(env, spec, ctx, opts, budget, rec, existing, stats, false, false, undefined, forceForward);
   await runAssociations(env, spec, rec, ctx, opts, budget);
   return wlog(spec.object, id, actionOf(stats), `board=${spec.boardId}`);
 }
 
 /** Dispatch a HubSpot object event to the right sync path. */
-export async function syncHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
+/** Webhook event name -> spec object name. `line_item` joined 2026-09-21: Products & Services is a CRM
+ *  BOARD, so a line-item change has its own card to reconcile, not just a parent deal to rebuild. */
+export const SPEC_OBJECT_FOR_EVENT = {
+  contact: "contacts", company: "companies", deal: "deals", line_item: "line_items",
+} as const;
+export type HsEventObject = keyof typeof SPEC_OBJECT_FOR_EVENT;
+
+export async function syncHubspotObject(env: Env, objectType: HsEventObject,
     id: string, opts: RunOpts, budget: Budget, ignoreItemId?: string): Promise<string> {
-  // Deals exist ONLY in the WM deployment. specByObject returns undefined for "deals" on the CRM
-  // deployment, so a stray deal webhook there is a logged no-op rather than an accidental Deal sync.
+  // Deals route by DEPLOYMENT, not by a constant: WM fans across pipeline boards, CRM has one board and
+  // takes the ordinary path. See legacyDealRouting — the old comment here claimed specByObject returns
+  // undefined for "deals" on CRM, which stopped being true when CRM_DEALS joined CRM_SPECS.
   if (objectType === "deal") {
-    if (!specByObject(env, "deals")) return wlog("deals", id, "skipped", 'reason="deals not in scope for this deployment"');
-    return syncHubspotDeal(env, id, opts, budget);
+    const dealSpec = specByObject(env, "deals");
+    if (!dealSpec) return wlog("deals", id, "skipped", 'reason="deals not in scope for this deployment"');
+    if (legacyDealRouting(env)) return syncHubspotDeal(env, id, opts, budget);
+    return syncHubspotRecord(env, dealSpec, id, opts, budget, ignoreItemId);
   }
-  const spec = specByObject(env, objectType === "contact" ? "contacts" : "companies");
+  // Contacts, companies and — on the CRM deployment — line items are all ordinary single-board specs.
+  // A deployment that does not own the object resolves nothing and the event is a logged no-op, which
+  // is what keeps the two Workers off each other's boards.
+  const spec = specByObject(env, SPEC_OBJECT_FOR_EVENT[objectType]);
   if (!spec) return wlog(objectType, id, "skipped", 'reason="object not in scope for this deployment"');
   return syncHubspotRecord(env, spec, id, opts, budget, ignoreItemId);
 }
@@ -734,23 +2323,21 @@ export async function syncHubspotObject(env: Env, objectType: "deal" | "contact"
  * so this only removes the follow-up card; it never deletes anything in HubSpot. No-op if no card
  * is linked. (We don't need to fetch the record — the delete event carries the id, and we find the
  * card by its HubSpot ID column.) */
-export async function deleteHubspotObject(env: Env, objectType: "deal" | "contact" | "company",
+export async function deleteHubspotObject(env: Env, objectType: HsEventObject,
     id: string, opts: RunOpts, budget: Budget): Promise<string> {
-  if (objectType === "deal") {
-    // Same guard as the contact/company branch below: findLinkedDealItem scans the WM DEAL boards, so
-    // without this the CRM deployment would delete a WM deal card on a HubSpot deal deletion.
-    if (!specByObject(env, "deals"))
-      return wlog("deals", id, "skipped", 'reason="deals not in scope for this deployment"');
+  // EXCLUSIVE routing, same as every other path. Hardcoding the WM specs here meant the CRM deployment
+  // would look up a deleted HubSpot id on the WM board and DELETE THAT CARD — a cross-deployment write,
+  // the precise failure exclusive routing exists to prevent. Found by the Task 11 matrix.
+  const spec = specByObject(env, SPEC_OBJECT_FOR_EVENT[objectType]);
+  if (!spec) return wlog(objectType, id, "skipped", 'reason="object not in scope for this deployment"');
+  // The multi-board deal search belongs to WM ONLY. Reaching it from the CRM deployment would delete a
+  // card on the live WM board — the deal-shaped instance of exactly the bug the note above describes.
+  if (objectType === "deal" && legacyDealRouting(env)) {
     const linked = await findLinkedDealItem(env, id); // searches both deal boards
     if (!linked) return wlog("deals", id, "skipped", 'reason="deleted in HubSpot; no linked monday card"');
     await deleteItem(env, linked.item.id, opts); budget.left--;
     return wlog("deals", id, "deleted-monday", `board=${linked.spec.boardId} item=${linked.item.id}`);
   }
-  // EXCLUSIVE routing, same as every other path. Hardcoding the WM specs here meant the CRM deployment
-  // would look up a deleted HubSpot id on the WM board and DELETE THAT CARD — a cross-deployment write,
-  // the precise failure exclusive routing exists to prevent. Found by the Task 11 matrix.
-  const spec = specByObject(env, objectType === "contact" ? "contacts" : "companies");
-  if (!spec) return wlog(objectType, id, "skipped", 'reason="object not in scope for this deployment"');
   const item = (await findItemByColumn(env, spec.boardId, spec.idCol, id))[0];
   if (!item) return wlog(spec.object, id, "skipped", 'reason="deleted in HubSpot; no linked monday card"');
   await deleteItem(env, item.id, opts); budget.left--;
@@ -764,10 +2351,12 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
   const budget: Budget = { left: opts.maxWrites };
   let changed = 0;
 
-  // Deals: dedup ids across the two deal boards, route via the deal-aware path. Empty on the CRM
-  // deployment, whose specsFor() contains no deals spec at all.
+  // Deals: dedup ids across the two deal boards, route via the deal-aware path. WM ONLY — the CRM
+  // deployment's single deals board is swept by the ordinary loop below instead. The previous condition
+  // (`specByObject(env,"deals") ? ...`) was true on BOTH deployments once CRM_DEALS existed, so the CRM
+  // Worker searched and wrote the WM board here while its own Deals board was never swept at all.
   const dealIds = new Set<string>();
-  for (const spec of (specByObject(env, "deals") ? DEAL_SPECS : [])) {
+  for (const spec of (legacyDealRouting(env) ? DEAL_SPECS : [])) {
     for (const id of await searchModifiedIds(env, spec, since)) dealIds.add(id);
   }
   for (const id of dealIds) {
@@ -777,8 +2366,9 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
     catch (e) { console.log(`incremental deal ${id} error: ${String(e).slice(0, 200)}`); }
   }
 
-  // Contacts + companies: one board each.
-  for (const spec of specsFor(env).filter(s => s.object !== "deals")) {
+  // Contacts + companies + line items — one board each — and, on the CRM deployment, Deals too, since
+  // its deals board is ordinary. The exclusion is now of the LEGACY path, not of the object.
+  for (const spec of specsFor(env).filter(s => !(s.object === "deals" && legacyDealRouting(env)))) {
     for (const id of await searchModifiedIds(env, spec, since)) {
       if (budget.left <= 0) break;
       changed++;
@@ -801,9 +2391,15 @@ export async function runIncremental(env: Env, opts: RunOpts, windowMs = 180_000
  *   contact associations. The cause is a race, not a logic error — createItem stamps the HubSpot ID,
  *   monday fires create_item within milliseconds, and the webhook's read of that column comes back
  *   empty, so the card looks monday-originated.
+ *
+ * @param actor  Who caused the event, as the webhook resolved it. Needed on its own because an event that
+ *   names no column (item created, moved) carries no `edit`, so `edit.byAutomation` cannot say an
+ *   automation made the row. Only the create's birth pass reads it. Absent (every non-webhook caller),
+ *   `edit.byAutomation` decides, and without that the event is a person's: the column-level reverse
+ *   path reads an absent `byAutomation` the same way.
  */
 export async function syncMondayItem(env: Env, boardId: string, itemId: string, opts: RunOpts,
-    budget: Budget, appSave = false, selfOrigin = false): Promise<string> {
+    budget: Budget, appSave = false, selfOrigin = false, edit?: MondayEdit, actor?: MondayActor): Promise<string> {
   // EXCLUSIVE routing: a board this deployment does not own resolves to undefined and the event is a
   // no-op. That is what stops the CRM Worker from becoming a second processor for the WM boards.
   const spec = specByBoard(env, boardId);
@@ -814,23 +2410,53 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
   const dealId = colText(item, spec.idCol);
   const stats = emptyStats();
 
-  if (dealId) { // already linked -> update that HubSpot record, never create a duplicate
-    const deal = await getRecord(env, spec.object, dealId, propertiesForSpec(spec));
-    if (!deal) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${dealId} not in HubSpot"`);
+  /** The linked path: update that HubSpot record, never create a duplicate. Also where an edit lands that
+   *  arrived after its card's create but before monday served the id (see replayOnLinked), with `link`
+   *  saying which Sync State that lagging read could not show (see withBaseline). */
+  // Its parameters deliberately keep the names the linked branch has always used (they shadow the
+  // outer ones): the calls below are pinned verbatim by self-origin-guard.test.ts.
+  const syncLinked = async (item: MondayItem, recordId: string, edit: MondayEdit | undefined,
+      stats: Stats, link?: AlreadyLinked): Promise<string> => {
+    const deal = await getRecord(env, spec.object, recordId, propertiesForSpec(spec));
+    if (!deal) return wlog("monday", itemId, "skipped", `reason="linked ${spec.object} ${recordId} not in HubSpot"`);
+    if (link) item = withBaseline(item, spec, link);
     // `selfOrigin` forces the FORWARD direction: reconcileRecord's reverse path is gated on the same
-    // flag, so our own echo cannot push a value back into HubSpot.
-    await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave, selfOrigin);
-    // Reverse Connect-Boards links -> HubSpot associations (monday-edit path only; additive/set-only).
-    // Skipped entirely for our own echoes: this is the path that gave fake.com 1,581 associations.
-    if (budget.left > 0 && !selfOrigin) await reverseAssociations(env, spec, deal, item, opts, budget);
+    // flag, so our own echo cannot push a value back into HubSpot. What a stopped creator left, when the
+    // 'have' read took it, is settled by the same reconcile (settleTakeover).
+    if (link?.takeover)
+      await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave, selfOrigin, edit, false, link.takeover);
+    else await reconcileRecord(env, spec, ctx, opts, budget, deal, item, stats, appSave, selfOrigin, edit);
+    // Reverse Connect-Boards links -> HubSpot associations (monday-edit path only). On a column-level
+    // spec it pushes exactly what the person added or removed, and snaps the cell back on a refusal;
+    // record-level specs (WM) and the drawer save keep the additive whole-cell pass. See
+    // reverseAssociations. Skipped entirely for our own echoes: this is the path that gave fake.com
+    // 1,581 associations.
+    //
+    // On a column-level spec it runs ONLY when the person edited a relation column. Running it on every
+    // edit is the association-shaped version of the stale-overwrite: a relation cell that lagged behind
+    // HubSpot would be re-asserted by an unrelated Job Title edit.
+    const relationEdited = !spec.columnLevelReverse || appSave
+      || (edit?.cols ?? []).some(c => (spec.associations ?? []).some(a => a.relationCol === c));
+    if (budget.left > 0 && !selfOrigin && relationEdited)
+      await reverseAssociations(env, spec, deal, item, opts, budget,
+        spec.columnLevelReverse && !appSave
+          // `linked`/`unlinked` are the person's own before/after diff; `largestEvent` lets the caps
+          // judge one click at a time; `byAutomation` suppresses the push entirely; `actor` is for logs.
+          // No ctx on purpose: a snap-back never creates cards (see snapBackRelation).
+          ? { onlyCols: new Set(edit?.cols ?? []), basis: edit?.byAutomation ? "cutover" : "human-edit",
+              unlinked: edit?.unlinked, linked: edit?.linked, largestEvent: edit?.largestEvent,
+              byAutomation: edit?.byAutomation, actor: edit?.actor }
+          : undefined);
     else if (selfOrigin) console.log(`[webhook] source=monday item=${itemId} action=reverse-assoc-skipped`
       + ` reason="event caused by our own token, not a person"`);
     // Reverse monday subitems -> HubSpot line items (id-keyed; only when the write scope is enabled).
     const liSub = spec.associations?.find(a => a.subitems)?.subitems;
     if (env.LINE_ITEM_WRITE === "true" && liSub && budget.left > 0)
       await reverseLineItems(env, liSub, item, deal.id, opts, budget);
-    return wlog("monday", itemId, actionOf(stats), `board=${boardId} deal=${dealId}`);
-  }
+    return wlog("monday", itemId, actionOf(stats), `board=${boardId} deal=${recordId}`);
+  };
+
+  if (dealId) return syncLinked(item, dealId, edit, stats);
 
   // new card -> create a HubSpot record (guards match the cron's createFromMonday path)
   //
@@ -838,17 +2464,42 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
   // HubSpot ID in this read is not proof a person made one: our own createItem stamps that column, and
   // the create_item webhook can arrive before monday serves it back. 1,207 HubSpot Companies were
   // created from exactly that misreading during the historical import.
+  // (Refused below, but NOTED first when this row's record is being made or its create window is still
+  // open: what our token wrote here must not be sent later as the edit of a person whose queued column it
+  // overwrote -- that replay reads the card, not the event. A note writes nothing outside the row.)
+  if (selfOrigin) await noteOwnEdit(env, spec, itemId, edit, actor);
   if (selfOrigin)
     return wlog("monday", itemId, "skipped",
       'reason="no HubSpot id yet, but this event came from our own token — refusing to create"');
   if (!spec.createFromMonday) return wlog("monday", itemId, "skipped", 'reason="board not create-enabled"');
-  if ((Date.parse(item.created_at) || 0) <= CREATE_CUTOFF_MS)
+  if ((Date.parse(item.created_at) || 0) <= createCutoffFor(spec))
     return wlog("monday", itemId, "skipped", 'reason="card created before go-live cutoff"');
   const emailCol = spec.fields.find(f => f.hs === "email")?.col;
+  // Who started this create, for the birth pass (see CreateTrigger). The create itself is decided exactly
+  // as before: an automation's event still creates, only its birth links are suppressed.
+  const trigger: CreateTrigger = {
+    kind: actor?.byAutomation || edit?.byAutomation ? "automation" : "person",
+    actor: actor?.id || edit?.actor,
+  };
+  let linked: AlreadyLinked | undefined;
   try {
-    await createFromMonday(env, spec, ctx, opts, budget, item, emailCol, stats);
+    linked = await createFromMonday(env, spec, ctx, opts, budget, item, emailCol, stats, trigger, edit);
   } catch (e) {
     return wlog("monday", itemId, "error", `reason="${String(e).slice(0, 160)}"`);
   }
-  return wlog("monday", itemId, actionOf(stats), `board=${boardId}`);
+  const outcome = wlog("monday", itemId, actionOf(stats), `board=${boardId}`);
+  if (!linked) return outcome;
+  // THE 'have' RACE (and an adoption's queue): the row's record already exists, and a person's edit of
+  // it is still to be applied -- or a stopped creator's window to be settled. Re-stamped above; now
+  // applied as the edit of the linked card it is.
+  console.log(`[webhook] source=monday id=${itemId} hubspot_id=${linked.recordId}`
+    + ` cols=${linked.replay?.cols.join(",") || "-"}${linked.replay?.name ? " name" : ""}`
+    + `${linked.takeover ? ` queued=${linked.takeover.entries.filter(e => !e.note).length}` : ""} action=replay-as-edit`
+    + ` reason="${linked.why}"`);
+  try {
+    return await syncLinked(withColumn(linked.card ?? item, spec.idCol, linked.recordId), linked.recordId,
+      linked.replay, emptyStats(), linked);
+  } catch (e) {
+    return wlog("monday", itemId, "error", `reason="${String(e).slice(0, 160)}"`);
+  }
 }

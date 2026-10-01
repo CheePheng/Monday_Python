@@ -38,6 +38,24 @@ describe("the live Work-Management Worker must be unaffected", () => {
   });
 });
 
+describe("a second key (MONDAY_WEBHOOK_KEY_2) can be live beside the first", () => {
+  const KEY2 = "0f".repeat(32);
+  const both = { MONDAY_WEBHOOK_KEY: KEY, MONDAY_WEBHOOK_KEY_2: KEY2 } as unknown as Env;
+  it("accepts either key, so old hooks and new hooks both work", () => {
+    expect(mondayAuth(at(`/webhooks/monday/${KEY}`), both).ok).toBe(true);
+    expect(mondayAuth(at(`/webhooks/monday/${KEY2}`), both).ok).toBe(true);
+  });
+  it("still refuses a wrong key and the bare path", () => {
+    expect(mondayAuth(at(`/webhooks/monday/${KEY2.slice(0, -1)}x`), both)).toMatchObject({ ok: false, reason: "bad-key" });
+    expect(mondayAuth(at("/webhooks/monday"), both)).toMatchObject({ ok: false, reason: "missing-key" });
+  });
+  it("only the second key set is still configured: it fails closed, never open", () => {
+    const only2 = { MONDAY_WEBHOOK_KEY_2: KEY2 } as unknown as Env;
+    expect(mondayAuth(at("/webhooks/monday"), only2).ok).toBe(false);
+    expect(mondayAuth(at(`/webhooks/monday/${KEY2}`), only2).ok).toBe(true);
+  });
+});
+
 describe("the CRM Worker, with a key configured, fails CLOSED", () => {
   it("accepts the exact key as a path segment", () =>
     expect(mondayAuth(at(`/webhooks/monday/${KEY}`), env(KEY)))

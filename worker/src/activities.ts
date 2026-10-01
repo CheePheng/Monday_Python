@@ -22,6 +22,18 @@
  */
 import type { Ctx } from "./types";
 
+/**
+ * "HubSpot Marketing Email" (PAPERPLANE, MEDIUM_TURQUOISE) -- created 2026-09-30 by
+ * `node scripts/create-marketing-activity-type.mjs --apply`; a dry re-run of that script confirmed this
+ * id is the only type of that name on the account.
+ *
+ * Setting it switches nothing on: ENABLE_MARKETING_EMAIL_SYNC still gates the poller. Blanking it is a
+ * safe way to stop marketing writes without a flag change -- the poller then REFUSES and logs why, since
+ * create_timeline_item requires a custom_activity_id and writing under any other type would file
+ * marketing mail as "HubSpot Email", exactly the confusion with sequence sends the label exists to end.
+ */
+export const MARKETING_ACTIVITY_TYPE_ID = "e30a1386-45a1-446d-aadf-b033dfd9ac22";
+
 /** The monday custom activity types created 2026-09-16 for synced HubSpot activity. */
 export const MONDAY_ACTIVITY_TYPE: Record<string, string> = {
   emails: "eaca46da-4695-4386-8dd4-a3fa088d31ce",    // HubSpot Email
@@ -29,6 +41,12 @@ export const MONDAY_ACTIVITY_TYPE: Record<string, string> = {
   calls: "1e0d9eca-222b-4f8b-85c8-4f7947e83595",     // HubSpot Call
   meetings: "7314447b-685c-4c58-9e38-80ad162d8fc4",  // HubSpot Meeting
   tasks: "5f0e2267-8cea-45fa-bb54-2b1a29324a34",     // HubSpot Task — created 2026-09-16
+  // HubSpot marketing email events (marketing-emails.ts). ONE type for all four objects: they are one
+  // kind of thing to a rep, and the object name already separates them for the registry and markers.
+  marketing_emails: MARKETING_ACTIVITY_TYPE_ID,
+  marketing_email_opens: MARKETING_ACTIVITY_TYPE_ID,
+  marketing_email_clicks: MARKETING_ACTIVITY_TYPE_ID,
+  marketing_email_events: MARKETING_ACTIVITY_TYPE_ID,
 };
 
 /**
@@ -78,8 +96,18 @@ export const CONTACT_ASSOC_TYPE: Record<string, number> = { notes: 202, calls: 1
  * form — even if every stored mapping were lost. Bookkeeping-based guards fail exactly when state is
  * lost, which is when they are most needed.
  */
-export function eligibleForHubspot(entry: { custom_activity_id?: string | null; type?: string }): boolean {
+export function eligibleForHubspot(entry: { custom_activity_id?: string | null; type?: string; content?: unknown }): boolean {
   if (entry.custom_activity_id) return false;
+  /**
+   * AND A MARKETING MARKER IS NEVER NATIVE, whatever monday reports about its type.
+   *
+   * Every marketing entry carries a custom_activity_id, so the line above already refuses it. This is
+   * the second line for the one way that could fail: an API reply that drops or nulls the type id on a
+   * custom entry. A marketing entry pushed back would become a HubSpot Note on the contact, dated at the
+   * send -- a fabricated "rep activity" in the CRM. The marker is written only by the marketing poller,
+   * so matching it can never refuse a person's own note.
+   */
+  if (/\[hubspot:marketing_email[a-z_]*:/.test(String(entry.content ?? ""))) return false;
   return !!HUBSPOT_OBJECT_FOR_NATIVE[String(entry.type ?? "")];
 }
 

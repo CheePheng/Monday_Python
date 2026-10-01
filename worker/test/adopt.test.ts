@@ -128,9 +128,26 @@ describe("the CRM specs use the mechanism as approved", () => {
     expect(CRM_ACCOUNTS.createFromMonday).toBe(true);
   });
 
-  it("Contacts declares NO adoptBy — creation is HubSpot-only, so there is nothing to adopt for", () => {
-    expect(CRM_CONTACTS.adoptBy).toBeUndefined();
-    expect(CRM_CONTACTS.createFromMonday).toBe(false);
+  /**
+   * CHANGED 2026-09-21: the business confirmed the monday 创建/Create form must produce a HubSpot
+   * Contact, so creation is on and adoption is by EMAIL. The property that mattered in the old
+   * assertion survives and is what is checked now: a Contact is never matched by NAME.
+   */
+  it("Contacts adopt by EMAIL — never by name", () => {
+    expect(CRM_CONTACTS.createFromMonday).toBe(true);
+    expect(CRM_CONTACTS.adoptBy).toEqual({ kind: "email", col: "contact_email" });
+  });
+
+  it("the adoption key is the FULL address, so two people at one provider never collide", () => {
+    const at = (e: string) => adoptionKey(item([{ id: "contact_email", text: e }], "Someone"), CRM_CONTACTS);
+    expect(at("john@gmail.com")).toBe("john@gmail.com");
+    expect(at("mary@gmail.com")).toBe("mary@gmail.com");
+    expect(at("john@gmail.com")).not.toBe(at("mary@gmail.com"));
+  });
+
+  it("a card with no usable email produces no key, so nothing is created", () => {
+    for (const e of ["", "   ", "notanemail", "@nolocal.com", "nohost@", "a b@c.com"])
+      expect(adoptionKey(item([{ id: "contact_email", text: e }], "Someone"), CRM_CONTACTS)).toBe("");
   });
 
   it("an Accounts card whose Domain column is empty produces no key -> no HubSpot company", () =>
