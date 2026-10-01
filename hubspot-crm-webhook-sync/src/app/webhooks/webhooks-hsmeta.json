@@ -339,6 +339,246 @@
           "subscriptionType": "object.associationChange",
           "objectType": "task",
           "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "notes_last_updated",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.deletion",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealstage",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "pipeline",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "amount",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "closedate",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "hs_deal_stage_probability",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealtype",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "hs_priority",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "deal_currency_code",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "vendorschang_shang_lai_yuan",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "sales_user",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "hubspot_owner_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "notes_last_updated",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "line_item",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.deletion",
+          "objectType": "line_item",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "line_item",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hubspot_owner_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_sku",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "description",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "note",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "quantity",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "price",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_cost_of_goods_sold",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "discount",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "deposit",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "service_date",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_recurring_billing_start_date",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "brand_isv",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "family",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "product_subcategory",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_pricing_model",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "recurringbillingfrequency",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_tax_rate_group_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "is_active",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_line_item_currency_code",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "amount",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealname",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "name",
+          "active": true
         }
       ]
     }
