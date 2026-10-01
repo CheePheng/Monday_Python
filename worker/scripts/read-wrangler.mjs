@@ -28,8 +28,22 @@ export function parseJsonc(raw) {
   return JSON.parse(stripped.replace(/,(\s*[}\]])/g, "$1"));
 }
 
+/** Any wrangler config in the worker directory, parsed. */
+export function readConfig(file) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  return parseJsonc(readFileSync(join(here, "..", file), "utf8"));
+}
+
 /** The parsed wrangler.jsonc that `wrangler deploy` would actually use. */
 export function readWranglerConfig() {
-  const here = dirname(fileURLToPath(import.meta.url));
-  return parseJsonc(readFileSync(join(here, "..", "wrangler.jsonc"), "utf8"));
+  return readConfig("wrangler.jsonc");
+}
+
+/**
+ * The Work Management deploy config. Separate from wrangler.jsonc because this repo's default config
+ * belongs to the CRM Worker, and master's copy has since regressed -- it dropped the Durable Object
+ * binding, its migration, and LINE_ITEM_WRITE, none of which the live WM Worker can do without.
+ */
+export function readWmConfig() {
+  return readConfig("wrangler.wm.jsonc");
 }

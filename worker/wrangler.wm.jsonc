@@ -1,0 +1,44 @@
+{
+  // WORK-MANAGEMENT WORKER CONFIG -- for the ownership-guard deploy, 2026-09-22.
+  //
+  // This repo's wrangler.jsonc belongs to the CRM Worker, and master's copy of the WM config has
+  // REGRESSED since the deploy that built the live Worker: it dropped the Durable Object binding, the
+  // migration that created the class, and LINE_ITEM_WRITE. Deploying that shape would switch off
+  // reverse line-item writes and detach live create-dedup state. So neither checked-in file is
+  // deployable, and this one is reconciled from two sources that cannot disagree:
+  //
+  //   - commit d801b50's wrangler.jsonc, the config that actually created CREATE_IDEMPOTENCY on this
+  //     Worker. Every line below matches it: name, crons, vars, binding, and migration tag/form.
+  //   - what the deployed Worker reports today (version 5e4e1887), which agrees.
+  //
+  // Because v1 is already applied, re-declaring it replays as a no-op; a DIFFERENT tag or form
+  // (new_classes vs new_sqlite_classes) would not, which is why it is copied rather than rewritten.
+  //
+  // NOT declared: ACTIVITY_RETRY and DEFERRED_SYNC. index.ts exports those classes unconditionally but
+  // WM must not own their namespaces -- v2/v3 belong to the CRM Worker. Env now types both as
+  // optional, so the compiler requires every access to be guarded; see wm-unbound-namespaces.test.ts.
+  //
+  // Secrets are NOT set here and persist across deploys. CRM_CUTOVER_AT is already present on this
+  // Worker (set 2026-09-22T07:03Z) and is inert until this deploy lands, because the code currently
+  // running predates ownership entirely.
+  "name": "hubspot-monday-sync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+
+  "triggers": { "crons": ["*/10 * * * *", "0 3 * * *"] },
+
+  "vars": { "DRY_RUN": "false", "LINE_ITEM_WRITE": "true", "MAX_WRITES": "100" },
+
+  "observability": { "enabled": true },
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "CREATE_IDEMPOTENCY", "class_name": "CreateIdempotency" }
+    ]
+  },
+  // v1 only: the class already exists on this Worker, so this tag is a no-op that keeps the migration
+  // history consistent. v2/v3 belong to the CRM Worker and must NOT be replayed here.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CreateIdempotency"] }
+  ]
+}

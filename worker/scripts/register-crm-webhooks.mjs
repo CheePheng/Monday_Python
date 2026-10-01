@@ -11,9 +11,22 @@
  * Env: MONDAY_API_TOKEN (required for any mode, including --plan, since it reads existing hooks).
  */
 
+/**
+ * ALL FOUR CRM BOARDS, not two.
+ *
+ * Deals and Products & Services were omitted here and have ZERO monday webhooks on the live account
+ * (verified 2026-09-21: Contacts 6, Accounts 6, Deals 0, P&S 0). That is not a cosmetic gap — it is
+ * why the four 创建/Create forms manufacture cards that reach nothing, and half of why the P&S board
+ * has never been written to. The other half was the HubSpot side, where the CRM app subscribes to
+ * contact and company only, with no `deal` and no `line_item` subscription at all.
+ *
+ * Registering these is a PRODUCTION change and still requires --apply.
+ */
 export const CRM_BOARDS = {
   "5028000495": "Contacts",
   "5028000496": "Accounts/Companies",
+  "5028000494": "Deals",
+  "5028000489": "Products & Services",
 };
 
 /**
@@ -101,12 +114,22 @@ export function missingEvents(hooks) {
 async function main() {
   const args = process.argv.slice(2);
   const apply = args.includes("--apply");
-  const url = (args[args.indexOf("--url") + 1] ?? "").startsWith("http")
-    ? args[args.indexOf("--url") + 1] : "";
+  /**
+   * --key-env NAME builds the CRM endpoint from that env var (e.g. MONDAY_WEBHOOK_KEY_2 loaded with
+   * `node --env-file=.dev.vars`), so a capability key never has to be typed, pasted or shown. The URL
+   * built this way is never printed: the plan says "(built from NAME)" instead.
+   */
+  const keyEnv = args.includes("--key-env") ? args[args.indexOf("--key-env") + 1] : "";
+  const fromKey = keyEnv && process.env[keyEnv]
+    ? `https://hubspot-monday-crm-sync.askada.workers.dev/webhooks/monday/${process.env[keyEnv]}` : "";
+  if (keyEnv && !fromKey) { console.error(`--key-env ${keyEnv}: that variable is not set`); process.exit(1); }
+  const url = fromKey || ((args[args.indexOf("--url") + 1] ?? "").startsWith("http")
+    ? args[args.indexOf("--url") + 1] : "");
+  const shown = fromKey ? `(built from ${keyEnv})` : url;
   const token = process.env.MONDAY_API_TOKEN;
 
   if (!token) { console.error("MONDAY_API_TOKEN is required (even for --plan, which reads existing hooks)"); process.exit(1); }
-  if (apply && !url) { console.error("--apply requires --url <webhook endpoint>"); process.exit(1); }
+  if (apply && !url) { console.error("--apply requires --url <webhook endpoint> or --key-env <VAR>"); process.exit(1); }
 
   for (const [boardId, label] of Object.entries(CRM_BOARDS)) {
     const hooks = await existingHooks(token, boardId);
@@ -115,7 +138,7 @@ async function main() {
     for (const h of hooks) console.log(`   have  ${h.event}  id=${h.id}`);
     if (!missing.length) { console.log("   nothing to add — already registered"); continue; }
     for (const event of missing) {
-      if (!apply) { console.log(`   WOULD create  ${event}  -> ${url || "(no --url given)"}`); continue; }
+      if (!apply) { console.log(`   WOULD create  ${event}  -> ${shown || "(no --url given)"}`); continue; }
       const d = await gql(token,
         "mutation ($b: ID!, $u: String!, $e: WebhookEventType!) { create_webhook(board_id: $b, url: $u, event: $e) { id event } }",
         { b: boardId, u: url, e: event });

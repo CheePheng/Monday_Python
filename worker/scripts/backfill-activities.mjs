@@ -204,7 +204,8 @@ async function markersFor(card) {
     const pg = d.timeline?.timeline_items_page;
     if (!pg) break;
     for (const e of pg.timeline_items ?? []) {
-      const m = /\[hubspot:([a-z_]+):(\d+)\]/.exec(String(e.content ?? ""));
+      // [A-Za-z0-9_-]+ so a marketing event key reads as a marker too (it never collides: its object differs).
+      const m = /\[hubspot:([a-z_]+):([A-Za-z0-9_-]+)\]/.exec(String(e.content ?? ""));
       if (m) seen.add(`${m[1]}:${m[2]}`);
     }
     cursor = pg.cursor;

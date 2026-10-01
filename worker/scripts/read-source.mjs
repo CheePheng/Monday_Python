@@ -11,7 +11,7 @@
  * Lives in .mjs because the worker tsconfig targets the Workers runtime and has no node:fs types —
  * same reason as read-wrangler.mjs and scan-write-mode.mjs.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,6 +40,13 @@ export function readCode(relPath) {
   return strip(readSource(relPath));
 }
 
+/** Every .ts file under src/, as paths relative to it ("webhooks.ts", "config/crm.ts"), sorted. For the
+ *  structural tests that must hold across the whole codebase ("only webhooks.ts names this column"). */
+export function listSources() {
+  return readdirSync(SRC, { recursive: true }).map(p => String(p).split("\\").join("/"))
+    .filter(p => p.endsWith(".ts")).sort();
+}
+
 const SCRIPTS = dirname(fileURLToPath(import.meta.url));
 
 /**
@@ -53,6 +60,17 @@ const SCRIPTS = dirname(fileURLToPath(import.meta.url));
  */
 export function readScript(relPath) {
   return strip(readFileSync(join(SCRIPTS, relPath), "utf8").replace(/\r\n/g, "\n"));
+}
+
+/** `scripts/<relPath>` WITH its comments -- for the few tests about what a script's help promises. */
+export function readScriptSource(relPath) {
+  return readFileSync(join(SCRIPTS, relPath), "utf8").replace(/\r\n/g, "\n");
+}
+
+/** `test/fixtures/<relPath>` parsed as JSON -- captured live shapes (e.g. board_automations) that a
+ *  classifier must be tested against, since hand-made fixtures drift from what monday really sends. */
+export function readFixture(relPath) {
+  return JSON.parse(readFileSync(join(SCRIPTS, "..", "test", "fixtures", relPath), "utf8"));
 }
 
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

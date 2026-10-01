@@ -3,8 +3,9 @@
  *
  * run-opts.ts calls itself "THE SINGLE PLACE that decides whether writes actually happen". On
  * 2026-09-08 that was false: webhooks.ts carried its own `liveOpts` returning `{ writeHubspot: live }`
- * and never read WRITE_HUBSPOT. On the CRM deployment webhooks are the ONLY live path — no crons, both
- * CRM specs skipFullReconcile — so the Phase B HubSpot kill switch was inert exactly where every real
+ * and never read WRITE_HUBSPOT. On the CRM deployment webhooks are the only live SYNC path — no sync
+ * crons (its only cron, the 15-minute one, dispatches the marketing poller and nothing else), both CRM specs
+ * skipFullReconcile — so the Phase B HubSpot kill switch was inert exactly where every real
  * write happens, and the ownership gate was doing the job people believed the flag was doing.
  *
  * A duplicate is invisible to every behavioural test, because each copy is individually correct. Only
