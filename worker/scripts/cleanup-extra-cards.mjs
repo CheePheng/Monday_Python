@@ -64,7 +64,8 @@
  *     The same rule is RE-DERIVED live at every re-check, so a contact worked since the plan also holds its
  *     Account back. Subvertron 2858206655 is deleted WITHOUT relinking its contacts: both are the stale merged
  *     cards the contacts group deletes. The optional "link the contact to the real card first" for 10
- *     duplicates is not done here: it creates a HubSpot association, which is the user's call.
+ *     duplicates is not done here: it creates a HubSpot association, which is the user's call. (Once a person
+ *     has made such a fix, --release, below, is how the held card is deleted.)
  *   accounts-dups: delete, never blank (for the reason above, not a re-stamp risk: the 24 h mdcreate entry is
  *     long gone and these cards predate CRM_CREATE_CUTOFF_AT). The ING extras 2857066000 and 2857058153 hold
  *     two HubSpot call entries the survivor lacks; they are held until the survivor 2855725789 carries both
@@ -112,7 +113,8 @@
  * does not know for that id (a restore created one), if the survivor left the search or (Accounts) stopped being
  * its first raw hit, or if the HubSpot association count of the survivor record changed. It then waits (~30 s
  * more) for the dead card to leave the RAW search; if it lingers, that is a warning, and the company's other
- * extras are held for this run. One card at a time, --pause seconds apart, one company at a time.
+ * extras are held for this run. A released card deleted on a timeline waiver is checked against its contact cards
+ * after the delete (--release, below). One card at a time, --pause seconds apart, one company at a time.
  *
  * --groups contacts-card (never in the default set). The contacts plan recommends carding 11 HubSpot contacts a
  * HubSpot import left uncarded. With --apply each goes, one id per request, to the Worker's existing POST
@@ -120,16 +122,75 @@
  * the card registry). Re-checked first: still in HubSpot under the same id, sync_owner not wm/hold, still no
  * card. Afterwards exactly one card must hold the id, or the run HALTS. The dry run never calls the Worker.
  *
+ * --release <file> (accounts-idless only; the user's decision of 2026-10-05). The plan holds 80 id-less Accounts
+ * for review (the 14 TOUCHED-BY-PERSON, the skeptic's 4 named and 62 listed). The user reviewed them and approved
+ * deleting all 80, nine of them only after a fix. The release file is that approval, card by card -- the only way
+ * a held card becomes deletable, and it never skips a check:
+ *     { "decidedBy": "...", "decidedAt": "<ISO, with a zone>", "decision": "...",
+ *       "cards": [ { "card": "<monday item id>", "bucket": "A"|"B"|"C"|"D"|"L", "note": "..." }, ... ] }
+ *   A  the only company of a HubSpot deal. FIXED FIRST: the company created in HubSpot and the contact linked to
+ *      the new real card.
+ *   B  a duplicate of a real Account card. FIXED FIRST: the contact linked to the real card.
+ *   C  a rep works the contact; the user accepts that the contact loses this (junk) Account link.
+ *   D  the contact has only HubSpot activity; accepted as C.
+ *   L  a card the plan called safe that the LIVE orphan-contact rule now holds (its contact was worked after
+ *      09-30); accepted as C and D.
+ *   THE WHOLE RUN IS REFUSED, before any read of monday, unless every entry is a numeric card id, listed once, with
+ *   one of those buckets; in the id-less plan AND on the reconciliation's idless list; A-D only for a card the plan
+ *   holds, L only for one it already calls safe; and protected for nothing but the plan's review hold (a real
+ *   company card of a duplicate, a survivor or an unknown class refuses). decidedBy, decidedAt and decision are
+ *   required. The file's sha256 goes in report.planFiles.release, the parsed list in report.release.
+ *   A released held card moves into the candidates (in id order, item.release = its bucket) and loses its review
+ *   protection, so the candidate-AND-protected guard and the reconciliation check run on it like any candidate;
+ *   DELETABLE gains the released cards and nothing else (checked, or the run is refused). L cards are only tagged.
+ *   WAIVERS. A release drops only these reasons, only on a released card, by ONE function (lib/cleanup-release.mjs
+ *   releaseWaiver, called from waiveReleased) on the first read and the --apply second read alike:
+ *     C, D, L  orphaned-contact-person-edit:*, orphaned-contact-hubspot-activity:*, orphaned-contact-hubspot-unread:*
+ *              -- never orphaned-contact-has-deal:* or orphaned-contact-hubspot-deal:*: a deal makes it an A.
+ *     A, B     no orphan-contact reason: the rule must pass on its own, which is the proof the fix landed.
+ *     all      timeline-entry-not-ours:N, only when every entry on the Account not by the integration user has a
+ *              twin on a contact card linked to it NOW (active, not a merged stale card): the same entry id, the
+ *              same non-empty [hubspot:...] marker set, or for an unmarked entry the same fingerprint. Those
+ *              contact timelines are read on every read (facts.personEntries, facts.personEntriesMirrored); one
+ *              not read whole keeps the reason. (monday mirrors a contact's entry onto its Account under a NEW
+ *              entry id, so in practice the marker set or the fingerprint is what matches.)
+ *   NEVER WAIVED: not-returned, gone, wrong-board, renamed-since-plan, a file/subitem/update, born-before-log-window,
+ *   creator, has-hubspot-id-now, deal-link, contact-link-not-in-plan, a person's edit on the Account itself,
+ *   activity-log-does-not-reach-birth, id-column-was-written, timeline-unreadable, linked-contact-not-returned,
+ *   real-company-card-gone -- and any reason not named above, so a check added later holds too. A released card's
+ *   row carries released: <bucket>, planHeld (why the plan held it) and waived: [...]; a hold shows what is left.
+ *   AFTER A DELETE THAT WAIVED timeline-entry-not-ours. That waiver deletes the Account's copy of a person's entries
+ *   on one assumption: the contact's copy survives the Account's trip to the Trash. Unproven: monday LINKS the
+ *   copies of one activity, and deleting copies has removed entries on cards no delete was sent to
+ *   (src/activity-sync.ts, dedupe-timeline.mjs), and no whole-card trash so far was checked against its contacts'
+ *   timelines. Bucket C accepts losing the Account LINK, not the notes, and a person's note is not a Worker
+ *   entry restore-timeline-entries.mjs can rebuild. So after such a delete the run waits --settle seconds, reads the
+ *   contact cards the second read's waiver relied on again (uncached), and HALTS unless each was read whole and every
+ *   waived entry still has its twin there (lib mirrorSurvived; the evidence is ids, markers and fingerprints, kept
+ *   off the report). The row carries postChecks and mirrorAfterDelete { ok, lost, unreadable }; the journal a
+ *   mirror-check line. A check --settle seconds after the delete cannot see a slower cascade, hence the order:
+ *   THE FIRST --apply OF A RELEASE IS A CANARY OF ONE CARD THAT WAIVES A TIMELINE ENTRY: a release file listing only
+ *   that card (e.g. Zkqcip 2855240915, C, twins on contact 2855240904), run once the plan's own candidates are done,
+ *   so it is the first eligible card. Then open its contact card in monday, some minutes later, and confirm the
+ *   person's entries are still there before releasing the rest. --canary with --release says whether it tried that
+ *   path; a canary of a card that waived only an orphan reason (2854825212, D, is first in id order) did not.
+ *
  *   node scripts/cleanup-extra-cards.mjs                                     # dry run, the four delete groups
  *   node scripts/cleanup-extra-cards.mjs --groups accounts-dups --canary --apply   # ONE delete, checked, then stop
  *   node scripts/cleanup-extra-cards.mjs --groups accounts-idless --apply --limit 50
+ *   node scripts/cleanup-extra-cards.mjs --groups accounts-idless --release <file>            # dry run, with the release
+ *   node scripts/cleanup-extra-cards.mjs --groups accounts-idless --release <one-card file> --canary --apply   # first
+ *   node scripts/cleanup-extra-cards.mjs --groups accounts-idless --release <file> --apply    # after the look in monday
  *   node scripts/cleanup-extra-cards.mjs --groups contacts-card --apply
  *   options: --groups a,b    accounts-idless,accounts-dups,contacts,deals (default) and/or contacts-card
+ *            --release F     the user's approval list for id-less Accounts the plan holds (above); needs
+ *                            accounts-idless in --groups
  *            --limit N       stop after N deletes/creates (a dry run: after N found)
  *            --canary        with --apply: act on ONE item, run every post-check, print it, stop;
  *                            without: stop at the first eligible item and print what the canary would do
  *            --pause S       seconds between actions, 0-60 (default 2)
- *            --settle S      seconds to wait for the restore after an ID-bearing delete, 5-300 (default 20)
+ *            --settle S      seconds to wait for the restore after an ID-bearing delete, and before the contact
+ *                            re-check after a released delete that waived a timeline entry, 5-300 (default 20)
  *            --plan-dir D    where the plan files are (default: the 2026-09-30 session's cleanup folder)
  *            --reconcile-dir D  the count reconciliation's companies/contacts/deals.json; a plan candidate not on
  *                            its list refuses the run (default: the same session's count-reconcile folder)
@@ -154,6 +215,7 @@ import { hostname, userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_CRM_WORKER_URL, INTEGRATION_USER_ID, requireIntegrationToken, requireNewBuild } from "./lib/repair-preflight.mjs";
+import { LIFTABLE_PROTECTION, RELEASE_BUCKETS, mirrorSurvived, parseRelease, personEntriesMirrored, releasePlan, releaseWaiver, waivesTimeline } from "./lib/cleanup-release.mjs";
 import { BELL_COL } from "./check-activity-doorbell.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -168,7 +230,7 @@ const WORKER = (v.CRM_WORKER_URL || DEFAULT_CRM_WORKER_URL).replace(/\/+$/, "");
 // ------------------------------------------------------------------ options
 const argv = process.argv.slice(2);
 const SWITCHES = new Set(["--apply", "--canary"]);
-const VALUED = new Set(["--groups", "--limit", "--pause", "--settle", "--plan-dir", "--report-dir", "--reconcile-dir"]);
+const VALUED = new Set(["--groups", "--limit", "--pause", "--settle", "--plan-dir", "--report-dir", "--reconcile-dir", "--release"]);
 /** A flag that is present must carry a value, and an unknown flag is refused: a typo must never widen a run. */
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -189,6 +251,12 @@ const asked = argv.includes("--groups") ? String(arg("--groups")).split(",").map
 const unknownGroups = asked.filter(g => !ORDER.includes(g));
 if (!asked.length || unknownGroups.length) { console.error(`--groups takes ${ORDER.join(",")}${unknownGroups.length ? ` (not ${unknownGroups.join(",")})` : ""}`); process.exit(2); }
 const GROUPS = ORDER.filter(g => asked.includes(g));          // a fixed order, whatever order they were typed in
+/** --release: the user's approval list for held id-less Accounts. It releases nothing in any other group. */
+const RELEASE_FILE = argv.includes("--release") ? resolve(String(arg("--release"))) : null;
+if (argv.filter(a => a === "--release").length > 1) { console.error("--release takes one file, once"); process.exit(2); }
+if (RELEASE_FILE && !GROUPS.includes("accounts-idless")) {
+  console.error("--release approves accounts-idless cards only: add accounts-idless to --groups"); process.exit(2);
+}
 /** Whole numbers only. The raw text is checked: Number("1e3") passes. */
 const whole = (k, d, lo, hi) => {
   if (!argv.includes(k)) return d;
@@ -252,7 +320,8 @@ const report = {
     "contacts: deleting with the integration token does not stop a restore; merged cards need a live survivor card and the HubSpot merge in place",
     "deals: id-less only; confirmFirst and create-in-HubSpot cards held; 350443684547 '新的 deal' left alone (it has an ID)",
   ],
-  tally: {}, holdReasons: {}, items: [], deleting: [], deleted: [], restoreList: [], failed: [], creating: [], created: [],
+  release: null,
+  tally: {}, holdReasons: {}, waivedReasons: {}, items: [], deleting: [], deleted: [], restoreList: [], failed: [], creating: [], created: [],
   warnings: [],
 };
 function save() {
@@ -276,8 +345,37 @@ function record(item, outcome, extra = {}) {
     const h = (report.holdReasons[item.group] ??= {});
     h[k] = (h[k] ?? 0) + 1;
   }
+  for (const r of extra.waived ?? []) {                      // --release: what the read behind this row waived
+    const k = String(r).split(":")[0];
+    const w = (report.waivedReasons[item.group] ??= {});
+    w[k] = (w[k] ?? 0) + 1;
+  }
   save();
   return row;
+}
+/** A released card's row says so: its bucket, why the plan held it, what this read waived (and, after a second
+ *  read, what the first one waived), and this read's facts (ids and counts: the mirror evidence included), so a
+ *  released card that still holds shows why. Any other card's row is unchanged. */
+const released = (it, vd, first = null) => !it.release ? {} : {
+  released: it.release, ...(it.planHeld ? { planHeld: it.planHeld } : {}), waived: vd?.waived ?? [],
+  ...(first ? { waivedFirstRead: first.waived ?? [] } : {}), facts: vd?.facts ?? {},
+};
+const releasedTag = (it, vd) => !it.release ? "" : ` [released ${it.release}${vd?.waived?.length ? `; waived ${vd.waived.join(", ")}` : ""}]`;
+/**
+ * --release --canary: did this canary try the timeline waiver, the one delete checked against the contact cards
+ * afterwards? A canary that did not (a plan candidate, or a card that waived only an orphan reason) leaves that path
+ * untried and says so: the header's order is ONE card that waives a timeline entry first, then a look at its contact.
+ * `row` is the canary's report row (--apply), for the check's outcome.
+ */
+function canaryReleaseNote(it, vd, row = null) {
+  if (!it.release) return "release: the canary is not a released card (it is the first eligible item, in the run's order) -- the release is untried";
+  if (!waivesTimeline(vd?.waived))
+    return `release: the canary (${it.release}) waived no timeline entry, so the check after a timeline waiver is untried -- canary one card that waives one (a release file listing only it) before the rest`;
+  const at = (vd.mirrorEvidence?.contacts ?? []).join(",") || "?";
+  if (!APPLY) return `release: the canary waives a timeline entry; --apply --canary would re-check contact card(s) ${at} after the delete -- then open them in monday before releasing the rest`;
+  return row?.mirrorAfterDelete?.ok
+    ? `release: the canary waived a timeline entry and contact card(s) ${at} still hold every twin -- open them in monday and confirm the person's entries are there before releasing the rest`
+    : "release: the canary waived a timeline entry and the check after the delete did not pass (see the HALT) -- do not release the rest";
 }
 
 // ------------------------------------------------------------------ monday (reads; delete_item only on --apply)
@@ -509,7 +607,11 @@ for (const [k, b] of Object.entries(report.baselines))
 const plan = Object.fromEntries(ORDER.map(g => [g, { candidates: [], held: [] }]));
 const hold = (g, item, reason) => plan[g].held.push({ ...item, group: g, planReason: reason });
 const IDLESS_ALL = new Set(P.idless.cards.map(c => String(c.id)));
-const PROTECTED = new Map();                               // card id -> why it must never be deleted
+const PROTECTED = new Map();                               // card id -> why it must never be deleted (the last reason set)
+/** card id -> EVERY reason it was protected for. PROTECTED keeps one (the last), so a card held for review AND
+ *  protected as another card's real company card could read as "review" alone; a release must see them all. */
+const PROTECTED_WHY = new Map();
+const protect = (id, why) => { PROTECTED.set(id, why); (PROTECTED_WHY.get(id) ?? PROTECTED_WHY.set(id, new Set()).get(id)).add(why); };
 
 // accounts-idless
 const SKEPTIC_NAMED = {
@@ -523,12 +625,12 @@ const SKEPTIC_NAMED = {
   for (const c of [...P.idless.cards].sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1))) {
     const item = { group: "accounts-idless", kind: "idless-account", id: String(c.id), name: c.name, board: B.companies.board,
       planClass: c.class, planContacts: (c.links?.contacts ?? []).map(String), realCompany: c.realCompany ?? [] };
-    if (c.class === "TOUCHED-BY-PERSON") { hold("accounts-idless", item, "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"); PROTECTED.set(item.id, "review"); }
-    else if (SKEPTIC_NAMED[item.id]) { hold("accounts-idless", item, `skeptic: ${SKEPTIC_NAMED[item.id]}`); PROTECTED.set(item.id, "review"); }
-    else if (review.has(item.id)) { hold("accounts-idless", item, `skeptic review: ${review.get(item.id)}`); PROTECTED.set(item.id, "review"); }
-    else if (!["JUNK-UNTOUCHED", "DUPLICATE-OF-REAL"].includes(c.class)) { hold("accounts-idless", item, `plan: unknown class ${c.class}`); PROTECTED.set(item.id, "unknown"); }
+    if (c.class === "TOUCHED-BY-PERSON") { hold("accounts-idless", item, "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"); protect(item.id, "review"); }
+    else if (SKEPTIC_NAMED[item.id]) { hold("accounts-idless", item, `skeptic: ${SKEPTIC_NAMED[item.id]}`); protect(item.id, "review"); }
+    else if (review.has(item.id)) { hold("accounts-idless", item, `skeptic review: ${review.get(item.id)}`); protect(item.id, "review"); }
+    else if (!["JUNK-UNTOUCHED", "DUPLICATE-OF-REAL"].includes(c.class)) { hold("accounts-idless", item, `plan: unknown class ${c.class}`); protect(item.id, "unknown"); }
     else plan["accounts-idless"].candidates.push(item);
-    for (const r of c.realCompany ?? []) for (const card of r.cards ?? []) PROTECTED.set(String(card), "the real company card of an id-less duplicate");
+    for (const r of c.realCompany ?? []) for (const card of r.cards ?? []) protect(String(card), "the real company card of an id-less duplicate");
   }
 }
 // accounts-dups
@@ -537,7 +639,7 @@ const SKEPTIC_NAMED = {
   for (const g of P.dups.groups ?? []) {
     const X = String(g.hubspotCompanyId), S = String(g.survivor?.cardId ?? "");
     if (!/^\d+$/.test(X) || !/^\d+$/.test(S)) { console.error(`refusing to run: a dups group without a company id or survivor`); process.exit(1); }
-    PROTECTED.set(S, `the survivor for HubSpot company ${X}`);
+    protect(S, `the survivor for HubSpot company ${X}`);
     const siblings = (g.extras ?? []).map(e => String(e.cardId));
     for (const e of g.extras ?? []) {
       extras++;
@@ -571,7 +673,7 @@ const SKEPTIC_NAMED = {
         if (!m || m[3] !== survivorCard) { console.error(`refusing to run: cannot read the pre-step of ${card}`); process.exit(1); }
         requiredMarkers.push(`${m[1]}:${m[2]}`);
       }
-      PROTECTED.set(survivorCard, `the survivor card of merged contact ${survivorHsId}`);
+      protect(survivorCard, `the survivor card of merged contact ${survivorHsId}`);
       plan.contacts.candidates.push({ group: "contacts", kind: "merged-contact", id: card, name: x.name, board: B.contacts.board,
         hubspotId: String(x.hubspotIdOnCard), survivorHsId, survivorCard, requiredMarkers });
     } else if (idless.has(card) && idless.get(card).recommendation === "DELETE") {
@@ -580,17 +682,17 @@ const SKEPTIC_NAMED = {
   }
   for (const x of f.deleteAfterConfirmation ?? []) {
     hold("contacts", { kind: "idless-contact", id: String(x.card), name: idless.get(String(x.card))?.name ?? "" }, `needs confirmation from ${x.confirmWith}`);
-    PROTECTED.set(String(x.card), "needs confirmation");
-    if (x.pairWithDealCard) PROTECTED.set(String(x.pairWithDealCard), `paired with ${x.card}, which needs confirmation`);
+    protect(String(x.card), "needs confirmation");
+    if (x.pairWithDealCard) protect(String(x.pairWithDealCard), `paired with ${x.card}, which needs confirmation`);
   }
-  for (const x of f.keep ?? []) { hold("contacts", { kind: "keep", id: String(x.card), name: idless.get(String(x.card))?.name ?? "" }, `keep: ${x.reason}`); PROTECTED.set(String(x.card), "keep"); }
+  for (const x of f.keep ?? []) { hold("contacts", { kind: "keep", id: String(x.card), name: idless.get(String(x.card))?.name ?? "" }, `keep: ${x.reason}`); protect(String(x.card), "keep"); }
 }
 const MERGED_STALE = new Set(plan.contacts.candidates.filter(i => i.kind === "merged-contact").map(i => i.id));
 // deals
 for (const c of P.deals.cards ?? []) {
   const item = { group: "deals", kind: "idless-deal", id: String(c.id), name: c.name, board: B.deals.board };
-  if (c.recommendation !== "delete") { hold("deals", item, `needs a person: ${c.recommendation}`); PROTECTED.set(item.id, "real deal"); }
-  else if (c.confirmFirst) { hold("deals", item, `needs confirmation from ${String(c.confirmFirst).split(/[.\s]/)[0]}`); PROTECTED.set(item.id, "needs confirmation"); }
+  if (c.recommendation !== "delete") { hold("deals", item, `needs a person: ${c.recommendation}`); protect(item.id, "real deal"); }
+  else if (c.confirmFirst) { hold("deals", item, `needs confirmation from ${String(c.confirmFirst).split(/[.\s]/)[0]}`); protect(item.id, "needs confirmation"); }
   else if (PROTECTED.has(item.id)) hold("deals", item, `protected: ${PROTECTED.get(item.id)}`);
   else plan.deals.candidates.push(item);
 }
@@ -606,6 +708,52 @@ for (const c of P.deals.cards ?? []) {
   for (const x of P.contacts.forCleanupScript?.leaveUncarded ?? [])
     hold("contacts-card", { kind: "card-create", id: String(x.hubspotId), name: "" }, `leave uncarded: ${x.reason}`);
 }
+// The 2026-09-30 count reconciliation's own lists, the input every plan was built from. Loaded here, before the
+// release, because a released card must be on them too; every candidate is checked against them further down.
+const REC = (() => {
+  const rec = {};
+  for (const k of ["companies", "contacts", "deals"]) {
+    const p = join(RECONCILE_DIR, `${k}.json`);
+    if (!existsSync(p)) { console.error(`refusing to run: reconciliation list ${p} is missing (--reconcile-dir)`); process.exit(1); }
+    const text = readFileSync(p, "utf8");
+    try { rec[k] = JSON.parse(text); } catch { console.error(`refusing to run: cannot parse ${p}`); process.exit(1); }
+    report.planFiles[`reconcile/${k}.json`] = { sha256: createHash("sha256").update(text).digest("hex") };
+  }
+  const ids = xs => new Set((xs ?? []).map(x => String(x?.id ?? x)));
+  return {
+    idless: { companies: ids(rec.companies.idless), contacts: ids(rec.contacts.idless), deals: ids(rec.deals.idless) },
+    dupSets: new Map((rec.companies.dupIds ?? []).map(([h, cards]) => [String(h), new Set((cards ?? []).map(String))])),
+    staleIds: ids(rec.contacts.cardedNotInHs), noCard: ids(rec.contacts.hsNoCard),
+  };
+})();
+// --release (accounts-idless only): the user's approval list, validated WHOLE against the plan and the
+// reconciliation before anything is read from monday. Any problem refuses the run; nothing is released in part.
+let RELEASE = null;
+const SAFE_BEFORE_RELEASE = new Set(GROUPS.flatMap(g => plan[g].candidates.filter(c => c.kind !== "card-create").map(c => c.id)));
+const RELEASED_HELD = new Set();                           // held cards the release made candidates
+if (RELEASE_FILE) {
+  if (!existsSync(RELEASE_FILE)) { console.error(`refusing to run: release file ${RELEASE_FILE} is missing (--release)`); process.exit(1); }
+  let bytes;
+  try { bytes = readFileSync(RELEASE_FILE); }
+  catch (e) { console.error(`refusing to run: cannot read release file ${RELEASE_FILE}: ${String(e?.message ?? e).slice(0, 120)}`); process.exit(1); }
+  const ai = plan["accounts-idless"];
+  let next;
+  try {
+    RELEASE = parseRelease(bytes.toString("utf8"), { planIds: IDLESS_ALL, reconIdless: REC.idless.companies,
+      heldIds: new Set(ai.held.map(h => h.id)), candidateIds: new Set(ai.candidates.map(c => c.id)), protectedWhy: PROTECTED_WHY });
+    next = releasePlan(ai, RELEASE);
+  } catch (e) { console.error(`refusing to run: --release ${RELEASE_FILE}: ${e.message}`); process.exit(1); }
+  // Lift the plan's review hold from each released held card -- that one protection and no other.
+  for (const id of next.moved) {
+    const other = [...(PROTECTED_WHY.get(id) ?? [])].filter(w => w !== LIFTABLE_PROTECTION);
+    if (other.length) { console.error(`refusing to run: released card ${id} is protected (${other.join("; ")})`); process.exit(1); }
+    PROTECTED.delete(id); PROTECTED_WHY.delete(id); RELEASED_HELD.add(id);
+  }
+  ai.candidates = next.candidates; ai.held = next.held;
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  report.planFiles.release = { sha256, path: RELEASE_FILE, decidedAt: RELEASE.decidedAt };
+  report.release = { file: RELEASE_FILE, sha256, ...RELEASE, movedFromHeld: next.moved.length, taggedL: next.tagged.length };
+}
 // A card a plan protects must never also be a candidate -- that could only be a plan or parsing error.
 for (const g of GROUPS) for (const c of plan[g].candidates) {
   if (c.kind === "card-create") continue;                  // a HubSpot id, not a card
@@ -617,18 +765,7 @@ for (const g of GROUPS) for (const c of plan[g].candidates) {
 // an id-less card on its idless list, an extra (and its survivor) in its dupIds set, a merged card's stale id on
 // cardedNotInHs, a contact to card on hsNoCard. A plan that names anything else is refused whole.
 {
-  const rec = {};
-  for (const k of ["companies", "contacts", "deals"]) {
-    const p = join(RECONCILE_DIR, `${k}.json`);
-    if (!existsSync(p)) { console.error(`refusing to run: reconciliation list ${p} is missing (--reconcile-dir)`); process.exit(1); }
-    const text = readFileSync(p, "utf8");
-    try { rec[k] = JSON.parse(text); } catch { console.error(`refusing to run: cannot parse ${p}`); process.exit(1); }
-    report.planFiles[`reconcile/${k}.json`] = { sha256: createHash("sha256").update(text).digest("hex") };
-  }
-  const ids = xs => new Set((xs ?? []).map(x => String(x?.id ?? x)));
-  const idless = { companies: ids(rec.companies.idless), contacts: ids(rec.contacts.idless), deals: ids(rec.deals.idless) };
-  const dupSets = new Map((rec.companies.dupIds ?? []).map(([h, cards]) => [String(h), new Set((cards ?? []).map(String))]));
-  const staleIds = ids(rec.contacts.cardedNotInHs), noCard = ids(rec.contacts.hsNoCard);
+  const { idless, dupSets, staleIds, noCard } = REC;
   const onList = c => ({
     "idless-account": () => idless.companies.has(c.id),
     "dup-extra": () => !!dupSets.get(c.hubspotId)?.has(c.id) && dupSets.get(c.hubspotId).has(c.survivor),
@@ -642,6 +779,15 @@ for (const g of GROUPS) for (const c of plan[g].candidates) {
 }
 /** The only ids deleteCard may ever send: the plans' candidates, never a protected card. */
 const DELETABLE = new Set(GROUPS.flatMap(g => plan[g].candidates.filter(c => c.kind !== "card-create").map(c => c.id)));
+// A release adds exactly its released held cards to DELETABLE, and nothing else: checked, not assumed.
+{
+  const added = [...DELETABLE].filter(id => !SAFE_BEFORE_RELEASE.has(id));
+  const missing = (RELEASE?.cards ?? []).map(c => c.card).filter(id => !DELETABLE.has(id));
+  if (added.length !== RELEASED_HELD.size || added.some(id => !RELEASED_HELD.has(id)) || missing.length) {
+    console.error(`refusing to run: the deletable set changed by more than the release (added ${added.length}, released from the hold ${RELEASED_HELD.size}, released but not deletable ${missing.length})`);
+    process.exit(1);
+  }
+}
 
 // ------------------------------------------------------------------ the checks, per kind (pure reads)
 const verdicts = items => new Map(items.map(it => [it.id, { reasons: [], facts: {}, gone: null }]));
@@ -719,12 +865,14 @@ async function checkIdlessAccounts(items) {
   }
   if (!alive.length) return out;
   await personEdits(B.companies.board, alive.map(i => i.id), ACCOUNTS_EVER, out, { idCol: B.companies.idCol, requireBirth: true });
+  const notOursOf = new Map();                             // --release: a released card's entries not by the integration user
   await pool(alive, 4, async it => {
     const t = await readTimeline(it.id);
     if (!t.complete) out.get(it.id).reasons.push("timeline-unreadable");
     const notOurs = t.entries.filter(e => e.user !== INTEGRATION);
     if (notOurs.length) out.get(it.id).reasons.push(`timeline-entry-not-ours:${notOurs.length}`);
     out.get(it.id).facts.timelineEntries = t.entries.length;
+    if (it.release && notOurs.length) notOursOf.set(it.id, { complete: t.complete, entries: notOurs });
   });
   // A DUPLICATE is only a duplicate while its real card is still there, holding the real id.
   const dups = alive.filter(i => i.planClass === "DUPLICATE-OF-REAL");
@@ -770,6 +918,26 @@ async function checkIdlessAccounts(items) {
       if (hsId && (deals.get(hsId) ?? []).length) why.push(`orphaned-contact-hubspot-deal:${cid}`);
       for (const a of accounts) { out.get(a).reasons.push(...why); (out.get(a).facts.orphans ??= []).push(cid); }
     }
+  }
+  // --release, RELEASED CARDS ONLY: is every timeline entry on the Account not by the integration user also on a
+  // contact card linked to it NOW (active, and not a merged stale card the contacts group deletes)? Read on every
+  // read -- the first and the --apply second alike -- so the waiver decides from this read's own facts. The
+  // contact timelines are read whole or the answer is no. Cards without a release read nothing more here.
+  for (const it of alive) {
+    const mine = notOursOf.get(it.id);
+    if (!it.release || !mine) continue;
+    const vd = out.get(it.id);
+    const holders = (vd.facts.contacts ?? []).filter(cid => !MERGED_STALE.has(cid) && contacts.get(cid)?.state === "active");
+    const timelines = [];
+    for (const cid of holders) timelines.push(await readTimeline(cid, { cache: !APPLY }));
+    vd.facts.personEntries = mine.entries.length;
+    vd.facts.personEntriesMirrored = mine.complete === true && personEntriesMirrored(mine.entries, timelines);
+    vd.facts.mirrorContacts = holders;
+    const unread = holders.filter((cid, i) => !timelines[i].complete);
+    if (unread.length) vd.facts.mirrorContactsUnreadable = unread;
+    // What a timeline waiver rests on, kept on THIS read's verdict and never in the report (ids, markers and
+    // fingerprints only, no content): a delete this read allows is checked against it afterwards (afterReleasedDelete).
+    vd.mirrorEvidence = { entries: mine.entries.map(({ id, markers, fp }) => ({ id, markers, fp })), contacts: holders };
   }
   return out;
 }
@@ -932,7 +1100,23 @@ async function checkCardCreates(items) {
   }
   return out;
 }
-const CHECK = { "accounts-idless": checkIdlessAccounts, "accounts-dups": checkDupExtras, contacts: checkContacts, deals: checkDeals, "contacts-card": checkCardCreates };
+/**
+ * --release: THE ONE PLACE A RELEASE WAIVES A REASON. Every read of an id-less Account goes through CHECK below --
+ * the batched first read and the --apply second read alike -- so both are waived by this same function, each from
+ * its own facts. Only a card carrying item.release is touched, only its reasons change, and what was dropped is
+ * kept beside them (vd.waived) for the report. A gone card stays gone: vd.gone is never read or written here.
+ */
+function waiveReleased(items, out) {
+  for (const it of items) {
+    if (!it.release) continue;
+    const vd = out.get(it.id);
+    const { remaining, waived } = releaseWaiver(it.release, vd.reasons, vd.facts);
+    vd.reasons = remaining; vd.waived = waived;
+  }
+  return out;
+}
+const CHECK = { "accounts-idless": async items => waiveReleased(items, await checkIdlessAccounts(items)),
+  "accounts-dups": checkDupExtras, contacts: checkContacts, deals: checkDeals, "contacts-card": checkCardCreates };
 
 // ------------------------------------------------------------------ acting (--apply only)
 let halted = null, stopRequested = false, acted = 0;
@@ -1008,6 +1192,45 @@ async function afterIdDelete(it) {
   return true;
 }
 
+/**
+ * --release: AFTER DELETING A RELEASED CARD WHOSE READ WAIVED timeline-entry-not-ours. The waiver assumed that the
+ * contact's copy of each person's entry outlives the Account. But monday LINKS the copies of one activity, deleting
+ * copies has removed entries on cards no delete was sent to (src/activity-sync.ts, dedupe-timeline.mjs), and whether
+ * trashing a whole card takes its linked copies along was never measured. So: wait --settle seconds, read the contact
+ * cards the waiver relied on again (uncached), and HALT unless every one was read whole and every waived entry still
+ * has a twin there. The evidence is the SECOND read's -- the read that allowed this very delete. A person's note is
+ * not a Worker entry that restore-timeline-entries.mjs can rebuild from HubSpot, so a loss stops the run at once.
+ * Returns mirrorSurvived's { ok, lost, unreadable } (ids only).
+ */
+async function afterReleasedDelete(it, vd) {
+  const ev = vd?.mirrorEvidence;
+  if (!ev?.entries?.length || !ev?.contacts?.length) {
+    halt(`released card ${it.id} was deleted on a timeline waiver, but the read that allowed it kept no mirror evidence -- stop and look`);
+    return { ok: false, lost: [], unreadable: [] };
+  }
+  await sleep(SETTLE_MS);
+  const after = new Map();
+  let v, readError = null;
+  try {
+    for (const cid of ev.contacts) after.set(cid, await readTimeline(cid));     // uncached: this read is the proof
+    v = mirrorSurvived(ev.entries, after);
+  } catch (e) {
+    if (e.abort) throw e;
+    readError = String(e?.message ?? e).slice(0, 120);
+    v = { ok: false, lost: [], unreadable: ev.contacts.map(String) };
+  }
+  journal({ phase: "mirror-check", id: it.id, ok: v.ok, contacts: ev.contacts, entries: ev.entries.length, lost: v.lost, unreadable: v.unreadable,
+    ...(readError ? { readError } : {}) });
+  if (!v.ok) {
+    const where = `contact card(s) ${ev.contacts.join(",")}`;
+    const why = v.lost.length
+      ? `${v.lost.length} of its ${ev.entries.length} waived timeline entries no longer have a twin on ${where} -- monday may take a trashed card's linked timeline copies with it`
+      : `${readError ? `${where} could not be read again (${readError})` : `contact timeline(s) ${v.unreadable.join(",") || "?"} could not be read whole`}, so the twins cannot be confirmed`;
+    halt(`after deleting released card ${it.id} (${it.release}): ${why}. Stop: open ${where} in monday, and if the person's entries are gone restore ${it.id} from the Trash`);
+  }
+  return v;
+}
+
 async function createCard(it) {
   report.creating.push({ hubspotId: it.id, sentAt: new Date().toISOString() }); save();
   let r;
@@ -1067,10 +1290,18 @@ process.on("SIGINT", () => {
 // ------------------------------------------------------------------ the run
 console.log(`${APPLY ? (CANARY ? "APPLY --canary (one item)" : "APPLY") : "DRY RUN (reads only)"}  groups ${GROUPS.join(",")}`
   + `${Number.isFinite(LIMIT) ? `  limit ${LIMIT}` : ""}\nplans: ${PLAN_DIR}\nreport: ${OUT}`);
+if (RELEASE) {
+  // One line, ids and counts only: decidedBy is the user's own text, so anything shaped like an email is masked.
+  const by = String(RELEASE.decidedBy).replace(/\s+/g, " ").replace(/[^\s@]+@[^\s@]+/g, "<email>").slice(0, 60);
+  console.log(`release: ${RELEASE.cards.length} cards (${RELEASE_BUCKETS.map(b => `${b} ${RELEASE.counts[b]}`).join(", ")}), decided by ${by}`
+    + ` at ${RELEASE.decidedAt}; ${RELEASED_HELD.size} leave the plan's hold, ${report.release.taggedL} plan candidates tagged L;`
+    + ` ${RELEASE_FILE} sha256 ${report.planFiles.release.sha256.slice(0, 16)}`);
+}
 for (const g of GROUPS) {
   const byReason = {};
   for (const h of plan[g].held) { const k = h.planReason.split(":")[0]; byReason[k] = (byReason[k] ?? 0) + 1; }
-  console.log(`  ${g}: ${plan[g].candidates.length} safe by plan, ${plan[g].held.length} held by plan ${JSON.stringify(byReason)}`);
+  const freed = g === "accounts-idless" && RELEASED_HELD.size ? ` (${RELEASED_HELD.size} of them released from the plan's hold)` : "";
+  console.log(`  ${g}: ${plan[g].candidates.length} safe by plan${freed}, ${plan[g].held.length} held by plan ${JSON.stringify(byReason)}`);
 }
 for (const g of GROUPS) for (const h of plan[g].held) record(h, "held-by-plan", { reasons: [h.planReason] });
 
@@ -1086,19 +1317,21 @@ try {
       for (const it of chunk) {
         if (halted || stopRequested || acted >= LIMIT) break outer;
         const vd = first.get(it.id);
-        if (vd.gone) { record(it, it.kind === "card-create" ? "already-carded" : "already-gone", { state: vd.gone, facts: vd.facts }); continue; }
+        if (vd.gone) { record(it, it.kind === "card-create" ? "already-carded" : "already-gone", { state: vd.gone, facts: vd.facts, ...released(it, vd) }); continue; }
         if (vd.reasons.length) {
-          record(it, "held-by-recheck", { reasons: vd.reasons });
-          console.log(`  held ${g} ${it.id} ${it.name}: ${vd.reasons.join(", ")}`);
+          record(it, "held-by-recheck", { reasons: vd.reasons, ...released(it, vd) });
+          console.log(`  held ${g} ${it.id} ${it.name}: ${vd.reasons.join(", ")}${releasedTag(it, vd)}`);
           continue;
         }
         if (it.kind === "dup-extra" && blocked.has(it.hubspotId)) { record(it, "held-by-recheck", { reasons: ["company-blocked-earlier-in-run"] }); continue; }
         if (!APPLY) {
-          record(it, it.kind === "card-create" ? "would-create" : "would-delete", { facts: vd.facts });
+          record(it, it.kind === "card-create" ? "would-create" : "would-delete", { facts: vd.facts, ...released(it, vd) });
+          if (it.release) console.log(`  would delete ${g} ${it.id} ${it.name}${releasedTag(it, vd)}`);
           acted++;
           if (CANARY) {
             console.log(`\ncanary (dry run): the first eligible item is ${g} ${it.kind} ${it.id} "${it.name}"`
               + `${it.hubspotId ? ` (HubSpot ${it.hubspotId})` : ""}; --apply --canary would ${it.kind === "card-create" ? "card it" : "delete it"}, run the post-checks, and stop`);
+            if (RELEASE) console.log(canaryReleaseNote(it, vd));
             report.stoppedBecause = "canary (dry run)";
             break outer;
           }
@@ -1107,8 +1340,8 @@ try {
         // --apply: the SECOND read, alone and immediately before acting. Both must pass.
         const second = (await CHECK[g]([it])).get(it.id);
         if (second.gone || second.reasons.length) {
-          record(it, "changed-since-first-read", { state: second.gone ?? undefined, reasons: second.reasons });
-          console.log(`  changed ${g} ${it.id}: ${second.gone ?? second.reasons.join(", ")}`);
+          record(it, "changed-since-first-read", { state: second.gone ?? undefined, reasons: second.reasons, ...released(it, second, vd) });
+          console.log(`  changed ${g} ${it.id}: ${second.gone ?? second.reasons.join(", ")}${releasedTag(it, second)}`);
           continue;
         }
         if (it.kind === "card-create") {
@@ -1118,13 +1351,19 @@ try {
           console.log(`  ${res.outcome} contact ${it.id} ${it.name}${res.card ? ` -> card ${res.card}` : ""}`);
         } else {
           const idBearing = it.kind === "dup-extra" || it.kind === "merged-contact";
+          // --release: a delete the second read allowed by waiving a person's timeline entries leans on their twins
+          // on the contact cards, so it is checked after the delete as an ID-bearing one is (afterReleasedDelete).
+          const mirrorBearing = !!it.release && waivesTimeline(second.waived);
           if (idBearing && !assocBefore.has(recordKey(it))) assocBefore.set(recordKey(it), await assocCounts(it));
           const ok = await deleteCard(it);
           acted++;
-          let post = ok;
+          let post = ok, mirror = null;
           if (ok && idBearing) post = await afterIdDelete(it);
-          record(it, ok ? "deleted" : "delete-failed", { postChecks: idBearing ? (post ? "ok" : "failed") : "n/a" });
-          console.log(`  ${ok ? "deleted" : "FAILED"} ${g} ${it.id} ${it.name}${idBearing ? ` (post-checks ${post ? "ok" : "FAILED"})` : ""}`);
+          if (ok && mirrorBearing) post = (mirror = await afterReleasedDelete(it, second)).ok;
+          const checked = idBearing || mirrorBearing;
+          record(it, ok ? "deleted" : "delete-failed", { postChecks: checked ? (post ? "ok" : "failed") : "n/a", ...released(it, second, vd),
+            ...(mirror ? { mirrorAfterDelete: mirror } : {}) });
+          console.log(`  ${ok ? "deleted" : "FAILED"} ${g} ${it.id} ${it.name}${checked ? ` (post-checks ${post ? "ok" : "FAILED"})` : ""}${releasedTag(it, second)}`);
           if (!post && it.kind === "dup-extra") blocked.add(it.hubspotId);
           const warned = report.warnings.find(w => w.id === it.id);
           if (warned && it.kind === "dup-extra") blocked.add(it.hubspotId);
@@ -1134,6 +1373,7 @@ try {
           console.log(`\ncanary: ${last.outcome} ${g} ${it.kind} ${it.id} "${it.name}"`
             + `${it.hubspotId ? ` (HubSpot ${it.hubspotId})` : ""}${last.postChecks ? `, post-checks ${last.postChecks}` : ""}`
             + ` -- open it in monday (Trash) and the board, then run without --canary`);
+          if (RELEASE) console.log(canaryReleaseNote(it, second, last));
           report.stoppedBecause = "canary";
           break outer;
         }
@@ -1149,7 +1389,8 @@ try {
   report.finishedAt = new Date().toISOString();
   save();
   console.log("\nper group:");
-  for (const g of GROUPS) console.log(`  ${g}: ${JSON.stringify(report.tally[g] ?? {})}${report.holdReasons[g] ? `  reasons ${JSON.stringify(report.holdReasons[g])}` : ""}`);
+  for (const g of GROUPS) console.log(`  ${g}: ${JSON.stringify(report.tally[g] ?? {})}${report.holdReasons[g] ? `  reasons ${JSON.stringify(report.holdReasons[g])}` : ""}`
+    + `${report.waivedReasons[g] ? `  waived by the release ${JSON.stringify(report.waivedReasons[g])}` : ""}`);
   console.log(`${APPLY ? `deleted ${report.deleted.length}, created ${report.created.length}, failed ${report.failed.length}` : "(dry run -- nothing was written; add --apply to act)"}`
     + `  stopped: ${halted ? `HALT ${halted}` : report.stoppedBecause}\nreport: ${OUT}`);
   if (halted) process.exit(1);
