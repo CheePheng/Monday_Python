@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  deferKey, spillDeferred, WAVE, WAVE_GAP_MS, FIRST_DELAY_MS, MAX_ATTEMPTS, MAX_QUEUE,
+  deferKey, spillDeferred, spillDeferredLeftover, WAVE, WAVE_GAP_MS, FIRST_DELAY_MS, MAX_ATTEMPTS, MAX_QUEUE,
   type DeferredItem,
 } from "../src/deferred-sync";
 import { readCode } from "../scripts/read-source.mjs";
@@ -120,6 +120,19 @@ describe("the queue", () => {
     await q.enqueue(items(MAX_QUEUE));
     const r = await q.enqueue([{ type: "contact", id: "overflow" }]);
     expect(r).toMatchObject({ queued: 0, dropped: 1, depth: MAX_QUEUE });
+  });
+
+  /** ...and says WHICH it refused -- always the tail of the batch -- so a caller's fallback runs for those only. */
+  it("names the items it dropped at the ceiling: the tail of the batch, by their keys", async () => {
+    const { q } = make();
+    await q.enqueue(items(MAX_QUEUE - 2));
+    const batch: DeferredItem[] = [{ type: "contact", id: "a", notice: true }, { type: "contact", id: "b", notice: true },
+      { type: "contact", id: "c", notice: true }, { type: "contact", id: "d", notice: true }];
+    const r = await q.enqueue(batch);
+    expect(r).toMatchObject({ queued: 2, dropped: 2, depth: MAX_QUEUE });
+    expect(r.droppedKeys).toEqual(["contact:c:n", "contact:d:n"]);
+    expect((await q.enqueue([{ type: "contact", id: "e" }])).droppedKeys).toEqual(["contact:e:u"]);
+    expect((await make().q.enqueue(items(3))).droppedKeys).toEqual([]);
   });
 });
 
@@ -363,6 +376,47 @@ describe("the producer", () => {
     const ns = { idFromName: vi.fn(), get: vi.fn() };
     await spillDeferred({ DEFERRED_SYNC: ns } as unknown as Env, []);
     expect(ns.get).not.toHaveBeenCalled();
+  });
+
+  /**
+   * THE LEFTOVER: which items the queue does NOT hold, for a caller whose fallback must run for exactly those. Told
+   * only "not all of it", the owner notice ran every id inline, the queued ones first, and the webhook's ~30 s
+   * cut-off ended the loop before it reached any the queue had dropped.
+   */
+  it("spillDeferredLeftover: exactly the dropped tail when the queue is full, [] when it holds them all", async () => {
+    const { q } = make();
+    const live = { DEFERRED_SYNC: { idFromName: () => "x", get: () => q } } as unknown as Env;
+    const batch = items(4);
+    expect(await spillDeferredLeftover(live, batch)).toEqual([]);
+    expect(await spillDeferredLeftover(live, batch)).toEqual([]);                // already waiting: held
+    await q.enqueue(items(MAX_QUEUE - 6, "company"));
+    const more = [{ type: "contact" as const, id: "n1", notice: true }, { type: "contact" as const, id: "n2", notice: true },
+      { type: "contact" as const, id: "n3", notice: true }, { type: "contact" as const, id: "n4", notice: true }];
+    expect(await spillDeferredLeftover(live, more)).toEqual(more.slice(2));
+    expect(await spillDeferred(live, more.slice(0, 2))).toBe(true);              // the two it took are held
+  });
+
+  it("spillDeferredLeftover: every item with no binding or an unreachable queue", async () => {
+    const batch = items(3);
+    expect(await spillDeferredLeftover({} as Env, batch)).toEqual(batch);
+    const broken = { DEFERRED_SYNC: { idFromName: () => "x", get: () => { throw new Error("DO down"); } } } as unknown as Env;
+    expect(await spillDeferredLeftover(broken, batch)).toEqual(batch);
+  });
+
+  /**
+   * AN INSTANCE FROM BEFORE droppedKeys (mid-deploy) says only HOW MANY it dropped. Once full it drops every later
+   * item that is not a duplicate -- the tail -- so the tail is the answer. Answering every item put the ones it HAD
+   * taken first in the owner notice's inline line, ahead of the ones it dropped, and the webhook's ~30 s cut-off
+   * could end the loop before reaching those.
+   */
+  it("spillDeferredLeftover: from a queue that says only how many it dropped, the TAIL of that many", async () => {
+    const batch = items(5);
+    const old = (dropped: number) => ({ DEFERRED_SYNC: { idFromName: () => "x",
+      get: () => ({ enqueue: async () => ({ queued: 5 - dropped, duplicate: 0, dropped, depth: MAX_QUEUE }) }) } }) as unknown as Env;
+    expect(await spillDeferredLeftover(old(2), batch)).toEqual(batch.slice(3));
+    expect(await spillDeferredLeftover(old(5), batch)).toEqual(batch);
+    expect(await spillDeferredLeftover(old(0), batch)).toEqual([]);
+    expect(await spillDeferredLeftover(old(1), [])).toEqual([]);
   });
 });
 

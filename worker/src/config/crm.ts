@@ -83,9 +83,18 @@ export const CRM_CONTACTS: ObjectSpec = {
     notWorked: { color_mm70k2wk: ["1.NEW"], color_mm6zb4tc: ["New"] } },
   // A contact reaches monday only once HubSpot gives it an owner (2026-10-09 meeting, CONTACT_CARD_NEEDS_OWNER).
   cardNeedsOwner: true,
-  // 上次通知Owner (email): the last owner told about this contact. Written by owner-notice.ts (OWNER_NOTICE) when
-  // HubSpot's owner is someone else, which is what the board's assignment email automation fires on.
-  ownerNoticeCol: "email_mm7v3xxg",
+  /**
+   * THE OWNER NOTICE (OWNER_NOTICE, owner-notice.ts) -- "option A", chosen 2026-10-09. The Worker only DECIDES:
+   * when HubSpot's owner was assigned recently and is not the one in 上次通知Owner, it sets 通知状态 to 待通知,
+   * at most once per assignment, once the card's Contact owner (multiple_person_mm6zap53, the owner field below)
+   * shows that owner. The monday workflow "#06 [Owner Notice] Email new contact owner" (5031811440, account-level,
+   * run as ask ada) does ALL the notifying on that change: the email, from the Outlook mailbox askada@dkmeco.com.sg,
+   * to the card's Contact owner, their email into 上次通知Owner, 通知状态 to 已通知. No Lark step yet (hiffer may add one).
+   *   上次通知Owner  email_mm7v3xxg   (email)  READ ONLY here: the Worker never writes it.
+   *   通知状态       color_mm7zktxc   (status) labels exactly {0: 待通知, 1: 已通知}; nothing at index 5, and an
+   *                                           unset cell is still read by its index, never its text.
+   */
+  ownerNotice: { lastToldCol: "email_mm7v3xxg", statusCol: "color_mm7zktxc", pending: "待通知", done: "已通知" },
   includeAll: true,                          // SAFE ONLY WITH Task 3B's mayCreateCrmCard
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,

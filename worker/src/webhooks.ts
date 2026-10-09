@@ -22,7 +22,7 @@ import {
   ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
   syncHubspotActivity, syncMondayTimeline, resetHelperOnReassignment,
 } from "./activity-sync";
-import { ownerNoticeOn, queueOwnerNotices } from "./owner-notice";
+import { ownerNoticeOn, queueOwnerNotices, runOwnerNoticesInline } from "./owner-notice";
 
 /** monday "Last Activity Date" on CRM Contacts. The doorbell until 2026-09-30; see ACTIVITY_WAKE_COLS. */
 export const LAST_ACTIVITY_DATE_COL = "date_mm7054jz";
@@ -85,9 +85,11 @@ export async function ringOnPersonEdit(env: Env, itemId: string, actorId: string
  *    reconciling on it is pure waste. A bulk fill of such a column would otherwise storm the
  *    reconciler with one full single-record sync per card. The daily sweep still heals manual edits. */
 export function ignoredColumns(spec: ObjectSpec): Set<string> {
-  // 上次通知Owner (ownerNoticeCol) is bookkeeping too: only owner-notice.ts writes it, and it maps to nothing.
-  const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol, spec.ownerNoticeCol]
-    .filter(Boolean) as string[]);
+  // The owner notice's two columns (ObjectSpec.ownerNotice) are bookkeeping too, and map to nothing in HubSpot:
+  // 通知状态 is set to 待通知 by owner-notice.ts and to 已通知 by the board's workflow, and 上次通知Owner is written
+  // by that workflow alone. A reconcile on either would be pure waste.
+  const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol,
+    spec.ownerNotice?.lastToldCol, spec.ownerNotice?.statusCol].filter(Boolean) as string[]);
   for (const f of spec.fields) if (f.oneWay) out.add(f.col);
   return out;
 }
@@ -1045,15 +1047,8 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
         .catch(e => console.log(`[activity] source=owner contact=${cid} action=error reason="${String(e).slice(0, 140)}"`)));
   }
 
-  // OWNER REASSIGNMENT -> tell the new owner (OWNER_NOTICE): one entry per contact in the durable queue, which
-  // runs the notice -- a webhook's own work is cut off ~30 s after this response, a notice can outwait that on
-  // monday's rate limit, and a bulk reassignment of a hundred contacts is then a hundred notices a wave at a time.
-  // The queue's first wave comes ~15 s from now, by which time this batch's own sync has made any card it needed.
-  if (ownerNoticeOn(env)) {
-    const owners = extractOwnerChangeContactIds(body);
-    if (owners.length) ectx.waitUntil(queueOwnerNotices(env, owners, "owner changed in HubSpot")
-      .catch(e => console.log(`[owner-notice] action=error reason="${String(e).slice(0, 140)}"`)));
-  }
+  // OWNER REASSIGNMENT -> the new owner's notice (OWNER_NOTICE). Queued below, behind this batch's overflow.
+  const noticeIds = ownerNoticeOn(env) ? extractOwnerChangeContactIds(body) : [];
 
   if (!events.length && !liIds.length) {
     if (activityEvents.length) return new Response("ok");
@@ -1094,29 +1089,6 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
     }
 
     /**
-     * A DEAL CHANGING COMPANY INVALIDATES ITS LINE ITEMS' ACCOUNTS.
-     *
-     * The derived link points the other way to the event that breaks it: the company lives on the deal,
-     * the link lives on the line item, and nothing about the line item changes when the deal is
-     * re-pointed. So the deal event has to carry the invalidation across.
-     *
-     * CRM only, and bounded: a deal carries at most 12 line items in this portal, and the slice keeps a
-     * pathological one from consuming the whole batch. A read failure logs and drops rather than
-     * throwing — a missed refresh is a stale cell the next event repairs, while a throw here would take
-     * down the contact and company events sharing this batch.
-     */
-    if (lineItemSpec) {
-      for (const dealId of extractDealAssocChangeIds(body).slice(0, MAX)) {
-        try {
-          for (const li of await getAssociatedIds(env, "deals", dealId, "line_items"))
-            events.push({ type: "line_item", id: li });
-        } catch (e) {
-          console.log(`[webhook] source=hubspot deal=${dealId} action=error`
-            + ` reason="line-item invalidation failed: ${String(e).slice(0, 100)}"`);
-        }
-      }
-    }
-    /**
      * THE OVERFLOW GOES SOMEWHERE NOW.
      *
      * This used to log "backup catches overflow" and drop the remainder. That sentence is true on the
@@ -1132,9 +1104,14 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
      * make a bulk deal edit deliver exactly this kind of batch, and with no CRM cron an overflowing deal
      * was dropped the same way contacts once were. The spill is still a no-op on the Work Management
      * deployment, which has no such binding and whose cron already covers this ground.
+     *
+     * IN TWO PARTS on CRM, around the owner notices and the deal-association reads below: what overflows NOW is
+     * spilled first, and what those reads append past MAX is spilled after them. Every event at index MAX or
+     * beyond is spilled exactly once (`spilledTo`: every event from MAX up to it is in the first part), and the
+     * inline slice is still the first MAX of the final batch -- the reads only append. Work Management has no such
+     * reads: one part, exactly as before.
      */
-    if (events.length > MAX) {
-      const overflow = events.slice(MAX);
+    const spillOverflow = async (overflow: typeof events) => {
       const spill: DeferredItem[] = overflow
         .filter(e => e.type === "contact" || e.type === "company" || e.type === "deal" || e.type === "line_item")
         .map(e => ({ type: e.type as DeferredItem["type"], id: e.id, deleted: e.deleted }));
@@ -1142,6 +1119,69 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
         + ` spilling=${spill.length} reason="batch > ${MAX}; ${env.DEFERRED_SYNC
           ? "overflow queued durably" : "no queue on this deployment; the incremental cron covers it"}"`);
       await spillDeferred(env, spill);
+    };
+    const spilledTo = Math.max(events.length, MAX);
+    if (events.length > MAX) {
+      const overflow = events.slice(MAX);
+      await spillOverflow(overflow);
+    }
+    /**
+     * OWNER REASSIGNMENT -> THE NEW OWNER'S NOTICE (OWNER_NOTICE): one entry per contact in the durable queue, which
+     * decides whether to flag the card's 通知状态 for the board's workflow to send -- a webhook's own work is cut
+     * off ~30 s after this response, a notice can outwait that on monday's rate limit, and a bulk reassignment of a
+     * hundred contacts is then a hundred notices a wave at a time.
+     *
+     * QUEUED HERE, BEHIND THE OVERFLOW JUST SPILLED, NOT BEFORE IT. The workflow mails whoever the card's Contact
+     * owner shows, and only the contact's own sync puts the new owner there. Queued first (as they were), a
+     * 40-contact reassignment runs its notices for contacts 16-40 a wave or more AHEAD of those contacts' updates:
+     * replayed, 25 flags would have mailed the previous owner (owner-notice-race.test.ts). Here every overflow
+     * contact's update waits ahead of its notice. The first 15 are synced inline just below, and their notices wait
+     * behind the whole overflow -- but nothing makes an inline sync finish first (an alarm already armed runs the
+     * queue sooner, a sync can fail), so the notice itself flags only a card that already shows the new owner, and
+     * otherwise waits for it ("busy").
+     *
+     * AND AHEAD OF THE DEAL-ASSOCIATION READS just below: up to MAX HubSpot reads one after another, in a waitUntil
+     * that has ~30 s. Queued after them (as they were), the notices waited on every one, and when the time ran out
+     * during the reads every notice of the batch was lost without a line. They need nothing from those reads, which
+     * only append line items: every contact of the batch is already in the overflow just spilled, or inline.
+     *
+     * Started here and not awaited until the batch's own syncs are done, so those never wait for it. What the
+     * queue does not take (no queue, or a full one) runs inline -- but only THEN (below): started beside the
+     * syncs, as it was, a notice read the card before its contact's sync had put the new owner on it, answered
+     * "busy", and was lost.
+     */
+    const noticesLeft: Promise<string[]> = noticeIds.length
+      ? queueOwnerNotices(env, noticeIds, "owner changed in HubSpot", "inline")
+          .catch(e => { console.log(`[owner-notice] action=error reason="${String(e).slice(0, 140)}"`); return []; })
+      : Promise.resolve([]);
+    if (noticeIds.length) ectx.waitUntil(noticesLeft);   // the enqueue itself never depends on the rest of the batch
+    /**
+     * A DEAL CHANGING COMPANY INVALIDATES ITS LINE ITEMS' ACCOUNTS.
+     *
+     * The derived link points the other way to the event that breaks it: the company lives on the deal,
+     * the link lives on the line item, and nothing about the line item changes when the deal is
+     * re-pointed. So the deal event has to carry the invalidation across.
+     *
+     * CRM only, and bounded: a deal carries at most 12 line items in this portal, and the slice keeps a
+     * pathological one from consuming the whole batch. A read failure logs and drops rather than
+     * throwing — a missed refresh is a stale cell the next event repairs, while a throw here would take
+     * down the contact and company events sharing this batch.
+     *
+     * Read AFTER the first part of the overflow is spilled and the notices are queued (above): these reads are
+     * sequential and can use up the waitUntil's time. What they append past MAX is the overflow's second part --
+     * never an event the first part had.
+     */
+    if (lineItemSpec) {
+      for (const dealId of extractDealAssocChangeIds(body).slice(0, MAX)) {
+        try {
+          for (const li of await getAssociatedIds(env, "deals", dealId, "line_items"))
+            events.push({ type: "line_item", id: li });
+        } catch (e) {
+          console.log(`[webhook] source=hubspot deal=${dealId} action=error`
+            + ` reason="line-item invalidation failed: ${String(e).slice(0, 100)}"`);
+        }
+      }
+      if (events.length > spilledTo) await spillOverflow(events.slice(spilledTo));
     }
     /**
      * ONE RUN AT A TIME PER RECORD -- and on CRM, THE LATEST EVENT WINS.
@@ -1165,6 +1205,14 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
       return (!ev.deleted && latestWins ? coalesceLatest(key, run, { rerunAfterError: true }) : coalesce(key, run))
         .catch(e => console.log(`[webhook] source=hubspot ${ev.type}=${ev.id} action=error reason="${String(e).slice(0, 160)}"`));
     }));
+    // THE OWNER NOTICES THE QUEUE DID NOT TAKE, inline -- now that this batch's own syncs have put the new owners
+    // on their cards (the notice flags only a card that shows HubSpot's owner). With the batch's cached owner and
+    // user lists, so a run reads neither HubSpot's owner API nor monday's user list itself.
+    const noticesInline = await noticesLeft;
+    if (Array.isArray(noticesInline) && noticesInline.length)
+      await runOwnerNoticesInline(env, noticesInline, "owner changed in HubSpot",
+        await getCtxCached(env).catch(() => undefined))
+        .catch(e => console.log(`[owner-notice] action=error reason="${String(e).slice(0, 140)}"`));
   })());
   return new Response("ok"); // respond fast so HubSpot doesn't retry
 }

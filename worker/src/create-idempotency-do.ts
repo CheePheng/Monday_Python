@@ -431,6 +431,23 @@ export class CreateIdempotency extends DurableObject<Env> {
       return true;
     });
   }
+  /**
+   * EXTEND A LOCK THIS RUN STILL HOLDS -- NEVER TAKE ONE. claimLock grants a lock whose record is GONE, which is
+   * right for a first claim and wrong for a renewal: a run that overran its hold while another took the expired lock,
+   * did its work and released it (deleting the record) was granted the lock again by claimLock, and wrote beside
+   * that run's finished work -- for the owner notice, a second 待通知 over the workflow's 已通知, so a second email.
+   * Refused when the record is gone or names another run. Extended when it still names this one, even past its
+   * hold: nobody took it over then.
+   */
+  async renewLock(nowMs: number, owner: string): Promise<boolean> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const rec = await this.ctx.storage.get<{ at: number; owner: string }>("lock");
+      if (!rec || rec.owner !== owner) return false;
+      await this.ctx.storage.put("lock", { at: nowMs, owner });
+      await this.ctx.storage.setAlarm(nowMs + RETENTION_MS);
+      return true;
+    });
+  }
   /** Release only our own lock: an overrunning poll must not free one a newer poll now holds. */
   async releaseLock(owner: string): Promise<boolean> {
     return this.ctx.blockConcurrencyWhile(async () => {

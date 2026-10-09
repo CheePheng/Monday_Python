@@ -3,12 +3,13 @@ import { CRM_CONTACTS } from "../src/config/crm";
 import type { Env, MondayItem, RunOpts } from "../src/types";
 
 /**
- * A CONTACT CREATED FROM THE MONDAY FORM tells its owner too (OWNER_NOTICE): the old #01 email fired on every
- * new item with an owner, and a rep adding a contact for a colleague is exactly the case it was for.
+ * A CONTACT CREATED FROM THE MONDAY FORM gets its owner's notice too (OWNER_NOTICE): the old #01 email fired on
+ * every new item with an owner, and a rep adding a contact for a colleague is exactly the case it was for.
  *
  * Driven through the real syncMondayItem -> createFromMonday. The notice is asked for only once the HubSpot
- * record exists -- with its id, so the owner is read back from HubSpot and the owner-change webhook for the
- * same birth finds it already told -- and never for a create that did not happen.
+ * record exists -- with its id, so the owner is read back from HubSpot, and the owner-change webhook for the
+ * same birth is the same queue entry or finds the assignment already flagged -- and never for a create that did
+ * not happen.
  */
 
 const hs = vi.hoisted(() => ({
@@ -21,10 +22,11 @@ const hs = vi.hoisted(() => ({
   searchContactByEmail: vi.fn(), searchModifiedIds: vi.fn(),
 }));
 const monday = vi.hoisted(() => ({
-  getLinkedItemIds: vi.fn(async () => []), getItemsColumnText: vi.fn(async () => ({})), findItemIdsByColumn: vi.fn(),
+  getLinkedItemIds: vi.fn(async () => [] as string[]), getItemsColumnText: vi.fn(async () => ({})), findItemIdsByColumn: vi.fn(),
   getItemStates: vi.fn(async () => ({})), setColumns: vi.fn(), createItem: vi.fn(), createSubitem: vi.fn(),
   deleteItem: vi.fn(), getItem: vi.fn(), getParentItemId: vi.fn(), getSubitems: vi.fn(), updateItem: vi.fn(),
   findItemByColumn: vi.fn(), getBoardItems: vi.fn(), getUsersByEmail: vi.fn(), moveItem: vi.fn(),
+  gql: vi.fn(async () => ({ items: [] })),
 }));
 const registry = vi.hoisted(() => ({
   lookupCard: vi.fn(async () => null), finishCard: vi.fn(), claimHubspotForItem: vi.fn(),
@@ -86,5 +88,26 @@ describe("a contact born in monday", () => {
     await syncMondayItem({ ...env, OWNER_NOTICE: "false" } as Env, CRM_CONTACTS.boardId, "k-1", live, { left: 30 });
     expect(hs.createRecord).toHaveBeenCalledTimes(1);
     expect(queueOwnerNotices).not.toHaveBeenCalled();
+  });
+
+  /**
+   * A CREATOR CUT OFF AFTER THE CARD IS PAIRED (reviewed 2026-10-09). The notice was queued as createFromMonday's
+   * LAST step, after the birth-links pass (BORN_ATTACHED_LINKS, live "true") and the create window's settle -- either
+   * can sit on monday's rate limit past the monday webhook's ~30 s waitUntil, and a creator cut off there never
+   * queued it: its takeover does not, and HubSpot's creation webhook finds the card already paired. It is queued now
+   * as soon as the card is paired with the new record.
+   */
+  it("is queued as soon as the card is paired -- before a birth-links pass that never returns (a cut-off creator)", async () => {
+    const never = new Promise<never>(() => {});
+    monday.getLinkedItemIds.mockReturnValue(never);
+    monday.gql.mockReturnValue(never);
+    monday.getItemsColumnText.mockReturnValue(never);
+    const birth = { ...env, BORN_ATTACHED_LINKS: "true" } as Env;
+    void syncMondayItem(birth, CRM_CONTACTS.boardId, "k-1", live, { left: 30 }, { kind: "person", actor: "555" } as never);
+    await vi.waitFor(() => expect(registry.finishCard).toHaveBeenCalled(), { timeout: 1_000 });
+    await new Promise(r => setTimeout(r, 20));                      // ...the creator is now stuck in the birth pass
+    expect(hs.createRecord).toHaveBeenCalledTimes(1);
+    expect(queueOwnerNotices).toHaveBeenCalledWith(birth, [NEW_ID], "created in monday");
+    expect(registry.finishCard.mock.invocationCallOrder[0]).toBeLessThan((queueOwnerNotices as any).mock.invocationCallOrder[0]);
   });
 });

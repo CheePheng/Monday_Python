@@ -237,8 +237,10 @@ export async function whoAmI(env: Env): Promise<string | null> {
   return id ? String(id) : null;
 }
 
-export async function getUsersByEmail(env: Env): Promise<Record<string, string>> {
-  const users: any[] = (await gql(env, "query { users(limit:500) { id email } }")).users;
+/** Every monday user, by lowercased email. `maxRateWaits` as for gql: a caller inside a short lock (the owner
+ *  notice, when it has no cached user list) allows one rate-limit wait, not six. */
+export async function getUsersByEmail(env: Env, maxRateWaits = 6): Promise<Record<string, string>> {
+  const users: any[] = (await gql(env, "query { users(limit:500) { id email } }", {}, 3, maxRateWaits)).users;
   const out: Record<string, string> = {};
   for (const u of users) if (u.email) out[u.email.toLowerCase()] = String(u.id);
   return out;

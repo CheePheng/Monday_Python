@@ -1552,6 +1552,18 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
       throw new Error("WRITEBACK_FAILED");
     }
+    /**
+     * A contact a person created from the monday form gets its owner's notice, exactly as one assigned in HubSpot
+     * would (OWNER_NOTICE; Contacts only) -- the queue decides, and flags 通知状态 for the board's workflow to send.
+     * QUEUED NOW, the moment the card is paired with the new record -- not last: the birth-links pass and the
+     * create window's settle below can each sit on monday's rate limit past the monday webhook's ~30 s, and a
+     * creator cut off there never queued it (its takeover does not, and HubSpot's creation webhook finds the card
+     * already paired). Safe this early: the queue runs it no sooner than its next wave, reads the owner back from
+     * HubSpot, flags only a card that shows that owner, and writes only 通知状态 -- a column nothing below reads,
+     * writes or replays. The owner-change event HubSpot fires for the same birth is the same entry.
+     */
+    if (spec.ownerNotice && ownerNoticeOn(env))
+      await queueOwnerNotices(env, [created.id], "created in monday").catch(() => undefined);
   }
   stats.createdInHubspot++; budget.left--;
   // HEARTBEAT before the birth pass: it can wait on monday's rate limit, and a hold that went stale while
@@ -1574,11 +1586,6 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   // card into line with what HubSpot did on its own, and set the baseline. CREATE_WINDOW_REPLAY only.
   if (created && windowOn)
     await settleCreateWindow(env, spec, ctx, opts, budget, item, created.id, props, stats);
-  // Last, once the create window is settled: a contact a person created from the monday form has its owner
-  // told, exactly as one assigned in HubSpot would (OWNER_NOTICE; Contacts only). Queued: the queue reads the
-  // owner back from the new record, and the owner-change event HubSpot fires for the same birth is the same entry.
-  if (created && spec.ownerNoticeCol && ownerNoticeOn(env))
-    await queueOwnerNotices(env, [created.id], "created in monday").catch(() => undefined);
 }
 
 /**

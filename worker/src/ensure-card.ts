@@ -79,10 +79,18 @@ export async function ensureCardForRecord(env: Env, spec: ObjectSpec, ctx: Ctx, 
     const itemId = await createItem(env, boardId, group, itemName(rec, spec), cv, opts);
     if (itemId) await finishCard(env, boardId, rec.id, itemId);
     else await forgetCard(env, boardId, rec.id);    // dry-run wrote nothing — don't hold the reservation
-    // A new card for an owned contact: queue an owner notice (OWNER_NOTICE). The queue reads HubSpot afresh and
-    // announces only a RECENT assignment -- an old one (a restored card, a catch-up) is just remembered. Queued,
-    // so a card is never slowed or failed by it.
-    if (itemId && spec.ownerNoticeCol && ownerNoticeOn(env) && String(rec.properties.hubspot_owner_id ?? "").trim())
+    /**
+     * EVERY NEW CARD ON A NOTICED BOARD QUEUES AN OWNER NOTICE (OWNER_NOTICE) -- owned or not. The queue reads
+     * HubSpot afresh and decides: an unowned contact costs it one read ("no-owner"), an OLD assignment (a restored
+     * card, a catch-up) is only remembered, and only a RECENT one has its card's 通知状态 flagged for the board's
+     * workflow to send. NOT gated on the owner in `rec`: that is what this pass read, and an owner HubSpot set
+     * while the card was being made fires an owner-change notice that finds no card yet ("no-card") -- this entry
+     * is then the only one left to tell them. ONLY QUEUED -- one call to the queue -- so a card is never slowed or
+     * failed by it: when the queue does not take it (unreachable, or full) it is logged lost, never run here.
+     * Run inline, it held this card's return -- the record's associations, a Deal Cockpit request, a create's
+     * coalesce queue -- for a whole notice: ~10 s of lock retries, a minute or more per monday rate-limit wait.
+     */
+    if (itemId && spec.ownerNotice && ownerNoticeOn(env))
       await queueOwnerNotices(env, [rec.id], "new card").catch(() => undefined);
     return { status: "created", itemId };
   } catch (e) {

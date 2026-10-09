@@ -4,7 +4,8 @@ import type { Ctx, Env, HsRecord, RunOpts } from "../src/types";
 
 /**
  * A CONTACT REACHES MONDAY ONLY ONCE HUBSPOT GIVES IT AN OWNER (2026-10-09 meeting; CONTACT_CARD_NEEDS_OWNER),
- * and the card the Worker then creates tells that owner (OWNER_NOTICE, owner-notice.ts noticeOnNewCard).
+ * and EVERY card the Worker creates on the Contacts board queues an owner notice (OWNER_NOTICE, owner-notice.ts),
+ * owned or not: the queue reads HubSpot afresh and decides.
  *
  * Driven through the real ensureCardForRecord -- THE single way any path obtains a card -- so the gate covers
  * the HubSpot webhook, the Deal Cockpit's /app/ensure-card, the association pass and the restore path alike.
@@ -97,11 +98,40 @@ describe("the new card queues an owner notice", () => {
     expect(monday.createItem.mock.invocationCallOrder[0]).toBeLessThan(notice.queueOwnerNotices.mock.invocationCallOrder[0]);
   });
 
-  it("not for an ownerless contact (gate off), nor with the switch off, nor for an Account", async () => {
-    await ensureCardForRecord({ ENABLE_CRM: "true", OWNER_NOTICE: "true" } as unknown as Env, CRM_CONTACTS, ctx, contact(""), live);
+  /**
+   * N3. The owner in `rec` is only what this pass read: an owner HubSpot set while the card was being made fires an
+   * owner-change notice that finds no card yet ("no-card"), so this entry is the only one left to tell them. For a
+   * contact that really is unowned the queue answers "no-owner" for the price of one HubSpot read.
+   */
+  it("for an ownerless contact's new card too (gate off): the queue decides, not the record this pass read", async () => {
+    const noticeOnly = { ENABLE_CRM: "true", OWNER_NOTICE: "true" } as unknown as Env;
+    expect(await ensureCardForRecord(noticeOnly, CRM_CONTACTS, ctx, contact(""), live)).toEqual({ status: "created", itemId: "NEWCARD" });
+    expect(notice.queueOwnerNotices).toHaveBeenCalledWith(noticeOnly, ["552000000001"], "new card");
+  });
+
+  it("...and for a restored ownerless contact's card (gate on): the queue finds no owner, or an old assignment", async () => {
+    await ensureCardForRecord(on, CRM_CONTACTS, ctx, contact(""), { ...live, restore: "552000000001" });
+    expect(notice.queueOwnerNotices).toHaveBeenCalledWith(on, ["552000000001"], "new card");
+  });
+
+  it("not with the switch off, nor for an Account (no owner notice on that board)", async () => {
     await ensureCardForRecord({ ENABLE_CRM: "true" } as unknown as Env, CRM_CONTACTS, ctx, contact("1739141284"), live);
+    await ensureCardForRecord({ ENABLE_CRM: "true", CONTACT_CARD_NEEDS_OWNER: "true" } as unknown as Env, CRM_CONTACTS, ctx,
+      contact("1739141284"), live);
+    expect(CRM_ACCOUNTS.ownerNotice).toBeUndefined();
     await ensureCardForRecord(on, CRM_ACCOUNTS, ctx, { id: "4", properties: { name: "Acme", domain: "acme.example",
       createdate: "2026-10-09T01:00:00Z", hubspot_owner_id: "1739141284" } }, live);
+    expect(notice.queueOwnerNotices).not.toHaveBeenCalled();
+  });
+
+  it("an existing card queues nothing: only a card's birth does", async () => {
+    cards.claimCard.mockResolvedValue({ status: "have", itemId: "OLD" });
+    monday.getItem.mockResolvedValue({ id: "OLD" });
+    await ensureCardForRecord(on, CRM_CONTACTS, ctx, contact("1739141284"), live);
+    monday.findItemByColumn.mockResolvedValue([{ id: "ADOPTED" }]);
+    cards.claimCard.mockResolvedValue({ status: "claimed" });
+    await ensureCardForRecord(on, CRM_CONTACTS, ctx, contact("1739141284"), live);
+    expect(monday.createItem).not.toHaveBeenCalled();
     expect(notice.queueOwnerNotices).not.toHaveBeenCalled();
   });
 

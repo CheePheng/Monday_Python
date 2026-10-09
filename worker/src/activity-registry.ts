@@ -184,6 +184,19 @@ export async function acquireLock(env: Env, name: string, holdMs: number, owner:
     return false;
   }
 }
+/**
+ * RENEW A LOCK THIS RUN STILL HOLDS, and only then (CreateIdempotency.renewLock). For a run about to write after a
+ * long wait: acquireLock would also grant a lock whose record is GONE -- taken over by another run, which finished
+ * and released it meanwhile -- and the overrunning run would then write beside that run's finished work. Refused
+ * when the lock is gone or names another run. FAILS CLOSED, like acquireLock: an unreachable store is no renewal.
+ */
+export async function renewLock(env: Env, name: string, owner: string): Promise<boolean> {
+  try { return await stub(env, `lock:${name}`).renewLock(Date.now(), owner); }
+  catch (e) {
+    console.log(`[activity-registry] lock:${name} action=renew-blocked reason="${String(e).slice(0, 90)}"`);
+    return false;
+  }
+}
 export async function releaseLock(env: Env, name: string, owner: string): Promise<void> {
   try {
     if (!(await stub(env, `lock:${name}`).releaseLock(owner)))
@@ -251,40 +264,85 @@ export async function rememberOwnerCycle(env: Env, contactId: string, cycle: str
 }
 
 /**
- * THE OWNER LAST TOLD ABOUT A CONTACT, by lowercased email (owner-notice.ts) -- the durable twin of the card's
- * 上次通知Owner column.
+ * THE LAST OWNER ASSIGNMENT THE NOTICE SETTLED FOR A CONTACT (owner-notice.ts): the cycle
+ * "<hubspot_owner_id>|<hubspot_owner_assigneddate>", stored with the time it was recorded.
  *
- * The column alone is not enough. A card created for an OLD assignment (a restored card, a catch-up) must
- * record who owns it without telling them, and writing the column is precisely what fires the board's email.
- * So the silent baseline lives here, and the notice compares HubSpot's owner with both.
+ * WHY THE WORKER KEEPS ITS OWN NOTE. The card says who the board's workflow last TOLD (上次通知Owner) and whether a
+ * flag is WAITING (通知状态 待通知) -- but monday can serve both a moment stale right after our own write of
+ * 待通知, and a stale read of an empty status is exactly what would flag the same assignment twice. A note in this
+ * strongly-consistent store, written right after the write, is what makes the notice once per assignment. It is
+ * also where an assignment that was settled WITHOUT a flag is recorded -- one too old to be news, one the
+ * workflow already told -- so the record reads the same whichever way it went. NEVER one an earlier flag still
+ * waiting on the workflow was taken to cover: that flag may already be on its way to the previous owner, or
+ * stuck, and a cycle recorded against it was an owner never told (owner-notice.ts, "pending" / "stuck").
  *
- * The READ FAILS LOUD: "unreadable" and "nobody told yet" are different answers, and mistaking the first for
- * the second sends a reassignment email for a contact that changed hands long ago.
+ * Keyed by the ASSIGNMENT, not the owner: HubSpot stamps a new assigneddate on every real (re)assignment, so
+ * A -> B -> A is three cycles and each is decided on its own, while a no-op owner write is the same cycle again.
  *
- * Stored WITH ITS TIME, because the note and the column can disagree and the one written last is right: the note
- * covers monday serving a column read a moment stale after our own write, the column covers a note whose save
- * failed after the write landed.
+ * `flag`: THE WORKER'S LAST WRITE OF 待通知 for this contact -- the assignment it was for, and when -- recorded just
+ * BEFORE that write (recordNoticeFlag), and replaced only by a later write: every settlement carries it over.
+ * That time is the only age the Worker's own flag may have: monday does not always stamp a status value with
+ * changed_at, and the two cells written through the API that were read on 2026-10-09 carried none -- the Worker
+ * writes 待通知 through the API. Two ways it used to be lost, each leaving a standing 待通知 aged by the wrong flag:
+ *   - it was written only AFTER the write, with the settlement, so a write that landed but lost its response, a
+ *     note save that failed, or a run killed in between left the PREVIOUS flag's time in its place;
+ *   - a settlement that writes nothing ("already", "baseline") replaced the whole note, flag and all.
+ * A note saved while the field was `flagged` (the settlement was the flag, at its time) reads as that flag.
+ *
+ * The READ FAILS LOUD: "unreadable" and "nothing settled yet" are different answers, and mistaking the first for
+ * the second flags an assignment that was already flagged. The caller then answers "error", and the queue retries.
+ * The settlement's WRITE FAILS SOFT (logged): it follows the decision it records, and the card's own columns still
+ * stand. The flag's own record FAILS LOUD (recordNoticeFlag): no 待通知 is written without it.
  */
 const noticedKey = (contactId: string) => `notice:owner:${contactId}`;
 
-export async function lastNoticedOwner(env: Env, contactId: string): Promise<{ email: string; at: number } | null> {
+/** The Worker's write of 待通知: the assignment it was for, and when it was sent (epoch ms). */
+export interface NoticeFlag { cycle: string; at: number }
+/** The note: the last assignment settled (`cycle`, "" when none yet; `at`) and the Worker's last flag (`flag`). */
+export interface NoticeNote { cycle: string; at: number; flag?: NoticeFlag }
+
+export async function lastNoticedCycle(env: Env, contactId: string): Promise<NoticeNote | null> {
   let raw: string | null;
   try { raw = await stub(env, noticedKey(contactId)).getCard(); }
   catch (e) { throw new Error(`owner notice for ${contactId} unreadable: ${String(e).slice(0, 90)}`); }
   if (!raw) return null;
   try {
     const v = JSON.parse(raw);
-    if (v && typeof v.email === "string") return { email: v.email, at: Number(v.at) || 0 };
-  } catch { /* a bare address: no time known */ }
-  return { email: raw, at: 0 };
+    if (v && typeof v.cycle === "string") {
+      const at = Number(v.at) || 0;
+      const f = v.flag;
+      const flag: NoticeFlag | undefined = f && typeof f.cycle === "string" && Number(f.at) > 0
+        ? { cycle: f.cycle, at: Number(f.at) }
+        : v.flagged === true && at > 0 ? { cycle: v.cycle, at } : undefined;
+      return { cycle: v.cycle, at, ...(flag ? { flag } : {}) };
+    }
+  } catch { /* a bare cycle: no time known */ }
+  return { cycle: raw, at: 0 };
 }
 
-export async function rememberNoticedOwner(env: Env, contactId: string, email: string, at = Date.now()): Promise<boolean> {
-  try { await stub(env, noticedKey(contactId)).rememberPermanent(JSON.stringify({ email, at })); return true; }
-  catch (e) {
+/** Record a settled assignment, KEEPING the Worker's last flag (`flag`, passed back as read). Fails soft. */
+export async function rememberNoticedCycle(env: Env, contactId: string, cycle: string, at = Date.now(),
+    flag?: NoticeFlag): Promise<boolean> {
+  try {
+    await stub(env, noticedKey(contactId)).rememberPermanent(JSON.stringify({ cycle, at, ...(flag ? { flag } : {}) }));
+    return true;
+  } catch (e) {
     console.log(`[activity-registry] ${noticedKey(contactId)} action=save-failed reason="${String(e).slice(0, 90)}"`);
     return false;
   }
+}
+
+/**
+ * Record the Worker's flag BEFORE writing 待通知, beside the settlement `settled` (the note as read; null: none
+ * yet). FAILS LOUD (throws): a flag whose record could not be kept is not written -- the run answers "error" and
+ * the queue retries it.
+ */
+export async function recordNoticeFlag(env: Env, contactId: string, settled: { cycle: string; at: number } | null,
+    flag: NoticeFlag): Promise<void> {
+  try {
+    await stub(env, noticedKey(contactId)).rememberPermanent(
+      JSON.stringify({ cycle: settled?.cycle ?? "", at: settled?.at ?? 0, flag }));
+  } catch (e) { throw new Error(`owner notice flag for ${contactId} not recorded: ${String(e).slice(0, 90)}`); }
 }
 
 /**

@@ -120,10 +120,13 @@ export interface Env {
    *  in monday or in HubSpot (no-activity.ts, ObjectSpec.leaveWhenWorked). The only group move the Worker makes,
    *  and only ever OUT of that group. Anything else, including absent: no card is moved, as before. Ships "false". */
   NO_ACTIVITY_RELEASE?: string;
-  /** "true", with ENABLE_CRM "true": when a contact's HubSpot owner is not the person in the card's 上次通知Owner,
-   *  the Worker writes the owner's email there, once per assignment (owner-notice.ts) -- the column the board's
-   *  assignment email automation is triggered by. Anything else, including absent: the column is never written.
-   *  Ships "false". */
+  /** "true", with ENABLE_CRM "true": when HubSpot assigned a contact's owner recently and that owner is not the
+   *  person in the card's 上次通知Owner, the Worker sets the card's 通知状态 to 待通知, at most once per assignment
+   *  and only once the card's Contact owner shows that owner (owner-notice.ts, ObjectSpec.ownerNotice). That change
+   *  is what the board's workflow (monday workflow #06, 5031811440) fires on: IT sends the email, from the Outlook mailbox
+   *  askada@dkmeco.com.sg, to the card's Contact owner, records them in 上次通知Owner and sets 已通知. The Worker
+   *  only decides: it never writes 上次通知Owner and never sets 已通知. Anything else, including absent: neither
+   *  column is written. Ships "false". */
   OWNER_NOTICE?: string;
   /** "true", with ENABLE_CRM "true": a HubSpot contact with no owner gets no Contacts card; the card is created
    *  when HubSpot sets an owner (ensure-card.ts, ObjectSpec.cardNeedsOwner). Cards that already exist are kept.
@@ -629,8 +632,20 @@ export interface ObjectSpec {
   leaveWhenWorked?: { from: string; to: string; notWorked: Record<string, string[]> };
   /** No card for a record with no `hubspot_owner_id` (CONTACT_CARD_NEEDS_OWNER): see ensureCardForRecord. */
   cardNeedsOwner?: boolean;
-  /** The email column the owner notice writes (OWNER_NOTICE): see owner-notice.ts. */
-  ownerNoticeCol?: string;
+  /**
+   * THE OWNER NOTICE'S TWO COLUMNS (OWNER_NOTICE): see owner-notice.ts. The Worker DECIDES and the board's own
+   * monday workflow NOTIFIES, so these name the hand-over between the two:
+   *   - `statusCol`: the status column the workflow fires on ("When 通知状态 changes to 待通知"). The ONE column
+   *     the Worker writes for a notice, and only ever with `pending`, at most once per assignment.
+   *   - `pending` / `done`: that column's labels exactly as the board spells them. `done` is set by the workflow
+   *     when it has sent; the Worker never writes it -- it is named here so the column's meaning lives in one place.
+   *   - `lastToldCol`: the email column the workflow records the owner it told in (上次通知Owner). READ ONLY to
+   *     the Worker: writing it was the old design, and is exactly what must never happen again.
+   * The third column the notice reads is not named here: the workflow sends to the card's Contact owner, which is
+   * the People column this spec maps `hubspot_owner_id` to (owner-notice.ts ownerColOf), and 待通知 is written only
+   * once that cell shows HubSpot's owner. Absent on every spec but Contacts: no other board is noticed.
+   */
+  ownerNotice?: { lastToldCol: string; statusCol: string; pending: string; done: string };
 }
 
 // A HubSpot association synced onto the parent monday item (HubSpot -> monday only, no reverse).

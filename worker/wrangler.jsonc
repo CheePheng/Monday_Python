@@ -65,7 +65,7 @@
             "ITEM_NAME_FIT": "false",
             // The 2026-10-09 Contacts rules, each its own switch, all OFF until the deploy passes "true":
             // NO_ACTIVITY_RELEASE: a worked card leaves "No Activity - 未跟进" (no-activity.ts).
-            // OWNER_NOTICE: 上次通知Owner gets the new owner's email once, which the board's email automation fires on (owner-notice.ts).
+            // OWNER_NOTICE: a new assignment sets 通知状态 to 待通知 once; monday workflow #06 (5031811440) emails (Outlook) and records 上次通知Owner (owner-notice.ts).
             // CONTACT_CARD_NEEDS_OWNER: no Contacts card until HubSpot sets an owner (ensure-card.ts).
             // CONTACT_OWNER_HUBSPOT_ONLY: a monday edit of Contact owner is put back (config.ts withContactOwnerRule).
             "NO_ACTIVITY_RELEASE": "false", "OWNER_NOTICE": "false",

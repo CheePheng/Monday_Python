@@ -41,13 +41,37 @@ export interface DeferredItem {
   recheck?: boolean;
   /**
    * AN OWNER NOTICE, not an update (OWNER_NOTICE): the wave runs owner-notice.ts noticeOwnerChange for this
-   * contact -- reads its owner from HubSpot, and writes 上次通知Owner if a recent assignment has not been announced
-   * -- and nothing else. Every notice runs here, never inline: a webhook's work is cut off ~30 s after its
-   * response, and a notice can wait on monday's rate limit longer than that; this queue also runs them one at a
-   * time, so two notices for one contact can never interleave.
+   * contact -- reads its owner from HubSpot and, if a recent assignment has been neither told nor flagged, sets
+   * the card's 通知状态 to 待通知 for the board's own workflow to send (the Worker never writes 上次通知Owner) --
+   * and nothing else. Every notice runs here, never inline: a webhook's work is cut off ~30 s after its response,
+   * and a notice can wait on monday's rate limit longer than that; this queue also runs them one at a time, so two
+   * notices for one contact can never interleave. A notice that ends "busy", "pending", "waiting" or "error" is
+   * retried, and one that ends "flagged" is run once more to check the workflow finished it (see the alarm).
    */
   notice?: boolean;
   attempts?: number;
+  /**
+   * A NOTICE ONLY: when this entry first answered "busy", "pending" or "waiting" (epoch ms) -- kept until the entry
+   * settles, whatever it answers in between. Until it is older than owner-notice.ts NOTICE_BUSY_GRACE_MS -- the
+   * longer of the notice lock's hold and a waiting flag's stuck threshold, plus a margin -- such a retry does not
+   * count as an attempt: a run killed inside the lock (a deploy restarting this queue mid-wave) holds it for the
+   * whole hold, a card can wait seconds for the sync that shows its new owner, a flag pending on the board's
+   * workflow waits for it to finish -- and three quick counted retries abandoned the notice inside any of them.
+   */
+  busySince?: number;
+  /**
+   * A NOTICE ONLY: when this entry first answered "error" (epoch ms), kept the same way. An error retry is free
+   * until it is older than owner-notice.ts NOTICE_ERROR_GRACE_MS: counted at once, three retries ~12 s apart lost
+   * the notice for good in a ~40 s monday or HubSpot outage, and no later event ever brings a notice back.
+   */
+  errorSince?: number;
+  /**
+   * NOT STORED: a request that only ASKS for this work to be coming -- a busy owner notice asking for its
+   * contact's sync. Deduplicated against the running wave's own entries as well as the waiting ones: queued again
+   * beside a pass that is running (enqueue's usual "owed again"), the failing sync's retry was dropped for the
+   * fresh entry each wave, its attempts reset, and it ran ~40 times instead of MAX_ATTEMPTS.
+   */
+  ensure?: boolean;
 }
 
 /** Identity for deduplication. A delete, an update, a re-check and an owner notice of the same record are
@@ -62,9 +86,14 @@ export const WAVE = 15;
 /** Gap between waves. Slow enough to be gentle on both APIs, fast enough to drain a large import in
  *  minutes rather than hours. */
 export const WAVE_GAP_MS = 10_000;
-/** First wave is slightly delayed so the webhook that spilled has finished its own slice first. */
+/** First wave is slightly delayed so the webhook that spilled has finished its own slice first. Not a guarantee:
+ *  it counts from the FIRST spill of a batch, and on CRM a batch spills before its deal-association reads (which
+ *  can take seconds) and again after them (webhooks.ts), so the first wave can start while that batch is still
+ *  reading or syncing -- different records, so only more concurrent API load. An alarm already armed runs sooner. */
 export const FIRST_DELAY_MS = 15_000;
-/** Bounded, never infinite: a record that fails this many waves is logged and abandoned. */
+/** Bounded, never infinite: a record that fails this many waves is logged and abandoned. (An owner notice's busy,
+ *  pending, waiting and error retries count only once their grace has run out -- DeferredItem.busySince /
+ *  errorSince -- and are then bounded by this too.) */
 export const MAX_ATTEMPTS = 3;
 /**
  * A ceiling on stored backlog. Reaching it means something far outside normal operation — a bulk
@@ -84,19 +113,39 @@ const NAME = "defer:hubspot";
  * class of failure that took live sync down on 2026-09-15 — so absence is treated as "not my job".
  */
 /** Returns true when the queue holds the items now (queued or already waiting); false when there is no queue
- *  or it could not be reached -- for a caller with a fallback. */
+ *  or it could not be reached, or it dropped any of them -- for a caller with a fallback. */
 export async function spillDeferred(env: Env, items: DeferredItem[]): Promise<boolean> {
-  if (!items.length) return true;
+  return (await spillDeferredLeftover(env, items)).length === 0;
+}
+
+/**
+ * The same hand-over, answering WHICH items the queue does not hold: every one when there is no queue or it could
+ * not be reached, else exactly those it dropped at its ceiling -- always the TAIL of `items` (MAX_QUEUE). [] when
+ * it holds them all, queued now or already waiting.
+ *
+ * WHY A LIST, NOT A YES/NO. A caller with a fallback (the owner notice runs inline) must run it for what was
+ * dropped and nothing else. Told only "not all of it", the notice ran EVERY id inline, front first -- the ones the
+ * queue had taken -- and the webhook's ~30 s cut-off ended the loop before it reached any it had dropped.
+ */
+export async function spillDeferredLeftover(env: Env, items: DeferredItem[]): Promise<DeferredItem[]> {
+  if (!items.length) return [];
   const ns = env.DEFERRED_SYNC;
-  if (!ns) return false;                           // Work Management deployment: the cron covers it
+  if (!ns) return items;                           // Work Management deployment: the cron covers it
   try {
     const stub = ns.get(ns.idFromName(NAME)) as unknown as DurableObjectStub<DeferredSync>;
     const r = await stub.enqueue(items);
     console.log(`[deferred] action=spilled queued=${r.queued} duplicate=${r.duplicate} dropped=${r.dropped}`
       + ` depth=${r.depth}`);
-    return r.dropped === 0;
+    if (!r.dropped) return [];
+    // A queue that says only how many it dropped (an instance from before droppedKeys, mid-deploy): once full it
+    // drops every later item that is not a duplicate, so it dropped the TAIL -- answered as the last `dropped`
+    // items (approximate only when a duplicate sits in that tail). Answering all of them put the ones it HAD taken
+    // first in a fallback's line, ahead of the ones it dropped.
+    if (!Array.isArray(r.droppedKeys)) return items.slice(-Math.min(r.dropped, items.length));
+    const dropped = new Set(r.droppedKeys);
+    return items.filter(i => dropped.has(deferKey(i)));
   } catch (e) {
     console.log(`[deferred] action=spill-failed count=${items.length} reason="${String(e).slice(0, 120)}"`);
-    return false;
+    return items;
   }
 }
