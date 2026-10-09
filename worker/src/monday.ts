@@ -1,6 +1,21 @@
 import type { Env, MondayItem, RunOpts } from "./types";
+import { fitItemName, itemNameFitOn } from "./mapping";
 
 const URL_ = "https://api.monday.com/v2";
+
+/**
+ * THE NAME AN ITEM WRITE SENDS. Every create, subitem create and rename the Worker makes goes through
+ * createItem, createSubitem or updateItem below (ensure-card.ts's card birth; sync.ts's forward writes,
+ * heals and create-window settles; associations.ts's line-item subitems), so this is the one place a name is
+ * fitted to monday's limit. ITEM_NAME_FIT only (itemNameFitOn): fitItemName, with one log line when it had to
+ * cut. Off, the name goes out exactly as given, as it always has.
+ */
+function sendableName(env: Env, name: string, where: string): string {
+  if (!itemNameFitOn(env)) return name;
+  const fitted = fitItemName(name);
+  if (fitted !== name) console.log(`[name] action=fitted from=${name.length} to=${fitted.length} ${where}`);
+  return fitted;
+}
 
 /**
  * monday refused the request for rate limit / complexity budget on EVERY try. Such a request provably
@@ -104,11 +119,12 @@ export async function getParentItemId(env: Env, subitemId: string): Promise<stri
 /** Create a subitem under a parent. Returns the new subitem id (null in dry-run). retries=1 (a create). */
 export async function createSubitem(env: Env, parentItemId: string, name: string,
     cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
-  if (opts.dryRun) { console.log(`DRY create subitem '${name}' under ${parentItemId}`); return null; }
+  const n = sendableName(env, name, `op=create-subitem parent=${parentItemId}`);
+  if (opts.dryRun) { console.log(`DRY create subitem '${n}' under ${parentItemId}`); return null; }
   const data = await gql(env,
     `mutation ($p:ID!, $n:String!, $c:JSON) {
        create_subitem(parent_item_id:$p, item_name:$n, column_values:$c, create_labels_if_missing:true) { id } }`,
-    { p: parentItemId, n: name, c: JSON.stringify(cv) }, 1);
+    { p: parentItemId, n, c: JSON.stringify(cv) }, 1);
   const sid = data.create_subitem?.id ?? null;
   console.log(`created subitem ${sid} under ${parentItemId}`);
   return sid;
@@ -232,19 +248,21 @@ export async function getUsersByEmail(env: Env): Promise<Record<string, string>>
 
 export async function createItem(env: Env, boardId: string, groupId: string, name: string,
     cv: Record<string, unknown>, opts: RunOpts): Promise<string | null> {
-  if (opts.dryRun) { console.log(`DRY create '${name}' on ${boardId}/${groupId}`); return null; }
+  const n = sendableName(env, name, `op=create board=${boardId} group=${groupId}`);
+  if (opts.dryRun) { console.log(`DRY create '${n}' on ${boardId}/${groupId}`); return null; }
   const data = await gql(env,
     `mutation ($b:ID!, $g:String!, $n:String!, $c:JSON) {
        create_item(board_id:$b, group_id:$g, item_name:$n, column_values:$c,
                    create_labels_if_missing:true) { id } }`,
-    { b: boardId, g: groupId, n: name, c: JSON.stringify(cv) }, 1);
-  console.log(`created '${name}' on ${boardId}/${groupId}`);
+    { b: boardId, g: groupId, n, c: JSON.stringify(cv) }, 1);
+  console.log(`created '${n}' on ${boardId}/${groupId}`);
   return data.create_item?.id ?? null;
 }
 
+/** Writes `cv` AND the item name, always (a forward write renames as it goes): see sendableName. */
 export async function updateItem(env: Env, boardId: string, itemId: string, name: string,
     cv: Record<string, unknown>, opts: RunOpts): Promise<void> {
-  const withName = { ...cv, name };
+  const withName = { ...cv, name: sendableName(env, name, `op=update board=${boardId} item=${itemId}`) };
   if (opts.dryRun) { console.log(`DRY update item ${itemId} on ${boardId}`); return; }
   await gql(env,
     `mutation ($b:ID!, $i:ID!, $c:JSON!) {

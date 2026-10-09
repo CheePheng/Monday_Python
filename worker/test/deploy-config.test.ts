@@ -6,6 +6,8 @@ import { birthLinksOn, createWindowReplayOn, labelDictsFor } from "../src/sync";
 import { specsFor, specByBoard, specByObject, ALL_SPECS } from "../src/config";
 import { CRM_SPECS } from "../src/config/crm";
 import { cutoverFromEnv } from "../src/ownership";
+import { hsRateLimitRetryOn } from "../src/hubspot";
+import { itemNameFitOn } from "../src/mapping";
 
 /**
  * DEPLOYMENT CONFIG REGRESSION.
@@ -100,6 +102,28 @@ describe("the deployable CRM Wrangler config", () => {
     expect(wmVars.BORN_ATTACHED_LINKS).not.toBe("true");
     expect(wmVars.CREATE_WINDOW_REPLAY).not.toBe("true");
   });
+
+  /**
+   * HS_RATE_LIMIT_RETRY (hubspot.ts) and ITEM_NAME_FIT (mapping.ts) ship OFF, so a bare `wrangler deploy` is
+   * hs()'s old loop and the old item names. The deploy passes "true" with --var; only that literal arms
+   * either, and only beside ENABLE_CRM "true".
+   */
+  it("ships HS_RATE_LIMIT_RETRY=\"false\" and ITEM_NAME_FIT=\"false\" -- a bare deploy changes neither path", () => {
+    expect(vars.HS_RATE_LIMIT_RETRY).toBe("false");
+    expect(vars.ITEM_NAME_FIT).toBe("false");
+    // ...and the shipped values really do read as OFF where the code asks.
+    expect(hsRateLimitRetryOn(vars)).toBe(false);
+    expect(itemNameFitOn(vars)).toBe(false);
+    // The deploy's --var value arms them on this config (so the check above is not vacuous).
+    expect(hsRateLimitRetryOn({ ...vars, HS_RATE_LIMIT_RETRY: "true" })).toBe(true);
+    expect(itemNameFitOn({ ...vars, ITEM_NAME_FIT: "true" })).toBe(true);
+  });
+
+  it.each(["TRUE", "True", "1", "yes", "on", "", " true"])(
+    "a --var of %j arms neither switch: only the literal \"true\" does", (v) => {
+      expect(hsRateLimitRetryOn({ ...vars, HS_RATE_LIMIT_RETRY: v })).toBe(false);
+      expect(itemNameFitOn({ ...vars, ITEM_NAME_FIT: v })).toBe(false);
+    });
 
   it("does NOT commit a temporary test cutover", () => {
     expect(vars.CRM_CUTOVER_AT).toBeUndefined();
@@ -362,6 +386,17 @@ describe("the deployable Work Management Wrangler config", () => {
   it("never enables the Last Activity sweep", () => {
     expect(wmVars.ENABLE_LAD_SWEEP).toBeUndefined();
     expect(wm.triggers?.crons).not.toContain("*/15 * * * *");
+  });
+
+  /**
+   * Nor HS_RATE_LIMIT_RETRY or ITEM_NAME_FIT: both are CRM-only. WM's config does not carry them, and WM sets no
+   * ENABLE_CRM, so even a value leaked onto this Worker (dashboard, a stray --var) cannot arm either.
+   */
+  it("never carries HS_RATE_LIMIT_RETRY or ITEM_NAME_FIT, and could not arm them if it did", () => {
+    expect(wmVars.HS_RATE_LIMIT_RETRY).toBeUndefined();
+    expect(wmVars.ITEM_NAME_FIT).toBeUndefined();
+    expect(hsRateLimitRetryOn({ ...wmVars, HS_RATE_LIMIT_RETRY: "true" })).toBe(false);
+    expect(itemNameFitOn({ ...wmVars, ITEM_NAME_FIT: "true" })).toBe(false);
   });
 
   it("re-declares CREATE_IDEMPOTENCY and its original v1 migration, and nothing else", () => {

@@ -9,7 +9,7 @@ import { relationEditKey, removedSince } from "./relation-edit";
 import { DEALS, LINE_ITEM_SUBITEMS, specByObject } from "./config";
 import { buildSubitemReversePatch, subitemFieldByCol, readSubitemEvent } from "./line-item-reverse";
 import { ensureCardForRecord, cardIdOf } from "./ensure-card";
-import { buildColumnValues, formatValue, itemName } from "./mapping";
+import { MONDAY_ITEM_NAME_MAX, buildColumnValues, fitItemName, formatValue, itemName, itemNameFitOn } from "./mapping";
 import { targetGroup } from "./routing";
 import { colText } from "./dedup";
 import { ensureHubspotWriteAuth, lineItemOwnerSpec, lineItemWriteAuth } from "./write-auth";
@@ -1046,6 +1046,19 @@ export async function reverseSubitemEdit(env: Env, ev: any, opts: RunOpts, budge
   if (!newName) return;                                    // omit-empty
   const cur = await getRecord(env, "line_items", liId, ["name"]);
   if (cur && (String(cur.properties.name ?? "")).trim() === newName) return; // echo
+  // ITEM_NAME_FIT: a line-item name past monday's limit is on the subitem only FITTED (monday.ts). The fitted
+  // name is our own write's echo -- this path has no actor filter -- and any other rename would replace
+  // HubSpot's whole name from a cut-down copy of it: neither is sent. Off, exactly as before.
+  if (itemNameFitOn(env) && cur) {
+    const hsName = String(cur.properties.name ?? "").trim();
+    if (hsName.length > MONDAY_ITEM_NAME_MAX) {
+      if (newName !== fitItemName(hsName))
+        console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId} action=refused-name`
+          + ` reason="HubSpot's name is longer than monday can show (${hsName.length} > ${MONDAY_ITEM_NAME_MAX});`
+          + ` writing the subitem's back would destroy the remainder"`);
+      return;
+    }
+  }
   const nameAuth = await lineItemWriteAuth(env, liId);
   if (nameAuth && !nameAuth.auth.allowed) {
     console.log(`source=monday reverse-line-item subitem=${subitemId} line_item=${liId}`

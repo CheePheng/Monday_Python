@@ -9,6 +9,7 @@ import { runAll, runIncremental, syncMondayItem, getCtxCached, syncHubspotRecord
 import { writeModeFor, maxWritesFor, dryRunModeFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
 import { handleHubspot, handleMonday, safeEq } from "./webhooks";
+import { withHsRetryDeadline } from "./hs-retry";
 import { deadLetterStub, activityRetryBound } from "./activity-retry";
 import { activitySyncEnabled, syncHubspotActivity, syncMondayTimeline } from "./activity-sync";
 import { CRM_CONTACTS } from "./config/crm";
@@ -192,9 +193,13 @@ export default {
     // so the CRM Worker registers them under a capability path `/webhooks/monday/<key>` and
     // mondayAuth refuses anything else. The bare path stays routable because the live WM Worker's
     // hooks use it and set no key — see mondayAuth for why it fails open only when unconfigured.
+    // HS_RATE_LIMIT_RETRY: these two answer at once and do their work in waitUntil, which Cloudflare cancels
+    // ~30 s on -- so their env carries the invocation's retry deadline (hs-retry.ts), which ends the switch's
+    // OWN retry waits 20 s in. Every other route below works while its client waits, with no such cut-off,
+    // and gets the env as it came: bounded per call only, like the cron. Off: the very same env object.
     if (url.pathname === "/webhooks/monday" || url.pathname.startsWith("/webhooks/monday/"))
-      return handleMonday(req, env, ectx);
-    if (url.pathname === "/webhooks/hubspot") return handleHubspot(req, env, ectx);
+      return handleMonday(req, withHsRetryDeadline(env), ectx);
+    if (url.pathname === "/webhooks/hubspot") return handleHubspot(req, withHsRetryDeadline(env), ectx);
 
     // App API (browser Board View app, cross-origin). Auth: monday session token or X-Trigger-Secret.
     if (url.pathname.startsWith("/app/")) {

@@ -2,10 +2,14 @@ import type { Env, HsRecord, ObjectSpec, RunOpts, WriteAuth } from "./types";
 import { LINE_ITEM_WRITE_PROPS } from "./line-item-props";
 import { normalizeDomain } from "./normalize";
 import { canClaimCrmOwnership, claimPatch, NEW_RECORD_ID, type ClaimBasis } from "./ownership";
+import { hsRateLimitRetryOn, hsRetry, hsRetryDeadlineOf } from "./hs-retry";
 
 const BASE = "https://api.hubapi.com";
 
 export async function hs(env: Env, method: string, path: string, body?: unknown, retries = 3): Promise<any> {
+  // HS_RATE_LIMIT_RETRY: the rate-limit-aware retry (hsRateLimited). Off -- anything but the literal "true",
+  // or not the CRM Worker -- every request runs through the loop below exactly as it always has.
+  if (hsRateLimitRetryOn(env)) return hsRateLimited(env, method, path, body, retries);
   for (let attempt = 1; ; attempt++) {
     let resp: Response;
     try {
@@ -32,6 +36,184 @@ export async function hs(env: Env, method: string, path: string, body?: unknown,
     if (resp.status === 204) return undefined;          // no-content (e.g. DELETE) -> nothing to parse
     const text = await resp.text();
     return text ? JSON.parse(text) : undefined;         // tolerate any other empty-body success
+  }
+}
+
+// HS_RATE_LIMIT_RETRY's switch, bounds and invocation deadline live in hs-retry.ts (no run-time imports, so a
+// test that mocks this module whole still runs index.ts for real); re-exported here beside hs().
+export { hsRateLimitRetryOn, hsRetry, hsRetryDeadlineOf, withHsRetryDeadline } from "./hs-retry";
+
+/** How long to wait before the next attempt, and on what -- or why not to retry at all. `final`: HubSpot's
+ *  daily limit, where not even today's own retries are made (hsRateLimited). */
+export type HsRetryWait = { ms: number; basis: "retry-after" | "rate-window" | "backoff" | "today" }
+  | { stop: string; final?: true };
+
+const header = (h: Headers | null | undefined, name: string): string | null => {
+  const v = h?.get(name);
+  return v === null || v === undefined || v.trim() === "" ? null : v.trim();
+};
+
+/**
+ * HUBSPOT'S DAILY LIMIT IS SPENT: no wait of seconds can help, so a retry would only spend more of a budget
+ * that is already gone. Said by the daily-remaining header, or by a 429's own body (policyName "DAILY",
+ * "You have reached your daily limit.") -- the ten-second limit says "TEN_SECONDLY_ROLLING" instead.
+ */
+function dailyLimitSpent(h: Headers | null | undefined, status: number | null, bodyText: string): boolean {
+  const daily = header(h, "x-hubspot-ratelimit-daily-remaining");
+  if (daily !== null && Number(daily) <= 0) return true;
+  if (status !== 429) return false;
+  let policy = "";
+  try { policy = String(JSON.parse(bodyText)?.policyName ?? ""); } catch { /* not JSON: the message decides */ }
+  return policy.toUpperCase() === "DAILY" || /daily limit/i.test(bodyText);
+}
+
+/**
+ * THE WAIT BEFORE ATTEMPT `attempt + 1` of a call whose attempt `attempt` failed retryably (`status` null:
+ * the network). Pure -- the jitter is `rand`, in [0, 1) -- so every rule is pinned by test:
+ *   - the attempts are spent (maxAttempts), or HubSpot's DAILY limit is (`final`): stop;
+ *   - Retry-After (seconds, or an HTTP date): exactly that, never under minWaitMs -- or stop, when it asks for
+ *     more than one wait may be (maxWaitMs) or than is left (see the last rule);
+ *   - a 429 whose X-HubSpot-RateLimit-Remaining is 0 (or absent) beside X-HubSpot-RateLimit-Interval-
+ *     Milliseconds -- that window is spent: a tenth of the window, doubling per attempt, jittered (for the
+ *     10-second window ~1 s, 2 s, then the 3 s cap). That spreads a burst's calls out instead of landing them
+ *     together again; it does NOT outlast the window (8 s of waiting is less than 10 s), so it rides out a
+ *     window a burst has just filled, not one a burst keeps full;
+ *   - anything else (a 5xx, the network, a 429 without those headers): ~0.75 s, 1.5 s, 3 s, jittered;
+ *   - never longer than maxWaitMs, never past maxTotalWaitMs in all, and never past `deadlineMs` (the
+ *     invocation's, withHsRetryDeadline): the last wait is shortened to what is left, and with less than
+ *     minWaitMs left: stop.
+ * These are the switch's OWN waits. A stop here ends the call only once today's rule is spent too
+ * (hsRateLimited): only the daily limit's `final` ends it at once.
+ */
+export function hsRetryWait(h: Headers | null | undefined, status: number | null, bodyText: string,
+    attempt: number, waitedMs: number, rand: number, nowMs: number = Date.now(), deadlineMs?: number): HsRetryWait {
+  const p = hsRetry;
+  if (attempt >= p.maxAttempts) return { stop: `${attempt} attempts` };
+  if (dailyLimitSpent(h, status, bodyText)) return { stop: "HubSpot's daily limit is spent", final: true };
+  const callLeft = p.maxTotalWaitMs - waitedMs;
+  const invocationLeft = deadlineMs === undefined ? Infinity : deadlineMs - nowMs;
+  const left = Math.min(callLeft, invocationLeft);
+  const budgetSpent = { stop: invocationLeft < callLeft
+    ? `the invocation's retry deadline (${p.invocationMs} ms) is reached`
+    : `the call's wait budget (${p.maxTotalWaitMs} ms) is spent` };
+  const ra = header(h, "retry-after");
+  if (ra !== null) {
+    const secs = Number(ra);
+    const raMs = Number.isFinite(secs) ? secs * 1000 : Date.parse(ra) - nowMs;
+    if (Number.isFinite(raMs)) {
+      const ms = Math.max(p.minWaitMs, Math.round(raMs));
+      if (ms > p.maxWaitMs) return { stop: `Retry-After ${ra} asks for more than one wait may be (${p.maxWaitMs} ms)` };
+      return ms > left ? budgetSpent : { ms, basis: "retry-after" };
+    }
+  }
+  let base = p.baseMs;
+  let basis: "rate-window" | "backoff" = "backoff";
+  if (status === 429) {
+    const interval = Number(header(h, "x-hubspot-ratelimit-interval-milliseconds"));
+    const remaining = header(h, "x-hubspot-ratelimit-remaining");
+    if (Number.isFinite(interval) && interval > 0 && (remaining === null || Number(remaining) <= 0)) {
+      base = interval / 10;
+      basis = "rate-window";
+    }
+  }
+  const want = Math.max(p.minWaitMs, Math.round(base * 2 ** (attempt - 1) * (0.5 + rand)));
+  const ms = Math.min(want, p.maxWaitMs, left);
+  return ms < p.minWaitMs ? budgetSpent : { ms, basis };
+}
+
+const pathForLog = (path: string) => (path.length > 120 ? `${path.slice(0, 117)}...` : path);
+
+/**
+ * HS_RATE_LIMIT_RETRY: hs(), with retries that honour HubSpot's rate limits (hsRetryWait), ON TOP OF the ones
+ * hs() makes today -- never instead of them.
+ *
+ *   - A READ (GET) that gets a 429, a 5xx or a network error gets the rate-limit-aware retry, whatever
+ *     `retries` its caller passed -- getRecord's retries=1 and the context build's reads included. A GET
+ *     changes nothing, so repeating it cannot double anything.
+ *   - Any OTHER method gets it only on a 429 -- HubSpot refused it without executing it -- and only when its
+ *     caller already allows retries (`retries` > 1: patchRecord, claimOwnership, the association PUTs and
+ *     DELETEs, the searches and batch reads, which are POSTs). A create passes retries=1 and is never retried
+ *     (createRecord's note): neither this rule nor today's (below) ever applies to it.
+ *   - TODAY'S RULE IS THE FLOOR, for every method, and no deadline cuts it: whatever hs() retries with the
+ *     switch off, it still retries (while attempt < retries: 2 s x attempt after a 429 or 5xx, 1.5 s x attempt
+ *     after a network error) -- and where the switch's own quicker waits spent those attempts sooner than today
+ *     would, one more is made when today makes its last (todayWaits). So no call ends sooner than today's:
+ *     a PATCH's 503, a search's 502 or a DELETE's dropped connection rides out a blip as before -- every
+ *     non-GET caller that passes retries > 1 is idempotent or a read -- and a Retry-After longer than one wait
+ *     may be falls back to today's wait instead of ending the call early. The switch gives up sooner than
+ *     today in exactly one place: HubSpot's DAILY limit, where no wait can help. The invocation's deadline
+ *     (withHsRetryDeadline) bounds the switch's OWN waits only -- past it a call is exactly today's.
+ *   - What finally fails throws exactly what hs() throws today (`hubspot <METHOD> <path>: <status> <body>`,
+ *     or the network error itself), so every caller's handling -- getRecord's 404, sendPatch's
+ *     BackwardSetError, the webhook's error log -- reads it as before.
+ * One log line per call that needed a retry (`retried-ok`), or that gave up after one or with a reason
+ * (`gave-up`). A create's refusal logs nothing, as today. Never reached with the switch off: see hs().
+ */
+async function hsRateLimited(env: Env, method: string, path: string, body: unknown, retries: number): Promise<any> {
+  const read = method === "GET";
+  const deadline = hsRetryDeadlineOf(env);
+  let waited = 0;
+  /** How long hs() off would have waited, in all, by its LAST attempt: today's wait for every failed attempt it
+   *  retries (2 s x attempt, 1.5 s x attempt after a network error, while attempt < retries). */
+  let todayWaits = 0;
+  let retried = 0;
+  let last = "";
+  const tag = () => `method=${method} path=${pathForLog(path)} attempts=${retried + 1} waited_ms=${waited}`;
+  const pause = async (ms: number, why: string) => {
+    await hsRetry.sleep(ms);
+    waited += ms; retried++; last = why;
+  };
+  /** The wait before attempt `attempt + 1` (`status` null: the network), or why there is none -- null when
+   *  neither rule ever applied (a create's 429), which says nothing, as today. */
+  const nextWait = (h: Headers | null, status: number | null, text: string, attempt: number): HsRetryWait | null => {
+    const today = (status === null ? 1500 : 2000) * attempt;   // today's wait after this attempt, exactly
+    if (attempt < retries) todayWaits += today;
+    const ours = read || (status === 429 && retries > 1)
+      ? hsRetryWait(h, status, text, attempt, waited, hsRetry.random(), Date.now(), deadline) : null;
+    if (ours && ("ms" in ours || ours.final)) return ours;
+    // TODAY'S RULE IS THE FLOOR, and no deadline cuts it: hs() off retries this attempt...
+    if (attempt < retries) return { ms: today, basis: "today" };
+    // ...or, where the switch's quicker waits spent today's attempts sooner than today would, still has its
+    // last attempt to make: made when today makes it.
+    if (todayWaits > waited) return { ms: todayWaits - waited, basis: "today" };
+    return ours;                                       // today's rule is spent as well
+  };
+  const gaveUp = (w: HsRetryWait | null, what: string) => {
+    if (w || retried) console.log(`[hubspot] action=gave-up ${tag()} ${what}`
+      + ` reason="${w && "stop" in w ? w.stop : `today's ${retries} attempts are spent`}"`);
+  };
+  for (let attempt = 1; ; attempt++) {
+    let resp: Response;
+    try {
+      resp = await fetch(BASE + path, {
+        method,
+        headers: { Authorization: `Bearer ${env.HUBSPOT_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    } catch (e) {
+      const w = nextWait(null, null, "", attempt);
+      if (w && "ms" in w) { await pause(w.ms, "network"); continue; }
+      gaveUp(w, "last=network");
+      throw e;                                         // the network error itself, as today
+    }
+    if (resp.status === 429 || resp.status >= 500) {
+      // Read here (it is drained before a retry either way): the daily limit is told in the body too.
+      let text = "";
+      let unreadable: { e: unknown } | undefined;
+      try { text = await resp.text(); } catch (e) { unreadable = { e }; }
+      const w = nextWait(resp.headers, resp.status, text, attempt);
+      if (w && "ms" in w) { await pause(w.ms, String(resp.status)); continue; }
+      gaveUp(w, `status=${resp.status}`);
+      if (unreadable) throw unreadable.e;              // as today: the body read's own failure
+      throw new Error(`hubspot ${method} ${path}: ${resp.status} ${text.slice(0, 300)}`);
+    }
+    if (!resp.ok) {                                    // any other 4xx: thrown at once, as today
+      throw new Error(`hubspot ${method} ${path}: ${resp.status} ${(await resp.text()).slice(0, 300)}`);
+    }
+    if (retried) console.log(`[hubspot] action=retried-ok ${tag()} last=${last}`);
+    if (resp.status === 204) return undefined;
+    const text = await resp.text();
+    return text ? JSON.parse(text) : undefined;
   }
 }
 
@@ -121,7 +303,9 @@ export function propertiesForSpec(spec: ObjectSpec): string[] {
   return propertiesFor(spec);
 }
 
-/** Fetch one HubSpot record by id (webhook fast path). Null if not found / archived. */
+/** Fetch one HubSpot record by id (webhook fast path). Null if not found / archived.
+ *  retries=1: one attempt, as always -- EXCEPT with HS_RATE_LIMIT_RETRY on, where hs() retries every GET on a
+ *  429 / 5xx / network error with the rate-limit-aware backoff (hsRateLimited), whatever `retries` says. */
 export async function getRecord(env: Env, object: string, id: string, properties: string[]):
     Promise<HsRecord | null> {
   try {

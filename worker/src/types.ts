@@ -102,6 +102,19 @@ export interface Env {
    *  Anything else, including absent, is today's behaviour exactly: every event of ours is an echo.
    *  Ships "false". */
   ASK_ADA_UI_EDITS?: string;
+  /** "true", with ENABLE_CRM "true", arms HubSpot's rate-limit-aware retry in hs() (hs-retry.ts, hubspot.ts
+   *  hsRateLimited): a GET is also retried on a 429, a 5xx or a network error whatever retry count its caller
+   *  passed; any other method also on a 429, when its caller already allows retries -- so a create
+   *  (retries=1) never is; and every retry hs() makes today is still made, no later than today makes it.
+   *  Its own retries are bounded per call (hsRetry) and, in a webhook's work, per invocation
+   *  (withHsRetryDeadline: none ends 20 s past the webhook's start); today's are never cut. Anything else,
+   *  including absent, is hs()'s loop exactly as it was. Ships "false". */
+  HS_RATE_LIMIT_RETRY?: string;
+  /** "true", with ENABLE_CRM "true", fits every monday item name the Worker writes to monday's 255-unit
+   *  limit (mapping.ts itemNameFitOn / fitItemName; monday.ts) and compares names fitted (Ctx.itemNameMax),
+   *  instead of a long HubSpot name failing the card's create and every later update of it. Anything else,
+   *  including absent, sends and compares names exactly as before. Ships "false". */
+  ITEM_NAME_FIT?: string;
 }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone" | "email" | "link";
@@ -656,6 +669,14 @@ export interface Ctx {
    *  `crmStage` dictionary, and used by stagePipelinePairing. See getCrmStageDicts. */
   pipelineByStage?: Record<string, string>;
   portalId: number;
+  /**
+   * The longest item name monday accepts (MONDAY_ITEM_NAME_MAX), set by buildCtx ONLY while ITEM_NAME_FIT
+   * is on -- monday.ts then fits every name it writes. With it, the name diff compares the FITTED HubSpot
+   * name (fitItemName), so a fitted card is never renamed again, and a name the card can show only fitted
+   * is never pushed back over HubSpot's longer one (buildReversePatch, columnEditPatch). Absent: names are
+   * compared and pushed exactly as before.
+   */
+  itemNameMax?: number;
 }
 
 export interface RunOpts { dryRun: boolean; writeHubspot: boolean; maxWrites: number }

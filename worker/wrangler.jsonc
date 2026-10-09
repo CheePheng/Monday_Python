@@ -58,7 +58,11 @@
             // our own echo. "true" reads monday's activity log for such an event on a two-way column (or a
             // create) and treats it as a PERSON's when the row proves a UI action (ui-actor.ts). Ships OFF:
             // off, no query is made and every event of ours is an echo, exactly as before.
-            "ASK_ADA_UI_EDITS": "false" },
+            "ASK_ADA_UI_EDITS": "false",
+            // "true": HubSpot retries on top of today's, never fewer (<=5 own tries/8 s a call, none 20 s past a webhook's start; hs-retry.ts).
+            "HS_RATE_LIMIT_RETRY": "false",
+            // "true": item names are fitted to monday's 255-char limit and compared fitted (mapping.ts fitItemName).
+            "ITEM_NAME_FIT": "false" },
 
   "observability": { "enabled": true },
 

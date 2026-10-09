@@ -7,7 +7,9 @@ import {
   CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS, DEALS, PORTAL_ID,
   specByBoard, specByObject, specsFor,
 } from "./config";
-import { buildColumnValues, expectedText, formatValue, itemName, linkText, numText, phoneDigits } from "./mapping";
+import {
+  MONDAY_ITEM_NAME_MAX, buildColumnValues, expectedText, formatValue, itemName, itemNameFitOn, linkText, numText, phoneDigits,
+} from "./mapping";
 import { colText, indexByHubspotId } from "./dedup";
 import {
   lookupCard, lookupCardOwner, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem,
@@ -195,7 +197,10 @@ export async function buildCtx(env: Env): Promise<Ctx> {
     ownerIdByName[n] = id;
   }
   return { labels, ownersById, mondayUsersByEmail, mondayEmailByUserId, ownerIdByEmail, ownerIdByName,
-    pipelineByStage, portalId: PORTAL_ID };
+    pipelineByStage, portalId: PORTAL_ID,
+    // ITEM_NAME_FIT only, so names are compared fitted exactly while monday.ts writes them fitted. Off, the
+    // key is absent and the Ctx is the one this always returned.
+    ...(itemNameFitOn(env) ? { itemNameMax: MONDAY_ITEM_NAME_MAX } : {}) };
 }
 
 /** HubSpot -> monday for one record, plus monday-edit -> HubSpot when monday is the newer side. */

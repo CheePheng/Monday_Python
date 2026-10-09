@@ -1,5 +1,5 @@
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec } from "./types";
-import { LONG_TEXT_MAX, expectedText, formatValue, itemName, linkReverse, linkText, numText, phoneDigits, unapplyScale } from "./mapping";
+import { LONG_TEXT_MAX, expectedText, fitItemName, formatValue, itemName, linkReverse, linkText, numText, phoneDigits, unapplyScale } from "./mapping";
 import { colText } from "./dedup";
 import { companyDomainKey } from "./adopt";
 import { reverseGroup, targetGroup } from "./routing";
@@ -21,7 +21,9 @@ export interface Diff {
    *  monday's long-text column holds exactly 2000 characters and a longer HubSpot value is clamped on
    *  the way in. Once such a field is two-way, a rep editing that cell would push their 2000-character
    *  version over the longer original and destroy text they were never shown. Set in fieldDiffs,
-   *  honoured in buildReversePatch. */
+   *  honoured in buildReversePatch.
+   *  Also set on a NAME diff while ITEM_NAME_FIT is on (Ctx.itemNameMax): HubSpot's name is longer than
+   *  monday accepts, so the card can only ever show it fitted (fitItemName). */
   viewTruncated?: boolean;
   /** A People cell must be EMPTIED to match HubSpot: its person is not HubSpot's owner, and HubSpot's
    *  owner has no monday account (or there is no owner). formatValue has no value to write for that, so
@@ -145,8 +147,13 @@ export function fieldDiffs(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ct
       out.push({ kind: "field", f, hsText, mdText, ...(viewTruncated ? { viewTruncated } : {}) });
     }
   }
-  const wantName = itemName(rec, spec);
-  if (wantName !== item.name.trim()) out.push({ kind: "name", hsText: wantName, mdText: item.name.trim() });
+  // ITEM_NAME_FIT (ctx.itemNameMax): the name monday.ts writes is FITTED to monday's limit, so it is compared
+  // fitted too. Compared in full, a card named from a HubSpot name past the limit would differ from it forever
+  // and be renamed on every pass. Absent, the full name, exactly as before.
+  const fullName = itemName(rec, spec);
+  const wantName = ctx.itemNameMax ? fitItemName(fullName, ctx.itemNameMax) : fullName;
+  if (wantName !== item.name.trim()) out.push({ kind: "name", hsText: wantName, mdText: item.name.trim(),
+    ...(wantName !== fullName ? { viewTruncated: true } : {}) });
   // A placeOnly group is where a card is CREATED, never where it is kept: no group diff, so no move.
   // Without this, editing or updating any card sitting in a group a person chose dragged it back.
   const placeOnly = "singleGroup" in spec.groupBy && spec.groupBy.placeOnly;
@@ -316,7 +323,15 @@ export function buildReversePatch(
     // both the item name and a "Company name" column (no WM spec overlaps); a rep who edited the column
     // must not have it silently replaced by an unchanged title. fieldDiffs emits fields before the name,
     // so any field value is already in the patch by the time the name diff is reached.
-    if (d.kind === "name" && spec.nameReverse && !(spec.nameReverse in patch)) patch[spec.nameReverse] = item.name.trim();
+    if (d.kind === "name" && spec.nameReverse && !(spec.nameReverse in patch)) {
+      // A name the card shows only FITTED (ITEM_NAME_FIT; see fieldDiffs) is a partial view, exactly like the
+      // long text below: written back, it would cut HubSpot's name down to what monday could hold.
+      if (d.viewTruncated)
+        console.log(`[reverse] field=${spec.nameReverse} type=name action=refused`
+          + ` reason="monday shows only the first ${ctx.itemNameMax} chars of a longer HubSpot name;`
+          + ` writing back would destroy the remainder"`);
+      else patch[spec.nameReverse] = item.name.trim();
+    }
     if (d.kind === "group" && "prop" in spec.groupBy && spec.groupBy.reverse) {
       const v = reverseGroup(spec, item.group.id);
       if (v) patch[spec.groupBy.prop] = v;
@@ -543,7 +558,8 @@ export interface ColumnEditResult {
  *
  * Unchanged guarantees: an unknown status/dropdown label, a non-numeric number, or a person with no
  * HubSpot user is REFUSED, never guessed; a long text HubSpot holds beyond monday's 2000 characters is
- * never written back; a deal stage never travels without its pipeline; the item name is never cleared.
+ * never written back; a deal stage never travels without its pipeline; the item name is never cleared,
+ * and (ITEM_NAME_FIT) never replaces a HubSpot name longer than monday's 255 from its fitted copy.
  */
 export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx,
     edit: { cols: string[]; name?: boolean; removedPeople?: Record<string, string[]>; byAutomation?: boolean }):
@@ -613,6 +629,18 @@ export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpe
     const name = item.name.trim();
     if (!spec.nameReverse) { out.healName = true; out.refusals.push("item name is one-way"); }
     else if (!name) { out.healName = true; out.refusals.push("item name cannot be emptied"); }
+    /**
+     * ITEM_NAME_FIT (ctx.itemNameMax): HubSpot's name is longer than monday accepts, so the card can only ever
+     * hold it FITTED (fitItemName) -- the long-text rule above, for the name. The fitted name itself is no
+     * change, and sends nothing. Any other rename would replace HubSpot's whole name on the strength of a
+     * cut-down copy of it, so it is refused, and the heal shows the fitted name again.
+     */
+    else if (ctx.itemNameMax && raw(spec.nameReverse).length > ctx.itemNameMax) {
+      if (name !== fitItemName(raw(spec.nameReverse), ctx.itemNameMax)) {
+        out.healName = true;
+        out.refusals.push("HubSpot's name is longer than monday can show; rename it in HubSpot");
+      }
+    }
     else if (name !== raw(spec.nameReverse)) out.patch[spec.nameReverse] = name;
   }
 

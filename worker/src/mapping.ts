@@ -22,6 +22,48 @@ export function clampLongText(s: string): string {
 }
 
 /**
+ * The longest item name monday accepts, in UTF-16 units. monday's own refusal reads "item_name is too
+ * long. Item names must be below 256 characters." -- live, for HubSpot contact 563860620999, whose
+ * firstname and lastname are 148 characters each: a 297-character name, a create refused for good, and
+ * no card ever made.
+ */
+export const MONDAY_ITEM_NAME_MAX = 255;
+
+/**
+ * An item name monday will take: unchanged up to `max` UTF-16 units (max >= 1); otherwise the first
+ * `max - 1` units (never half of a surrogate pair), trailing whitespace trimmed, then "…" (U+2026).
+ *
+ * clampLongText's hazard, but monday does the opposite with it, so this makes the opposite choice about an
+ * ellipsis. A long text is ACCEPTED and silently cut, so its clamp must predict monday's cut exactly and add
+ * nothing. A long name is REJECTED: the create fails, and since updateItem sends the name with every forward
+ * write, a HubSpot name past the limit fails every later update of its card too. Nothing of monday's has to
+ * be predicted here -- what this returns IS what monday stores -- so it may say the name was cut, and the
+ * name comparison (fieldDiffs) fits the HubSpot side the same way, so a fitted card never reads as needing
+ * a rename.
+ *
+ * UTF-16 units (JS length), never more code points than that, so it is the safe bound whichever monday
+ * counts. Deterministic, and idempotent: a fitted name is at most `max` units and comes back unchanged.
+ * Applied only while ITEM_NAME_FIT is on (itemNameFitOn: monday.ts, buildCtx's itemNameMax).
+ */
+export function fitItemName(name: string, max = MONDAY_ITEM_NAME_MAX): string {
+  if (name.length <= max) return name;
+  let keep = Math.max(0, max - 1);                        // room for the ellipsis
+  const last = name.charCodeAt(keep - 1);
+  if (last >= 0xd800 && last <= 0xdbff) keep--;           // a high surrogate whose low half would be cut off
+  return name.slice(0, keep).trimEnd() + "\u2026";
+}
+
+/**
+ * THE ITEM_NAME_FIT SWITCH: only the literal "true" arms it, and only on the CRM Worker (ENABLE_CRM "true"),
+ * so the Work Management Worker -- which runs this same source -- never does, even with the var leaked onto
+ * it. Off, every name is sent and compared exactly as before. Read where a name is written (monday.ts) and
+ * where the context is built (buildCtx: Ctx.itemNameMax), so writing and comparing always agree.
+ */
+export function itemNameFitOn(env: { ITEM_NAME_FIT?: string; ENABLE_CRM?: string }): boolean {
+  return env.ITEM_NAME_FIT === "true" && env.ENABLE_CRM === "true";
+}
+
+/**
  * The business timezone, as a fixed offset. Asia/Shanghai is UTC+8 and observes NO daylight saving, so
  * a constant is exact here rather than an approximation — which is why this is a number and not an
  * Intl.DateTimeFormat call. A portal in a DST-observing zone would need the real thing.
