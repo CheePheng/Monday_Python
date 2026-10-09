@@ -71,6 +71,21 @@ export const CRM_CONTACTS: ObjectSpec = {
   syncStateCol: "text_mm6twy4w",             // "Sync State"
   linkCol: "link_mm6z7mj",                   // "HubSpot Link" (created Task 5)
   groupBy: { singleGroup: "topics", placeOnly: true },   // new cards land here; the Worker never moves a card
+  /**
+   * ...EXCEPT OUT OF "No Activity - 未跟进" WHEN THE CARD IS WORKED (2026-10-09, NO_ACTIVITY_RELEASE). The board's
+   * own automations put cards INTO that group; nothing took them out again when a rep did the work, so a
+   * contact Elaine moved to 10.Other / In Progress on 5 Oct sat there until hiffer dragged it out on 9 Oct.
+   * Worked = the owner's outbound email or call syncs (activity-sync.ts), or Lifecycle changes off 1.NEW, or
+   * Lead Status changes to anything but New -- in monday or in HubSpot. Labels as reps see them; a change, not
+   * a state, so a card swept back in by the nightly automation stays put until it is worked again.
+   */
+  leaveWhenWorked: { from: "group_mm7cj2yx", to: "topics",
+    notWorked: { color_mm70k2wk: ["1.NEW"], color_mm6zb4tc: ["New"] } },
+  // A contact reaches monday only once HubSpot gives it an owner (2026-10-09 meeting, CONTACT_CARD_NEEDS_OWNER).
+  cardNeedsOwner: true,
+  // 上次通知Owner (email): the last owner told about this contact. Written by owner-notice.ts (OWNER_NOTICE) when
+  // HubSpot's owner is someone else, which is what the board's assignment email automation fires on.
+  ownerNoticeCol: "email_mm7v3xxg",
   includeAll: true,                          // SAFE ONLY WITH Task 3B's mayCreateCrmCard
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,

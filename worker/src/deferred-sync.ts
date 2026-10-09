@@ -39,12 +39,22 @@ export interface DeferredItem {
    * way, because HubSpot bumps the record's lastmodifieddate by itself ~7 s after every stage change.
    */
   recheck?: boolean;
+  /**
+   * AN OWNER NOTICE, not an update (OWNER_NOTICE): the wave runs owner-notice.ts noticeOwnerChange for this
+   * contact -- reads its owner from HubSpot, and writes 上次通知Owner if a recent assignment has not been announced
+   * -- and nothing else. Every notice runs here, never inline: a webhook's work is cut off ~30 s after its
+   * response, and a notice can wait on monday's rate limit longer than that; this queue also runs them one at a
+   * time, so two notices for one contact can never interleave.
+   */
+  notice?: boolean;
   attempts?: number;
 }
 
-/** Identity for deduplication. A delete, an update and a re-check of the same record are different work:
- *  an update's forward pass does repair a dangling clear, but a re-check cannot stand in for an update. */
-export const deferKey = (i: DeferredItem) => `${i.type}:${i.id}:${i.deleted ? "d" : i.recheck ? "r" : "u"}`;
+/** Identity for deduplication. A delete, an update, a re-check and an owner notice of the same record are
+ *  different work: an update's forward pass does repair a dangling clear, but a re-check cannot stand in for an
+ *  update, and neither tells an owner anything. */
+export const deferKey = (i: DeferredItem) =>
+  `${i.type}:${i.id}:${i.deleted ? "d" : i.recheck ? "r" : i.notice ? "n" : "u"}`;
 
 /** How many records one alarm processes. Matches the webhook path's own per-invocation limit, for
  *  the same subrequest reason. */
@@ -73,16 +83,20 @@ const NAME = "defer:hubspot";
  * ground. Referencing a missing binding there would throw inside the webhook handler — the exact
  * class of failure that took live sync down on 2026-09-15 — so absence is treated as "not my job".
  */
-export async function spillDeferred(env: Env, items: DeferredItem[]): Promise<void> {
-  if (!items.length) return;
+/** Returns true when the queue holds the items now (queued or already waiting); false when there is no queue
+ *  or it could not be reached -- for a caller with a fallback. */
+export async function spillDeferred(env: Env, items: DeferredItem[]): Promise<boolean> {
+  if (!items.length) return true;
   const ns = env.DEFERRED_SYNC;
-  if (!ns) return;                                 // Work Management deployment: the cron covers it
+  if (!ns) return false;                           // Work Management deployment: the cron covers it
   try {
     const stub = ns.get(ns.idFromName(NAME)) as unknown as DurableObjectStub<DeferredSync>;
     const r = await stub.enqueue(items);
     console.log(`[deferred] action=spilled queued=${r.queued} duplicate=${r.duplicate} dropped=${r.dropped}`
       + ` depth=${r.depth}`);
+    return r.dropped === 0;
   } catch (e) {
     console.log(`[deferred] action=spill-failed count=${items.length} reason="${String(e).slice(0, 120)}"`);
+    return false;
   }
 }

@@ -86,7 +86,7 @@ describe("the rule that monday may never delete HubSpot", () => {
 
     expect(r).toBe("restored");
     expect(sync.syncHubspotObject).toHaveBeenCalledWith(
-      env, "company", "346420839123", opts, budget, "2858208517");
+      env, "company", "346420839123", { ...opts, restore: "346420839123" }, budget, "2858208517");
     // the restore path clears the stale pairing; it never deletes or patches the HubSpot record
     expect(registry.forgetCard).toHaveBeenCalled();
   });

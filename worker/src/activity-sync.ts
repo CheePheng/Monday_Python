@@ -16,6 +16,8 @@ import { hs } from "./hubspot";
 import { isPublicEmailDomain } from "./adopt";
 import { normalizeDomain } from "./normalize";
 import { gql, findItemByColumn } from "./monday";
+import { releaseWorkedCard, WORK_RECENT_MS } from "./no-activity";
+import { webhookOpts } from "./run-opts";
 /** MondayRateLimitedError's name -- see monday.ts. */
 const MONDAY_RATE_LIMITED = "MondayRateLimitedError";
 import { CRM_CONTACTS } from "./config/crm";
@@ -858,6 +860,15 @@ async function maybeMarkFollowUp(env: Env, itemId: string, contactId: string,
     if (!owner || !Number.isFinite(assignedMs)) return;   // unowned or never assigned: no cycle to satisfy
 
     if (!qualifiesAsFollowUp(activity, { contactOwnerId: owner, ownerAssignedAtMs: assignedMs })) return;
+
+    // The owner reached out: the card is worked, so it leaves "No Activity" (NO_ACTIVITY_RELEASE) -- for RECENT
+    // outreach only (WORK_RECENT_MS: a replayed old email is not today's work). Before the helper's no-churn
+    // return below: a second outbound email on the same day is still a new piece of work, and the nightly sweep
+    // may have put the card back since the first. Never throws.
+    const sentAt = Date.parse(String(activity.timestamp ?? ""));
+    if (Number.isFinite(sentAt) && Date.now() - sentAt <= WORK_RECENT_MS)
+      await releaseWorkedCard(env, CRM_CONTACTS, itemId, undefined,
+        `the owner's outbound ${activity.object === "calls" ? "call" : "email"} synced`, webhookOpts(env));
 
     const day = String(activity.timestamp ?? "").slice(0, 10);
     if (!day) return;

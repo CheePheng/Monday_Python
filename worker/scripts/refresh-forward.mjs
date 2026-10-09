@@ -9,8 +9,11 @@
  * heal by themselves.
  *
  * How. Every id goes to POST /resync with forceForward:true (false with --no-force) -- the Worker's own engine, which writes
- * ONLY the columns that differ, never moves a card between groups, never writes HubSpot (column-level
- * specs only), and applies today's rules (localDate, peopleClear, the seatless-owner rule). With
+ * ONLY the columns that differ, never writes HubSpot (column-level specs only), and applies today's rules
+ * (localDate, peopleClear, the seatless-owner rule). It moves no card between groups -- with ONE exception,
+ * and only with --no-force: while NO_ACTIVITY_RELEASE is on, a non-forced pass that brings a missed HubSpot
+ * Lifecycle / Lead Status change across takes a CRM Contacts card out of "No Activity" (no-activity.ts),
+ * exactly as the webhook would have. The forced default never does. With
  * dryRun:true the same engine runs with every write suppressed and answers what it WOULD do, so the dry
  * run is sized by the code that will perform the repair, not by a re-implementation of it.
  *

@@ -4,6 +4,12 @@ import { buildColumnValues, itemName } from "./mapping";
 import { targetGroup } from "./routing";
 import { claimCard, finishCard, forgetCard } from "./card-registry";
 import { mayCreateCrmCard } from "./ownership";
+import { ownerNoticeOn, queueOwnerNotices } from "./owner-notice";
+
+/** CONTACT_CARD_NEEDS_OWNER: only the literal "true", and only on the CRM Worker. */
+export function cardNeedsOwnerOn(env: { ENABLE_CRM?: string; CONTACT_CARD_NEEDS_OWNER?: string }): boolean {
+  return env.ENABLE_CRM === "true" && env.CONTACT_CARD_NEEDS_OWNER === "true";
+}
 
 /** What happened when a path asked for a record's card. Explicit, because callers need to tell "we made
  * one" (count it, spend budget) apart from "someone else is making it" (do nothing this pass). */
@@ -55,6 +61,17 @@ export async function ensureCardForRecord(env: Env, spec: ObjectSpec, ctx: Ctx, 
       return { status: "refused", reason: "outside CRM creation scope" };
     }
 
+    // OWNER FIRST (2026-10-09 meeting, CONTACT_CARD_NEEDS_OWNER): a contact reaches monday only once HubSpot
+    // has given it an owner. Not retryable until then, so `refused` -- and the owner-change webhook that sets
+    // one syncs the contact again, which comes back here and creates the card. A FIRST card only: a card a
+    // person deleted is restored whoever owns it (opts.restore), because cards already on the board stay.
+    if (spec.cardNeedsOwner && cardNeedsOwnerOn(env) && opts.restore !== rec.id
+        && !String(rec.properties.hubspot_owner_id ?? "").trim()) {
+      await forgetCard(env, boardId, rec.id);
+      console.log(`${spec.object}/${rec.id} action=refused-card reason="no owner yet: the card is created when HubSpot sets one" board=${boardId}`);
+      return { status: "refused", reason: "no owner yet" };
+    }
+
     const group = targetGroup(rec, spec);
     if (!group) { await forgetCard(env, boardId, rec.id); return { status: "skipped" }; }
     const cv = buildColumnValues(rec, spec, ctx);   // stamps the HubSpot id + link + derived people columns
@@ -62,6 +79,11 @@ export async function ensureCardForRecord(env: Env, spec: ObjectSpec, ctx: Ctx, 
     const itemId = await createItem(env, boardId, group, itemName(rec, spec), cv, opts);
     if (itemId) await finishCard(env, boardId, rec.id, itemId);
     else await forgetCard(env, boardId, rec.id);    // dry-run wrote nothing — don't hold the reservation
+    // A new card for an owned contact: queue an owner notice (OWNER_NOTICE). The queue reads HubSpot afresh and
+    // announces only a RECENT assignment -- an old one (a restored card, a catch-up) is just remembered. Queued,
+    // so a card is never slowed or failed by it.
+    if (itemId && spec.ownerNoticeCol && ownerNoticeOn(env) && String(rec.properties.hubspot_owner_id ?? "").trim())
+      await queueOwnerNotices(env, [rec.id], "new card").catch(() => undefined);
     return { status: "created", itemId };
   } catch (e) {
     await forgetCard(env, boardId, rec.id);         // never wedge the record behind a failed attempt

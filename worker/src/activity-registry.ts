@@ -251,6 +251,43 @@ export async function rememberOwnerCycle(env: Env, contactId: string, cycle: str
 }
 
 /**
+ * THE OWNER LAST TOLD ABOUT A CONTACT, by lowercased email (owner-notice.ts) -- the durable twin of the card's
+ * 上次通知Owner column.
+ *
+ * The column alone is not enough. A card created for an OLD assignment (a restored card, a catch-up) must
+ * record who owns it without telling them, and writing the column is precisely what fires the board's email.
+ * So the silent baseline lives here, and the notice compares HubSpot's owner with both.
+ *
+ * The READ FAILS LOUD: "unreadable" and "nobody told yet" are different answers, and mistaking the first for
+ * the second sends a reassignment email for a contact that changed hands long ago.
+ *
+ * Stored WITH ITS TIME, because the note and the column can disagree and the one written last is right: the note
+ * covers monday serving a column read a moment stale after our own write, the column covers a note whose save
+ * failed after the write landed.
+ */
+const noticedKey = (contactId: string) => `notice:owner:${contactId}`;
+
+export async function lastNoticedOwner(env: Env, contactId: string): Promise<{ email: string; at: number } | null> {
+  let raw: string | null;
+  try { raw = await stub(env, noticedKey(contactId)).getCard(); }
+  catch (e) { throw new Error(`owner notice for ${contactId} unreadable: ${String(e).slice(0, 90)}`); }
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw);
+    if (v && typeof v.email === "string") return { email: v.email, at: Number(v.at) || 0 };
+  } catch { /* a bare address: no time known */ }
+  return { email: raw, at: 0 };
+}
+
+export async function rememberNoticedOwner(env: Env, contactId: string, email: string, at = Date.now()): Promise<boolean> {
+  try { await stub(env, noticedKey(contactId)).rememberPermanent(JSON.stringify({ email, at })); return true; }
+  catch (e) {
+    console.log(`[activity-registry] ${noticedKey(contactId)} action=save-failed reason="${String(e).slice(0, 90)}"`);
+    return false;
+  }
+}
+
+/**
  * A DURABLE WATERMARK, on the same strongly-consistent store everything else here uses.
  *
  * The task poller needs to remember how far it has read across Worker invocations, and that is

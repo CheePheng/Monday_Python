@@ -16,6 +16,8 @@ import {
   createWindowOf, noteCreateWindowEdit,
 } from "./card-registry";
 import { ensureCardForRecord } from "./ensure-card";
+import { releaseOnWorkedChanges } from "./no-activity";
+import { ownerNoticeOn, queueOwnerNotices } from "./owner-notice";
 import { adoptionKey } from "./adopt";
 import { ensureHubspotWriteAuth } from "./write-auth";
 import { authorizeCreate, authorizeWrite, canClaimCrmOwnership, withBirthOwnership } from "./ownership";
@@ -415,6 +417,14 @@ async function reconcileForwardOnly(env: Env, spec: ObjectSpec, ctx: Ctx, opts: 
   if (!unfinished) cv[spec.syncStateCol] = recModified;
   await updateItem(env, spec.boardId, existing.id, itemName(rec as HsRecord, spec), cv, opts);
   stats.toMonday++; budget.left--;
+  // Worked in HubSpot (a Lifecycle off 1.NEW, a Lead Status set) -> out of "No Activity" (NO_ACTIVITY_RELEASE).
+  // Only the columns this pass just changed: hsText is the label the card shows now. Never on an operator's
+  // forced repair (/resync, scripts/refresh-forward.mjs): correcting a stale cell is not work, and that repair
+  // promises it moves no card.
+  if (!force)
+    await releaseOnWorkedChanges(env, spec, existing.id, existing.group?.id,
+      diffs.filter(d => d.kind === "field" && d.f).map(d => ({ col: d.f!.col, label: d.hsText })),
+      "changed in HubSpot", opts);
   if (unfinished) throw unfinished;
 }
 
@@ -516,6 +526,14 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
   }
   if (forward.length || heal.length || healName) stats.toMonday++;
   if (!fields.length && !forward.length && !heal.length && !healName) stats.inSync++;
+  // Worked -> out of "No Activity" (NO_ACTIVITY_RELEASE): a PERSON's own status edits that LANDED in HubSpot (a
+  // refused or healed one did not happen; an automation's is not work -- the board's #08 sets In Progress on a
+  // customer's reply), and any HubSpot change this pass brought across.
+  await releaseOnWorkedChanges(env, spec, existing.id, existing.group?.id, [
+    ...(edit.byAutomation ? [] : spec.fields.filter(f => editedCols.has(f.col) && f.hs in pushed)
+      .map(f => ({ col: f.col, label: colText(existing, f.col) }))),
+    ...forward.filter(d => d.kind === "field" && d.f).map(d => ({ col: d.f!.col, label: d.hsText })),
+  ], edit.byAutomation ? "changed in HubSpot" : "edited", opts);
 }
 
 /** What sending one column-level edit produced: see pushColumnEdit. */
@@ -1556,6 +1574,11 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   // card into line with what HubSpot did on its own, and set the baseline. CREATE_WINDOW_REPLAY only.
   if (created && windowOn)
     await settleCreateWindow(env, spec, ctx, opts, budget, item, created.id, props, stats);
+  // Last, once the create window is settled: a contact a person created from the monday form has its owner
+  // told, exactly as one assigned in HubSpot would (OWNER_NOTICE; Contacts only). Queued: the queue reads the
+  // owner back from the new record, and the owner-change event HubSpot fires for the same birth is the same entry.
+  if (created && spec.ownerNoticeCol && ownerNoticeOn(env))
+    await queueOwnerNotices(env, [created.id], "created in monday").catch(() => undefined);
 }
 
 /**

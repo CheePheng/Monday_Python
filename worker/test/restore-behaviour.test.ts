@@ -42,8 +42,10 @@ describe("restoreDeletedCard resolves which record was deleted", () => {
     const ev = { columnValues: { [CRM_CONTACTS.idCol]: "548464300792" } };
     await restoreDeletedCard({} as never, CRM_CONTACTS, "CARD1", ev, live, budget());
     expect(registry.lookupCardOwner).not.toHaveBeenCalled();   // no need to consult the index
+    // `restore` names the record whose card this re-creates: a restored card is not a FIRST card, so the
+    // owner-first rule (CONTACT_CARD_NEEDS_OWNER) does not hold it back.
     expect(sync.syncHubspotObject).toHaveBeenCalledWith(
-      {}, "contact", "548464300792", live, expect.anything(), "CARD1");
+      {}, "contact", "548464300792", { ...live, restore: "548464300792" }, expect.anything(), "CARD1");
   });
 
   it("falls back to the reverse index when the payload has no id", async () => {
@@ -51,7 +53,7 @@ describe("restoreDeletedCard resolves which record was deleted", () => {
     await restoreDeletedCard({} as never, CRM_CONTACTS, "CARD2", { pulseName: "x" }, live, budget());
     expect(registry.lookupCardOwner).toHaveBeenCalledWith({}, CRM_CONTACTS.boardId, "CARD2");
     expect(sync.syncHubspotObject).toHaveBeenCalledWith(
-      {}, "contact", "999", live, expect.anything(), "CARD2");
+      {}, "contact", "999", { ...live, restore: "999" }, expect.anything(), "CARD2");
   });
 
   // Guessing would restore the WRONG customer's card, which is worse than restoring none.

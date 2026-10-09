@@ -22,6 +22,7 @@ import {
   ACTIVITY_BY_NAME, ACTIVITY_BY_TYPEID, activitySyncEnabled,
   syncHubspotActivity, syncMondayTimeline, resetHelperOnReassignment,
 } from "./activity-sync";
+import { ownerNoticeOn, queueOwnerNotices } from "./owner-notice";
 
 /** monday "Last Activity Date" on CRM Contacts. The doorbell until 2026-09-30; see ACTIVITY_WAKE_COLS. */
 export const LAST_ACTIVITY_DATE_COL = "date_mm7054jz";
@@ -84,7 +85,9 @@ export async function ringOnPersonEdit(env: Env, itemId: string, actorId: string
  *    reconciling on it is pure waste. A bulk fill of such a column would otherwise storm the
  *    reconciler with one full single-record sync per card. The daily sweep still heals manual edits. */
 export function ignoredColumns(spec: ObjectSpec): Set<string> {
-  const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol].filter(Boolean) as string[]);
+  // 上次通知Owner (ownerNoticeCol) is bookkeeping too: only owner-notice.ts writes it, and it maps to nothing.
+  const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol, spec.ownerNoticeCol]
+    .filter(Boolean) as string[]);
   for (const f of spec.fields) if (f.oneWay) out.add(f.col);
   return out;
 }
@@ -1040,6 +1043,16 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
     for (const cid of extractOwnerChangeContactIds(body))
       ectx.waitUntil(resetHelperOnReassignment(env, cid)
         .catch(e => console.log(`[activity] source=owner contact=${cid} action=error reason="${String(e).slice(0, 140)}"`)));
+  }
+
+  // OWNER REASSIGNMENT -> tell the new owner (OWNER_NOTICE): one entry per contact in the durable queue, which
+  // runs the notice -- a webhook's own work is cut off ~30 s after this response, a notice can outwait that on
+  // monday's rate limit, and a bulk reassignment of a hundred contacts is then a hundred notices a wave at a time.
+  // The queue's first wave comes ~15 s from now, by which time this batch's own sync has made any card it needed.
+  if (ownerNoticeOn(env)) {
+    const owners = extractOwnerChangeContactIds(body);
+    if (owners.length) ectx.waitUntil(queueOwnerNotices(env, owners, "owner changed in HubSpot")
+      .catch(e => console.log(`[owner-notice] action=error reason="${String(e).slice(0, 140)}"`)));
   }
 
   if (!events.length && !liIds.length) {

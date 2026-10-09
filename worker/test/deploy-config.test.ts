@@ -8,6 +8,18 @@ import { CRM_SPECS } from "../src/config/crm";
 import { cutoverFromEnv } from "../src/ownership";
 import { hsRateLimitRetryOn } from "../src/hubspot";
 import { itemNameFitOn } from "../src/mapping";
+import { noActivityReleaseOn } from "../src/no-activity";
+import { ownerNoticeOn } from "../src/owner-notice";
+import { cardNeedsOwnerOn } from "../src/ensure-card";
+
+/** The four 2026-10-09 Contacts switches, each with the check the code itself makes. CONTACT_OWNER_HUBSPOT_ONLY
+ *  is read by specsFor: it is on when the Contacts owner field comes back hubspotOnly. */
+const CONTACT_RULES: [string, (v: Record<string, string | undefined>) => boolean][] = [
+  ["NO_ACTIVITY_RELEASE", noActivityReleaseOn],
+  ["OWNER_NOTICE", ownerNoticeOn],
+  ["CONTACT_CARD_NEEDS_OWNER", cardNeedsOwnerOn],
+  ["CONTACT_OWNER_HUBSPOT_ONLY", v => !!specByObject(v, "contacts")?.fields.some(f => f.hubspotOnly)],
+];
 
 /**
  * DEPLOYMENT CONFIG REGRESSION.
@@ -124,6 +136,18 @@ describe("the deployable CRM Wrangler config", () => {
       expect(hsRateLimitRetryOn({ ...vars, HS_RATE_LIMIT_RETRY: v })).toBe(false);
       expect(itemNameFitOn({ ...vars, ITEM_NAME_FIT: v })).toBe(false);
     });
+
+  /**
+   * The 2026-10-09 Contacts rules -- leaving "No Activity", the owner notice, owner-before-first-sync and the
+   * HubSpot-only Contact owner -- each ship OFF, so a bare `wrangler deploy` changes none of them. The deploy
+   * passes "true" with --var; only that literal arms one, and only beside ENABLE_CRM "true".
+   */
+  it.each(CONTACT_RULES)("ships %s=\"false\", read as OFF, armed only by the literal \"true\"", (name, isOn) => {
+    expect(vars[name]).toBe("false");
+    expect(isOn(vars)).toBe(false);
+    expect(isOn({ ...vars, [name]: "true" })).toBe(true);
+    for (const v of ["TRUE", "1", "yes", "", " true"]) expect(isOn({ ...vars, [name]: v })).toBe(false);
+  });
 
   it("does NOT commit a temporary test cutover", () => {
     expect(vars.CRM_CUTOVER_AT).toBeUndefined();
@@ -397,6 +421,12 @@ describe("the deployable Work Management Wrangler config", () => {
     expect(wmVars.ITEM_NAME_FIT).toBeUndefined();
     expect(hsRateLimitRetryOn({ ...wmVars, HS_RATE_LIMIT_RETRY: "true" })).toBe(false);
     expect(itemNameFitOn({ ...wmVars, ITEM_NAME_FIT: "true" })).toBe(false);
+  });
+
+  /** Nor any of the 2026-10-09 Contacts rules: CRM-only, so a value leaked onto WM cannot arm one. */
+  it.each(CONTACT_RULES)("never carries %s, and could not arm it if it did", (name, isOn) => {
+    expect(wmVars[name]).toBeUndefined();
+    expect(isOn({ ...wmVars, [name]: "true" })).toBe(false);
   });
 
   it("re-declares CREATE_IDEMPOTENCY and its original v1 migration, and nothing else", () => {

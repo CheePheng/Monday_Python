@@ -132,7 +132,9 @@ function isColumnEvent(type: string): boolean {
 export function uiLookupColumns(env: Env, spec: ObjectSpec): Set<string> {
   const ignored = new Set([spec.syncStateCol, spec.idCol, spec.linkCol].filter(Boolean) as string[]);
   const out = new Set<string>();
-  for (const f of spec.fields) if (!f.oneWay && (f.reverse || f.appReverse)) out.add(f.col);
+  // A hubspotOnly column too: an edit of it by a person logged in as our token user must be put back, and
+  // only this lookup can tell that edit from our own echo (which a forward-only pass rightly leaves alone).
+  for (const f of spec.fields) if (!f.oneWay && (f.reverse || f.appReverse || f.hubspotOnly)) out.add(f.col);
   for (const a of spec.associations ?? []) if (a.relationCol) out.add(a.relationCol);
   // The native coarse Stage is `oneWay` in the spec; it is two-way only while STAGE_COARSE_REVERSE is on
   // (coarseStageCols in webhooks.ts, the same literal "true" test).

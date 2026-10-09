@@ -62,7 +62,14 @@
             // "true": HubSpot retries on top of today's, never fewer (<=5 own tries/8 s a call, none 20 s past a webhook's start; hs-retry.ts).
             "HS_RATE_LIMIT_RETRY": "false",
             // "true": item names are fitted to monday's 255-char limit and compared fitted (mapping.ts fitItemName).
-            "ITEM_NAME_FIT": "false" },
+            "ITEM_NAME_FIT": "false",
+            // The 2026-10-09 Contacts rules, each its own switch, all OFF until the deploy passes "true":
+            // NO_ACTIVITY_RELEASE: a worked card leaves "No Activity - 未跟进" (no-activity.ts).
+            // OWNER_NOTICE: 上次通知Owner gets the new owner's email once, which the board's email automation fires on (owner-notice.ts).
+            // CONTACT_CARD_NEEDS_OWNER: no Contacts card until HubSpot sets an owner (ensure-card.ts).
+            // CONTACT_OWNER_HUBSPOT_ONLY: a monday edit of Contact owner is put back (config.ts withContactOwnerRule).
+            "NO_ACTIVITY_RELEASE": "false", "OWNER_NOTICE": "false",
+            "CONTACT_CARD_NEEDS_OWNER": "false", "CONTACT_OWNER_HUBSPOT_ONLY": "false" },
 
   "observability": { "enabled": true },
 

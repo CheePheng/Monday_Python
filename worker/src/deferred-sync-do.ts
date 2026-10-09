@@ -6,8 +6,10 @@
  */
 import { DurableObject } from "cloudflare:workers";
 import type { Budget, Env } from "./types";
+import type { Ctx } from "./types";
 import { webhookOpts } from "./run-opts";
-import { deleteHubspotObject, recheckDanglingClears, syncHubspotObject } from "./sync";
+import { deleteHubspotObject, getCtxCached, recheckDanglingClears, syncHubspotObject } from "./sync";
+import { noticeOwnerChange } from "./owner-notice";
 import {
   deferKey, WAVE, WAVE_GAP_MS, FIRST_DELAY_MS, MAX_ATTEMPTS, MAX_QUEUE,
   type DeferredItem,
@@ -53,7 +55,8 @@ export class DeferredSync extends DurableObject<Env> {
         const k = deferKey(it);
         if (seen.has(k)) { duplicate++; continue; }
         if (q.length >= MAX_QUEUE) { dropped++; continue; }
-        q.push({ type: it.type, id: it.id, ...(it.deleted ? { deleted: true } : {}), ...(it.recheck ? { recheck: true } : {}) });
+        q.push({ type: it.type, id: it.id, ...(it.deleted ? { deleted: true } : {}), ...(it.recheck ? { recheck: true } : {}),
+          ...(it.notice ? { notice: true } : {}) });
         seen.add(k);
         queued++;
       }
@@ -92,11 +95,21 @@ export class DeferredSync extends DurableObject<Env> {
     let ok = 0;
 
     this.inFlight = wave.length;
+    // One owner list for every owner notice in this wave; failing to build it only means the owner's address
+    // comes from HubSpot's owner API instead.
+    let noticeCtx: Promise<Ctx | undefined> | undefined;
     try {
       for (const it of wave) {
         try {
           if (it.deleted) await deleteHubspotObject(this.env, it.type, it.id, opts, budget);
           else if (it.recheck) await recheckDanglingClears(this.env, it.type, it.id, opts, budget);
+          else if (it.notice) {
+            // An owner notice (DeferredItem.notice). Never throws; "busy" -- another run still holds the contact,
+            // or its owner kept changing -- is retried like a failure, so a newer owner is never just dropped.
+            const r = await noticeOwnerChange(this.env, it.id,
+              await (noticeCtx ??= getCtxCached(this.env).catch(() => undefined)));
+            if (r === "busy") throw new Error("owner notice busy");
+          }
           else await syncHubspotObject(this.env, it.type, it.id, opts, budget);
           ok++;
         } catch (e) {
@@ -107,7 +120,7 @@ export class DeferredSync extends DurableObject<Env> {
            */
           const attempts = (it.attempts ?? 0) + 1;
           if (attempts < MAX_ATTEMPTS) retry.push({ ...it, attempts });
-          else console.log(`[deferred] ${it.type}=${it.id}${it.recheck ? " recheck" : ""} action=abandoned attempts=${attempts}`
+          else console.log(`[deferred] ${it.type}=${it.id}${it.recheck ? " recheck" : it.notice ? " notice" : ""} action=abandoned attempts=${attempts}`
             + ` reason="${String(e).slice(0, 120)}"`);
         }
       }

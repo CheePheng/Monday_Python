@@ -576,7 +576,10 @@ export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpe
     if (f === coarse) continue;
     const refuse = (why: string) => { out.heal.push(f); out.refusals.push(`${f.hs}: ${why}`); };
 
-    if (!(f.reverse || f.appReverse)) { refuse("column is one-way (HubSpot -> monday)"); continue; }
+    if (!(f.reverse || f.appReverse)) {
+      refuse(f.hubspotOnly ? "changed in HubSpot only (put back to HubSpot's value)" : "column is one-way (HubSpot -> monday)");
+      continue;
+    }
     const hs = raw(f.hs);
 
     if (f.type === "people") {

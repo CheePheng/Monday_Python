@@ -307,7 +307,27 @@ export function specsFor(env: CrmEnv): ObjectSpec[] {
   // record — the split-brain the model exists to prevent. WM reads it here exactly as CRM does below;
   // absent, it stays Infinity and WM keeps writing every unstamped record, which is today's behaviour.
   if (env.ENABLE_CRM !== "true") return withCutover(ALL_SPECS, env.CRM_CUTOVER_AT);
-  return withCutover(withCreateCutoff(CRM_SPECS, env), env.CRM_CUTOVER_AT);
+  return withCutover(withContactOwnerRule(withCreateCutoff(CRM_SPECS, env), env), env.CRM_CUTOVER_AT);
+}
+
+/**
+ * CONTACT OWNER IS CHANGED IN HUBSPOT ONLY, while CONTACT_OWNER_HUBSPOT_ONLY is the literal "true" (the
+ * 2026-10-09 meeting: assignment and reassignment happen in HubSpot, the monday CRM only follows).
+ *
+ * The CRM Contacts owner field loses `appReverse` and becomes `hubspotOnly` + `writeOnCreate`: a person's
+ * monday edit of the cell -- board or drawer -- is refused and put back to HubSpot's owner, while a contact
+ * created from the monday form is still born with the owner it was given. Only that one field of that one
+ * spec changes; the Accounts and Deals owners, and every WM spec, are untouched.
+ *
+ * Identity is preserved when the switch is off, as for the cutovers above: callers compare by reference.
+ */
+function withContactOwnerRule(specs: ObjectSpec[], env: CrmEnv): ObjectSpec[] {
+  if (env.CONTACT_OWNER_HUBSPOT_ONLY !== "true") return specs;
+  return specs.map(s => s.object !== "contacts" ? s : {
+    ...s,
+    fields: s.fields.map(f => f.hs !== "hubspot_owner_id" ? f
+      : { hs: f.hs, col: f.col, type: f.type, writeOnCreate: true, hubspotOnly: true }),
+  });
 }
 
 /**
@@ -326,7 +346,8 @@ function withCutover(specs: ObjectSpec[], raw: string | undefined): ObjectSpec[]
   return specs.map(s => s.ownership ? { ...s, ownership: { ...s.ownership, cutoverAtMs } } : s);
 }
 
-export type CrmEnv = { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string; CRM_CREATE_CUTOFF_AT?: string };
+export type CrmEnv = { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string; CRM_CREATE_CUTOFF_AT?: string;
+  CONTACT_OWNER_HUBSPOT_ONLY?: string };
 
 /**
  * WHEN MAY A MONDAY CARD CREATE A HUBSPOT RECORD? Never, unless a go-live timestamp says so.

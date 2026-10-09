@@ -349,13 +349,14 @@ describe("the producer", () => {
    * would throw inside the webhook handler, which is precisely the failure that stopped live sync
    * for an hour on 2026-09-15.
    */
-  it("is a no-op when the binding is absent", async () => {
-    await expect(spillDeferred({} as Env, items(3))).resolves.toBeUndefined();
+  // `false` = "not queued", for a caller with a fallback (the owner notice runs inline then).
+  it("is a no-op when the binding is absent, and says it queued nothing", async () => {
+    await expect(spillDeferred({} as Env, items(3))).resolves.toBe(false);
   });
 
-  it("never throws when the durable object is unreachable", async () => {
+  it("never throws when the durable object is unreachable, and says it queued nothing", async () => {
     const broken = { DEFERRED_SYNC: { idFromName: () => "x", get: () => { throw new Error("DO down"); } } } as unknown as Env;
-    await expect(spillDeferred(broken, items(2))).resolves.toBeUndefined();
+    await expect(spillDeferred(broken, items(2))).resolves.toBe(false);
   });
 
   it("does nothing for an empty overflow", async () => {

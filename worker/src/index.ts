@@ -553,6 +553,13 @@ export default {
             console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} action=refused reason="${r.auth.reason}"`);
             return Response.json({ ok: false, error: "not-owned", reason: r.auth.reason }, { status: 409, headers: CORS });
           }
+          // A field changed in HubSpot only (Contact owner under CONTACT_OWNER_HUBSPOT_ONLY) cannot be cleared from
+          // here either: refused whole, before anything is written.
+          const locked = c.fields!.filter(p => r.spec.fields.some(f => f.hs === p && f.hubspotOnly));
+          if (locked.length) {
+            console.log(`[app/clear-record-fields] object=${c.object} id=${c.hubspotId} action=refused reason="changed in HubSpot only: ${locked.join(",")}"`);
+            return Response.json({ ok: false, error: "hubspot-only", fields: locked }, { status: 409, headers: CORS });
+          }
           await patchRecord(env, r.spec, c.hubspotId!, props, appWriteOpts(env), r.auth);
           return Response.json({ ok: true }, { headers: CORS });
         } catch (e) {

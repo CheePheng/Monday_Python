@@ -115,6 +115,25 @@ export interface Env {
    *  instead of a long HubSpot name failing the card's create and every later update of it. Anything else,
    *  including absent, sends and compares names exactly as before. Ships "false". */
   ITEM_NAME_FIT?: string;
+  /** "true", with ENABLE_CRM "true": a Contacts card in "No Activity - 未跟进" moves to "Active Contacts" when it
+   *  is worked -- the owner's outbound email or call syncs, or Lifecycle moves off 1.NEW or a Lead Status is set,
+   *  in monday or in HubSpot (no-activity.ts, ObjectSpec.leaveWhenWorked). The only group move the Worker makes,
+   *  and only ever OUT of that group. Anything else, including absent: no card is moved, as before. Ships "false". */
+  NO_ACTIVITY_RELEASE?: string;
+  /** "true", with ENABLE_CRM "true": when a contact's HubSpot owner is not the person in the card's 上次通知Owner,
+   *  the Worker writes the owner's email there, once per assignment (owner-notice.ts) -- the column the board's
+   *  assignment email automation is triggered by. Anything else, including absent: the column is never written.
+   *  Ships "false". */
+  OWNER_NOTICE?: string;
+  /** "true", with ENABLE_CRM "true": a HubSpot contact with no owner gets no Contacts card; the card is created
+   *  when HubSpot sets an owner (ensure-card.ts, ObjectSpec.cardNeedsOwner). Cards that already exist are kept.
+   *  Anything else, including absent: every in-scope contact is carded, as before. Ships "false". */
+  CONTACT_CARD_NEEDS_OWNER?: string;
+  /** "true", with ENABLE_CRM "true": Contact owner is changed in HubSpot only. A monday edit of it is refused and
+   *  the cell put back (FieldSpec.hubspotOnly, applied by config.ts withContactOwnerRule); a contact created in
+   *  monday is still born with its owner. Anything else, including absent: the owner column is app-save two-way,
+   *  as before. Ships "false". */
+  CONTACT_OWNER_HUBSPOT_ONLY?: string;
 }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone" | "email" | "link";
@@ -312,6 +331,18 @@ export interface FieldSpec {
    * `labels`: an unknown order is never guessed, it is one PATCH and a log line.
    */
   backwardNeedsClear?: boolean;
+
+  /**
+   * CHANGED IN HUBSPOT ONLY. Never pushed by an edit: a person's monday edit of it is refused and the cell put
+   * back to HubSpot's value at once (columnEditPatch), including an edit made as our own token user, which is
+   * looked up like any two-way column's (uiLookupColumns). Not `oneWay`, deliberately: a oneWay column's events
+   * are dropped (ignoredColumns), so the wrong value would sit on the card until HubSpot next changed the record.
+   * Pair with `writeOnCreate` so a monday-created record is still born with it.
+   *
+   * Contact owner, from 2026-10-09 (CONTACT_OWNER_HUBSPOT_ONLY): assignment and reassignment happen in HubSpot,
+   * and the monday CRM only follows. See config.ts withContactOwnerRule.
+   */
+  hubspotOnly?: boolean;
 }
 
 /** Which sync owns WRITE access to a HubSpot record. */
@@ -586,6 +617,20 @@ export interface ObjectSpec {
    * OPT-IN PER SPEC. The live Work-Management DEALS spec does not set it and is unaffected.
    */
   stagePipelinePairing?: { stageProp: string; pipelineProp: string };
+  /**
+   * THE ONE GROUP MOVE THE WORKER MAKES: out of `from`, into `to`, the moment the card is WORKED -- and only
+   * while NO_ACTIVITY_RELEASE is on. See no-activity.ts.
+   *
+   * Worked means a change, never a state: the owner's outbound email or call syncs, or a pass changes one of
+   * `notWorked`'s status columns to a non-empty label that its list does not name. A card that merely SITS in
+   * `from` with a worked value is left there, so whatever put it there (a person, or the board's nightly
+   * sweep) is never fought over and over.
+   */
+  leaveWhenWorked?: { from: string; to: string; notWorked: Record<string, string[]> };
+  /** No card for a record with no `hubspot_owner_id` (CONTACT_CARD_NEEDS_OWNER): see ensureCardForRecord. */
+  cardNeedsOwner?: boolean;
+  /** The email column the owner notice writes (OWNER_NOTICE): see owner-notice.ts. */
+  ownerNoticeCol?: string;
 }
 
 // A HubSpot association synced onto the parent monday item (HubSpot -> monday only, no reverse).
@@ -679,7 +724,13 @@ export interface Ctx {
   itemNameMax?: number;
 }
 
-export interface RunOpts { dryRun: boolean; writeHubspot: boolean; maxWrites: number }
+export interface RunOpts {
+  dryRun: boolean; writeHubspot: boolean; maxWrites: number;
+  /** The HubSpot id whose DELETED card this pass re-creates (restore-card.ts). That card existed, so a rule for
+   *  a record's first card -- CONTACT_CARD_NEEDS_OWNER -- does not apply to it; any other card this pass makes
+   *  (an associated contact's) is still a first card. */
+  restore?: string;
+}
 
 export interface Stats {
   processed: number; created: number; toMonday: number; toHubspot: number;

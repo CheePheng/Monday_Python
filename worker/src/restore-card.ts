@@ -104,5 +104,7 @@ export async function restoreDeletedCard(env: Env, spec: ObjectSpec, itemId: str
   // raced the monday one does not resurrect anything.
   // Pass the dead item id: the column search is eventually consistent and would otherwise hand back
   // the very card that was just deleted, turning the restore into a write against a dead id.
-  return syncHubspotObject(env, object, hubspotId, opts, budget, itemId);
+  // `restore`: this record's card existed, so the owner-first rule for a record's FIRST card does not hold it
+  // back (CONTACT_CARD_NEEDS_OWNER; cards already on the board stay).
+  return syncHubspotObject(env, object, hubspotId, { ...opts, restore: hubspotId }, budget, itemId);
 }
