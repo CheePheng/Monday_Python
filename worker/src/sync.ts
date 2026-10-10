@@ -14,16 +14,17 @@ import { colText, indexByHubspotId } from "./dedup";
 import {
   lookupCard, lookupCardOwner, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem,
   createWindowOf, noteCreateWindowEdit,
-  beginConverge, beginRetry, clearMarks, failConverge, finishConverge, markEdits, notePushes, noteStamp, refundRetry,
-  supersedeMarks, watchCells,
+  beginConverge, beginRetry, clearMarks, failConverge, finishConverge, markEdits, notePushes, noteStamp, peekLedger,
+  refundRetry, supersedeMarks, watchCells,
 } from "./card-registry";
 import {
   ALL_CELLS, LOG_RETRY_MAX, NAME_KEY, RELATION_HOLD_MS, RESCUE_LOOKBACK_MS, STUCK_MS, applyVeto, cellFp, cellKey, diffProps,
   effectiveLinkAt, eventTypeOfObject, fpOfField, fpOfName, gateKey, gatedCols, gatedProps, gaveUpMatches, holdWindowMs,
-  isCoarseGated, isGatedField, judgeCell, mergedVersions, needHistoryBefore, newestForeignAt, newestNamed, newestNonOwnAt,
-  ownLaterVerdict, reduceWatchCells, relKey, staleForwardGateOn, staleForwardRetryOn, updatedAtMs,
-  type CardWatch, type CellVerdict, type ConvergeOutcome, type FinalVerdict, type HsVersion, type MarkInput, type PushRec,
-  type TaggedVersion, type WatchBase, type WatchReply, type WatchReq,
+  isCoarseGated, isGatedField, judgeCell, laterSiblingPush, mergedVersions, needHistoryBefore, newerSiblingMark,
+  newestForeignAt, newestNamed, newestNonOwnAt, ownLaterVerdict, pushPropsOf, reduceWatchCells, relKey, siblingKeysOf,
+  staleForwardGateOn, staleForwardRetryOn, updatedAtMs,
+  type CardWatch, type CellVerdict, type ConvergeOutcome, type EditMark, type FinalVerdict, type HsVersion, type MarkInput,
+  type PushRec, type TaggedVersion, type WatchBase, type WatchReply, type WatchReq,
 } from "./card-watch";
 import { cardValueFingerprint, lastCellChanges, type CellChange } from "./ui-actor";
 import { ensureCardForRecord } from "./ensure-card";
@@ -35,7 +36,7 @@ import { authorizeCreate, authorizeWrite, canClaimCrmOwnership, withBirthOwnersh
 import { targetGroup } from "./routing";
 import {
   backwardClearPlan, buildCreateProperties, buildReversePatch, buildUpdatePayload, columnEditPatch, danglingClearVerdict,
-  decideDirection, emptiedFlaggedFields, fieldDiffs, reverseFieldValue, type Diff,
+  decideDirection, editCellsOf, emptiedFlaggedFields, fieldDiffs, reverseFieldValue, type Diff,
 } from "./reconcile";
 import { spillDeferred } from "./deferred-sync";
 import {
@@ -1034,17 +1035,33 @@ async function convergeCard(env: Env, boardId: string, itemId: string, opts: Run
  *     (it throws: nothing is sent on that uncertainty, and the marks stay for their next try);
  *   - an edit HubSpot changed the property after: the later change wins. "HubSpot changed it" is any version this
  *     card's own writes do not explain (PushRec) -- a person's, a workflow's, and our app's own from another path or
- *     card (an operator's script, a duplicate card); a version whose provenance cannot be told counts as such.
+ *     card (an operator's script, a duplicate card); a version whose provenance cannot be told counts as such -- AND
+ *     this card's own push of the property from a SIBLING cell (card-watch.ts siblingKeysOf: the other Stage cell, the
+ *     Pipeline, the item name beside the Name column) that carried an edit made after this one (PushRec.a: dated by the
+ *     edit, never by when it was sent; recorded only for the cells whose own value it carried), or a later edit of a
+ *     sibling cell HubSpot already held (PushRec.inLine). The ledger is read again once HubSpot's history is in, and
+ *     again right before the push (retryGate): a push this card made since the retry began is its own, never foreign.
+ * And one is not sent YET: an edit a newer edit of a sibling cell is still on its way past (that cell's mark). It waits,
+ * its mark kept: once that edit's push lands -- or its run finds HubSpot already holding it -- its next try gives it up
+ * (above); were that edit refused, it goes.
+ * THE DEALS STAGE PAIR KEEPS ITS OWN RULE BESIDE THIS: a coarse Stage edit is never sent while the card's HubSpot Stage
+ * cell names a stage HubSpot does not hold (reconcile.ts coarseStageEdit, live and retried alike -- the exact stage wins);
+ * so a newer coarse click after an exact edit whose run died before its PATCH is refused when made, and the exact edit's
+ * retry then sends that stage, both cells ending on it.
  * IT RUNS OUTSIDE THE CELL'S OWN QUEUE (a Durable Object alarm, minutes after the edit), so a newer edit of the same cell
  * can be read, pushed, or still on its way while it runs. Its push therefore looks at both sides again right before it
  * sends, and reads the card back after (types.ts RetryEdit; pushColumnEdit's retryGate): a key whose cell changed since
  * this run read the card is DEFERRED (not sent; its mark stays for its next try, or that newer edit's run clears it), a
  * key HubSpot changed after the edit meanwhile is SUPERSEDED (given up, as above), and a key the card shows otherwise once
  * its PATCH returned is RACED -- a newer edit made while it was in flight, whose own push may have landed first -- marked
- * again and re-sent from the card at once. A relation edit's add is re-checked against the cell the same way.
+ * again and re-sent from the card at once. So is a sibling cell whose own push of a LATER edit HubSpot applied before
+ * this PATCH (OVERTAKEN: the ledger proves it; a sibling cell merely showing another value is held and converged, never
+ * re-sent on the card's word). A relation edit's add is re-checked against the cell the same way.
  * ITS OWN READS (the card, monday's log for the link, HubSpot's history) come before anything is sent: one that fails
  * gives the marks their attempt back (refundRetry) and throws -- a read monday or HubSpot refused, under the very rate
- * limits that kill the runs it recovers, is not a send that failed. Any other throw keeps the marks, and the watch
+ * limits that kill the runs it recovers, is not a send that failed; nor is a card read refused for monday's rate limit
+ * inside the edit's own path before its PATCH. Every monday read it makes is patient only within its run's allowance
+ * (retryRead), and its monday write never waits (reconcileColumnEdit). Any other throw keeps the marks, and the watch
  * retries on its backoff until MARK_TTL_MS; then they are given up and the cells converge. A People cell's retry carries
  * the removals its events recorded (unknown: none), so emptying a cell that showed someone other than HubSpot's owner is
  * refused and healed, as a live run does.
@@ -1070,7 +1087,7 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
     throw e;
   };
   const read = async <T>(f: () => Promise<T>): Promise<T> => { try { return await f(); } catch (e) { return refund(e); } };
-  const card = await read(() => getItem(env, itemId));
+  const card = await read(() => retryRead(budget, waits => getItem(env, itemId, waits)));
   const recordId = card ? colText(card, spec.idCol).trim() : "";
   if (!card || !/^\d+$/.test(recordId)) {
     await clearMarks(env, base, keys, t0);
@@ -1090,7 +1107,7 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
   else {
     const oldest = Math.min(...keys.map(k => marks[k].at).filter(Number.isFinite));
     const idRows = await read(async () => {
-      const rows = await lastCellChanges(env, spec, itemId, [spec.idCol], Number.isFinite(oldest) ? oldest : t0, { patient: true });
+      const rows = await patientIdRows(env, spec, itemId, Number.isFinite(oldest) ? oldest : t0, budget);
       if (rows === null || rows[spec.idCol] === null)
         throw new Error(`monday's log could not say when ${boardId}/${itemId} was linked to its record: nothing is re-sent on`
           + ` that uncertainty (the marks stay for their next try)`);
@@ -1107,6 +1124,10 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
   }
   let send = keys.filter(k => !preLink.includes(k));
   const checked = send.filter(k => !k.startsWith("rel:") && retryPropsOf(spec, k).length);
+  /** Keys a newer edit of a SIBLING cell is still on its way past: not sent now, their marks kept. */
+  const waiting: string[] = [];
+  /** This card's own writes as last read: as the retry began, and again once HubSpot's history is in (below). */
+  let ledger: PushRec[] = begun.pushes ?? [];
   if (checked.length) {
     const r = await read(() => getRecordWithHistory(env, spec.object, recordId,
       [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])], [...new Set(checked.flatMap(k => retryPropsOf(spec, k)))]));
@@ -1114,10 +1135,16 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
       await clearMarks(env, base, keys, t0);
       return wlog("monday", itemId, "skipped", `reason="${spec.object} ${recordId} is gone from HubSpot" ${via}`);
     }
+    // THE LEDGER AGAIN, once the history is in: a push of this card's own recorded since the retry began -- a slow run
+    // of an OLDER sibling edit, landing while this retry read -- is judged by the edit it carried (below), never read as
+    // a foreign later change (it was: the NEWER edit was given up for the older one). With the marks as they are now: a
+    // sibling edit marked since is waited for. Unreachable: what the retry began with.
+    const now = await retryLedger(env, base, ledger, begun.marks);
+    ledger = now.pushes;
     const later = checked.filter(k => {
       const vs = mergedVersions(r.history, retryPropsOf(spec, k));
       if (!vs) return true;                                // its history not read: cannot tell -- never sent on that
-      const t = newestForeignAt(vs, begun.pushes, recordId);
+      const t = newestForeignAt(vs, ledger, recordId);
       return t !== undefined && t > marks[k].at;
     });
     if (later.length) {
@@ -1129,10 +1156,45 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
       await giveUp(later);
       send = send.filter(k => !later.includes(k));
     }
+    // SIBLING CELLS (card-watch.ts siblingKeysOf): this card's own push of the same HubSpot property from ANOTHER cell is
+    // a change like anyone's -- dated by the EDIT it carried (PushRec.a), never by when it was sent. One that carried an
+    // edit made after this mark's gives this key up: that later edit wins, and the cell converges to it (the push's own
+    // read of the card, and its consequence there, may never have happened: its run died). So does a later edit of a
+    // sibling cell HubSpot already held (PushRec.inLine: nothing was sent for it). A push records only the cells whose
+    // OWN value it carried (reconcile.ts editCellsOf): one run that served both Stage cells and sent the exact stage is
+    // the exact cell's push, a later edit for the coarse Stage it refused. Read from the ledger as it is
+    // once HubSpot's history is in; anything recorded later is read again right before the push (retryGate).
+    const siblingLater = send.filter(k => checked.includes(k)
+      && !!laterSiblingPush(ledger, recordId, pushPropsOf(spec, k), k, marks[k].at));
+    if (siblingLater.length) {
+      console.log(`[watch] board=${boardId} item=${itemId} cols=${siblingLater.join(",")} action=edit-retry-superseded`
+        + ` reason="this card's own push of the same HubSpot property from another cell carried a later edit (or HubSpot`
+        + ` already held a later edit of it): that edit wins, and the cell converges to it"`);
+      await giveUp(siblingLater);
+      send = send.filter(k => !siblingLater.includes(k));
+    }
+    // ...and a NEWER edit of a sibling cell not pushed yet -- its mark, live or due (in this very retry too): it is the
+    // one to send. This key waits (not sent, not healed, its mark kept): once that edit's push lands -- or its run finds
+    // HubSpot already holding it -- the next try gives this one up (above); were it refused instead, this edit is the
+    // newest again and goes. Marks unknown (a watch from before they were handed over): not sent on that uncertainty.
+    for (const k of send) {
+      if (!checked.includes(k)) continue;
+      const sibs = siblingKeysOf(env, spec, k);
+      if (sibs.length && (now.marks === undefined || newerSiblingMark(now.marks, sibs, marks[k].at) !== undefined))
+        waiting.push(k);
+    }
+    if (waiting.length) {
+      console.log(`[watch] board=${boardId} item=${itemId} cols=${waiting.join(",")} action=edit-retry-deferred`
+        + ` reason="a newer edit of the same HubSpot property, in another cell, is still on its way (its mark): not sent,`
+        + ` its mark kept -- that edit is sent, and this cell converges to it"`);
+      send = send.filter(k => !waiting.includes(k));
+    }
   }
-  if (!send.length) return wlog("monday", itemId, "skipped", `reason="every mark was given up: nothing to re-send" ${via}`);
+  if (!send.length) return wlog("monday", itemId, "skipped", `reason="every mark was given up${waiting.length
+    ? ` or waits for a newer edit of another cell: kept=${waiting.join(",")}` : ""}: nothing to re-send" ${via}`);
   const deferred: string[] = [], superseded: string[] = [];
   const raced: { key: string; at: number }[] = [];
+  const overtaken: { key: string; at: number }[] = [];
   for (const byAutomation of [false, true]) {
     const ks = send.filter(k => !!marks[k].byAutomation === byAutomation);
     if (!ks.length) continue;
@@ -1143,8 +1205,8 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
     const removedPeople: Record<string, string[]> = {};
     for (const k of ks) if (spec.fields.some(f => f.col === k && f.type === "people"))
       removedPeople[k] = marks[k].people?.known ? [...marks[k].people!.ids] : [];
-    const retry: RetryEdit = { at: Object.fromEntries(ks.map(k => [k, marks[k].at])), pushes: begun.pushes ?? [],
-      deferred: [], superseded: [], raced: [] };
+    const retry: RetryEdit = { at: Object.fromEntries(ks.map(k => [k, marks[k].at])), pushes: ledger,
+      deferred: [], superseded: [], raced: [], overtaken: [] };
     const edit: MondayEdit = { cols, ...(ks.includes(NAME_KEY) ? { name: true } : {}), ...(byAutomation ? { byAutomation: true } : {}),
       ...(actor ? { actor } : {}), ...(Object.keys(removedPeople).length ? { removedPeople } : {}), retry };
     for (const k of ks.filter(x => x.startsWith("rel:"))) {
@@ -1159,11 +1221,14 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
       + ` class=${byAutomation ? "automation" : "person"} action=edit-retried reason="its run did not resolve within its lease"`);
     // Every edit of a key reached us before this: one made after it is newer than what this run reads (RetryEdit.raced).
     const readFrom = Date.now();
+    // A read refused for monday's rate limit before the PATCH (the card's, inside syncMondayItem: patient only within
+    // its run's allowance) is no send that failed either: refunded, like the retry's own reads.
     try { await syncMondayItem(env, boardId, itemId, opts, budget, false, false, edit, { id: actor, byAutomation }); }
-    catch (e) { if (e instanceof RetryReadError) await refund(e); throw e; }
+    catch (e) { if (e instanceof RetryReadError || (isRateLimited(e) && !retry.patched)) await refund(e); throw e; }
     deferred.push(...retry.deferred);
     superseded.push(...retry.superseded);
     raced.push(...retry.raced.map(key => ({ key, at: readFrom })));
+    overtaken.push(...retry.overtaken);
   }
   if (deferred.length)
     console.log(`[watch] board=${boardId} item=${itemId} cols=${deferred.join(",")} action=edit-retry-deferred`
@@ -1171,34 +1236,103 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
       + ` its mark kept"`);
   if (superseded.length) {
     console.log(`[watch] board=${boardId} item=${itemId} cols=${superseded.join(",")} action=edit-retry-superseded`
-      + ` reason="HubSpot changed it after the edit, read right before the push (a version this card did not write): the`
-      + ` later change wins, and the cell converges to it"`);
+      + ` reason="HubSpot changed it after the edit, read right before the push (a version this card did not write, or`
+      + ` this card's own later edit of the property from another cell): the later change wins, and the cell converges to it"`);
     await giveUp(superseded);
   }
-  if (raced.length) {
-    // Marked again as of this run's read (a lower bound for the newer edit's time: HubSpot's own change after it still
-    // wins), due at once: the next try re-reads the card, and sends it if HubSpot does not hold it.
-    await markEdits(env, base, raced.map(({ key, at }): MarkInput => ({ key, at, rx: Date.now(), rescued: true,
-      ...(marks[key].actor ? { actor: marks[key].actor } : {}), ...(marks[key].byAutomation ? { byAutomation: true } : {}),
+  // A sibling's push this PATCH landed over, applied before it, and the same cell's own edit raced: one re-send each.
+  const again = [...raced, ...overtaken.filter(o => !raced.some(r => r.key === o.key))];
+  if (again.length) {
+    // RACED: marked again as of this run's read (a lower bound for the newer edit's time: HubSpot's own change after it
+    // still wins). OVERTAKEN: a sibling cell's own push of a LATER edit that HubSpot applied before this PATCH (the
+    // ledger proves it: never the card's word alone -- a sibling merely showing another value is held and converged,
+    // pushColumnEdit), marked with that edit's own time. Due at once: the next try re-reads the card, and sends it if
+    // HubSpot does not hold it -- by every rule above (a still later edit of the property wins over it too). As the
+    // edit of a person: the record is CRM's already, its own push having been sent.
+    await markEdits(env, base, again.map(({ key, at }): MarkInput => ({ key, at, rx: Date.now(), rescued: true,
+      ...(marks[key]?.actor ? { actor: marks[key].actor } : {}), ...(marks[key]?.byAutomation ? { byAutomation: true } : {}),
       ...(spec.fields.some(f => f.col === key && f.type === "people") ? { people: null } : {}) })));
-    console.log(`[watch] board=${boardId} item=${itemId} cols=${raced.map(r => r.key).join(",")} action=edit-retry-raced`
-      + ` reason="the card showed another value once the push returned: a newer edit made while it was in flight, whose`
-      + ` own push may have landed first -- re-sent from the card at once"`);
+    if (raced.length)
+      console.log(`[watch] board=${boardId} item=${itemId} cols=${raced.map(r => r.key).join(",")} action=edit-retry-raced`
+        + ` reason="the card showed another value once the push returned: a newer edit made while it was in flight, whose`
+        + ` own push may have landed first -- re-sent from the card at once"`);
+    if (overtaken.length)
+      console.log(`[watch] board=${boardId} item=${itemId} cols=${overtaken.map(r => r.key).join(",")} action=edit-retry-raced`
+        + ` reason="this card's own push of a later edit of the same HubSpot property, from another cell, was applied`
+        + ` before this retry's PATCH, which landed over it (no compare-and-set): that edit is re-sent from the card at once"`);
     const type = eventTypeOfObject(spec.object);
     if (type) await spillDeferred(env, [{ type, id: itemId, watch: { boardId, kind: "retry" } }]);
   }
-  const kept = new Set([...deferred, ...superseded, ...raced.map(r => r.key)]);
+  const kept = new Set([...waiting, ...deferred, ...superseded, ...raced.map(r => r.key)]);
   const done = send.filter(k => !kept.has(k));
   await clearMarks(env, base, done, t0);
   return wlog("monday", itemId, "edit-retried", `board=${boardId} cols=${done.join(",") || "-"}`
     + `${kept.size ? ` kept=${[...kept].join(",")}` : ""} ${via}`);
 }
 
-/** The HubSpot properties a retried key is judged on (the name: every property it can be built from). */
+/** The HubSpot properties a retried key is judged on: every one its push writes (card-watch.ts pushPropsOf -- a deal
+ *  stage's pipeline too, sent with it), and for the name every property it can be built from. */
 function retryPropsOf(spec: ObjectSpec, k: string): string[] {
   return k === NAME_KEY
     ? (spec.nameReverse ? [...new Set([spec.nameReverse, ...spec.nameProps, ...(spec.nameFallbackProps ?? [])])] : [])
-    : spec.fields.filter(f => f.col === k).map(f => f.hs);
+    : pushPropsOf(spec, k);
+}
+
+/** What one run (a deferred wave: its items share one Budget) may spend in a retry's patient monday reads: see
+ *  Budget.patientMs. Two of monday's per-minute rate-limit waits. */
+export const PATIENT_RUN_BUDGET_MS = 120_000;
+/** Less than this left of it: the read is not worth a wait -- one try, no rate-limit waits. */
+export const PATIENT_MIN_MS = 5_000;
+/** The longest one of monday's rate-limit waits takes (monday.ts gql: "reset in N seconds", at most 65 s). */
+export const RATE_WAIT_MAX_MS = 65_000;
+
+/**
+ * A RETRY'S MONDAY READS -- its card reads (retryMarkedEdits, syncMondayItem for a retry, retryGate, the read-back) and
+ * its link read (patientIdRows) -- ARE PATIENT ONLY WITHIN ITS RUN'S ALLOWANCE (Budget.patientMs, PATIENT_RUN_BUDGET_MS
+ * per deferred wave): a read sits through as many of monday's rate-limit waits as what is left covers, and the time it
+ * takes is spent from it. So one rate-limit episode holds the single DeferredSync queue -- whose waves run their items
+ * one after another: owner notices, overflow updates, converges -- for about that long per wave in its retries' reads,
+ * not gql's six waits per read. Once it is spent a read is one try; refused for the rate limit before the PATCH, the
+ * retry is refunded (retryMarkedEdits) and tried on its backoff -- a mark is never spent on a read. A retry's monday
+ * WRITE never waits on the rate limit at all (reconcileColumnEdit, STALE_FORWARD_RETRY). Other deferred items keep gql's
+ * own waits, as before; a wave cut off at a Durable Object alarm's 15 minutes is re-run, its retries' attempts counted.
+ */
+async function retryRead<T>(budget: Budget, read: (maxRateWaits: number) => Promise<T>): Promise<T> {
+  const allowance = budget.patientMs ??= PATIENT_RUN_BUDGET_MS;
+  const s = Date.now();
+  try { return await read(Math.max(0, Math.min(6, Math.floor(allowance / RATE_WAIT_MAX_MS)))); }
+  finally { budget.patientMs = Math.max(0, allowance - Math.max(0, Date.now() - s)); }
+}
+
+/** monday refused a request for its rate limit, on every try it was allowed (monday.ts MondayRateLimitedError). */
+function isRateLimited(e: unknown): boolean {
+  return (e as Error | undefined)?.name === "MondayRateLimitedError";
+}
+
+/** THE CARD'S OWN-WRITE LEDGER AND MARKS AS THEY ARE NOW (a retry's re-read: card-registry.ts peekLedger), or -- the
+ *  watch unreachable -- what the caller already had. */
+async function retryLedger(env: Env, base: WatchBase, pushes: PushRec[], marks: Record<string, EditMark> | undefined):
+    Promise<{ pushes: PushRec[]; marks?: Record<string, EditMark> }> {
+  const now = await peekLedger(env, base);
+  return now ? { pushes: now.pushes, marks: now.marks } : { pushes, ...(marks ? { marks } : {}) };
+}
+
+/**
+ * A RETRY'S LINK READ (monday's log of the record-id cell), patient only within its run's allowance (Budget.patientMs;
+ * see retryRead): it waits out monday's rate limit while the allowance lasts, and what it waits is spent from it. Once
+ * the allowance is spent the read is one try: refused, the retry is refunded (retryMarkedEdits) and tried on its backoff.
+ */
+async function patientIdRows(env: Env, spec: ObjectSpec, itemId: string, fromMs: number, budget: Budget):
+    Promise<Record<string, CellChange | null> | null> {
+  const allowance = budget.patientMs ??= PATIENT_RUN_BUDGET_MS;
+  if (allowance < PATIENT_MIN_MS) {
+    console.log(`[watch] board=${spec.boardId} item=${itemId} action=link-read-impatient reason="this run's patience for`
+      + ` monday's rate limit is spent (${Math.round(allowance / 1000)} s left): one try, no waits"`);
+    return lastCellChanges(env, spec, itemId, [spec.idCol], fromMs);
+  }
+  const s = Date.now();
+  try { return await lastCellChanges(env, spec, itemId, [spec.idCol], fromMs, { patient: true, timeoutMs: allowance }); }
+  finally { budget.patientMs = Math.max(0, allowance - Math.max(0, Date.now() - s)); }
 }
 
 /** A retried key as a card shows it: the cell as cellKey reads it, or the trimmed item name. */
@@ -1218,19 +1352,26 @@ class RetryReadError extends Error {
  * A RETRY'S LAST LOOK BEFORE IT SENDS (types.ts RetryEdit): the card and HubSpot's history, read again -- the last reads
  * before the claim and the PATCH. Of the keys the edit carries (its columns, and the name):
  *   - deferred: the card shows the cell otherwise than this run read it -- a newer edit (or HubSpot's later value a
- *     forward pass wrote), its own run's to send: neither sent nor healed here;
+ *     forward pass wrote), its own run's to send: neither sent nor healed here. So does a SIBLING cell (another cell
+ *     feeding the same HubSpot property, card-watch.ts siblingKeysOf) changed since: a newer edit of the property, on
+ *     its way in its own run -- this older one is not sent over it, and its next try finds that edit's push;
  *   - superseded: HubSpot holds a version of it this card did not write, newer than the edit (or its history could not
- *     be read for it): the later change wins.
+ *     be read for it): the later change wins. The ledger is read again once the history is in (RetryEdit.pushes): a
+ *     version this card's own push made since the retry began is judged by the edit it carried, never read as foreign;
+ *     and this card's own later edit of the property from a SIBLING cell recorded since -- a push, or an edit HubSpot
+ *     already held (PushRec.inLine) -- supersedes it too. A newer edit of a sibling cell MARKED since (on its way in its
+ *     own run) defers it, as in retryMarkedEdits.
  * Throws RetryReadError when either side cannot be read: nothing is sent on that.
  */
 async function retryGate(env: Env, spec: ObjectSpec, rec: { id: string }, existing: MondayItem, edit: MondayEdit,
-    retry: RetryEdit): Promise<{ deferred: string[]; superseded: string[] }> {
+    retry: RetryEdit, budget: Budget): Promise<{ deferred: string[]; superseded: string[] }> {
   const keys = [...edit.cols.filter(c => spec.fields.some(f => f.col === c)), ...(edit.name ? [NAME_KEY] : [])];
   if (!keys.length) return { deferred: [], superseded: [] };
   let now: MondayItem | null;
-  try { now = await getItem(env, existing.id); }
+  try { now = await retryRead(budget, waits => getItem(env, existing.id, waits)); }
   catch (e) { throw new RetryReadError(`the card could not be read again right before the retry's push: ${String(e).slice(0, 160)}`); }
-  const deferred = now ? keys.filter(k => retryCell(spec, k, now!) !== retryCell(spec, k, existing)) : [...keys];
+  const changed = (k: string) => retryCell(spec, k, now!) !== retryCell(spec, k, existing);
+  const deferred = now ? keys.filter(k => changed(k) || siblingKeysOf(env, spec, k).some(changed)) : [...keys];
   const left = keys.filter(k => !deferred.includes(k));
   const props = [...new Set(left.flatMap(k => retryPropsOf(spec, k)))];
   if (!props.length) return { deferred, superseded: [] };
@@ -1239,14 +1380,23 @@ async function retryGate(env: Env, spec: ObjectSpec, rec: { id: string }, existi
     h = await getRecordWithHistory(env, spec.object, rec.id, [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])], props);
   } catch (e) { throw new RetryReadError(`HubSpot's history could not be read again right before the retry's push: ${String(e).slice(0, 160)}`); }
   if (!h) throw new RetryReadError(`${spec.object} ${rec.id} is gone from HubSpot`);
+  const base: WatchBase = { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id };
+  const fresh = await retryLedger(env, base, retry.pushes, undefined);
+  retry.pushes = fresh.pushes;
+  const waiting = fresh.marks ? left.filter(k => {
+    const sibs = siblingKeysOf(env, spec, k);
+    return sibs.length > 0 && newerSiblingMark(fresh.marks!, sibs, retry.at[k]) !== undefined;
+  }) : [];
   const superseded = left.filter(k => {
+    if (waiting.includes(k)) return false;
     const vs = mergedVersions(h!.history, retryPropsOf(spec, k));
     if (!vs) return true;
     const t = newestForeignAt(vs, retry.pushes, rec.id);
     const at = retry.at[k];
-    return t !== undefined && !(Number.isFinite(at) && t <= at);
+    if (t !== undefined && !(Number.isFinite(at) && t <= at)) return true;
+    return !!laterSiblingPush(retry.pushes, rec.id, pushPropsOf(spec, k), k, at);
   });
-  return { deferred, superseded };
+  return { deferred: [...deferred, ...waiting], superseded };
 }
 
 /**
@@ -1286,7 +1436,7 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
   const hubspotNewer = !holdForward && (Date.parse(recModified) || 0) > (Date.parse(lastSynced) || 0);
 
   // 1. The person's edit.
-  const { patch, heal, healName, newMod, fields, hold, pending } = await pushColumnEdit(env, spec, ctx, opts, budget,
+  const { patch, heal, healName, newMod, fields, hold, pending, sent } = await pushColumnEdit(env, spec, ctx, opts, budget,
     rec, existing, stats, edit);
   // Cells this change did not edit that hold a person's edit still on its way in its own run (today only
   // the HubSpot Stage cell beside a coarse Stage edit: see coarseStageEdit). Never written over below.
@@ -1307,12 +1457,18 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
   // HubSpot change of it is news, and that change's own pass (or the watch's converge, below) brings it.
   const gate = staleForwardGateOn(env, spec);
   const leftGated: Diff[] = [];
-  const forward = fieldDiffs(effective, existing, spec, ctx, false).filter(d => {
+  let forward = fieldDiffs(effective, existing, spec, ctx, false).filter(d => {
     if (d.backfill || d.kind === "group") return false;
     // The name: never over a name this person just pushed; healed separately when refused; otherwise
     // only when HubSpot changed or the push itself changed what the name is built from. A difference
     // with neither cause is someone's rename still on its way, and must be left alone.
     if (d.kind === "name") {
+      // A retry's held name (a rename made while its PATCH was in flight: pushColumnEdit's read-back).
+      if (held.has(NAME_KEY)) {
+        console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} col=name`
+          + ` action=forward-held reason="a person's edit of it is still on its way, in its own run"`);
+        return false;
+      }
       if (gate && !edit.name && !healName && !nameFedByPush && gatedProps(env, spec, d, effective)) { leftGated.push(d); return false; }
       return !edit.name && !healName && (hubspotNewer || nameFedByPush);
     }
@@ -1329,9 +1485,69 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
     if (gate && !pushedProps.has(d.f.hs) && gatedProps(env, spec, d, effective)) { leftGated.push(d); return false; }
     return hubspotNewer || pushedProps.has(d.f.hs);
   });
+  const W = holdWindowMs(env);
+  const base: WatchBase = { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id };
+  /**
+   * STALE_FORWARD_RETRY: THE PUSH'S CONSEQUENCE NEVER WRITES OVER A NEWER EDIT OF THE SAME PROPERTY. A two-way cell this
+   * push changed on HubSpot's side -- a SIBLING of an edited cell (card-watch.ts siblingKeysOf: the other Stage cell, the
+   * Pipeline, the item name beside the Name column) or the name it feeds -- is LEFT, not written, when:
+   *   - a mark is on it (live) of an edit made AFTER the one this push carried (the marks of the cells it sent: a retry's
+   *     own, or -- a person's run -- the watch's; one it cannot date: any mark holds it): that edit is still on its way,
+   *     in its own run or its retry, and written over here it would be gone from monday before either could send it. An
+   *     OLDER edit's mark does not hold it: that edit is superseded by this push, and writing over it is what lets its own
+   *     still-running run find nothing to send, and its retry's read-back see the race (a held older value was the
+   *     NEWER edit's loss: the converge never sends a name, and wrote the older one over it);
+   *   - this is a mark's RETRY and the cell did not show HubSpot's value before the push: it holds something HubSpot never
+   *     had -- possibly a newer edit whose webhook is late, or one misread as our echo -- that the converge judges (and its
+   *     rescue sends) only while it is still on the card.
+   * Each goes to the watch as a candidate (the coarse Stage: seen while HubSpot was newer), so it converges as soon as
+   * nothing holds it. With the retry off (live), as HEAD: written. (The write itself never waits on monday's rate limit
+   * either, below: a probe that a write minutes late lands after proves nothing.)
+   */
+  if (staleForwardRetryOn(env, spec) && newMod !== null && !opts.dryRun) {
+    const consequence = forward.filter(d => !!gatedProps(env, spec, d, effective)
+      && (d.kind === "name" ? nameFedByPush : !!d.f && pushedProps.has(d.f.hs)));
+    if (consequence.length) {
+      const before = edit.retry
+        ? new Set(fieldDiffs(rec as HsRecord, existing, spec, ctx, false).filter(d => !d.backfill).map(gateKey)) : new Set<string>();
+      const own = sent ?? [];
+      const asked = consequence.map(gateKey);
+      // A person's run asks for its own cells' marks too: they date the edit it pushed.
+      const probe = await watchCells(env, base, [
+        ...consequence.map(d => ({ key: gateKey(d), fp: cellFp(d, existing), typed: false,
+          anchor: updatedAtMs(existing.updated_at), kind: "probe" as const })),
+        ...(edit.retry ? [] : own.filter(k => !asked.includes(k)).map(k => ({ key: k, fp: "", typed: false, anchor: NaN,
+          kind: "probe" as const }))),
+      ], { windowMs: W });
+      const editAtOf = (k: string): number | undefined => edit.retry ? edit.retry.at[k] : probe?.[k]?.mark?.at;
+      /** When the edit this push carried for the property `d` shows was made (undefined: it cannot be told). */
+      const pushedEditAt = (d: Diff): number | undefined => {
+        const props = d.kind === "name"
+          ? [...spec.nameProps, ...(spec.nameFallbackProps ?? []), ...(spec.nameReverse ? [spec.nameReverse] : [])] : [d.f!.hs];
+        const ts = own.filter(k => pushPropsOf(spec, k).some(p => props.includes(p))).map(editAtOf)
+          .filter((t): t is number => t !== undefined && Number.isFinite(t));
+        return ts.length ? Math.max(...ts) : undefined;
+      };
+      const kept = consequence.filter(d => {
+        if (before.has(gateKey(d))) return true;
+        const m = probe?.[gateKey(d)]?.mark;
+        if (!m) return false;
+        const at = pushedEditAt(d);
+        return at === undefined || m.at > at;
+      });
+      if (kept.length) {
+        forward = forward.filter(d => !kept.includes(d));
+        console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+          + ` cols=${kept.map(d => d.kind === "name" ? "name" : d.f!.col).join(",")} action=forward-held reason="another`
+          + ` edit of the same HubSpot property may be on this cell (a mark, or a value HubSpot never had): not written over`
+          + ` -- the watch converges it once nothing holds it"`);
+        await watchCells(env, base, kept.map(d => ({ key: gateKey(d), fp: cellFp(d, existing), typed: false,
+          anchor: updatedAtMs(existing.updated_at), kind: "candidate" as const, hs: d.hsText,
+          ...(d.kind === "field" && isCoarseGated(env, spec, d.f) ? { newer: true } : {}) })), { windowMs: W });
+      }
+    }
+  }
   if (leftGated.length) {
-    const W = holdWindowMs(env);
-    const base: WatchBase = { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id };
     console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
       + ` cols=${leftGated.map(d => d.kind === "name" ? "name" : d.f!.col).join(",")} action=left-to-forward-pass`
       + ` reason="two-way cells this edit did not change: ${hubspotNewer ? "the watch converges them on a fresh read"
@@ -1363,13 +1579,42 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
   if (stamp) cv[spec.syncStateCol] = stamp;
   if (unfinished) await rearmRecheck(env, spec, opts, rec.id, existing.id);
   const renames = healName || forward.some(d => d.kind === "name");
+  /**
+   * STALE_FORWARD_RETRY: A WRITE OF A TWO-WAY CELL THIS RUN DID NOT EDIT NEVER WAITS ON MONDAY'S RATE LIMIT (as a gated
+   * forward pass's, §16) -- the push's consequence on a sibling cell (the other Stage cell, the Pipeline, the item name
+   * beside the Name column), which may hold another edit of the same property. Sent with gql's waits, it could land a
+   * minute or more after this run read the card -- and the probe for the marks -- over an edit made meanwhile: a rep's
+   * next stage click, in the same ~stage queue, then read the reverted card and found nothing to send, lost on both
+   * sides. Refused instead, those cells are left due for a converge on a fresh read, and the run throws: its marks stay,
+   * and their retry (or the converge) brings the card into line, the sends a newer edit's own run never got to make
+   * included. What remains is the gap between the probe and a write that does not wait -- its round trip, and at most
+   * gql's own pauses between tries (4.5 s): monday has no compare-and-set. A write of no such cell (the edited cells'
+   * heals, one-way cells, Sync State) and the retry off (live): HEAD's write, with gql's own waits.
+   */
+  const twoWay = forward.filter(d => !!gatedProps(env, spec, d, effective));
+  const waits = staleForwardRetryOn(env, spec) && !opts.dryRun && twoWay.length ? 0 : undefined;
   const s0 = Date.now();
-  if (renames) {
-    await updateItem(env, spec.boardId, existing.id, itemName(effective, spec), cv, opts);
-    budget.left--;
-  } else if (Object.keys(cv).length) {
-    await setColumns(env, spec.boardId, existing.id, cv, opts);
-    budget.left--;
+  try {
+    if (renames) {
+      if (waits === undefined) await updateItem(env, spec.boardId, existing.id, itemName(effective, spec), cv, opts);
+      else await updateItem(env, spec.boardId, existing.id, itemName(effective, spec), cv, opts, waits);
+      budget.left--;
+    } else if (Object.keys(cv).length) {
+      if (waits === undefined) await setColumns(env, spec.boardId, existing.id, cv, opts);
+      else await setColumns(env, spec.boardId, existing.id, cv, opts, waits);
+      budget.left--;
+    }
+  } catch (e) {
+    if (waits === 0 && isRateLimited(e)) {
+      console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+        + ` cols=${twoWay.map(d => d.kind === "name" ? "name" : d.f!.col).join(",")} action=write-rate-limited`
+        + ` reason="monday refused the write for its rate limit (it never ran, and is not waited out: it would land over`
+        + ` edits made meanwhile): the cells are left due for a converge on a fresh read, the marks for their retry"`);
+      await watchCells(env, base, twoWay.map(d => ({ key: gateKey(d), fp: cellFp(d, existing), typed: false,
+        anchor: updatedAtMs(existing.updated_at), kind: "candidate" as const, hs: d.hsText,
+        ...(d.kind === "field" && isCoarseGated(env, spec, d.f) ? { newer: true } : {}) })), { windowMs: W });
+    }
+    throw e;
   }
   // HEAD's write, with gql's own rate-limit waits (it may land minutes late): its stamp is noted with the card's
   // register (STALE_FORWARD_GATE), which keeps it longer than such a write can take (see forwardOnlyGated, step 8).
@@ -1399,8 +1644,13 @@ interface ColumnPush {
   /** HubSpot's modified timestamp after the PATCH; null when nothing was sent (or a dry run). */
   newMod: string | null;
   fields: string[];
-  /** Unedited cells holding a person's edit still on its way (ColumnEditResult.hold); absent when none. */
+  /** Unedited cells holding a person's edit still on its way (ColumnEditResult.hold; a retry's parked keys and the
+   *  sibling cells edited while its PATCH was in flight -- watch keys: a column, or NAME_KEY for the item name); absent
+   *  when none. */
   hold?: string[];
+  /** The edited cells whose OWN value landed in HubSpot (reconcile.ts EditCells.carried, less what did not land; watch keys):
+   *  the edit this push carried, by which its consequence on the card is judged. Absent: none (nothing was sent). */
+  sent?: string[];
   /**
    * Properties a backward move left EMPTY in HubSpot -- its clear landed, its set and restore did not
    * (BackwardSetError) -- whose cells keep the person's value for the queued re-check to send. While any is
@@ -1420,6 +1670,7 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
     rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
     stats: Stats, given: MondayEdit): Promise<ColumnPush> {
   const hsRec = rec as HsRecord;
+  const base: WatchBase = { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id };
   // STALE_FORWARD_RETRY: A MARK'S RETRY LOOKS AGAIN RIGHT BEFORE IT SENDS (retryGate) -- before the claim, so a key it
   // drops never claims the record either. A cell the card shows otherwise now, or that HubSpot changed after the edit,
   // is not this run's: it is left out of the edit (neither sent nor healed) and held (no Sync State over it).
@@ -1428,7 +1679,7 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
   if (given.retry && !opts.dryRun) {
     const first = columnEditPatch(hsRec, existing, spec, ctx, given);
     if (Object.keys(first.patch).length || first.heal.length || first.healName) {
-      const g = await retryGate(env, spec, rec, existing, given, given.retry);
+      const g = await retryGate(env, spec, rec, existing, given, given.retry, budget);
       given.retry.deferred.push(...g.deferred);
       given.retry.superseded.push(...g.superseded);
       const out = new Set([...g.deferred, ...g.superseded]);
@@ -1442,12 +1693,19 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
   const r = columnEditPatch(hsRec, existing, spec, ctx, edit);
   for (const why of r.refusals)
     console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} action=refused reason="${why}"`);
+  const cells = editCellsOf(r);
+  await noteInLine(env, spec, rec, existing.id, cells.inLine, r.patch, given.retry, opts);
   const heal = [...r.heal];
   let healName = r.healName;
   let newMod: string | null = null;
   let landed = r.patch;
   let pending: string[] | undefined;
   const fields = Object.keys(r.patch);
+  // THE CELLS THIS WRITE IS SENT FOR, for the card's own-write ledger (PushRec.keys): only those whose OWN value it
+  // carries (reconcile.ts EditCells.carried) -- never the coarse Stage it refused beside an exact edit. That push is
+  // the exact cell's, a LATER change of the property for the older coarse click: recorded as the coarse cell's own, it
+  // was not, and the older click's retry was sent over it once the exact cell's mark had resolved.
+  const carried = cells.carried.length ? cells.carried : [...edit.cols, ...(edit.name ? [NAME_KEY] : [])];
   if (fields.length) {
     // An automation can write to a record CRM already owns, but only a PERSON can claim one.
     const auth = await ensureHubspotWriteAuth(env, spec, budget, rec, opts,
@@ -1461,8 +1719,10 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
       stats.skipped++;
     } else {
       try {
-        newMod = await sendPatch(env, spec, ctx, rec, existing.id, r.patch, opts, auth,
-          [...edit.cols, ...(edit.name ? [NAME_KEY] : [])]);
+        // A retry dates its write by the edits it re-sends (their marks: each property by its own cells', see
+        // recordCardPushes); a person's own run is dated by the watch.
+        if (given.retry) given.retry.patched = true;
+        newMod = await sendPatch(env, spec, ctx, rec, existing.id, r.patch, opts, auth, carried, given.retry?.at);
         budget.left--; stats.toHubspot++;
         console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
           + ` action=written fields=${fields.join(",")}${fields.some(f => r.patch[f] === "") ? " (includes a clear)" : ""}`);
@@ -1494,23 +1754,106 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
     }
   }
 
+  /** The carried cells whose value landed in HubSpot. */
+  const sent = newMod !== null ? carried.filter(k => pushPropsOf(spec, k).some(p => p in landed)) : [];
+
   // A RETRY READS THE CARD BACK once its PATCH returned: a cell it sent that the card now shows otherwise was edited while
   // the PATCH was in flight, and that edit's own push may have landed first -- and been written over. RACED: the retry
   // marks it again and re-sends it from the card at once (retryMarkedEdits). A read that fails is only logged: the
-  // converge's rescue still heals it (ownLaterVerdict: this cell's own stale push never makes the edit "already sent").
-  if (given.retry && newMod !== null) {
-    const sentKeys = [...edit.cols.filter(c => spec.fields.some(f => f.col === c && f.hs in landed)),
-      ...(edit.name && spec.nameReverse && spec.nameReverse in landed ? [NAME_KEY] : [])];
+  // converge's rescue still heals it (ownLaterVerdict: this card's own stale push never makes the edit "already sent").
+  // A SIBLING cell of one it sent (card-watch.ts siblingKeysOf) that the card shows otherwise now is HELD -- this push's
+  // consequence on the card never writes over it -- and handed to the watch to converge; it is NOT re-sent
+  // on the card's word: a person's edit still on its way is its own run's to send, and a forward pass may have written it
+  // meanwhile with HubSpot's value from before this PATCH (re-sent as a person's edit, that older value went over this
+  // newer one). What proves a sibling edit this PATCH landed over is the LEDGER (overtakenSiblings, below).
+  let racedSiblings: string[] = [];
+  if (given.retry && sent.length) {
     try {
-      const back = sentKeys.length ? await getItem(env, existing.id) : null;
-      if (back) given.retry.raced.push(...sentKeys.filter(k => retryCell(spec, k, back) !== retryCell(spec, k, existing)));
+      const back = await retryRead(budget, waits => getItem(env, existing.id, waits));
+      if (back) {
+        given.retry.raced.push(...sent.filter(k => retryCell(spec, k, back) !== retryCell(spec, k, existing)));
+        racedSiblings = [...new Set(sent.flatMap(k => siblingKeysOf(env, spec, k)))]
+          .filter(s => !sent.includes(s) && retryCell(spec, s, back) !== retryCell(spec, s, existing));
+        if (racedSiblings.length) {
+          console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+            + ` cols=${racedSiblings.join(",")} action=forward-held reason="another cell feeding the same HubSpot property`
+            + ` changed while this retry's PATCH was in flight: not written over, nor re-sent on the card's word -- its own`
+            + ` run sends a person's edit, and the watch converges it"`);
+          await watchCells(env, base, racedSiblings.map((k): WatchReq => ({ key: k, fp: retryCell(spec, k, back),
+            typed: false, anchor: updatedAtMs(back.updated_at), kind: "candidate",
+            ...(k !== NAME_KEY && isCoarseGated(env, spec, spec.fields.find(f => f.col === k)) ? { newer: true } : {}) })),
+            { windowMs: holdWindowMs(env) });
+        }
+      }
     } catch (e) {
       console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} action=retry-read-back-failed`
         + ` reason="${String(e).slice(0, 120)}" next="a newer edit raced with this push is healed by the converge's rescue"`);
     }
+    given.retry.overtaken.push(...await overtakenSiblings(env, spec, base, landed, newMod, sent, given.retry));
   }
-  const hold = [...(r.hold ?? []), ...parked];
-  return { patch: landed, heal, healName, newMod, fields, ...(pending ? { pending } : {}), ...(hold.length ? { hold } : {}) };
+  const hold = [...(r.hold ?? []), ...parked, ...racedSiblings];
+  return { patch: landed, heal, healName, newMod, fields, ...(sent.length ? { sent } : {}), ...(pending ? { pending } : {}),
+    ...(hold.length ? { hold } : {}) };
+}
+
+/**
+ * AFTER A RETRY'S PATCH, THE LEDGER (STALE_FORWARD_RETRY): this card's own pushes of a property the PATCH wrote, from a
+ * SIBLING cell (card-watch.ts siblingKeysOf), that carried a LATER edit than this PATCH did (PushRec.a, against the
+ * marks of the cells it sent) and that HubSpot applied BEFORE it -- that push's modified time earlier than this PATCH's,
+ * or the order unknown (a re-send of a value HubSpot already holds sends nothing). HubSpot has no compare-and-set: this
+ * older edit landed over that newer one, whose own run has nothing left to send, and the cell may not even differ on
+ * the card (an edit made before this retry read it, its push landing between the retry's last look and its PATCH). Its
+ * cells go back as RetryEdit.overtaken, re-sent from the card with that edit's time -- the item name too, which no
+ * rescue ever sends. A push with no edit time is never acted on (its order with this edit cannot be told), nor an edit
+ * HubSpot already held (PushRec.inLine: no version of it was written over). Unreachable ledger: nothing (logged).
+ */
+async function overtakenSiblings(env: Env, spec: ObjectSpec, base: WatchBase, landed: Record<string, string>,
+    newMod: string | null, sent: string[], retry: RetryEdit): Promise<{ key: string; at: number }[]> {
+  if (!sent.some(k => siblingKeysOf(env, spec, k).length)) return [];
+  const ledger = await peekLedger(env, base);
+  if (!ledger) {
+    console.log(`[reverse] object=${spec.object} hubspot_id=${base.recordId} monday_item=${base.itemId}`
+      + ` action=retry-ledger-unread next="a sibling edit this PATCH landed over is left to the converge"`);
+    return [];
+  }
+  const ours = timeOf(newMod);
+  const out = new Map<string, number>();
+  for (const prop of Object.keys(landed)) {
+    const mine = sent.filter(k => pushPropsOf(spec, k).includes(prop));
+    const ats = mine.map(k => retry.at[k]).filter(t => t !== undefined && Number.isFinite(t));
+    if (!ats.length) continue;
+    const at = Math.max(...ats);
+    const sibs = new Set(mine.flatMap(k => siblingKeysOf(env, spec, k)));
+    for (const p of ledger.pushes) {
+      if (p.inLine || p.recordId !== base.recordId || p.prop !== prop || p.a === undefined || !(p.a > at)) continue;
+      if (Number.isFinite(p.mod) && Number.isFinite(ours) && p.mod > ours) continue;    // applied after it: it stands
+      for (const k of p.keys ?? [])
+        if (sibs.has(k) && !sent.includes(k)) out.set(k, Math.max(out.get(k) ?? -Infinity, p.a));
+    }
+  }
+  return [...out].map(([key, at]) => ({ key, at }));
+}
+
+/**
+ * STALE_FORWARD_RETRY: AN EDIT HUBSPOT ALREADY HOLDS, on a cell with siblings (card-watch.ts siblingKeysOf), goes to the
+ * card's own-write ledger as a dated record (PushRec.inLine; reconcile.ts EditCells.inLine): nothing is sent for it,
+ * yet it is the later change of the property for an OLDER edit of a sibling cell -- a rep who clicked Stage = Won, then
+ * re-picked the HubSpot Stage HubSpot already held, means that stage; the Won click's retry is given up for it
+ * (laterSiblingPush). Dated by the retry's own marks, or by the watch from the cell's mark (one it cannot date is not
+ * kept). Not for a property this run's PATCH writes (`patch`: that push is the record). Never in a dry run, nor with
+ * HubSpot writes off. One RPC.
+ */
+async function noteInLine(env: Env, spec: ObjectSpec, rec: { id: string; properties: Record<string, string | null> },
+    itemId: string, inLine: string[], patch: Record<string, string>, retry: RetryEdit | undefined, opts: RunOpts):
+    Promise<void> {
+  if (opts.dryRun || !opts.writeHubspot || !staleForwardRetryOn(env, spec)) return;
+  const keys = inLine.filter(k => siblingKeysOf(env, spec, k).length);
+  if (!keys.length) return;
+  const now = Date.now();
+  const entries = keys.flatMap(k => pushPropsOf(spec, k).filter(p => !(p in patch)).map((prop): PushRec => ({
+    recordId: rec.id, prop, value: String(rec.properties[prop] ?? ""), mod: NaN, s: now, e: now, keys: [k], inLine: true,
+    ...(retry && Number.isFinite(retry.at[k]) ? { a: retry.at[k] } : {}) })));
+  await notePushes(env, { boardId: spec.boardId, itemId, object: spec.object, recordId: rec.id }, entries);
 }
 
 /**
@@ -1562,12 +1905,14 @@ export class BackwardSetError extends Error {
  * monday cell. A read that does land between the two PATCHes finds OUR clear in the history and sends the
  * card's value -- the same one the set is sending. Pinned in lifecycle-backward-clear.test.ts.
  *
- * `keys`: the cells this write is sent for (PushRec.keys). STALE_FORWARD_RETRY: the move's PATCHes go to the card's
- * own-write ledger TOGETHER, once the move is done or given up -- never one RPC between the clear and the set, which
- * would only hold HubSpot's stage empty the longer (up to the watch RPC's 3 s).
+ * `keys`: the cells this write is sent for (PushRec.keys); `editAt`: when each cell's edit was made, when the caller
+ * knows (a retry: its marks' -- PushRec.a). STALE_FORWARD_RETRY: the move's PATCHes go to the card's own-write ledger
+ * TOGETHER, once the move is done or given up -- never one RPC between the clear and the set, which would only hold
+ * HubSpot's stage empty the longer (up to the watch RPC's 3 s).
  */
 async function sendPatch(env: Env, spec: ObjectSpec, ctx: Ctx, rec: { id: string; properties: Record<string, string | null> },
-    itemId: string, patch: Record<string, string>, opts: RunOpts, auth: WriteAuth | undefined, keys: string[]): Promise<string | null> {
+    itemId: string, patch: Record<string, string>, opts: RunOpts, auth: WriteAuth | undefined, keys: string[],
+    editAt?: Record<string, number>): Promise<string | null> {
   const plan = backwardClearPlan(spec, patch, rec.properties, ctx);
   const where = `[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${itemId}`;
   for (const p of plan.unknown)
@@ -1575,7 +1920,7 @@ async function sendPatch(env: Env, spec: ObjectSpec, ctx: Ctx, rec: { id: string
       + ` action=lifecycle-order-unknown reason="the option order is not loaded or does not hold both values; sent`
       + ` as one PATCH, which HubSpot ignores if it is a move to an earlier stage"`);
   const cleared = Object.keys(plan.clear);
-  if (!cleared.length) return patchFromCard(env, spec, rec.id, itemId, patch, opts, auth, keys);
+  if (!cleared.length) return patchFromCard(env, spec, rec.id, itemId, patch, opts, auth, keys, editAt);
 
   const moves = cleared.map(p => `${p}:${plan.previous[p]}->${patch[p]}`).join(",");
   const move: Record<string, string> = Object.fromEntries(cleared.map(p => [p, patch[p]]));
@@ -1608,7 +1953,7 @@ async function sendPatch(env: Env, spec: ObjectSpec, ctx: Ctx, rec: { id: string
       + ` reason="${String(failure).slice(0, 160)}"`);
     throw new BackwardSetError(restored ? (restoredMod ?? clearedMod) : clearedMod, cleared, restored, failure);
   } finally {
-    await recordCardPushes(env, spec, rec.id, itemId, written, keys, opts);
+    await recordCardPushes(env, spec, rec.id, itemId, written, keys, opts, editAt);
   }
 }
 
@@ -1621,26 +1966,37 @@ interface LedgerWrite { props: Record<string, string>; mod: string | null; s: nu
  * of a property from anyone else's write made with our app's token. Recorded once HubSpot answered; a PATCH that throws
  * records nothing (its version, should it have landed, reads as someone else's: the safe side). Every business-field
  * PATCH sync.ts sends from a card goes through here or through sendPatch's backward move (repairDanglingClears too).
- * `keys`: the cells it is sent for (PushRec.keys).
+ * `keys`: the cells it is sent for (PushRec.keys); `editAt`: each cell's edit, when the caller knows (PushRec.a).
  */
 async function patchFromCard(env: Env, spec: ObjectSpec, recordId: string, itemId: string, patch: Record<string, string>,
-    opts: RunOpts, auth: WriteAuth | undefined, keys: string[]): Promise<string | null> {
+    opts: RunOpts, auth: WriteAuth | undefined, keys: string[], editAt?: Record<string, number>): Promise<string | null> {
   const s = Date.now();
   const newMod = await patchRecord(env, spec, recordId, patch, opts, auth);
-  await recordCardPushes(env, spec, recordId, itemId, [{ props: patch, mod: newMod, s, e: Date.now() }], keys, opts);
+  await recordCardPushes(env, spec, recordId, itemId, [{ props: patch, mod: newMod, s, e: Date.now() }], keys, opts, editAt);
   return newMod;
 }
 
-/** The card's own-write ledger entries for `writes` to `recordId`, sent for the cells `keys` (STALE_FORWARD_RETRY only;
- *  never in a dry run or with HubSpot writes off), in one RPC. A write's `mod`: the modified time HubSpot answered with
- *  (null: none). */
+/**
+ * The card's own-write ledger entries for `writes` to `recordId`, sent for the cells `keys` (STALE_FORWARD_RETRY only;
+ * never in a dry run or with HubSpot writes off), in one RPC. A write's `mod`: the modified time HubSpot answered with
+ * (null: none). EACH PROPERTY IS RECORDED FOR THE CELLS THAT WRITE IT (card-watch.ts pushPropsOf; the card as a whole
+ * for all; none of them -- a property no key maps -- all the keys), and dated by THEIR edits: `editAt` per cell when
+ * given (a retry's marks), and by the watch from their marks (reduceNotePushes). Dated by every cell's, one retry of a
+ * rename and a later City edit recorded its `name` as an edit as late as the City's, and a newer Name-column edit was
+ * then declined by the rescue as "older than this card's own later push of name".
+ */
 async function recordCardPushes(env: Env, spec: ObjectSpec, recordId: string, itemId: string, writes: LedgerWrite[],
-    keys: string[], opts: RunOpts): Promise<void> {
+    keys: string[], opts: RunOpts, editAt?: Record<string, number>): Promise<void> {
   if (opts.dryRun || !opts.writeHubspot || !staleForwardRetryOn(env, spec) || !writes.length) return;
   const entries: PushRec[] = writes.flatMap(w => {
     const at = timeOf(w.mod);
-    return Object.entries(w.props).map(([prop, value]): PushRec =>
-      ({ recordId, prop, value: String(value ?? ""), mod: Number.isFinite(at) ? at : NaN, s: w.s, e: w.e, keys: [...keys] }));
+    return Object.entries(w.props).map(([prop, value]): PushRec => {
+      const own = keys.filter(k => k === ALL_CELLS || pushPropsOf(spec, k).includes(prop));
+      const cells = own.length ? own : [...keys];
+      const dates = cells.map(k => editAt?.[k]).filter((t): t is number => t !== undefined && Number.isFinite(t));
+      return { recordId, prop, value: String(value ?? ""), mod: Number.isFinite(at) ? at : NaN, s: w.s, e: w.e, keys: cells,
+        ...(dates.length ? { a: Math.max(...dates) } : {}) };
+    });
   });
   await notePushes(env, { boardId: spec.boardId, itemId, object: spec.object, recordId }, entries);
 }
@@ -3451,7 +3807,8 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
   const spec = specByBoard(env, boardId);
   if (!spec) return wlog("monday", itemId, "skipped", `reason="board ${boardId} not configured"`);
   const ctx = await getCtxCached(env);
-  const item = await getItem(env, itemId);
+  // A mark's retry reads the card patiently only within its run's allowance (retryRead): it runs in the deferred queue.
+  const item = edit?.retry ? await retryRead(budget, waits => getItem(env, itemId, waits)) : await getItem(env, itemId);
   if (!item) return wlog("monday", itemId, "skipped", 'reason="item not found (deleted)"');
   const dealId = colText(item, spec.idCol);
   const stats = emptyStats();

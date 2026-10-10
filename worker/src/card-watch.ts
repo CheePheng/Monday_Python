@@ -24,9 +24,14 @@
  * CRM app's token -- this card's own push, but also an operator's script, the /app clear routes, a duplicate card's
  * push. Only a version this card's own writes explain (PushRec, isThisCardsPush) is not news to them; any other is a
  * change like a person's, and they never send an older value over it. What the card cannot account for is not sent.
+ * SIBLING CELLS (siblingKeysOf: two cells feeding one HubSpot property -- Deals' two Stage cells and the Pipeline, an
+ * Account's item name and Name column) are one property to both paths: this card's OWN push from the other cell is a later
+ * change by the time of the EDIT it carried (PushRec.a, never when it was sent), a newer edit of the other cell still on
+ * its way (its mark) defers the older one, and a push never writes over the other cell while it may hold such an edit.
  * A retry runs outside the cell's own queue, so it reads both sides again right before it sends and the card back after
- * (sync.ts RetryEdit): a newer edit of the cell is never written over. A rescue reaches back at most RESCUE_LOOKBACK_MS
- * before the watch first held the cell: anything older is history, converged. See sync.ts forwardOnlyGated for the pass.
+ * (sync.ts RetryEdit): a newer edit of the cell -- or of its sibling -- is never written over. A rescue reaches back at
+ * most RESCUE_LOOKBACK_MS before the watch first held the cell: anything older is history, converged. See sync.ts
+ * forwardOnlyGated for the pass.
  */
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec, PassScope } from "./types";
 import type { Diff } from "./reconcile";
@@ -74,6 +79,18 @@ export const RELATION_HOLD_MS = 60_000;
 export const MARK_LEASE_MS = 60_000;
 /** ...and its mark is given up this long after it (STALE_FORWARD_RETRY: after its retries). */
 export const MARK_TTL_MS = 600_000;
+/**
+ * ...but a RELATION edit's mark (Connect Boards) this long (STALE_FORWARD_RETRY): its lease and two retries. A relation
+ * has no history in HubSpot, so its retry cannot tell "added after the person's edit" from "never added": while the mark
+ * lives, forward passes keep applying the person's diff to the cell and the retry then PUTs (or deletes) the pair -- an
+ * opposite change of the SAME pair made meanwhile elsewhere (the HubSpot UI, the Deal Cockpit's /app routes, a script) is
+ * undone. That exposure is bounded by this, not by MARK_TTL_MS; once it passes the cell converges to HubSpot's set.
+ */
+export const REL_MARK_TTL_MS = 180_000;
+/** How long this mark may live with the retry on: a relation edit's (it carries `rel`) shorter than any other's. */
+export function markTtlMs(m: Pick<EditMark, "rel">): number {
+  return m.rel ? REL_MARK_TTL_MS : MARK_TTL_MS;
+}
 /** Gaps between a mark's retries, counted after the lease. */
 export const RETRY_BACKOFF_MS = [60_000, 120_000, 240_000];
 /** The loop breaker: a converge's write of one HubSpot value that monday shows otherwise (it did not take as sent) is
@@ -179,11 +196,35 @@ export interface PushRec {
   e: number;
   /**
    * The cells the run that sent it was sending (their watch keys: a column, NAME_KEY); ALL_CELLS for a write of the
-   * card as a whole (a monday-born create's payload, a drawer save). Two cells can feed one property (the Deals coarse
-   * and exact Stage; a company's item name and its Name column), and the rescue tells this cell's own stale push from a
-   * later edit of the property in another cell by it (ownLaterVerdict). Absent: not recorded -- read as another cell's.
+   * card as a whole (a monday-born create's payload, a drawer save). Two cells can feed one property (SIBLING cells,
+   * siblingKeysOf: the Deals coarse and exact Stage; a company's item name and its Name column), and the retry and the
+   * rescue tell this cell's own stale push from a later edit of the property in another cell by it (laterSiblingPush,
+   * ownLaterVerdict). Absent: not recorded -- read as another cell's.
    */
   keys?: string[];
+  /**
+   * WHEN THE EDIT IT CARRIED WAS MADE (ms, monday's clock: an event's changedAt, a mark's `at`, a log row's time): the
+   * newest edit of its cells the card's watch knew of when the write was recorded -- their marks' (reduceNotePushes),
+   * or a retry's own -- and raised to the newest edit of a cell when the run that served that cell's mark resolved
+   * (reduceClearMarks): the card's value it found then is what this write carried, or HubSpot already held. Absent: the
+   * write carried no edit the card could date (a repair, a backfill, a create, a drawer save, a run whose mark failed);
+   * it is then dated by when it was sent (editLater), the latest any edit it carried can have been made.
+   * A SIBLING cell's push is a later change of the property ONLY by this time, never by when it was sent: a retry sends
+   * an edit minutes old, and dated by its send it read as newer than the very edit it was older than.
+   */
+  a?: number;
+  /**
+   * NOT A WRITE -- AN EDIT HUBSPOT ALREADY HELD (STALE_FORWARD_RETRY): a person's run (or a retry) found the cell `keys`
+   * names showing what HubSpot holds for `prop` -- nothing to send, and nothing refused (reconcile.ts
+   * editCellsOf, EditCells.inLine): a person re-picked HubSpot's stage, renamed back to HubSpot's name, clicked the label
+   * HubSpot's stage already reads as. That edit is as much a later change of the property as a push would have been,
+   * so it is DATED (`a`: its mark's, a retry's own; an entry the watch cannot date is not kept) and kept for the cells
+   * with siblings, where an OLDER edit of a sibling cell is given up for it (laterSiblingPush) -- without it, an older
+   * click whose run died was retried over the newer one, which had left no write behind. Never matched against a
+   * HubSpot version (pushOf), never "already sent" (sentSince, ownLaterVerdict): `value` and `mod` mean nothing here
+   * (HubSpot's value as read; NaN). One per record, property and cells: the newest replaces it.
+   */
+  inLine?: true;
 }
 /** PushRec.keys of a write of the card as a whole. */
 export const ALL_CELLS = "*";
@@ -220,7 +261,7 @@ export function pushOf(v: TaggedVersion, pushes: readonly PushRec[] | undefined,
   if (!Number.isFinite(t)) return undefined;
   let best: PushRec | undefined;
   for (const p of pushes)
-    if (p.recordId === recordId && p.prop === v.prop && sameStoredValue(p.value, v.value)
+    if (!p.inLine && p.recordId === recordId && p.prop === v.prop && sameStoredValue(p.value, v.value)
         && ((Number.isFinite(p.mod) && Math.abs(t - p.mod) <= PUSH_MATCH_MS)
           || (t >= p.s - PUSH_MATCH_MS && t <= p.e + PUSH_MATCH_MS))
         && (!best || p.e > best.e)) best = p;
@@ -253,8 +294,69 @@ export function newestForeignAt(versions: TaggedVersion[] | undefined, pushes: r
  *  the write's is the Worker's clock, so within PUSH_MATCH_MS of it counts)? */
 export function sentSince(pushes: readonly PushRec[] | undefined, recordId: string, prop: string, value: unknown,
     since: number): boolean {
-  return !!pushes?.some(p => p.recordId === recordId && p.prop === prop && sameStoredValue(p.value, value)
+  return !!pushes?.some(p => !p.inLine && p.recordId === recordId && p.prop === prop && sameStoredValue(p.value, value)
     && p.e >= since - PUSH_MATCH_MS);
+}
+
+/**
+ * DID THIS WRITE CARRY AN EDIT MADE AT OR AFTER `t` (monday's clock)? By the edit's own time when the ledger dated it
+ * (PushRec.a); otherwise by when the write ended, within the clock margin -- no edit it carried can be later, so an
+ * undated write is never read as older than it may be. A time that cannot be placed is no proof of order: later.
+ */
+export function editLater(p: PushRec, t: number): boolean {
+  if (!Number.isFinite(t)) return true;
+  return p.a !== undefined && Number.isFinite(p.a) ? p.a >= t : p.e >= t - PUSH_MATCH_MS;
+}
+
+/**
+ * THE HUBSPOT PROPERTIES A PUSH OF THIS CELL WRITES: its field's property -- a deal stage together with its pipeline
+ * (stagePipelinePairing sends them in one PATCH, always) -- or, for the item name, nameReverse.
+ */
+export function pushPropsOf(spec: ObjectSpec, key: string): string[] {
+  if (key === NAME_KEY) return spec.nameReverse ? [spec.nameReverse] : [];
+  const pair = spec.stagePipelinePairing;
+  return [...new Set(spec.fields.filter(f => f.col === key)
+    .flatMap(f => (pair && f.hs === pair.stageProp ? [f.hs, pair.pipelineProp] : [f.hs])))];
+}
+
+/**
+ * SIBLING CELLS: the other cells a person's edit can push (two-way columns, the coarse Stage while it is two-way, the
+ * item name where it is pushed) whose pushes write a HubSpot property this cell's push writes too. On the CRM specs
+ * (config/crm.ts): Deals -- the coarse Stage `deal_stage` and HubSpot Stage `dropdown_mm7624zd` (dealstage, each with
+ * its pipeline), and the Pipeline cell `dropdown_mm76s7kk` (pipeline); Accounts -- the item name and the Name column
+ * `text_mm6t1q4h` (name). Contacts and Line Items have none. An edit of one is an edit of the property: a mark's retry,
+ * the converge's rescue, a push's consequence on the card and the own-write ledger all judge the two cells together.
+ */
+export function siblingKeysOf(env: { STAGE_COARSE_REVERSE?: string }, spec: ObjectSpec, key: string): string[] {
+  const mine = new Set(pushPropsOf(spec, key));
+  if (!mine.size) return [];
+  const keys = [...gatedCols(env, spec), ...(spec.nameReverse ? [NAME_KEY] : [])];
+  return keys.filter(k => k !== key && pushPropsOf(spec, k).some(p => mine.has(p)));
+}
+
+/**
+ * THIS CARD'S OWN LATER PUSH OF THE PROPERTY FROM A SIBLING CELL: the newest of its recorded writes of `recordId`'s
+ * `props` that was sent for ANOTHER cell than `key` (a write of the card as a whole is every cell's own) and carried an
+ * edit made at or after `at` (editLater) -- or undefined. Such a push IS the later change of the property, whoever's
+ * cell it came from: an older edit of `key` is never sent over it. So is a sibling's edit HubSpot already held
+ * (PushRec.inLine): nothing was sent for it, and it is as much the later change. A write whose cells were not recorded
+ * reads as another cell's (fail safe).
+ */
+export function laterSiblingPush(pushes: readonly PushRec[] | undefined, recordId: string, props: readonly string[],
+    key: string, at: number): PushRec | undefined {
+  let best: PushRec | undefined;
+  for (const p of pushes ?? []) {
+    if (p.recordId !== recordId || !props.includes(p.prop)) continue;
+    if (p.keys && (p.keys.includes(key) || p.keys.includes(ALL_CELLS))) continue;
+    if (editLater(p, at) && (!best || p.e > best.e)) best = p;
+  }
+  return best;
+}
+
+/** A sibling cell's mark NEWER than `at`: a later edit of the same property, still on its way -- or undefined. */
+export function newerSiblingMark(marks: Readonly<Record<string, EditMark>>, siblings: readonly string[], at: number):
+    string | undefined {
+  return siblings.find(s => marks[s] !== undefined && !(marks[s].at <= at));
 }
 
 /**
@@ -263,27 +365,32 @@ export function sentSince(pushes: readonly PushRec[] | undefined, recordId: stri
  * edit -- the cell's NEWEST row in monday's log, so any push of this very cell that holds another value was built from
  * an older read than that edit.
  *   - "sibling": HubSpot's newest version is this card's push of the property from ANOTHER cell (or from cells it did
- *     not record), sent after the edit -- the Deals coarse Stage beside the exact one, a company's item name beside its
- *     Name column: that later edit of the property wins, and this cell converges to it;
- *   - "sent": this card already sent `want` since the edit, and what HubSpot holds instead is not explained by a stale
- *     push of this very cell landing after it -- HubSpot's own answer (it stored the value otherwise, ignored it): the
- *     edit is sent ONCE, and the cell converges, never re-sent in a loop;
- *   - undefined: send it. Notably when this cell's own push of `want` was OVERTAKEN by a stale push of the same cell (a
- *     run that read the card before the edit and sent last, another isolate's): the edit never landed. A sentSince that
- *     ignored this lost the person's newest edit on both sides.
+ *     not record) that carried an edit made at or after this one (editLater: by the edit's own time, never by when it
+ *     was sent -- a retry of an OLDER edit of the other cell is not "later") -- the Deals coarse Stage beside the exact
+ *     one, a company's item name beside its Name column: that later edit of the property wins, and this cell converges;
+ *     so does another cell's later edit HubSpot already held (PushRec.inLine), which left no version behind;
+ *   - "sent": this card already sent `want` since the edit, and what HubSpot holds instead is not a stale push that
+ *     overtook it -- HubSpot's own answer (it stored the value otherwise, ignored it): the edit is sent ONCE, and the
+ *     cell converges, never re-sent in a loop;
+ *   - undefined: send it. Notably when this card's push of `want` was OVERTAKEN: HubSpot's newest version is this card's
+ *     own push of an OLDER edit -- of this very cell (a run that read the card before the edit and sent last, another
+ *     isolate's) or of a sibling (dated before the edit) -- that HubSpot applied AFTER the push of `want`. Judged by
+ *     HUBSPOT'S order (that version's timestamp against the modified time HubSpot answered the push of `want` with),
+ *     never by when the PATCHes returned to the Worker. An order that cannot be told is "sent" (never re-sent on it).
  */
 export function ownLaterVerdict(versions: readonly TaggedVersion[], pushes: readonly PushRec[] | undefined, recordId: string,
     prop: string, key: string, want: unknown, rowAt: number): "sibling" | "sent" | undefined {
   const newest = versions.find(v => v.prop === prop);
   const np = newest ? pushOf(newest, pushes, recordId) : undefined;
   const ofThisCell = (p: PushRec) => !!p.keys && (p.keys.includes(key) || p.keys.includes(ALL_CELLS));
-  if (np && !ofThisCell(np) && np.e >= rowAt - PUSH_MATCH_MS) return "sibling";
-  const sent = (pushes ?? []).filter(p => p.recordId === recordId && p.prop === prop && sameStoredValue(p.value, want)
-    && p.e >= rowAt - PUSH_MATCH_MS);
+  if (np && !ofThisCell(np) && editLater(np, rowAt)) return "sibling";
+  if (laterSiblingPush((pushes ?? []).filter(p => p.inLine), recordId, [prop], key, rowAt)) return "sibling";
+  const sent =(pushes ?? []).filter(p => !p.inLine && p.recordId === recordId && p.prop === prop
+    && sameStoredValue(p.value, want) && p.e >= rowAt - PUSH_MATCH_MS);
   if (!sent.length) return undefined;
-  const lastSent = Math.max(...sent.map(p => p.e));
-  const overtaken = !!np && ofThisCell(np) && !sameStoredValue(np.value, want) && np.e > lastSent;
-  return overtaken ? undefined : "sent";
+  if (!np || sameStoredValue(np.value, want) || sent.some(p => !Number.isFinite(p.mod))) return "sent";
+  const npAt = timeOf(newest!.timestamp);
+  return Number.isFinite(npAt) && npAt > Math.max(...sent.map(p => p.mod)) ? undefined : "sent";
 }
 
 /**
@@ -785,7 +892,7 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 export function isMarkLive(m: EditMark | undefined, now: number, retryOn: boolean): boolean {
   if (!m) return false;
   if (!retryOn) return now - m.firstRx < MARK_LEASE_MS;
-  return now - m.firstRx < MARK_TTL_MS;
+  return now - m.firstRx < markTtlMs(m);
 }
 
 /** When this mark's next retry is due (STALE_FORWARD_RETRY). */
@@ -851,10 +958,29 @@ function keepPushes(list: PushRec[], now: number): PushRec[] {
     .sort((a, b) => a.e - b.e).slice(-PUSH_KEEP_MAX);
 }
 
-/** This card's own HubSpot writes, recorded (STALE_FORWARD_RETRY; see PushRec). */
+/**
+ * This card's own HubSpot writes, recorded (STALE_FORWARD_RETRY; see PushRec) -- each DATED by the edit it carried
+ * (PushRec.a): the newest of the caller's own date (a retry's marks) and the marks the watch holds now for its cells (a
+ * person's run: the events of its cells that reached us, the one it read included). A mark newer than what the run read
+ * makes the date later than the edit, never earlier: the safe side, for both readers (a later sibling push gives an
+ * older edit up; it never lets one through). An edit HubSpot already held (PushRec.inLine) is kept only DATED -- with
+ * no edit time it orders nothing -- and replaces the one kept for the same record, property and cells.
+ */
 export function reduceNotePushes(w: CardWatch | undefined, base: WatchBase, entries: PushRec[], now: number): CardWatch | undefined {
   const cur = withBase(w, base);
-  cur.pushes = keepPushes([...(cur.pushes ?? []), ...entries.map(e => clone(e))], now);
+  const dated = entries.map(e => {
+    const p = clone(e);
+    const marked = (p.keys ?? []).map(k => cur.marks[k]?.at).filter((t): t is number => t !== undefined && Number.isFinite(t));
+    const a = Math.max(p.a !== undefined && Number.isFinite(p.a) ? p.a : -Infinity, ...marked);
+    if (Number.isFinite(a)) p.a = a; else delete p.a;
+    return p;
+  }).filter(p => !p.inLine || p.a !== undefined);
+  const sameHeld = (x: PushRec, y: PushRec) => !!x.inLine && !!y.inLine && x.recordId === y.recordId && x.prop === y.prop
+    && (x.keys ?? []).join("|") === (y.keys ?? []).join("|");
+  for (const d of dated)                                     // the newest stands in for it -- never dated earlier
+    for (const p of cur.pushes ?? []) if (sameHeld(p, d) && p.a! > d.a!) d.a = p.a;
+  const kept = (cur.pushes ?? []).filter(p => !dated.some(d => sameHeld(p, d)));
+  cur.pushes = keepPushes([...kept, ...dated], now);
   if (!cur.pushes.length) delete cur.pushes;
   return pruneWatch(cur, now);
 }
@@ -989,12 +1115,29 @@ export function reduceMarkEdits(w: CardWatch | undefined, base: WatchBase, marks
   return pruneWatch(cur, now);
 }
 
-/** A run resolved at or after `t0`: its marks (no event since t0) and the holds it settled (held since t0) go. */
+/**
+ * A run resolved at or after `t0`: its marks (no event since t0) and the holds it settled (held since t0) go.
+ * The run served every event of such a mark, so the card's value of the cell it found is what this card's own pushes of
+ * the cell carried that ended at or after the edit was MADE (the mark's `at`, monday's clock, within PUSH_MATCH_MS) --
+ * or HubSpot already held (nothing to send): those pushes are DATED by the mark's newest edit at least (PushRec.a). So
+ * an edit whose webhook reached us only after its value's push was recorded still dates that push, before any
+ * sibling's retry reads it -- however late its mark came: an ask ada UI edit's is written only once its actor is read
+ * from monday's log (6 s and more), a webhook can lag. Measured from when the mark reached us (firstRx), a mark 5 s late
+ * left a push of its very value dated by an older edit, and an older sibling's retry was sent over it. A push that may
+ * have read the card before the edit is dated later than it is: the safe side (a later sibling push gives an older
+ * edit up; it never lets one through). So is a refused edit's.
+ */
 export function reduceClearMarks(w: CardWatch | undefined, keys: string[], t0: number, now: number): CardWatch | undefined {
   if (!w) return undefined;
   const cur = clone(w);
   for (const k of keys) {
-    if (cur.marks[k] && cur.marks[k].lastRx <= t0) delete cur.marks[k];
+    const m = cur.marks[k];
+    if (m && m.lastRx <= t0) {
+      for (const p of cur.pushes ?? [])
+        if (p.keys?.includes(k) && Number.isFinite(m.at) && p.e >= m.at - PUSH_MATCH_MS
+            && !(p.a !== undefined && p.a >= m.at)) p.a = m.at;
+      delete cur.marks[k];
+    }
     if (cur.cells[k] && cur.cells[k].since <= t0) delete cur.cells[k];
   }
   return pruneWatch(cur, now);
@@ -1120,9 +1263,9 @@ function madeBeforeLink(cur: CardWatch, m: EditMark): boolean {
   return cur.linkedAt !== undefined && m.at <= cur.linkedAt;
 }
 
-/** A mark past its TTL, or past its retries. */
+/** A mark past its TTL (a relation edit's: REL_MARK_TTL_MS), or past its retries. */
 function markSpent(m: EditMark, now: number): boolean {
-  return now - m.firstRx >= MARK_TTL_MS || m.attempts > RETRY_BACKOFF_MS.length;
+  return now - m.firstRx >= markTtlMs(m) || m.attempts > RETRY_BACKOFF_MS.length;
 }
 
 /**
@@ -1172,7 +1315,10 @@ export function reduceSupersede(w: CardWatch | undefined, base: WatchBase, fps: 
   for (const [k, fp] of Object.entries(fps)) {
     if (cur.marks[k] && cur.marks[k].lastRx > t0) continue;
     delete cur.marks[k];
-    cur.cells[k] = { fp, since: now, typed: false, windowMs: W, due: now };
+    // The coarse Stage held for this very value while HubSpot was newer keeps that word (WatchCell.newer): superseded,
+    // its converge must still bring HubSpot's later stage, whatever Sync State a sibling's push stamped meanwhile.
+    const newer = cur.cells[k]?.fp === fp && cur.cells[k].newer;
+    cur.cells[k] = { fp, since: now, typed: false, windowMs: W, due: now, ...(newer ? { newer: true as const } : {}) };
     cur.gaveUp ??= {};
     cur.gaveUp[k] = { fp, at: now };
   }
@@ -1244,7 +1390,7 @@ export function nextAlarmAt(w: CardWatch | undefined, now: number, retryOn: bool
   }
   if (w.allAt !== undefined) next = Math.min(next, convergeAt(w.allAt));
   for (const m of Object.values(w.marks))
-    next = Math.min(next, retryOn ? Math.min(retryDueAt(m), m.firstRx + MARK_TTL_MS) : m.firstRx + MARK_LEASE_MS);
+    next = Math.min(next, retryOn ? Math.min(retryDueAt(m), m.firstRx + markTtlMs(m)) : m.firstRx + MARK_LEASE_MS);
   for (const mem of [w.fwd, w.gaveUp]) for (const v of Object.values(mem ?? {})) next = Math.min(next, v.at + WATCH_RETENTION_MS);
   for (const p of w.pushes ?? []) if (Number.isFinite(p.e)) next = Math.min(next, p.e + PUSH_RETENTION_MS);
   if (!Number.isFinite(next)) return null;

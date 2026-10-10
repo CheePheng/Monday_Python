@@ -15,8 +15,13 @@ import { spillDeferred } from "./deferred-sync";
 import { getItemsColumnText, setColumns } from "./monday";
 
 /** What a retry begins with (beginRetry): the marks it re-sends, and what it judges them by -- this card's own writes
- *  (the provenance of our app's versions) and its link to its record. */
-export interface RetryBegun { live: Record<string, EditMark>; pushes?: PushRec[]; linkedAt?: number; linkWrite?: { s: number; e: number } }
+ *  (the provenance of our app's versions), its link to its record, and EVERY mark the watch holds (`marks`: the due ones
+ *  and those still in their lease), so a newer edit of a SIBLING cell still on its way is seen (card-watch.ts
+ *  newerSiblingMark). Absent `marks` (a watch from before it): unknown -- a key with a sibling is not sent on it. */
+export interface RetryBegun {
+  live: Record<string, EditMark>; marks?: Record<string, EditMark>; pushes?: PushRec[]; linkedAt?: number;
+  linkWrite?: { s: number; e: number };
+}
 
 /** A Sync State stamp to read back (the card watch's register): restore `hw` if the card holds an older one.
  *  `tries`: read-backs that failed (a rate-limited restamp is never waited out: it is tried again, VERIFY_TRIES times). */
@@ -613,7 +618,7 @@ export class CreateIdempotency extends DurableObject<Env> {
         console.log(`[watch] board=${cur?.boardId} item=${cur?.itemId} col=${k} action=edit-retry-abandoned`
           + ` reason="its retries ran out: the cell converges to HubSpot"`);
       if (cur) await this.saveWatch(r.watch, nowMs);
-      return { live: r.live, ...(cur?.pushes?.length ? { pushes: cur.pushes } : {}),
+      return { live: r.live, marks: r.watch?.marks ?? {}, ...(cur?.pushes?.length ? { pushes: cur.pushes } : {}),
         ...(cur?.linkedAt !== undefined ? { linkedAt: cur.linkedAt } : {}), ...(cur?.linkWrite ? { linkWrite: cur.linkWrite } : {}) };
     });
   }
@@ -625,6 +630,15 @@ export class CreateIdempotency extends DurableObject<Env> {
       const cur = await this.ctx.storage.get<CardWatch>("held");
       if (!cur) return;
       await this.saveWatch(reduceRefundRetry(cur, keys, nowMs), nowMs);
+    });
+  }
+
+  /** THE LEDGER AND THE MARKS AS THEY ARE NOW, READ ONLY (STALE_FORWARD_RETRY: a retry's re-reads, sync.ts
+   *  retryLedger) -- nothing registered, counted or stored. `{}` parts when the card has no watch. */
+  async peekLedger(): Promise<{ pushes: PushRec[]; marks: Record<string, EditMark> }> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      return { pushes: cur?.pushes ?? [], marks: cur?.marks ?? {} };
     });
   }
 

@@ -96,10 +96,11 @@ export async function getBoardItems(env: Env, boardId: string): Promise<MondayIt
 
 const ITEM_FIELDS = "id name created_at updated_at group { id } column_values { id text ... on PeopleValue { persons_and_teams { id kind } } ... on StatusValue { status_index: index } }";
 
-/** Fetch one item by id (webhook fast path). Null if it no longer exists. */
-export async function getItem(env: Env, itemId: string): Promise<MondayItem | null> {
+/** Fetch one item by id (webhook fast path). Null if it no longer exists. `maxRateWaits` as for gql (a mark's retry
+ *  passes what its run's allowance still covers: sync.ts retryRead). */
+export async function getItem(env: Env, itemId: string, maxRateWaits?: number): Promise<MondayItem | null> {
   const items: any[] = (await gql(env, `query ($i:[ID!]) { items(ids:$i) { ${ITEM_FIELDS} } }`,
-    { i: [itemId] })).items;
+    { i: [itemId] }, 3, maxRateWaits)).items;
   return items[0] ?? null;
 }
 

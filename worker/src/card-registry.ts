@@ -1,6 +1,6 @@
 import type { Env } from "./types";
 import type { CardClaim, CreateSnapshot, PendingEdit, RetryBegun } from "./create-idempotency-do";
-import type { CardWatch, ConvergeOutcome, MarkInput, PushRec, WatchBase, WatchReply, WatchReq } from "./card-watch";
+import type { CardWatch, ConvergeOutcome, EditMark, MarkInput, PushRec, WatchBase, WatchReply, WatchReq } from "./card-watch";
 
 // monday's `items_page_by_column_values` (how every path asks "is there already a card for this HubSpot
 // record?") is EVENTUALLY CONSISTENT — a card created seconds ago is invisible to it. Several paths create
@@ -276,6 +276,13 @@ export async function beginRetry(env: Env, boardId: string, itemId: string, wind
 export async function refundRetry(env: Env, base: WatchBase, keys: string[]): Promise<void> {
   if (!keys.length) return;
   await watchCall(env, base.boardId, base.itemId, "refundRetry", stub => stub.refundRetry(Date.now(), keys));
+}
+
+/** THE CARD'S OWN-WRITE LEDGER AND MARKS AS THEY ARE NOW, read only (STALE_FORWARD_RETRY: a retry's re-reads -- what
+ *  was pushed, held or marked since the retry began). Null when unreachable. */
+export async function peekLedger(env: Env, base: WatchBase):
+    Promise<{ pushes: PushRec[]; marks: Record<string, EditMark> } | null> {
+  return watchCall(env, base.boardId, base.itemId, "peekLedger", stub => stub.peekLedger());
 }
 
 /**

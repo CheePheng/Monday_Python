@@ -543,6 +543,27 @@ export interface ColumnEditResult {
 }
 
 /**
+ * WHICH EDITED CELLS A columnEditPatch RESULT SPEAKS FOR -- STALE_FORWARD_RETRY's own-write ledger (sync.ts
+ * pushColumnEdit; card-watch.ts PushRec). Kept BESIDE the result (editCellsOf), never in it: the result is the edit's,
+ * pinned as it always was. Cells by their watch keys: a column id, or EDIT_NAME_KEY for the item name.
+ *   - carried: the edited cells whose OWN value `patch` carries. Never one that was refused, healed or left as set (the
+ *     coarse Stage beside an exact edit in the same change: the exact stage wins), nor one whose value another cell's in
+ *     the same change replaced (a Pipeline the stage's own pipeline overrides, the Name column under a rename);
+ *   - inLine: the edited cells HubSpot already holds -- nothing to send for them, and nothing refused: a value the
+ *     person set that equals HubSpot's, the coarse Stage whose label HubSpot's stage already reads as.
+ */
+export interface EditCells { carried: string[]; inLine: string[] }
+const EDIT_CELLS = new WeakMap<ColumnEditResult, EditCells>();
+/** The cells a columnEditPatch result carries, and those already in line (EditCells); none for any other object. */
+export function editCellsOf(r: ColumnEditResult): EditCells {
+  return EDIT_CELLS.get(r) ?? { carried: [], inLine: [] };
+}
+
+/** The item name's key in EditCells: card-watch.ts NAME_KEY, spelled here because card-watch.ts imports this module
+ *  (pinned equal by card-watch.test.ts). */
+export const EDIT_NAME_KEY = "~name";
+
+/**
  * THE PATCH FOR EXACTLY WHAT A PERSON EDITED. Every other column on the card is ignored, however
  * stale -- see ObjectSpec.columnLevelReverse for why that is the whole point.
  *
@@ -568,6 +589,10 @@ export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpe
   const edited = new Set(edit.cols);
   const raw = (p: string) => String(rec.properties[p] ?? "").trim();
   const coarse = coarseStageField(spec);
+  // Which edited cell put which value in the patch, and which HubSpot already holds (EditCells, kept beside `out`).
+  const sentBy: { key: string; prop: string; value: string }[] = [];
+  const inLine = new Set<string>();
+  const send = (key: string, prop: string, value: string) => { out.patch[prop] = value; sentBy.push({ key, prop, value }); };
 
   for (const f of spec.fields) {
     if (!edited.has(f.col)) continue;
@@ -599,20 +624,20 @@ export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpe
        */
       if (!hasPerson) {
         if (cv?.persons_and_teams?.some(p => p.kind === "team")) { refuse("a monday team cannot be a HubSpot owner"); continue; }
-        if (!hs) continue;
+        if (!hs) { inLine.add(f.col); continue; }
         const shown = formatValue(f, rec.properties[f.hs], ctx) as { personsAndTeams?: { id: number }[] } | null;
-        if (shown === null) continue;                            // seatless: nothing monday showed was removed
+        if (shown === null) { inLine.add(f.col); continue; }    // seatless: nothing monday showed was removed
         const removed = edit.removedPeople?.[f.col];
         const shownId = String(shown.personsAndTeams?.[0]?.id ?? "");
         if (removed && !removed.includes(shownId)) {
           refuse("the person removed is not HubSpot's current owner (the cell was out of date)"); continue;
         }
-        out.patch[f.hs] = "";
+        send(f.col, f.hs, "");
         continue;
       }
       const owner = firstPersonOwnerId(item, f.col, ctx);
       if (!owner) { refuse("that person has no HubSpot user to assign"); continue; }
-      if (owner !== hs) out.patch[f.hs] = owner;
+      if (owner !== hs) send(f.col, f.hs, owner); else inLine.add(f.col);
       continue;
     }
 
@@ -622,10 +647,10 @@ export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpe
     }
 
     const md = colText(item, f.col);
-    if (!md.trim()) { if (hs) out.patch[f.hs] = ""; continue; }            // emptied -> clear
+    if (!md.trim()) { if (hs) send(f.col, f.hs, ""); else inLine.add(f.col); continue; }   // emptied -> clear
     const v = reverseFieldValue(f, md, ctx);
     if (!v) { refuse(`"${md.slice(0, 60)}" is not a valid value for this HubSpot property`); continue; }
-    if (v !== hs) out.patch[f.hs] = v;
+    if (v !== hs) send(f.col, f.hs, v); else inLine.add(f.col);
   }
 
   if (edit.name) {
@@ -642,18 +667,28 @@ export function columnEditPatch(rec: HsRecord, item: MondayItem, spec: ObjectSpe
       if (name !== fitItemName(raw(spec.nameReverse), ctx.itemNameMax)) {
         out.healName = true;
         out.refusals.push("HubSpot's name is longer than monday can show; rename it in HubSpot");
-      }
+      } else inLine.add(EDIT_NAME_KEY);
     }
-    else if (name !== raw(spec.nameReverse)) out.patch[spec.nameReverse] = name;
+    else if (name !== raw(spec.nameReverse)) send(EDIT_NAME_KEY, spec.nameReverse, name);
+    else inLine.add(EDIT_NAME_KEY);
   }
 
-  if (coarse && edited.has(coarse.col)) coarseStageEdit(rec, item, spec, ctx, edit, coarse, out);
+  if (coarse && edited.has(coarse.col)) {
+    const c = coarseStageEdit(rec, item, spec, ctx, edit, coarse, out);
+    if (c === "in-line") inLine.add(coarse.col);
+    else if (c === "sent") sentBy.push({ key: coarse.col, prop: spec.stagePipelinePairing!.stageProp,
+      value: out.patch[spec.stagePipelinePairing!.stageProp] });
+  }
 
   if (!applyStagePipelinePairing(out.patch, spec, ctx)) {
     const stage = spec.fields.find(f => f.hs === spec.stagePipelinePairing!.stageProp);
     if (stage) out.heal.push(stage);
     out.refusals.push("deal stage has no known pipeline, so it cannot be sent");
   }
+  // A cell's value the patch still carries as that cell set it (the pairing may have dropped a stage, or replaced a
+  // Pipeline edit's value with the stage's own pipeline; a rename replaces the Name column's value of `name`).
+  EDIT_CELLS.set(out, { carried: [...new Set(sentBy.filter(s => out.patch[s.prop] === s.value).map(s => s.key))],
+    inLine: [...inLine] });
   return out;
 }
 
@@ -736,7 +771,7 @@ export function exactStageField(spec: ObjectSpec): FieldSpec | undefined {
  * heals are held to the same rule in buildUpdatePayload (see wonHealWithheld).
  */
 function coarseStageEdit(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx: Ctx,
-    edit: { cols: string[]; byAutomation?: boolean }, coarse: FieldSpec, out: ColumnEditResult): void {
+    edit: { cols: string[]; byAutomation?: boolean }, coarse: FieldSpec, out: ColumnEditResult): "sent" | "in-line" | "refused" {
   const pair = spec.stagePipelinePairing!;
   const hsStage = String(rec.properties[pair.stageProp] ?? "").trim();
   const bucketOf = (stage: string) => stage ? ctx.labels.crmCoarseStage?.[stage] : undefined;
@@ -809,16 +844,16 @@ function coarseStageEdit(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx:
     out.refusals.push(reason);
   };
 
-  if (edit.byAutomation) { refuse("an automation's edit of the Stage column is never sent"); return; }
+  if (edit.byAutomation) { refuse("an automation's edit of the Stage column is never sent"); return "refused"; }
   if (exactEdited) {
     refuse("HubSpot Stage was edited in the same change, and the exact stage wins");
-    return;
+    return "refused";
   }
   const label = (COARSE_STAGES as readonly string[]).includes(md) ? md as CoarseStage : undefined;
   if (!label) {
     refuse(md ? `"${md.slice(0, 60)}" is not one of the five Stage labels (${COARSE_STAGES.join(", ")})`
       : "the Stage cannot be emptied: a deal always has a stage");
-    return;
+    return "refused";
   }
   /**
    * THE HUBSPOT STAGE CELL NAMES A STAGE HUBSPOT DOES NOT HOLD, so the exact stage wins -- and which of
@@ -838,25 +873,26 @@ function coarseStageEdit(rec: HsRecord, item: MondayItem, spec: ObjectSpec, ctx:
   if (pending && pending !== hsStage) {
     refuse(`HubSpot Stage shows "${shownExact.slice(0, 60)}", which HubSpot does not hold: the exact stage wins`,
       { heal: stageBehind });
-    return;
+    return "refused";
   }
   const pipeField = spec.fields.find(f => f.hs === pair.pipelineProp);
   const pipeline = out.patch[pair.pipelineProp]
     || String(rec.properties[pair.pipelineProp] ?? "").trim()
     || (pipeField ? reverseFieldValue(pipeField, colText(item, pipeField.col), ctx) : "");
-  if (!pipeline) { refuse("the deal's pipeline is unknown, so no stage can be chosen in it"); return; }
+  if (!pipeline) { refuse("the deal's pipeline is unknown, so no stage can be chosen in it"); return "refused"; }
   const where = `[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${item.id} col=${coarse.col}`
     + ` label=${label} pipeline=${pipeline}`;
   if (hsStage && ctx.pipelineByStage?.[hsStage] === pipeline && ctx.labels.crmCoarseStage?.[hsStage] === label) {
     console.log(`${where} stage=${hsStage} action=coarse-in-bucket reason="HubSpot's stage already reads as ${label}; nothing to send"`);
-    return;
+    return "in-line";
   }
   const targets = coarseTargetsFor(ctx.labels.crmCoarseStage);
-  if (!targets) { refuse("the pipelines' stage order is not loaded, so no stage of the bucket can be chosen"); return; }
+  if (!targets) { refuse("the pipelines' stage order is not loaded, so no stage of the bucket can be chosen"); return "refused"; }
   const target = targets[pipeline]?.[label];
-  if (!target) { refuse(`pipeline ${pipeline} has no stage that reads as ${label}`); return; }
+  if (!target) { refuse(`pipeline ${pipeline} has no stage that reads as ${label}`); return "refused"; }
   out.patch[pair.stageProp] = target;
   console.log(`${where} stage=${target} previous=${hsStage || "-"} action=coarse-mapped`);
+  return "sent";
 }
 
 /**

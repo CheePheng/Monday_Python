@@ -1,18 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
   ALARM_MARGIN_MS, ALL_CELLS, CONVERGE_BACKOFF_MAX_MS, CONVERGE_GIVE_UP_MS, CONVERGE_RECHECK_MS, HOLD_DEFAULT_S, LOG_RETRY_MS,
-  MARK_LEASE_MS, MARK_TTL_MS, OWN_HS_SOURCE_ID, PUSH_KEEP_PER_PROP, PUSH_MATCH_MS, PUSH_RETENTION_MS, RESCUE_LOOKBACK_MS,
-  RETRY_BACKOFF_MS, STAMP_NOTES_MAX, STAMP_NOTE_WINDOW_MS, STUCK_MS, TIE_MS, WATCH_RETENTION_MS, applyVeto, cellFp, composeRel,
-  convergeRecheckMs, diffProps, effectiveLinkAt, eventOwnness, eventTypeOfObject, fpOfField, fpOfName, freshScope, gatedCols,
-  gatedProps, gaveUpMatches, holdWindowMs, isCoarseGated, isGatedCol, isMarkLive, isOwnVersion, isThisCardsPush, judgeCell,
-  liveStampNotes, mergeScopes, mergedVersions, nameFeedProps, needHistoryBefore, newestForeignAt, newestNamed, newestNonOwnAt,
-  nextAlarmAt, ownLaterVerdict, pruneWatch, pushOf, reduceAlarm, reduceBeginConverge, reduceBeginRetry, reduceClearMarks,
-  reduceFailConverge, reduceFinishConverge, reduceMarkEdits, reduceNotePushes, reduceRefundRetry, reduceSupersede,
-  reduceWatchCells, retryDueAt, sameStoredValue, scopeMaxAgeMs, sentSince, stampSuspicious, staleForwardGateOn,
-  staleForwardRetryOn, trimStampNotes, updatedAtMs, watchRetryOn,
+  MARK_LEASE_MS, MARK_TTL_MS, NAME_KEY, OWN_HS_SOURCE_ID, PUSH_KEEP_PER_PROP, PUSH_MATCH_MS, PUSH_RETENTION_MS, REL_MARK_TTL_MS,
+  RESCUE_LOOKBACK_MS, RETRY_BACKOFF_MS, STAMP_NOTES_MAX, STAMP_NOTE_WINDOW_MS, STUCK_MS, TIE_MS, WATCH_RETENTION_MS, applyVeto,
+  cellFp, composeRel, convergeRecheckMs, diffProps, editLater, effectiveLinkAt, eventOwnness, eventTypeOfObject, fpOfField,
+  fpOfName, freshScope, gatedCols, gatedProps, gaveUpMatches, holdWindowMs, isCoarseGated, isGatedCol, isMarkLive, isOwnVersion,
+  isThisCardsPush, judgeCell, laterSiblingPush, liveStampNotes, mergeScopes, mergedVersions, nameFeedProps, needHistoryBefore,
+  newerSiblingMark, newestForeignAt, newestNamed, newestNonOwnAt, nextAlarmAt, ownLaterVerdict, pruneWatch, pushOf, pushPropsOf,
+  reduceAlarm, reduceBeginConverge, reduceBeginRetry, reduceClearMarks, reduceFailConverge, reduceFinishConverge,
+  reduceMarkEdits, reduceNotePushes, reduceRefundRetry, reduceSupersede, reduceWatchCells, retryDueAt, sameStoredValue,
+  scopeMaxAgeMs, sentSince, siblingKeysOf, stampSuspicious, staleForwardGateOn, staleForwardRetryOn, trimStampNotes,
+  updatedAtMs, watchRetryOn,
   type CardWatch, type CellFacts, type EditMark, type PushRec, type TaggedVersion, type WatchBase,
 } from "../src/card-watch";
-import { CRM_ACCOUNTS, CRM_CONTACTS, CRM_DEALS } from "../src/config/crm";
+import { CRM_ACCOUNTS, CRM_CONTACTS, CRM_DEALS, CRM_LINE_ITEMS } from "../src/config/crm";
 import { CONTACTS_MYLA } from "../src/config";
 import type { Ctx, HsRecord, MondayItem } from "../src/types";
 import type { Diff } from "../src/reconcile";
@@ -916,6 +917,194 @@ describe("the second review's rules", () => {
     expect(r.marks.a.retryQueuedAt).toBe(now + 60_000);
     expect(r.marks.b.attempts).toBe(0);
     expect(reduceRefundRetry(undefined, ["a"], now)).toBeUndefined();
+  });
+});
+
+describe("sibling cells: two monday cells feeding ONE HubSpot property (the final verification's blocker)", () => {
+  const now = T("2026-10-09T09:00:00.000Z");
+  const watch = (o: Partial<CardWatch> = {}): CardWatch => ({ ...base, cells: {}, marks: {}, ...o });
+  const own = (prop: string, value: string, at: number): TaggedVersion =>
+    ({ prop, value, timestamp: new Date(at).toISOString(), sourceType: "INTEGRATION", sourceId: OWN_HS_SOURCE_ID });
+  const P = (o: Partial<PushRec>): PushRec => ({ recordId: "7001", prop: "name", value: "X", mod: now, s: now - 300, e: now + 100, ...o });
+  const vs = (...v: TaggedVersion[]) => v;
+  const NAMECOL = "text_mm6t1q4h", COARSE = "deal_stage", EXACT = "dropdown_mm7624zd", PIPE = "dropdown_mm76s7kk";
+  const on = { STAGE_COARSE_REVERSE: "true" }, off = { STAGE_COARSE_REVERSE: "false" };
+
+  it("enumerated from config/crm.ts: Deals' two Stage cells and the Pipeline (sent with every stage); Accounts' item name and Name column; Contacts and Line Items none", () => {
+    expect(pushPropsOf(CRM_DEALS, COARSE)).toEqual(["dealstage", "pipeline"]);
+    expect(pushPropsOf(CRM_DEALS, EXACT)).toEqual(["dealstage", "pipeline"]);
+    expect(pushPropsOf(CRM_DEALS, PIPE)).toEqual(["pipeline"]);
+    expect(pushPropsOf(CRM_ACCOUNTS, NAME_KEY)).toEqual(["name"]);
+    expect(pushPropsOf(CRM_CONTACTS, NAME_KEY), "a contact's name is never pushed").toEqual([]);
+    expect(siblingKeysOf(on, CRM_DEALS, COARSE).sort()).toEqual([PIPE, EXACT].sort());
+    expect(siblingKeysOf(on, CRM_DEALS, EXACT).sort()).toEqual([COARSE, PIPE].sort());
+    expect(siblingKeysOf(on, CRM_DEALS, PIPE).sort()).toEqual([COARSE, EXACT].sort());
+    expect(siblingKeysOf(off, CRM_DEALS, EXACT), "the coarse Stage is one-way with STAGE_COARSE_REVERSE off").toEqual([PIPE]);
+    expect(siblingKeysOf(on, CRM_ACCOUNTS, NAME_KEY)).toEqual([NAMECOL]);
+    expect(siblingKeysOf(on, CRM_ACCOUNTS, NAMECOL)).toEqual([NAME_KEY]);
+    expect(siblingKeysOf(on, CRM_ACCOUNTS, "company_domain"), "the domain names only a nameless company; its push never writes name")
+      .toEqual([]);
+    for (const spec of [CRM_CONTACTS, CRM_LINE_ITEMS])
+      for (const k of [...gatedCols(on, spec), NAME_KEY]) expect(siblingKeysOf(on, spec, k), `${spec.object} ${k}`).toEqual([]);
+    for (const k of gatedCols(on, CRM_DEALS).filter(c => ![COARSE, EXACT, PIPE].includes(c)))
+      expect(siblingKeysOf(on, CRM_DEALS, k), k).toEqual([]);
+    for (const k of gatedCols(on, CRM_ACCOUNTS).filter(c => c !== NAMECOL)) expect(siblingKeysOf(on, CRM_ACCOUNTS, k), k).toEqual([]);
+  });
+
+  it("editLater: by the edit's own time when the ledger dated it; undated, by when the write ended (within the margin); unplaceable: later", () => {
+    expect(editLater(P({ a: now - 1 }), now), "a write of an older edit, however late it was sent").toBe(false);
+    expect(editLater(P({ a: now, e: now - 60_000 }), now)).toBe(true);
+    expect(editLater(P({ e: now - PUSH_MATCH_MS }), now), "undated: it may carry an edit up to its end").toBe(true);
+    expect(editLater(P({ e: now - PUSH_MATCH_MS - 1 }), now)).toBe(false);
+    expect(editLater(P({ a: now - 1 }), NaN), "no time to compare: later (never sent on it)").toBe(true);
+  });
+
+  it("laterSiblingPush: another cell's push carrying a later edit -- never this cell's own, nor the card as a whole; unrecorded cells on the safe side", () => {
+    const props = ["name"];
+    expect(laterSiblingPush([P({ keys: [NAMECOL], a: now + 20_000 })], "7001", props, NAME_KEY, now)?.keys).toEqual([NAMECOL]);
+    expect(laterSiblingPush([P({ keys: [NAMECOL], a: now - 20_000, e: now + 60_000 })], "7001", props, NAME_KEY, now),
+      "an older edit sent late is not later").toBeUndefined();
+    expect(laterSiblingPush([P({ keys: [NAME_KEY], a: now + 20_000 })], "7001", props, NAME_KEY, now), "its own").toBeUndefined();
+    expect(laterSiblingPush([P({ keys: [ALL_CELLS], a: now + 20_000 })], "7001", props, NAME_KEY, now), "the card as a whole")
+      .toBeUndefined();
+    expect(laterSiblingPush([P({ a: now + 20_000 })], "7001", props, NAME_KEY, now), "cells not recorded").toBeDefined();
+    expect(laterSiblingPush([P({ keys: [NAMECOL], e: now + 60_000 })], "7001", props, NAME_KEY, now), "undated, sent after").toBeDefined();
+    expect(laterSiblingPush([P({ keys: [NAMECOL], a: now + 1, recordId: "9" })], "7001", props, NAME_KEY, now), "another record")
+      .toBeUndefined();
+    expect(laterSiblingPush([P({ keys: [EXACT], prop: "pipeline", a: now + 1 })], "7001", ["dealstage", "pipeline"], PIPE, now),
+      "a stage push wrote the pipeline too").toBeDefined();
+  });
+
+  it("newerSiblingMark: a sibling's mark of an edit made after this one (a tie is no order)", () => {
+    const m = (at: number): EditMark => ({ at, firstRx: at, lastRx: at, attempts: 0 });
+    expect(newerSiblingMark({ [NAMECOL]: m(now + 1) }, [NAMECOL], now)).toBe(NAMECOL);
+    expect(newerSiblingMark({ [NAMECOL]: m(now) }, [NAMECOL], now)).toBeUndefined();
+    expect(newerSiblingMark({ [NAMECOL]: m(now - 1), other: m(now + 9) }, [NAMECOL], now)).toBeUndefined();
+  });
+
+  it("[LOW] the rescue dates a sibling push by the EDIT it carried: a retried OLDER edit of the other cell, sent later, is not 'later'", () => {
+    const retried = P({ value: "Acme Group", mod: now + 40_000, s: now + 39_700, e: now + 40_100, keys: [NAME_KEY], a: now - 20_000 });
+    const verdict = (p: PushRec) => ownLaterVerdict(vs(own("name", "Acme Group", now + 40_000)), [p], "7001", "name", NAMECOL,
+      "Acme Holdings", now);
+    expect(verdict(retried), "the Name-column edit is the newer one: sent").toBeUndefined();
+    expect(verdict({ ...retried, a: now + 1 }), "a later edit of the other cell wins").toBe("sibling");
+    const { a: _a, ...undated } = retried;
+    expect(verdict(undated), "undated: by when it was sent, as before").toBe("sibling");
+  });
+
+  it("[INFO] 'overtaken' is HubSpot's order -- the stale version's time against the edit's push's answered time -- never the PATCHes' return order", () => {
+    const JOBK = JOB.col;
+    const want = P({ prop: "jobtitle", value: "Director", mod: now + 3000, s: now + 2000, e: now + 9000, keys: [JOBK] });
+    const stale = P({ prop: "jobtitle", value: "Buyer", mod: now + 4000, s: now + 1000, e: now + 4100, keys: [JOBK] });
+    const verdict = (versions: TaggedVersion[], pushes: PushRec[]) =>
+      ownLaterVerdict(versions, pushes, "7001", "jobtitle", JOBK, "Director", now);
+    expect(verdict(vs(own("jobtitle", "Buyer", now + 4000), own("jobtitle", "Director", now + 3000)), [want, stale]),
+      "applied after the edit's push (though it returned first): the edit never stuck -- re-sent").toBeUndefined();
+    expect(verdict(vs(own("jobtitle", "Buyer", now + 2500)), [want, { ...stale, mod: now + 2500 }]),
+      "applied BEFORE the edit's push, which HubSpot ignored: sent once, never looped").toBe("sent");
+    expect(verdict(vs(own("jobtitle", "Buyer", now + 4000), own("jobtitle", "Director", now + 3000)), [{ ...want, mod: NaN }, stale]),
+      "the order cannot be told: sent -- never re-sent on uncertainty").toBe("sent");
+  });
+
+  it("a SIBLING's stale push (an older edit) that HubSpot applied after this cell's push of the edit: overtaken, re-sent", () => {
+    const mine = P({ value: "Acme Holdings", mod: now + 2000, s: now + 1500, e: now + 2100, keys: [NAMECOL], a: now });
+    const stale = P({ value: "Acme Group", mod: now + 3000, s: now + 2500, e: now + 3100, keys: [NAME_KEY], a: now - 60_000 });
+    expect(ownLaterVerdict(vs(own("name", "Acme Group", now + 3000), own("name", "Acme Holdings", now + 2000)), [mine, stale], "7001",
+      "name", NAMECOL, "Acme Holdings", now)).toBeUndefined();
+    expect(ownLaterVerdict(vs(own("name", "Acme Group", now + 3000), own("name", "Acme Holdings", now + 2000)),
+      [mine, { ...stale, a: now + 500 }], "7001", "name", NAMECOL, "Acme Holdings", now), "a LATER sibling edit wins").toBe("sibling");
+  });
+
+  it("the ledger dates a write by its cells' marks -- never earlier than its caller dated it; the card as a whole, or an unmarked cell, undated", () => {
+    let w = reduceMarkEdits(undefined, base, [{ key: "c", at: now - 5000, rx: now - 4000 }], now)!;
+    w = reduceNotePushes(w, base, [P({ keys: ["c"] })], now)!;
+    expect(w.pushes![0].a).toBe(now - 5000);
+    w = reduceNotePushes(w, base, [P({ keys: ["c"], value: "Y", a: now - 1000 })], now)!;
+    expect(w.pushes![1].a, "the caller's own, later date").toBe(now - 1000);
+    w = reduceNotePushes(w, base, [P({ keys: [ALL_CELLS], value: "Z" }), P({ keys: ["other"], value: "Q" })], now)!;
+    expect(w.pushes![2].a).toBeUndefined();
+    expect(w.pushes![3].a).toBeUndefined();
+  });
+
+  it("a run that resolves a mark dates this card's pushes of the cell made while it lived by its newest edit -- a webhook later than the push", () => {
+    let w = reduceNotePushes(undefined, base, [P({ keys: ["c"], value: "old", s: now - 90_000, e: now - 89_000 })], now - 89_000)!;
+    w = reduceMarkEdits(w, base, [{ key: "c", at: now - 3000, rx: now - 2900 }], now)!;
+    w = reduceNotePushes(w, base, [P({ keys: ["c"], s: now - 100, e: now })], now)!;
+    w = reduceClearMarks(w, ["c"], now, now)!;                                 // the first run resolves
+    expect(w.pushes!.find(p => p.value === "X")!.a).toBe(now - 3000);
+    w = reduceMarkEdits(w, base, [{ key: "c", at: now - 1000, rx: now + 2000 }], now + 2000)!;   // S2's late webhook
+    const notYet = reduceClearMarks(w, ["c"], now + 1000, now + 3000)!;     // a run that began before it: no
+    expect(notYet.pushes!.find(p => p.value === "X")!.a).toBe(now - 3000);
+    w = reduceClearMarks(w, ["c"], now + 2000, now + 3000)!;                // its own run: nothing to send
+    expect(w.pushes!.find(p => p.value === "X")!.a, "dated by the edit it carried").toBe(now - 1000);
+    expect(w.pushes!.find(p => p.value === "old")!.a, "a push from before that mark is not").toBeUndefined();
+  });
+
+  it("a superseded coarse Stage held for that very value while HubSpot was newer keeps that word; a new value does not", () => {
+    const w0 = watch({ cells: { [COARSE]: { fp: "Won", since: now, typed: false, windowMs: W, newer: true } },
+      marks: { [COARSE]: { at: now, firstRx: now, lastRx: now, attempts: 1 } } });
+    expect(reduceSupersede(w0, base, { [COARSE]: "Won" }, now + 1000, now + 2000, W)!.cells[COARSE].newer).toBe(true);
+    expect(reduceSupersede(w0, base, { [COARSE]: "Lost" }, now + 1000, now + 2000, W)!.cells[COARSE].newer).toBeUndefined();
+  });
+
+  it("an edit HubSpot already held (PushRec.inLine) is a later sibling change -- never a version of ours, never 'already sent'", () => {
+    const held = P({ value: "Acme", mod: NaN, s: now + 20_000, e: now + 20_000, keys: [NAMECOL], a: now + 20_000, inLine: true });
+    expect(laterSiblingPush([held], "7001", ["name"], NAME_KEY, now), "an older rename gives way to it").toBe(held);
+    expect(laterSiblingPush([held], "7001", ["name"], NAME_KEY, now + 30_000), "a newer rename does not").toBeUndefined();
+    expect(laterSiblingPush([held], "7001", ["name"], NAMECOL, now), "its own cell's").toBeUndefined();
+    const v = own("name", "Acme", now + 20_000);
+    expect(pushOf(v, [held], "7001"), "no HubSpot version is it").toBeUndefined();
+    expect(newestForeignAt(vs(v), [held], "7001"), "so a version of ours at that time stays foreign").toBe(now + 20_000);
+    expect(sentSince([held], "7001", "name", "Acme", now)).toBe(false);
+    expect(ownLaterVerdict(vs(own("name", "Acme", now - 60_000)), [held], "7001", "name", NAME_KEY, "Acme Group", now),
+      "the rescue declines an older edit of the other cell for it").toBe("sibling");
+    expect(ownLaterVerdict(vs(own("name", "Acme", now - 60_000)), [held], "7001", "name", NAME_KEY, "Acme Group", now + 30_000))
+      .toBeUndefined();
+  });
+
+  it("the ledger keeps an in-line record only DATED -- by its cells' marks or its own -- and one per record, property and cells, never dated earlier", () => {
+    const held = (a?: number, e = now) => P({ value: "Acme", mod: NaN, s: e, e, keys: [NAMECOL], inLine: true, ...(a !== undefined ? { a } : {}) });
+    expect(reduceNotePushes(undefined, base, [held()], now)?.pushes, "undated: dropped").toBeUndefined();
+    let w = reduceMarkEdits(undefined, base, [{ key: NAMECOL, at: now - 5000, rx: now - 4000 }], now)!;
+    w = reduceNotePushes(w, base, [held()], now)!;
+    expect(w.pushes!.map(p => p.a), "dated by the cell's mark").toEqual([now - 5000]);
+    w = reduceNotePushes(w, base, [held(now - 1000, now + 1000)], now + 1000)!;
+    expect(w.pushes!.map(p => p.a), "replaced by the newer one").toEqual([now - 1000]);
+    w = reduceClearMarks(w, [NAMECOL], now + 2000, now + 2000)!;
+    w = reduceNotePushes(w, base, [held(now - 9000, now + 3000)], now + 3000)!;
+    expect(w.pushes!.map(p => p.a), "never dated earlier than the one it replaces").toEqual([now - 1000]);
+    w = reduceNotePushes(w, base, [P({ keys: [NAMECOL], value: "Acme Holdings", a: now })], now + 3000)!;
+    expect(w.pushes!.filter(p => !p.inLine), "a real push beside it").toHaveLength(1);
+  });
+
+  it("a run that resolves a mark dates the pushes of its cell that ended after the EDIT was made -- however late its mark came", () => {
+    // S1's push of S2's value ended at +3 s; S2's edit was made at +2 s, its mark recorded at +8.1 s (5.1 s after the push).
+    const push = P({ keys: [NAMECOL], value: "Acme Holdings", s: now + 2500, e: now + 3000, mod: now + 3000, a: now });
+    let w = reduceNotePushes(undefined, base, [push], now + 3000)!;
+    w = reduceMarkEdits(w, base, [{ key: NAMECOL, at: now + 2000, rx: now + 8100 }], now + 8100)!;
+    w = reduceClearMarks(w, [NAMECOL], now + 8100, now + 8200)!;
+    expect(w.pushes![0].a, "dated by S2's edit, not left at S1's").toBe(now + 2000);
+    let w2 = reduceNotePushes(undefined, base, [{ ...push, e: now - 6000, s: now - 6500 }], now)!;
+    w2 = reduceMarkEdits(w2, base, [{ key: NAMECOL, at: now + 2000, rx: now + 8100 }], now + 8100)!;
+    w2 = reduceClearMarks(w2, [NAMECOL], now + 8100, now + 8200)!;
+    expect(w2.pushes![0].a, "a push that ended before the edit was made carried an older value").toBe(now);
+  });
+
+  it("a relation edit's mark lives REL_MARK_TTL_MS with the retry on -- its exposure to an opposite change of the same pair -- any other MARK_TTL_MS", () => {
+    const rel: EditMark = { at: now, firstRx: now, lastRx: now, attempts: 0,
+      rel: { added: ["1"], removed: [], known: true, largestAdd: 1, largestRemove: 0 } };
+    const fld: EditMark = { at: now, firstRx: now, lastRx: now, attempts: 0 };
+    expect(REL_MARK_TTL_MS).toBeLessThan(MARK_TTL_MS);
+    expect(isMarkLive(rel, now + REL_MARK_TTL_MS - 1, true)).toBe(true);
+    expect(isMarkLive(rel, now + REL_MARK_TTL_MS, true)).toBe(false);
+    expect(isMarkLive(fld, now + REL_MARK_TTL_MS, true)).toBe(true);
+    expect(isMarkLive(rel, now + MARK_LEASE_MS - 1, false), "retry off: the lease, as before").toBe(true);
+    expect(isMarkLive(rel, now + MARK_LEASE_MS, false)).toBe(false);
+    expect(reduceAlarm(watch({ marks: { "rel:c": rel } }), now + REL_MARK_TTL_MS, W, true).abandoned).toEqual(["rel:c"]);
+    expect(reduceAlarm(watch({ marks: { c: fld } }), now + REL_MARK_TTL_MS, W, true).abandoned).toEqual([]);
+    expect(reduceBeginRetry(watch({ marks: { "rel:c": rel } }), now + REL_MARK_TTL_MS, W, true).abandoned).toEqual(["rel:c"]);
+    expect(nextAlarmAt(watch({ marks: { "rel:c": { ...rel, retryQueuedAt: now + 60_000, attempts: 3 } } }), now + 61_000, true))
+      .toBe(now + REL_MARK_TTL_MS);
   });
 });
 

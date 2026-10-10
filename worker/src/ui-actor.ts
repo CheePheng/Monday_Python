@@ -509,11 +509,12 @@ export const PATIENT_LOG_TIMEOUT_MS = 8 * 60_000;
  * no verdict (null). The whole answer is null when the query fails, times out or a row is unreadable: fail closed,
  * nothing is rescued. The read is one try that never waits on monday's rate limit, bounded at 3 s -- the converge's,
  * which holds its card read meanwhile -- unless `patient` (a mark's retry, sync.ts retryMarkedEdits, before it reads the
- * card): then gql's own retries and rate-limit waits, bounded by PATIENT_LOG_TIMEOUT_MS. A retry runs under the very
- * rate limits that killed the run it recovers, and a read refused at once there only defers it.
+ * card): then gql's own retries and rate-limit waits, bounded by `timeoutMs` (at most PATIENT_LOG_TIMEOUT_MS: the caller
+ * passes what its run may still wait, Budget.patientMs). A retry runs under the very rate limits that killed the run it
+ * recovers, and a read refused at once there only defers it.
  */
 export async function lastCellChanges(env: Env, spec: ObjectSpec, itemId: string, cols: string[], fromMs: number,
-    o: { patient?: boolean } = {}): Promise<Record<string, CellChange | null> | null> {
+    o: { patient?: boolean; timeoutMs?: number } = {}): Promise<Record<string, CellChange | null> | null> {
   if (!cols.length) return {};
   const query = `query ($b:[ID!], $i:[ID!], $c:[String], $f:ISO8601DateTime, $t:ISO8601DateTime) {
     boards(ids:$b) { activity_logs(item_ids:$i, column_ids:$c, from:$f, to:$t, limit:50) {
@@ -522,7 +523,8 @@ export async function lastCellChanges(env: Env, spec: ObjectSpec, itemId: string
   const vars = { b: [spec.boardId], i: [itemId], c: cols,
     f: new Date(from - 120_000).toISOString(), t: new Date(Date.now() + 1_000).toISOString() };
   let d: any;
-  try { d = o.patient ? await withTimeout(gql(env, query, vars), PATIENT_LOG_TIMEOUT_MS) : await withTimeout(gql(env, query, vars, 1, 0)); }
+  const patience = Math.min(PATIENT_LOG_TIMEOUT_MS, o.timeoutMs ?? PATIENT_LOG_TIMEOUT_MS);
+  try { d = o.patient ? await withTimeout(gql(env, query, vars), patience) : await withTimeout(gql(env, query, vars, 1, 0)); }
   catch (e) {
     console.log(`[ui-actor] source=monday board=${spec.boardId} item=${itemId} action=cell-log-unreadable`
       + ` reason="${e instanceof LookupTimeout ? "timeout" : String(e).slice(0, 100)}"`);

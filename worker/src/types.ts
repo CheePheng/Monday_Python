@@ -464,17 +464,27 @@ export interface MondayEdit {
  *   - superseded: HubSpot holds a version of it this card did not write, newer than the edit: the later change wins --
  *     given up, and the cell converges to it;
  *   - raced: sent, but the card showed something else once the PATCH returned -- a newer edit made while it was in
- *     flight, whose own push may have landed first: marked again and re-sent from the card at once.
+ *     flight, whose own push may have landed first: marked again and re-sent from the card at once;
+ *   - overtaken: a SIBLING cell (card-watch.ts siblingKeysOf) whose own push of a property this PATCH wrote carried a
+ *     LATER edit and was applied by HubSpot BEFORE this PATCH (the ledger, read once it returned): this older edit
+ *     landed over that newer one (HubSpot has no compare-and-set) -- the cell is marked with that edit's time and
+ *     re-sent from the card at once. Never on the card's say-so alone: a sibling cell merely showing another value
+ *     after the PATCH (a forward pass's write, a person's edit still on its way) is held, and left to its own run and
+ *     the watch's converge.
  * A relation edit's retry re-reads the cell before its PUT the same way (associations.ts, ReverseScope.retry).
  */
 export interface RetryEdit {
   /** Each key's edit time: its mark's `at`. */
   at: Record<string, number>;
-  /** This card's own HubSpot writes, as the retry began (the watch's ledger). */
+  /** This card's own HubSpot writes, as the retry last read them (the watch's ledger): when it began, then again after
+   *  each history read (retryLedger). */
   pushes: PushRec[];
   deferred: string[];
   superseded: string[];
   raced: string[];
+  overtaken: { key: string; at: number }[];
+  /** Its PATCH was sent (or attempted): from then on a failure is not one of its own reads failing (no refund). */
+  patched?: boolean;
 }
 
 export interface ObjectSpec {
@@ -803,4 +813,14 @@ export interface Stats {
 }
 
 // A shared, mutable write budget threaded across all specs in one run.
-export interface Budget { left: number }
+export interface Budget {
+  left: number;
+  /**
+   * STALE_FORWARD_RETRY: what this run may still spend WAITING in patient monday reads (ms) -- a mark's retry's link
+   * check (sync.ts retryMarkedEdits) waits out monday's rate limit only within it. A deferred wave hands ONE budget to
+   * all its items, so a rate-limit episode can hold the single DeferredSync queue (owner notices, overflow updates,
+   * converges) at most this long per wave, never PATIENT_LOG_TIMEOUT_MS per retry. Absent: none spent yet (the first
+   * patient read starts it at PATIENT_RUN_BUDGET_MS).
+   */
+  patientMs?: number;
+}
