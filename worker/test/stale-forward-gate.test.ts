@@ -77,8 +77,8 @@ const noWatch = (pass: string) => {
     get: (id: string) => { if (String(id).startsWith("held:")) throw new Error("DO unreachable"); return W_.namespace.get(id); } };
   return env as never;
 };
-/** The card watch's in-memory Sync State notes (the register, §13). */
-const stampNotes = () => ((W_.doObjects.get(W_.watchKey()) ?? {}) as { stampNotes?: { ts: string }[] }).stampNotes?.map(n => n.ts) ?? [];
+/** The card watch's Sync State notes (the register, §13), as its Durable Object's storage holds them. */
+const stampNotes = () => ((W_.doObjects.get(W_.watchKey())?.ctx.map.get("stampNotes") ?? []) as { ts: string }[]).map(n => n.ts);
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });

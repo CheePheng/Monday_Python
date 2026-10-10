@@ -1,5 +1,5 @@
 import type {
-  Budget, Ctx, Env, FieldSpec, HsRecord, LabelDict, MondayEdit, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth,
+  Budget, Ctx, Env, FieldSpec, HsRecord, LabelDict, MondayEdit, MondayItem, ObjectSpec, RetryEdit, RunOpts, Stats, WriteAuth,
 } from "./types";
 import type { CreateSnapshot, PendingEdit } from "./create-idempotency-do";
 import { convergeRelationCell, pushBirthAssociations, reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
@@ -14,14 +14,15 @@ import { colText, indexByHubspotId } from "./dedup";
 import {
   lookupCard, lookupCardOwner, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem,
   createWindowOf, noteCreateWindowEdit,
-  beginConverge, beginRetry, clearMarks, finishConverge, markEdits, noteStamp, supersedeMarks, watchCells,
+  beginConverge, beginRetry, clearMarks, failConverge, finishConverge, markEdits, notePushes, noteStamp, refundRetry,
+  supersedeMarks, watchCells,
 } from "./card-registry";
 import {
-  LOG_RETRY_MAX, NAME_KEY, RELATION_HOLD_MS, STUCK_MS, applyVeto, cellFp, cellKey, diffProps, eventTypeOfObject, fpOfField,
-  fpOfName, gateKey, gatedCols, gatedProps, gaveUpMatches, holdWindowMs, isCoarseGated, isGatedField, judgeCell, mergedVersions,
-  needHistoryBefore, newestNamed, newestNonOwnAt, reduceWatchCells, relKey, staleForwardGateOn, staleForwardRetryOn,
-  updatedAtMs,
-  type CardWatch, type CellVerdict, type ConvergeOutcome, type FinalVerdict, type HsVersion, type MarkInput,
+  ALL_CELLS, LOG_RETRY_MAX, NAME_KEY, RELATION_HOLD_MS, RESCUE_LOOKBACK_MS, STUCK_MS, applyVeto, cellFp, cellKey, diffProps,
+  effectiveLinkAt, eventTypeOfObject, fpOfField, fpOfName, gateKey, gatedCols, gatedProps, gaveUpMatches, holdWindowMs,
+  isCoarseGated, isGatedField, judgeCell, mergedVersions, needHistoryBefore, newestForeignAt, newestNamed, newestNonOwnAt,
+  ownLaterVerdict, reduceWatchCells, relKey, staleForwardGateOn, staleForwardRetryOn, updatedAtMs,
+  type CardWatch, type CellVerdict, type ConvergeOutcome, type FinalVerdict, type HsVersion, type MarkInput, type PushRec,
   type TaggedVersion, type WatchBase, type WatchReply, type WatchReq,
 } from "./card-watch";
 import { cardValueFingerprint, lastCellChanges, type CellChange } from "./ui-actor";
@@ -351,7 +352,8 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
         // no return — the forward write below reconciles the card to HubSpot
       } else {
         const filled = diffs.filter(d => d.backfill && d.f && patch[d.f.hs] !== undefined);
-        const newMod = await sendPatch(env, spec, ctx, rec, existing.id, patch, opts, auth);
+        // The record-level write (a drawer save, the WM specs): the card as a whole is sent.
+        const newMod = await sendPatch(env, spec, ctx, rec, existing.id, patch, opts, auth, [ALL_CELLS]);
         // Audit trail for the controlled backfill (a failed patch throws and is logged by the caller).
         for (const d of filled)
           console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} field=${d.f!.hs} previous="" value="${patch[d.f!.hs]}" result=${newMod === null ? "dry-run" : "written"}`);
@@ -581,6 +583,7 @@ async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       stats.inSync++;
       const stamp = fresh.properties[spec.modifiedProp] ?? "";
       if (!unfinished && stampsForward(stamp, colText(card, spec.syncStateCol))) {
+        // HEAD's baseline write, with gql's own rate-limit waits (it may land minutes late): noted, as step 8 says.
         const s0 = Date.now();
         await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: stamp }, opts);
         budget.left--;
@@ -716,8 +719,8 @@ async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   }
 
   // THE CONVERGE'S CANDIDATES: a person's edit the activity log proves is RESCUED (marked, and retried; never
-  // the name, a relation or the coarse Stage; never a value from before the card was linked to its record); every
-  // other one is CONVERGED to HubSpot -- through the loop breaker.
+  // the name, a relation or the coarse Stage; never a value from before the card was linked to its record, nor from
+  // beyond the rescue's horizon); every other one is CONVERGED to HubSpot -- through the loop breaker.
   if (conv) {
     const retryOn = staleForwardRetryOn(env, spec);
     const cands = judged.filter(j => j.final === "candidate");
@@ -725,18 +728,32 @@ async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       && (conv.snapshot.convergeAttempts ?? 0) < LOG_RETRY_MAX
       && !gaveUpMatches(conv.snapshot.gaveUp?.[j.key], j.fp, now)
       && Object.hasOwn(columnEditPatch(fresh, card, spec, ctx, { cols: [j.key] }).patch, j.d.f!.hs));
+    // THE HORIZON (RESCUE_LOOKBACK_MS): an edit is rescued only when made at most that long before the watch first held
+    // this value of the cell (a cell it never held: now), and never before the CRM cutover -- anything older is history.
+    const cutover = timeOf(env.CRM_CUTOVER_AT);
+    const horizonOf = (j: Judged) => Math.max((conv.snapshot.cells[j.key]?.seen ?? now) - RESCUE_LOOKBACK_MS,
+      Number.isFinite(cutover) ? cutover : -Infinity);
+    // A candidate whose history this converge did not read (put in play by HubSpot being newer, or a converge-all):
+    // read now, once -- the provenance check below needs it, and declines only when this read fails too.
+    const unread = rescuable.filter(j => mergedVersions(history, j.props) === undefined);
+    if (unread.length) {
+      const r = await readHistory(env, spec, fresh, [...new Set(unread.flatMap(j => j.props))], where);
+      if (r !== "gone" && r !== "failed") history = { ...(history ?? {}), ...r.history };
+    }
     let rows: Record<string, CellChange | null> | null = {};
     if (rescuable.length) {
-      const anchors = rescuable.map(j => j.c ?? conv.snapshot.cells[j.key]?.since ?? u).filter(Number.isFinite);
+      // From each candidate's change (or hold) -- never from before its horizon: an older row is not looked at.
+      const from = rescuable.map(j => Math.max(j.c ?? conv.snapshot.cells[j.key]?.since ?? u, horizonOf(j)))
+        .filter(Number.isFinite);
       // The record-id cell too: its newest write in the window is when the card was linked to its record.
       rows = await lastCellChanges(env, spec, card.id, [...rescuable.map(j => j.key), spec.idCol],
-        anchors.length ? Math.min(...anchors) : now);
+        from.length ? Math.min(...from) : now);
     }
     // WHEN THE CARD WAS LINKED to its record (an adoption, a monday-born create): its watch's record of it, or the id
     // cell's newest write in the log window (none there: linked before it -- every row in the window is after it; one
-    // that cannot be told: nothing is rescued). A value set before it is the form's, never an edit of the record.
-    const idRow = rows === null ? undefined : rows[spec.idCol];
-    const linkAt = Math.max(conv.snapshot.linkedAt ?? -Infinity, idRow === null ? Infinity : idRow?.atMs ?? -Infinity);
+    // that cannot be told: nothing is rescued), except a monday-born create's own id write-back, which follows the
+    // create's read that linked it (effectiveLinkAt). A value set before it is the form's, never an edit of the record.
+    const linkAt = effectiveLinkAt(conv.snapshot, rows === null ? undefined : rows[spec.idCol]);
     const rescues: MarkInput[] = [];
     for (const j of cands) {
       if (!rescuable.includes(j)) { j.final = "forward"; continue; }
@@ -745,14 +762,42 @@ async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       // A People cell: the removal the row records -- emptying a cell that showed someone other than HubSpot's owner
       // is refused, exactly as a live run refuses it (unknown: removed nobody, so a clear is never rescued).
       const people = j.d.f!.type === "people";
-      if (row && row.atMs > linkAt && (row.cls === "person" || row.cls === "automation")
+      if (!(row && row.atMs > linkAt && row.atMs >= horizonOf(j) && (row.cls === "person" || row.cls === "automation")
           && row.valueFp === cardValueFingerprint(values[j.key])
           && (!people || Object.hasOwn(columnEditPatch(fresh, card, spec, ctx,
-            { cols: [j.key], removedPeople: { [j.key]: row.removed ?? [] } }).patch, j.d.f!.hs))) {
-        j.final = "rescued";
-        rescues.push({ key: j.key, at: row.atMs, rx: now, actor: row.userId, byAutomation: row.cls === "automation", rescued: true,
-          ...(people ? { people: row.removed ?? null } : {}) });
-      } else j.final = "forward";
+            { cols: [j.key], removedPeople: { [j.key]: row.removed ?? [] } }).patch, j.d.f!.hs)))) {
+        j.final = "forward";
+        continue;
+      }
+      // PROVENANCE: the edit is sent only over what is OLDER than it. HubSpot's newest version that this card's own
+      // writes do not explain -- anyone else's, or our app's own from another path or card (an operator's script, the
+      // /app clear routes, a duplicate card) -- must predate the person's row. Then this card's own writes
+      // (ownLaterVerdict): a later push of the property from another of its cells wins; and the edit is sent once --
+      // when this card has sent this very value since the edit, HubSpot holding something else now is its answer,
+      // converged (no loop) -- unless what HubSpot holds is this cell's own STALE push that landed after it (the edit
+      // never landed). Whatever the card's own records cannot tell (no history read, a write it could not record) is
+      // not sent.
+      const versions = mergedVersions(history, j.props);
+      const foreignAt = newestForeignAt(versions, conv.snapshot.pushes, rec.id);
+      const want = columnEditPatch(fresh, card, spec, ctx, { cols: [j.key] }).patch[j.d.f!.hs];
+      const own = versions && ownLaterVerdict(versions, conv.snapshot.pushes, rec.id, j.d.f!.hs, j.key, want, row.atMs);
+      const declined = versions === undefined ? "HubSpot's history of it was not read: nothing is sent on that uncertainty"
+        : foreignAt !== undefined && foreignAt >= row.atMs ? "HubSpot holds a later change -- another writer's, or our app's"
+          + " from another path or card: the later change wins"
+        : own === "sibling" ? "HubSpot holds this card's later push of the same property from another cell: that later"
+          + " edit wins"
+        : own === "sent" ? "this card already sent this edit and HubSpot holds something else now: converged to it, never"
+          + " sent again"
+        : undefined;
+      if (declined) {
+        j.final = "forward";
+        console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} col=${j.key}`
+          + ` action=rescue-declined reason="${declined}"`);
+        continue;
+      }
+      j.final = "rescued";
+      rescues.push({ key: j.key, at: row.atMs, rx: now, actor: row.userId, byAutomation: row.cls === "automation", rescued: true,
+        ...(people ? { people: row.removed ?? null } : {}) });
     }
     // THE LOOP BREAKER: a converged candidate (never HubSpot's own later change: a forward verdict) is left alone only
     // when the cell shows exactly what our earlier write of the SAME HubSpot value became on monday, and HubSpot has
@@ -770,6 +815,19 @@ async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
     for (const j of judged) if (j.final === "log-unreadable")
       console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} col=${j.key}`
         + ` action=rescue-unreadable reason="monday's activity log could not be read: the cell is left, and judged again later"`);
+    // THE RE-PROBE: the rescue's reads (the log, a history) stand between this converge's card read and its write --
+    // seconds -- and a person's edit made meanwhile carries a mark the snapshot does not have. Asked again (one RPC): a
+    // cell about to be written that now has a live mark is held instead, for that edit's own run. (Unreachable: the
+    // snapshot's word stands, as for every forward write.)
+    const writing = rescuable.length && !dry ? judged.filter(j => j.final === "forward") : [];
+    if (writing.length) {
+      const again = await watchCells(env, base, writing.map(j => ({ key: j.key, fp: j.fp, typed: j.typed, anchor: j.c ?? u,
+        kind: "probe" as const })), { windowMs: W });
+      for (const j of writing) if (again?.[j.key]?.mark) {
+        j.final = "hold";
+        j.why = "a person's edit of it arrived while the converge read monday's log (mark): left to that edit's own run";
+      }
+    }
     if (rescues.length && !dry) {
       await markEdits(env, base, rescues);
       console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
@@ -787,8 +845,14 @@ async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   }
 
   // 8. ONE WRITE. A pass that judged a two-way cell never waits on monday's rate limit (§16); one that did not is
-  // HEAD's write -- which can land minutes late (gql's own rate-limit waits), and whose stamp is then caught by the
-  // card's register (noteStamp: every stamp is kept longer than any write can take).
+  // HEAD's write -- gql may hold it through up to six rate-limit waits (65 s at most each), so it can land minutes
+  // late. Its stamp is NOTED either way, once the write returns (noteStamp, below): the card's register keeps every
+  // note in its Durable Object's storage for STAMP_NOTE_WINDOW_MS (16 min) -- longer than gql's waits with a minute
+  // for each of its requests, and than the 15 minutes any invocation that can wait that long lives -- so an older
+  // stamp landing after a newer one is compared with the newer's note, read back and restored. (A write whose
+  // invocation is cut off mid-request may still land, un-noted: Sync State then stays older until the card's next
+  // stamping pass moves it forward.) Meanwhile no verdict is misled by an older Sync State: our own versions are never
+  // news, the typed and never-held verdicts ignore Sync State, and marks veto untyped news.
   const fwdDiffs = [...plain, ...judged.filter(j => j.final === "forward").map(j => j.d)];
   const left = judged.filter(j => j.final !== "forward");
   const waits = judged.length ? 0 : undefined;
@@ -891,7 +955,9 @@ function watchedProps(env: Env, spec: ObjectSpec, key: string): string[] {
  * whether or not HubSpot is newer, judged against the watch's own snapshot. So a hold ends in a write when its clock
  * says so, with or without another event. Exactly two reads (HubSpot with the history of the watched properties,
  * then the card), plus one activity-log read when a candidate may be a person's edit to rescue. Relation cells the
- * watch holds are rewritten from HubSpot's set, with their marks applied. Errors throw: the wave retries.
+ * watch holds are rewritten from HubSpot's set, with their marks applied. Errors throw: the wave retries, and the watch
+ * backs the re-queue off -- once its converges have failed for CONVERGE_GIVE_UP_MS in a row, the watch dead-letters the
+ * cells instead (loudly), and this run returns without a throw (nothing is retried).
  */
 export async function settleCardWatch(env: Env, boardId: string, itemId: string, opts: RunOpts, budget: Budget): Promise<string> {
   const via = "via=card-watch";
@@ -900,6 +966,20 @@ export async function settleCardWatch(env: Env, boardId: string, itemId: string,
   if (begun === null) throw new Error(`the card watch of ${boardId}/${itemId} did not answer`);
   const snap = begun.snapshot;
   if (!snap) return wlog("monday", itemId, "skipped", `reason="the card has no watch" ${via}`);
+  try {
+    return await convergeCard(env, boardId, itemId, opts, budget, snap, W, via);
+  } catch (e) {
+    // The cap, decided after a run FAILED -- never when one begins, so the run that would succeed is always tried.
+    const failed = await failConverge(env, boardId, itemId);
+    if (failed?.deadLetter)
+      return wlog("monday", itemId, "dead-lettered", `cols=${failed.deadLetter.join(",") || "-"} reason="${String(e).slice(0, 120)}" ${via}`);
+    throw e;
+  }
+}
+
+/** settleCardWatch's converge proper, over the snapshot it began with. */
+async function convergeCard(env: Env, boardId: string, itemId: string, opts: RunOpts, budget: Budget, snap: CardWatch,
+    W: number, via: string): Promise<string> {
   const done = async (why: string) => {
     await finishConverge(env, boardId, itemId, { done: true, resolved: [], forwarded: [], held: [], stuck: [], rescued: [] }, W);
     return wlog("monday", itemId, "skipped", `reason="${why}: the watch is dropped" ${via}`);
@@ -946,11 +1026,28 @@ export async function settleCardWatch(env: Env, boardId: string, itemId: string,
  * A MARK'S RETRY (STALE_FORWARD_RETRY; DEFERRED_SYNC `watch.kind: "retry"`, queued by the watch's alarm once a mark
  * outlived its lease, or by a converge's rescue): the person's edits whose runs did not resolve are sent again, FROM
  * THE CARD, through the ordinary column-level path (syncMondayItem), as the edit they are -- a person's with the
- * human-edit basis, an automation's never claiming. A HubSpot change of the property later than the edit wins: that
- * key's mark goes, and its cell is due for a converge at once (which writes HubSpot's later value, never rescuing
- * the superseded one). On a throw the marks stay, and the watch retries on its backoff until MARK_TTL_MS; then they
- * are given up and the cells converge. A People cell's retry carries the removals its events recorded (unknown:
- * none), so emptying a cell that showed someone other than HubSpot's owner is refused and healed, as a live run does.
+ * human-edit basis, an automation's never claiming. Two things are never sent, each cell given up instead (due for a
+ * converge at once, its value never rescued again):
+ *   - an edit made before the card was linked to its record: the form's starting state (an adoption never pushes it).
+ *     The link time is the watch's, or the record-id cell's newest write in monday's log -- as for the log rescue --
+ *     so a link the watch never learnt (its call failed) still counts; a log that cannot say defers the whole retry
+ *     (it throws: nothing is sent on that uncertainty, and the marks stay for their next try);
+ *   - an edit HubSpot changed the property after: the later change wins. "HubSpot changed it" is any version this
+ *     card's own writes do not explain (PushRec) -- a person's, a workflow's, and our app's own from another path or
+ *     card (an operator's script, a duplicate card); a version whose provenance cannot be told counts as such.
+ * IT RUNS OUTSIDE THE CELL'S OWN QUEUE (a Durable Object alarm, minutes after the edit), so a newer edit of the same cell
+ * can be read, pushed, or still on its way while it runs. Its push therefore looks at both sides again right before it
+ * sends, and reads the card back after (types.ts RetryEdit; pushColumnEdit's retryGate): a key whose cell changed since
+ * this run read the card is DEFERRED (not sent; its mark stays for its next try, or that newer edit's run clears it), a
+ * key HubSpot changed after the edit meanwhile is SUPERSEDED (given up, as above), and a key the card shows otherwise once
+ * its PATCH returned is RACED -- a newer edit made while it was in flight, whose own push may have landed first -- marked
+ * again and re-sent from the card at once. A relation edit's add is re-checked against the cell the same way.
+ * ITS OWN READS (the card, monday's log for the link, HubSpot's history) come before anything is sent: one that fails
+ * gives the marks their attempt back (refundRetry) and throws -- a read monday or HubSpot refused, under the very rate
+ * limits that kill the runs it recovers, is not a send that failed. Any other throw keeps the marks, and the watch
+ * retries on its backoff until MARK_TTL_MS; then they are given up and the cells converge. A People cell's retry carries
+ * the removals its events recorded (unknown: none), so emptying a cell that showed someone other than HubSpot's owner is
+ * refused and healed, as a live run does.
  */
 export async function retryMarkedEdits(env: Env, boardId: string, itemId: string, opts: RunOpts, budget: Budget): Promise<string> {
   const via = "via=edit-retry";
@@ -960,46 +1057,82 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
   const base: WatchBase = { boardId, itemId, object: spec.object };
   const W = holdWindowMs(env);
   const t0 = Date.now();
-  const marks = await beginRetry(env, boardId, itemId, W);
-  if (marks === null) throw new Error(`the card watch of ${boardId}/${itemId} did not answer`);
+  const begun = await beginRetry(env, boardId, itemId, W);
+  if (begun === null) throw new Error(`the card watch of ${boardId}/${itemId} did not answer`);
+  const marks = begun.live;
   const keys = Object.keys(marks);
   if (!keys.length) return wlog("monday", itemId, "skipped", `reason="no mark is due for a retry" ${via}`);
-  const card = await getItem(env, itemId);
+  /** One of the retry's own reads: when it fails, nothing has been sent -- the marks get their attempt back. */
+  const refund = async (e: unknown): Promise<never> => {
+    await refundRetry(env, base, keys);
+    console.log(`[watch] board=${boardId} item=${itemId} cols=${keys.join(",")} action=edit-retry-refunded`
+      + ` reason="${String(e).slice(0, 140)}" next="nothing was sent: the marks keep this try and are retried on their backoff"`);
+    throw e;
+  };
+  const read = async <T>(f: () => Promise<T>): Promise<T> => { try { return await f(); } catch (e) { return refund(e); } };
+  const card = await read(() => getItem(env, itemId));
   const recordId = card ? colText(card, spec.idCol).trim() : "";
   if (!card || !/^\d+$/.test(recordId)) {
     await clearMarks(env, base, keys, t0);
     return wlog("monday", itemId, "skipped", `reason="${card ? "the card is not linked to a HubSpot record" : "the card is gone"}" ${via}`);
   }
-  const propsOf = (k: string): string[] => k === NAME_KEY
-    ? (spec.nameReverse ? [...new Set([spec.nameReverse, ...spec.nameProps, ...(spec.nameFallbackProps ?? [])])] : [])
-    : spec.fields.filter(f => f.col === k).map(f => f.hs);
-  const checked = keys.filter(k => !k.startsWith("rel:") && propsOf(k).length);
-  let send = keys;
+  /** Give `ks` up: each cell, as the card shows it now, is due for a converge at once and never rescued again. */
+  const giveUp = async (ks: string[]) => {
+    const fps: Record<string, string> = {};
+    for (const k of ks) fps[k] = retryCell(spec, k, card);
+    await supersedeMarks(env, base, fps, t0, W);
+  };
+  // THE LINK CHECK, as the log rescue's. The watch's own link time settles it when it has one (an adoption or a create
+  // tells it, and a mark from before it never even gets here: beginRetry gives it up); otherwise monday's log of the
+  // record-id cell, from the oldest mark on, read PATIENTLY (gql's own waits: this runs in a Durable Object alarm).
+  let linkAt: number;
+  if (begun.linkedAt !== undefined) linkAt = effectiveLinkAt(begun, undefined);
+  else {
+    const oldest = Math.min(...keys.map(k => marks[k].at).filter(Number.isFinite));
+    const idRows = await read(async () => {
+      const rows = await lastCellChanges(env, spec, itemId, [spec.idCol], Number.isFinite(oldest) ? oldest : t0, { patient: true });
+      if (rows === null || rows[spec.idCol] === null)
+        throw new Error(`monday's log could not say when ${boardId}/${itemId} was linked to its record: nothing is re-sent on`
+          + ` that uncertainty (the marks stay for their next try)`);
+      return rows;
+    });
+    linkAt = effectiveLinkAt(begun, idRows[spec.idCol]);
+  }
+  const preLink = keys.filter(k => !(marks[k].at > linkAt));
+  if (preLink.length) {
+    console.log(`[watch] board=${boardId} item=${itemId} cols=${preLink.join(",")} action=edit-retry-abandoned`
+      + ` reason="made before the card was linked to its record (monday's log): the form's starting state is never`
+      + ` re-sent; the cell converges to HubSpot"`);
+    await giveUp(preLink);
+  }
+  let send = keys.filter(k => !preLink.includes(k));
+  const checked = send.filter(k => !k.startsWith("rel:") && retryPropsOf(spec, k).length);
   if (checked.length) {
-    const r = await getRecordWithHistory(env, spec.object, recordId, [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])],
-      [...new Set(checked.flatMap(propsOf))]);
+    const r = await read(() => getRecordWithHistory(env, spec.object, recordId,
+      [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])], [...new Set(checked.flatMap(k => retryPropsOf(spec, k)))]));
     if (!r) {
       await clearMarks(env, base, keys, t0);
       return wlog("monday", itemId, "skipped", `reason="${spec.object} ${recordId} is gone from HubSpot" ${via}`);
     }
     const later = checked.filter(k => {
-      const t = newestNonOwnAt(mergedVersions(r.history, propsOf(k)));
+      const vs = mergedVersions(r.history, retryPropsOf(spec, k));
+      if (!vs) return true;                                // its history not read: cannot tell -- never sent on that
+      const t = newestForeignAt(vs, begun.pushes, recordId);
       return t !== undefined && t > marks[k].at;
     });
     if (later.length) {
       console.log(`[watch] board=${boardId} item=${itemId} cols=${later.join(",")} action=edit-retry-superseded`
-        + ` reason="HubSpot changed it after the edit: the later change wins, and the cell converges to it"`);
+        + ` reason="HubSpot changed it after the edit (a version this card did not write): the later change wins, and the`
+        + ` cell converges to it"`);
       // Not merely cleared: the card still shows the superseded value, so each cell is due for a converge at once
       // (and that value is never rescued again).
-      const fps: Record<string, string> = {};
-      for (const k of later) {
-        const f = spec.fields.find(x => x.col === k);
-        fps[k] = k === NAME_KEY ? card.name.trim() : f ? cellKey(f, card) : "";
-      }
-      await supersedeMarks(env, base, fps, t0, W);
-      send = keys.filter(k => !later.includes(k));
+      await giveUp(later);
+      send = send.filter(k => !later.includes(k));
     }
   }
+  if (!send.length) return wlog("monday", itemId, "skipped", `reason="every mark was given up: nothing to re-send" ${via}`);
+  const deferred: string[] = [], superseded: string[] = [];
+  const raced: { key: string; at: number }[] = [];
   for (const byAutomation of [false, true]) {
     const ks = send.filter(k => !!marks[k].byAutomation === byAutomation);
     if (!ks.length) continue;
@@ -1010,8 +1143,10 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
     const removedPeople: Record<string, string[]> = {};
     for (const k of ks) if (spec.fields.some(f => f.col === k && f.type === "people"))
       removedPeople[k] = marks[k].people?.known ? [...marks[k].people!.ids] : [];
+    const retry: RetryEdit = { at: Object.fromEntries(ks.map(k => [k, marks[k].at])), pushes: begun.pushes ?? [],
+      deferred: [], superseded: [], raced: [] };
     const edit: MondayEdit = { cols, ...(ks.includes(NAME_KEY) ? { name: true } : {}), ...(byAutomation ? { byAutomation: true } : {}),
-      ...(actor ? { actor } : {}), ...(Object.keys(removedPeople).length ? { removedPeople } : {}) };
+      ...(actor ? { actor } : {}), ...(Object.keys(removedPeople).length ? { removedPeople } : {}), retry };
     for (const k of ks.filter(x => x.startsWith("rel:"))) {
       const col = k.slice(4);
       const rel = marks[k].rel;
@@ -1022,10 +1157,96 @@ export async function retryMarkedEdits(env: Env, boardId: string, itemId: string
     }
     console.log(`[watch] board=${boardId} item=${itemId} cols=${ks.join(",")} actor=${actor || "-"}`
       + ` class=${byAutomation ? "automation" : "person"} action=edit-retried reason="its run did not resolve within its lease"`);
-    await syncMondayItem(env, boardId, itemId, opts, budget, false, false, edit, { id: actor, byAutomation });
+    // Every edit of a key reached us before this: one made after it is newer than what this run reads (RetryEdit.raced).
+    const readFrom = Date.now();
+    try { await syncMondayItem(env, boardId, itemId, opts, budget, false, false, edit, { id: actor, byAutomation }); }
+    catch (e) { if (e instanceof RetryReadError) await refund(e); throw e; }
+    deferred.push(...retry.deferred);
+    superseded.push(...retry.superseded);
+    raced.push(...retry.raced.map(key => ({ key, at: readFrom })));
   }
-  await clearMarks(env, base, send, t0);
-  return wlog("monday", itemId, "edit-retried", `board=${boardId} cols=${send.join(",")} ${via}`);
+  if (deferred.length)
+    console.log(`[watch] board=${boardId} item=${itemId} cols=${deferred.join(",")} action=edit-retry-deferred`
+      + ` reason="the card changed since this retry read it: a newer edit, its own run's to send -- not sent, not healed,`
+      + ` its mark kept"`);
+  if (superseded.length) {
+    console.log(`[watch] board=${boardId} item=${itemId} cols=${superseded.join(",")} action=edit-retry-superseded`
+      + ` reason="HubSpot changed it after the edit, read right before the push (a version this card did not write): the`
+      + ` later change wins, and the cell converges to it"`);
+    await giveUp(superseded);
+  }
+  if (raced.length) {
+    // Marked again as of this run's read (a lower bound for the newer edit's time: HubSpot's own change after it still
+    // wins), due at once: the next try re-reads the card, and sends it if HubSpot does not hold it.
+    await markEdits(env, base, raced.map(({ key, at }): MarkInput => ({ key, at, rx: Date.now(), rescued: true,
+      ...(marks[key].actor ? { actor: marks[key].actor } : {}), ...(marks[key].byAutomation ? { byAutomation: true } : {}),
+      ...(spec.fields.some(f => f.col === key && f.type === "people") ? { people: null } : {}) })));
+    console.log(`[watch] board=${boardId} item=${itemId} cols=${raced.map(r => r.key).join(",")} action=edit-retry-raced`
+      + ` reason="the card showed another value once the push returned: a newer edit made while it was in flight, whose`
+      + ` own push may have landed first -- re-sent from the card at once"`);
+    const type = eventTypeOfObject(spec.object);
+    if (type) await spillDeferred(env, [{ type, id: itemId, watch: { boardId, kind: "retry" } }]);
+  }
+  const kept = new Set([...deferred, ...superseded, ...raced.map(r => r.key)]);
+  const done = send.filter(k => !kept.has(k));
+  await clearMarks(env, base, done, t0);
+  return wlog("monday", itemId, "edit-retried", `board=${boardId} cols=${done.join(",") || "-"}`
+    + `${kept.size ? ` kept=${[...kept].join(",")}` : ""} ${via}`);
+}
+
+/** The HubSpot properties a retried key is judged on (the name: every property it can be built from). */
+function retryPropsOf(spec: ObjectSpec, k: string): string[] {
+  return k === NAME_KEY
+    ? (spec.nameReverse ? [...new Set([spec.nameReverse, ...spec.nameProps, ...(spec.nameFallbackProps ?? [])])] : [])
+    : spec.fields.filter(f => f.col === k).map(f => f.hs);
+}
+
+/** A retried key as a card shows it: the cell as cellKey reads it, or the trimmed item name. */
+function retryCell(spec: ObjectSpec, k: string, item: MondayItem): string {
+  if (k === NAME_KEY) return item.name.trim();
+  const f = spec.fields.find(x => x.col === k);
+  return f ? cellKey(f, item) : "";
+}
+
+/** A mark's retry could not read what it must look at again right before it sends (retryGate): nothing was sent, and
+ *  the retry gives its marks their attempt back. */
+class RetryReadError extends Error {
+  constructor(message: string) { super(message); this.name = "RetryReadError"; }
+}
+
+/**
+ * A RETRY'S LAST LOOK BEFORE IT SENDS (types.ts RetryEdit): the card and HubSpot's history, read again -- the last reads
+ * before the claim and the PATCH. Of the keys the edit carries (its columns, and the name):
+ *   - deferred: the card shows the cell otherwise than this run read it -- a newer edit (or HubSpot's later value a
+ *     forward pass wrote), its own run's to send: neither sent nor healed here;
+ *   - superseded: HubSpot holds a version of it this card did not write, newer than the edit (or its history could not
+ *     be read for it): the later change wins.
+ * Throws RetryReadError when either side cannot be read: nothing is sent on that.
+ */
+async function retryGate(env: Env, spec: ObjectSpec, rec: { id: string }, existing: MondayItem, edit: MondayEdit,
+    retry: RetryEdit): Promise<{ deferred: string[]; superseded: string[] }> {
+  const keys = [...edit.cols.filter(c => spec.fields.some(f => f.col === c)), ...(edit.name ? [NAME_KEY] : [])];
+  if (!keys.length) return { deferred: [], superseded: [] };
+  let now: MondayItem | null;
+  try { now = await getItem(env, existing.id); }
+  catch (e) { throw new RetryReadError(`the card could not be read again right before the retry's push: ${String(e).slice(0, 160)}`); }
+  const deferred = now ? keys.filter(k => retryCell(spec, k, now!) !== retryCell(spec, k, existing)) : [...keys];
+  const left = keys.filter(k => !deferred.includes(k));
+  const props = [...new Set(left.flatMap(k => retryPropsOf(spec, k)))];
+  if (!props.length) return { deferred, superseded: [] };
+  let h: { properties: Record<string, string | null>; history: Record<string, HsVersion[]> } | null;
+  try {
+    h = await getRecordWithHistory(env, spec.object, rec.id, [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])], props);
+  } catch (e) { throw new RetryReadError(`HubSpot's history could not be read again right before the retry's push: ${String(e).slice(0, 160)}`); }
+  if (!h) throw new RetryReadError(`${spec.object} ${rec.id} is gone from HubSpot`);
+  const superseded = left.filter(k => {
+    const vs = mergedVersions(h!.history, retryPropsOf(spec, k));
+    if (!vs) return true;
+    const t = newestForeignAt(vs, retry.pushes, rec.id);
+    const at = retry.at[k];
+    return t !== undefined && !(Number.isFinite(at) && t <= at);
+  });
+  return { deferred, superseded };
 }
 
 /**
@@ -1150,6 +1371,8 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
     await setColumns(env, spec.boardId, existing.id, cv, opts);
     budget.left--;
   }
+  // HEAD's write, with gql's own rate-limit waits (it may land minutes late): its stamp is noted with the card's
+  // register (STALE_FORWARD_GATE), which keeps it longer than such a write can take (see forwardOnlyGated, step 8).
   if (gate && stamp)
     await noteStamp(env, { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id },
       stamp, s0, Date.now(), spec.syncStateCol, !!opts.dryRun);
@@ -1195,8 +1418,26 @@ interface ColumnPush {
  */
 async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
-    stats: Stats, edit: MondayEdit): Promise<ColumnPush> {
+    stats: Stats, given: MondayEdit): Promise<ColumnPush> {
   const hsRec = rec as HsRecord;
+  // STALE_FORWARD_RETRY: A MARK'S RETRY LOOKS AGAIN RIGHT BEFORE IT SENDS (retryGate) -- before the claim, so a key it
+  // drops never claims the record either. A cell the card shows otherwise now, or that HubSpot changed after the edit,
+  // is not this run's: it is left out of the edit (neither sent nor healed) and held (no Sync State over it).
+  let edit = given;
+  let parked: string[] = [];
+  if (given.retry && !opts.dryRun) {
+    const first = columnEditPatch(hsRec, existing, spec, ctx, given);
+    if (Object.keys(first.patch).length || first.heal.length || first.healName) {
+      const g = await retryGate(env, spec, rec, existing, given, given.retry);
+      given.retry.deferred.push(...g.deferred);
+      given.retry.superseded.push(...g.superseded);
+      const out = new Set([...g.deferred, ...g.superseded]);
+      if (out.size) {
+        edit = { ...given, cols: given.cols.filter(c => !out.has(c)), ...(given.name ? { name: !out.has(NAME_KEY) } : {}) };
+        parked = [...out].filter(k => k !== NAME_KEY);
+      }
+    }
+  }
   const editedCols = new Set(edit.cols);
   const r = columnEditPatch(hsRec, existing, spec, ctx, edit);
   for (const why of r.refusals)
@@ -1220,7 +1461,8 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
       stats.skipped++;
     } else {
       try {
-        newMod = await sendPatch(env, spec, ctx, rec, existing.id, r.patch, opts, auth);
+        newMod = await sendPatch(env, spec, ctx, rec, existing.id, r.patch, opts, auth,
+          [...edit.cols, ...(edit.name ? [NAME_KEY] : [])]);
         budget.left--; stats.toHubspot++;
         console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
           + ` action=written fields=${fields.join(",")}${fields.some(f => r.patch[f] === "") ? " (includes a clear)" : ""}`);
@@ -1252,7 +1494,23 @@ async function pushColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpt
     }
   }
 
-  return { patch: landed, heal, healName, newMod, fields, ...(pending ? { pending } : {}), ...(r.hold ? { hold: r.hold } : {}) };
+  // A RETRY READS THE CARD BACK once its PATCH returned: a cell it sent that the card now shows otherwise was edited while
+  // the PATCH was in flight, and that edit's own push may have landed first -- and been written over. RACED: the retry
+  // marks it again and re-sends it from the card at once (retryMarkedEdits). A read that fails is only logged: the
+  // converge's rescue still heals it (ownLaterVerdict: this cell's own stale push never makes the edit "already sent").
+  if (given.retry && newMod !== null) {
+    const sentKeys = [...edit.cols.filter(c => spec.fields.some(f => f.col === c && f.hs in landed)),
+      ...(edit.name && spec.nameReverse && spec.nameReverse in landed ? [NAME_KEY] : [])];
+    try {
+      const back = sentKeys.length ? await getItem(env, existing.id) : null;
+      if (back) given.retry.raced.push(...sentKeys.filter(k => retryCell(spec, k, back) !== retryCell(spec, k, existing)));
+    } catch (e) {
+      console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} action=retry-read-back-failed`
+        + ` reason="${String(e).slice(0, 120)}" next="a newer edit raced with this push is healed by the converge's rescue"`);
+    }
+  }
+  const hold = [...(r.hold ?? []), ...parked];
+  return { patch: landed, heal, healName, newMod, fields, ...(pending ? { pending } : {}), ...(hold.length ? { hold } : {}) };
 }
 
 /**
@@ -1303,9 +1561,13 @@ export class BackwardSetError extends Error {
  * value), the read almost always finds the stage already set, and an empty HubSpot value never blanks a
  * monday cell. A read that does land between the two PATCHes finds OUR clear in the history and sends the
  * card's value -- the same one the set is sending. Pinned in lifecycle-backward-clear.test.ts.
+ *
+ * `keys`: the cells this write is sent for (PushRec.keys). STALE_FORWARD_RETRY: the move's PATCHes go to the card's
+ * own-write ledger TOGETHER, once the move is done or given up -- never one RPC between the clear and the set, which
+ * would only hold HubSpot's stage empty the longer (up to the watch RPC's 3 s).
  */
 async function sendPatch(env: Env, spec: ObjectSpec, ctx: Ctx, rec: { id: string; properties: Record<string, string | null> },
-    itemId: string, patch: Record<string, string>, opts: RunOpts, auth: WriteAuth | undefined): Promise<string | null> {
+    itemId: string, patch: Record<string, string>, opts: RunOpts, auth: WriteAuth | undefined, keys: string[]): Promise<string | null> {
   const plan = backwardClearPlan(spec, patch, rec.properties, ctx);
   const where = `[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${itemId}`;
   for (const p of plan.unknown)
@@ -1313,30 +1575,74 @@ async function sendPatch(env: Env, spec: ObjectSpec, ctx: Ctx, rec: { id: string
       + ` action=lifecycle-order-unknown reason="the option order is not loaded or does not hold both values; sent`
       + ` as one PATCH, which HubSpot ignores if it is a move to an earlier stage"`);
   const cleared = Object.keys(plan.clear);
-  if (!cleared.length) return patchRecord(env, spec, rec.id, patch, opts, auth);
+  if (!cleared.length) return patchFromCard(env, spec, rec.id, itemId, patch, opts, auth, keys);
 
   const moves = cleared.map(p => `${p}:${plan.previous[p]}->${patch[p]}`).join(",");
   const move: Record<string, string> = Object.fromEntries(cleared.map(p => [p, patch[p]]));
   if (!opts.dryRun && opts.writeHubspot) await armRecheck(env, spec, rec.id, where);
-  const clearedMod = await patchRecord(env, spec, rec.id, { ...patch, ...plan.clear }, opts, auth);
-  let failure: unknown;
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const newMod = await patchRecord(env, spec, rec.id, move, opts, auth);
-      console.log(`${where} moves=${moves} action=lifecycle-backward-clear-set`
-        + `${attempt > 1 ? " retried=1" : ""} result=${newMod === null ? "dry-run" : "written"}`);
-      return newMod;
-    } catch (e) { failure = e; }
+  const written: LedgerWrite[] = [];
+  const send = async (p: Record<string, string>): Promise<string | null> => {
+    const s = Date.now();
+    const mod = await patchRecord(env, spec, rec.id, p, opts, auth);
+    written.push({ props: p, mod, s, e: Date.now() });
+    return mod;
+  };
+  try {
+    const clearedMod = await send({ ...patch, ...plan.clear });
+    let failure: unknown;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const newMod = await send(move);
+        console.log(`${where} moves=${moves} action=lifecycle-backward-clear-set`
+          + `${attempt > 1 ? " retried=1" : ""} result=${newMod === null ? "dry-run" : "written"}`);
+        return newMod;
+      } catch (e) { failure = e; }
+    }
+    let restore = "ok", restoredMod: string | null = null;
+    try { restoredMod = await send(plan.previous); }
+    catch (e) { restore = `failed: ${String(e).slice(0, 120)}`; }
+    const restored = restore === "ok";
+    console.log(`${where} moves=${moves} action=lifecycle-backward-failed restore="${restore}"`
+      + (restored ? "" : ` pending=${cleared.join(",")} next="HubSpot holds it empty; the card keeps the person's`
+        + ` value, and the queued re-check sends it"`)
+      + ` reason="${String(failure).slice(0, 160)}"`);
+    throw new BackwardSetError(restored ? (restoredMod ?? clearedMod) : clearedMod, cleared, restored, failure);
+  } finally {
+    await recordCardPushes(env, spec, rec.id, itemId, written, keys, opts);
   }
-  let restore = "ok", restoredMod: string | null = null;
-  try { restoredMod = await patchRecord(env, spec, rec.id, plan.previous, opts, auth); }
-  catch (e) { restore = `failed: ${String(e).slice(0, 120)}`; }
-  const restored = restore === "ok";
-  console.log(`${where} moves=${moves} action=lifecycle-backward-failed restore="${restore}"`
-    + (restored ? "" : ` pending=${cleared.join(",")} next="HubSpot holds it empty; the card keeps the person's`
-      + ` value, and the queued re-check sends it"`)
-    + ` reason="${String(failure).slice(0, 160)}"`);
-  throw new BackwardSetError(restored ? (restoredMod ?? clearedMod) : clearedMod, cleared, restored, failure);
+}
+
+/** One PATCH that HubSpot answered, for the card's own-write ledger. */
+interface LedgerWrite { props: Record<string, string>; mod: string | null; s: number; e: number }
+
+/**
+ * ONE PATCH SENT FROM THE CARD `itemId` -- patchRecord, and then, while STALE_FORWARD_RETRY is on, each property written
+ * goes to the card's own-write ledger (card-watch.ts PushRec): so a retry or a rescue can tell this card's own versions
+ * of a property from anyone else's write made with our app's token. Recorded once HubSpot answered; a PATCH that throws
+ * records nothing (its version, should it have landed, reads as someone else's: the safe side). Every business-field
+ * PATCH sync.ts sends from a card goes through here or through sendPatch's backward move (repairDanglingClears too).
+ * `keys`: the cells it is sent for (PushRec.keys).
+ */
+async function patchFromCard(env: Env, spec: ObjectSpec, recordId: string, itemId: string, patch: Record<string, string>,
+    opts: RunOpts, auth: WriteAuth | undefined, keys: string[]): Promise<string | null> {
+  const s = Date.now();
+  const newMod = await patchRecord(env, spec, recordId, patch, opts, auth);
+  await recordCardPushes(env, spec, recordId, itemId, [{ props: patch, mod: newMod, s, e: Date.now() }], keys, opts);
+  return newMod;
+}
+
+/** The card's own-write ledger entries for `writes` to `recordId`, sent for the cells `keys` (STALE_FORWARD_RETRY only;
+ *  never in a dry run or with HubSpot writes off), in one RPC. A write's `mod`: the modified time HubSpot answered with
+ *  (null: none). */
+async function recordCardPushes(env: Env, spec: ObjectSpec, recordId: string, itemId: string, writes: LedgerWrite[],
+    keys: string[], opts: RunOpts): Promise<void> {
+  if (opts.dryRun || !opts.writeHubspot || !staleForwardRetryOn(env, spec) || !writes.length) return;
+  const entries: PushRec[] = writes.flatMap(w => {
+    const at = timeOf(w.mod);
+    return Object.entries(w.props).map(([prop, value]): PushRec =>
+      ({ recordId, prop, value: String(value ?? ""), mod: Number.isFinite(at) ? at : NaN, s: w.s, e: w.e, keys: [...keys] }));
+  });
+  await notePushes(env, { boardId: spec.boardId, itemId, object: spec.object, recordId }, entries);
 }
 
 /**
@@ -1481,7 +1787,7 @@ async function repairDanglingClears(env: Env, spec: ObjectSpec, ctx: Ctx, opts: 
         : "the card is gone"}: nothing to send"`);
     }
     if (!Object.keys(patch).length) return undefined;
-    const newMod = await patchRecord(env, spec, rec.id, patch, opts, auth);
+    const newMod = await patchFromCard(env, spec, rec.id, card.id, patch, opts, auth, cols);
     budget.left--;
     for (const c of cols) fromEdit?.repaired.add(c);
     for (const [p, v] of Object.entries(patch))
@@ -1544,7 +1850,8 @@ async function writeSafeBackfills(env: Env, spec: ObjectSpec, ctx: Ctx, opts: Ru
   try {
     // A fill has nothing to move back from (HubSpot is empty by construction), so this is always one PATCH;
     // routed through sendPatch only so no write of a backwardNeedsClear property can bypass it.
-    newMod = await sendPatch(env, spec, ctx, rec, item.id, patch, opts, auth); budget.left--;
+    newMod = await sendPatch(env, spec, ctx, rec, item.id, patch, opts, auth,
+      fills.filter(d => patch[d.f!.hs] !== undefined).map(d => d.f!.col)); budget.left--;
   } catch (e) {
     console.log(`[backfill] object=${spec.object} hubspot_id=${rec.id} monday_item=${item.id} fields=${Object.keys(patch).join(",")} result=error reason="${String(e).slice(0, 160)}" path=independent`);
     return null;
@@ -2052,7 +2359,9 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       // it never synced to. Within W a forward pass holds them (they are recent); at +W the watch converges every
       // two-way cell HubSpot holds otherwise -- with or without a HubSpot event (finding [0]). The link time goes
       // with it: what the card showed before it is never rescued or re-sent as a person's edit of the record --
-      // adoption never pushes the form's values, and never claims (see above).
+      // adoption never pushes the form's values, and never claims (see above). Should the watch not learn it, the
+      // id cell's own write in monday's log dates it for both (effectiveLinkAt). The write above keeps gql's own
+      // rate-limit waits (it may land minutes late): its stamp is noted like every other (forwardOnlyGated, step 8).
       if (staleForwardGateOn(env, spec)) {
         const base: WatchBase = { boardId: spec.boardId, itemId: item.id, object: spec.object, recordId: adopt.id };
         const linkedAt = Date.now();
@@ -2155,6 +2464,7 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   }
 
   let created: { id: string; modified: string } | null;
+  const createdFrom = Date.now();
   try {
     created = await createRecord(env, spec, props, opts,
       spec.ownership ? authorizeCreate(spec.ownership) : undefined, parentAssoc);
@@ -2162,6 +2472,7 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
     await forgetHubspotForItem(env, spec.boardId, item.id); // release so a later pass may retry
     throw e;
   }
+  const createdTo = Date.now();
   if (created) {
     // Record the pairing BEFORE the write-back: if the write-back fails, the next pass re-stamps from here
     // instead of creating a second HubSpot record.
@@ -2209,7 +2520,8 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
     // STALE_FORWARD_GATE, after the write-back (never able to fail it) and after the owner notice is queued (its
     // reads and writes never wait on monday's rate limit either way).
     if (staleForwardGateOn(env, spec))
-      await afterCreateWriteBack(env, spec, ctx, opts, item, created, props, windowOn, writeBackAt, writeBackEnd, readAt);
+      await afterCreateWriteBack(env, spec, ctx, opts, item, created, props, windowOn, writeBackAt, writeBackEnd, readAt,
+        { s: createdFrom, e: createdTo });
   }
   stats.createdInHubspot++; budget.left--;
   // HEARTBEAT before the birth pass: it can wait on monday's rate limit, and a hold that went stale while
@@ -2238,24 +2550,34 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
  * A MONDAY-BORN RECORD'S CARD, ONCE ITS ID WRITE-BACK LANDED (STALE_FORWARD_GATE). None of these steps can turn the
  * create into a failure (the write-back already succeeded, finishCard already ran), and none waits on monday's rate
  * limit (they run inside the creator's webhook, after its owner notice is queued):
- *   1. the stamp it wrote goes to the card's register (noteStamp);
+ *   1. the stamp it wrote goes to the card's register (noteStamp); STALE_FORWARD_RETRY: what the create sent goes to
+ *      the card's own-write ledger (PushRec), so the record's create-time versions read as this card's own;
  *   2. CREATE_WINDOW_REPLAY off: the card's watch converges at +W whatever HubSpot derived on its own (watch-all), and
  *      learns the link time -- when the create READ the card (`readAt`): what it showed then is what the create sent
- *      (or refused), never rescued or re-sent as a person's edit; a change made since is an edit of the new record;
+ *      (or refused), never rescued or re-sent as a person's edit; a change made since -- during the id write-back too
+ *      (`s`..`e`, linkWrite) -- is an edit of the new record;
  *   3. ...and the card is shown what the create SENT where it showed something else -- a default it never had (Deals'
  *      Pipeline, a default Stage), a name the create split into first/last -- so it is in line with its new record at
- *      once (finding [12]). ONLY a cell that still shows what the create read: the card is re-read first, and a cell a
- *      person changed since (a pick made during the create) or has an edit of on its way (a mark) is left to that
- *      person's own run and to the converge, which judge it per cell. Best effort, with create_labels_if_missing
+ *      once (finding [12]). ONLY a cell that still shows what the create read and has no person's edit on its way (a
+ *      mark): the watch is asked FIRST (with step 2's call), then the card is re-read, then the fill is written -- so
+ *      the re-read is the last thing before the write. A cell a person changed or is changing is left to that person's
+ *      own run and to the converge, which judge it per cell. Best effort, with create_labels_if_missing
  *      (updateColumns); a failure is logged.
+ * KNOWN RESIDUAL (documented, not closable here): a pick that lands in the sub-second gap between the re-read and the
+ * fill's write is written over, and its own run then finds the card equal to HubSpot and sends nothing. monday has no
+ * compare-and-set, and the run sends what the card shows, never an event's value; closing it would need the pick's
+ * value carried from its event to a re-assertion that is itself ordered after the fill -- the same gap every forward
+ * write has between its card read and its write (R1's no-CAS residual), at its widest here only by the re-read.
  * With CREATE_WINDOW_REPLAY on, the creator's own settle round does 2 and 3.
  */
 async function afterCreateWriteBack(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, item: MondayItem,
     created: { id: string; modified: string }, props: Record<string, string>, windowOn: boolean, s: number, e: number,
-    readAt: number): Promise<void> {
+    readAt: number, createdIn: { s: number; e: number }): Promise<void> {
   const base: WatchBase = { boardId: spec.boardId, itemId: item.id, object: spec.object, recordId: created.id };
   const dry = !!opts.dryRun;
   if (created.modified) await noteStamp(env, base, created.modified, s, e, spec.syncStateCol, dry);
+  await recordCardPushes(env, spec, created.id, item.id,
+    [{ props, mod: created.modified || null, s: createdIn.s, e: createdIn.e }], [ALL_CELLS], opts);
   if (windowOn) return;
   const where = `${spec.object} card ${item.id} hubspot_id=${created.id}`;
   const failed = (err: unknown) => console.log(`${where} action=create-fill-failed reason="${String(err).slice(0, 160)}"`
@@ -2263,16 +2585,18 @@ async function afterCreateWriteBack(env: Env, spec: ObjectSpec, ctx: Ctx, opts: 
   const sent: HsRecord = { id: created.id, properties: props };
   const want = fieldDiffs(sent, item, spec, ctx, false)
     .filter(d => d.kind === "field" && !d.backfill && !!d.f && Object.hasOwn(props, d.f.hs));
+  // Marks first (with the converge-all and the link), so the card's re-read below is the last thing before the write.
+  const probes: WatchReq[] = want.filter(d => isGatedField(env, spec, d.f!))
+    .map(d => ({ key: d.f!.col, fp: cellKey(d.f!, item), typed: false, anchor: Date.now(), kind: "probe" }));
+  const replies = await watchCells(env, base, probes, { all: true, linkedAt: readAt, linkWrite: { s, e },
+    windowMs: holdWindowMs(env), dryRun: dry });
   let shown: MondayItem | null = null;
   if (want.length) {
     try { shown = (await getItemFresh(env, item.id, [], 0))?.item ?? null; }
     catch (err) { failed(err); }
   }
-  // Still showing what the create read: the fill's to write. A cell changed since is someone's edit.
+  // Still showing what the create read, with no person's edit on its way: the fill's to write.
   const unchanged = shown ? want.filter(d => cellKey(d.f!, shown!) === cellKey(d.f!, item)) : [];
-  const probes: WatchReq[] = unchanged.filter(d => isGatedField(env, spec, d.f!))
-    .map(d => ({ key: d.f!.col, fp: cellKey(d.f!, shown!), typed: false, anchor: Date.now(), kind: "probe" }));
-  const replies = await watchCells(env, base, probes, { all: true, linkedAt: readAt, windowMs: holdWindowMs(env), dryRun: dry });
   const fill = unchanged.filter(d => !replies?.[d.f!.col]?.mark);
   const skipped = shown ? want.filter(d => !fill.includes(d)) : [];
   if (skipped.length)
@@ -3167,7 +3491,7 @@ export async function syncMondayItem(env: Env, boardId: string, itemId: string, 
           // No ctx on purpose: a snap-back never creates cards (see snapBackRelation).
           ? { onlyCols: new Set(edit?.cols ?? []), basis: edit?.byAutomation ? "cutover" : "human-edit",
               unlinked: edit?.unlinked, linked: edit?.linked, largestEvent: edit?.largestEvent,
-              byAutomation: edit?.byAutomation, actor: edit?.actor }
+              byAutomation: edit?.byAutomation, actor: edit?.actor, ...(edit?.retry ? { retry: true } : {}) }
           : undefined);
     else if (selfOrigin) console.log(`[webhook] source=monday item=${itemId} action=reverse-assoc-skipped`
       + ` reason="event caused by our own token, not a person"`);

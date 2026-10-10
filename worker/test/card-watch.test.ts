@@ -1,13 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
-  ALARM_MARGIN_MS, CONVERGE_RECHECK_MS, HOLD_DEFAULT_S, LOG_RETRY_MS, MARK_LEASE_MS, MARK_TTL_MS, OWN_HS_SOURCE_ID,
-  RETRY_BACKOFF_MS, STAMP_NOTE_WINDOW_MS, STUCK_MS, TIE_MS, WATCH_RETENTION_MS, applyVeto, cellFp, composeRel, diffProps,
-  eventOwnness, eventTypeOfObject, fpOfField, fpOfName, freshScope, gatedCols, gatedProps, gaveUpMatches, holdWindowMs,
-  isCoarseGated, isGatedCol, isMarkLive, isOwnVersion, judgeCell, mergeScopes, mergedVersions, nameFeedProps,
-  needHistoryBefore, newestNamed, newestNonOwnAt, nextAlarmAt, reduceAlarm, reduceBeginConverge, reduceBeginRetry,
-  reduceClearMarks, reduceFinishConverge, reduceMarkEdits, reduceSupersede, reduceWatchCells, retryDueAt, scopeMaxAgeMs,
-  stampSuspicious, staleForwardGateOn, staleForwardRetryOn, updatedAtMs, watchRetryOn,
-  type CardWatch, type CellFacts, type EditMark, type TaggedVersion, type WatchBase,
+  ALARM_MARGIN_MS, ALL_CELLS, CONVERGE_BACKOFF_MAX_MS, CONVERGE_GIVE_UP_MS, CONVERGE_RECHECK_MS, HOLD_DEFAULT_S, LOG_RETRY_MS,
+  MARK_LEASE_MS, MARK_TTL_MS, OWN_HS_SOURCE_ID, PUSH_KEEP_PER_PROP, PUSH_MATCH_MS, PUSH_RETENTION_MS, RESCUE_LOOKBACK_MS,
+  RETRY_BACKOFF_MS, STAMP_NOTES_MAX, STAMP_NOTE_WINDOW_MS, STUCK_MS, TIE_MS, WATCH_RETENTION_MS, applyVeto, cellFp, composeRel,
+  convergeRecheckMs, diffProps, effectiveLinkAt, eventOwnness, eventTypeOfObject, fpOfField, fpOfName, freshScope, gatedCols,
+  gatedProps, gaveUpMatches, holdWindowMs, isCoarseGated, isGatedCol, isMarkLive, isOwnVersion, isThisCardsPush, judgeCell,
+  liveStampNotes, mergeScopes, mergedVersions, nameFeedProps, needHistoryBefore, newestForeignAt, newestNamed, newestNonOwnAt,
+  nextAlarmAt, ownLaterVerdict, pruneWatch, pushOf, reduceAlarm, reduceBeginConverge, reduceBeginRetry, reduceClearMarks,
+  reduceFailConverge, reduceFinishConverge, reduceMarkEdits, reduceNotePushes, reduceRefundRetry, reduceSupersede,
+  reduceWatchCells, retryDueAt, sameStoredValue, scopeMaxAgeMs, sentSince, stampSuspicious, staleForwardGateOn,
+  staleForwardRetryOn, trimStampNotes, updatedAtMs, watchRetryOn,
+  type CardWatch, type CellFacts, type EditMark, type PushRec, type TaggedVersion, type WatchBase,
 } from "../src/card-watch";
 import { CRM_ACCOUNTS, CRM_CONTACTS, CRM_DEALS } from "../src/config/crm";
 import { CONTACTS_MYLA } from "../src/config";
@@ -537,7 +540,7 @@ describe("the card watch: a converge's outcome", () => {
     const w = reduceFinishConverge({ ...base, cells: {}, marks: {}, allAt: now - 1 },
       { resolved: [], forwarded: [], held: [{ key: "n", fp: "N", typed: true, anchor: now - 1000, kind: "hold" },
         { key: "u", fp: "U", typed: false, anchor: now + 9999, kind: "hold" }], stuck: [], rescued: [] }, now, W)!;
-    expect(w.cells.n).toEqual({ fp: "N", since: now - 1000, typed: true, windowMs: W });
+    expect(w.cells.n).toEqual({ fp: "N", since: now - 1000, typed: true, windowMs: W, seen: now });
     expect(w.cells.u.since, "untyped: min(now, its anchor)").toBe(now);
   });
 
@@ -679,6 +682,240 @@ describe("the Sync State register", () => {
     expect(stampSuspicious([n(5, 0, 1)], { t: 10, s: 2 }), "in order, no overlap").toBe(false);
     expect(stampSuspicious([n(10, 0, 1)], { t: 10, s: 2 }), "the same stamp").toBe(false);
     expect(stampSuspicious([], { t: 10, s: 2 })).toBe(false);
+  });
+
+  it("[2] its notes outlive any write that carries a stamp: gql's six 65 s waits with a minute per request, and a Durable Object alarm's 15 minutes", () => {
+    expect(STAMP_NOTE_WINDOW_MS).toBeGreaterThan(6 * 65_000 + 4_500 + 9 * 60_000);
+    expect(STAMP_NOTE_WINDOW_MS).toBeGreaterThan(15 * 60_000);
+  });
+
+  it("[2] the stored notes: only those within the window; at most STAMP_NOTES_MAX, always keeping the newest stamp", () => {
+    const at = (t: number, a: number) => ({ t, ts: String(t), s: 0, e: 0, at: a });
+    expect(liveStampNotes([at(1, 0), at(2, 1000)], STAMP_NOTE_WINDOW_MS + 500).map(x => x.t)).toEqual([2]);
+    expect(liveStampNotes(undefined, 0)).toEqual([]);
+    expect(liveStampNotes("junk", 0)).toEqual([]);
+    const many = [at(10_000, 0), ...Array.from({ length: STAMP_NOTES_MAX + 5 }, (_, i) => at(i, i + 1))];
+    const kept = trimStampNotes(many);
+    expect(kept.length).toBe(STAMP_NOTES_MAX);
+    expect(kept.some(x => x.t === 10_000), "the newest stamp survives the cut").toBe(true);
+  });
+});
+
+// ===================================================================================================================
+describe("what STALE_FORWARD_RETRY needed: provenance, the link time, the converge cap", () => {
+  const now = T("2026-10-09T09:00:00.000Z");
+  const watch = (o: Partial<CardWatch> = {}): CardWatch => ({ ...base, cells: {}, marks: {}, ...o });
+  const own = (prop: string, value: string, at: number): TaggedVersion =>
+    ({ prop, value, timestamp: new Date(at).toISOString(), sourceType: "INTEGRATION", sourceId: OWN_HS_SOURCE_ID });
+  const push = (o: Partial<PushRec> = {}): PushRec =>
+    ({ recordId: "382447", prop: "jobtitle", value: "Buyer", mod: now, s: now - 400, e: now + 100, ...o });
+
+  it("[1] a value as sent against one stored: the same text in any case, number or time -- nothing else", () => {
+    expect(sameStoredValue(" Buyer ", "buyer")).toBe(true);
+    expect(sameStoredValue("1000", "1000.0")).toBe(true);
+    expect(sameStoredValue("2026-10-09", String(Date.parse("2026-10-09")))).toBe(true);
+    expect(sameStoredValue("", "")).toBe(true);
+    expect(sameStoredValue("", "x")).toBe(false);
+    expect(sameStoredValue("Buyer", "Director")).toBe(false);
+    expect(sameStoredValue("1000", "1001")).toBe(false);
+  });
+
+  it("[1] a version is THIS card's only when our sourceId, its record, property, value and time all match a write it recorded", () => {
+    const pushes = [push()];
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now), pushes, "382447")).toBe(true);
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now + PUSH_MATCH_MS), pushes, "382447"), "HubSpot's modified time, within the margin").toBe(true);
+    expect(isThisCardsPush({ ...own("jobtitle", "Buyer", now), sourceType: "CRM_UI" }, pushes, "382447"), "not our app").toBe(false);
+    expect(isThisCardsPush({ ...own("jobtitle", "Buyer", now), sourceId: "99999" }, pushes, "382447"), "another app").toBe(false);
+    expect(isThisCardsPush(own("jobtitle", "Director", now), pushes, "382447"), "another value: someone else's").toBe(false);
+    expect(isThisCardsPush(own("lastname", "Buyer", now), pushes, "382447"), "another property").toBe(false);
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now), pushes, "999"), "another record").toBe(false);
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now + 60_000), pushes, "382447"), "another time: an operator's same value").toBe(false);
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now), undefined, "382447"), "nothing recorded: someone else's").toBe(false);
+    const noMod = [push({ mod: NaN })];
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now - 300), noMod, "382447"), "no modified time answered: the write's own window").toBe(true);
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now + 30_000), noMod, "382447")).toBe(false);
+  });
+
+  it("[1] the newest change this card did not make: another app's, a person's, and our app's from another path all count", () => {
+    const pushes = [push()];
+    const vs = (...v: TaggedVersion[]) => v;
+    expect(newestForeignAt(vs(own("jobtitle", "Buyer", now)), pushes, "382447"), "only its own push").toBeUndefined();
+    expect(newestForeignAt(vs(own("jobtitle", "Director", now + 9000), own("jobtitle", "Buyer", now)), pushes, "382447"),
+      "an operator's script with our token").toBe(now + 9000);
+    expect(newestForeignAt(vs(own("jobtitle", "Buyer", now), { ...own("jobtitle", "Mgr", now - 5000), sourceType: "CRM_UI" }), pushes, "382447"))
+      .toBe(now - 5000);
+    expect(newestForeignAt(vs({ ...own("jobtitle", "X", 0), timestamp: "garbage", sourceType: "CRM_UI" }), pushes, "382447"),
+      "a time that cannot be read is never older").toBe(Infinity);
+    expect(newestForeignAt(undefined, pushes, "382447")).toBeUndefined();
+  });
+
+  it("[1] sent once: this card sent this value since the edit (its write ended after it, within the clock margin)", () => {
+    const pushes = [push({ value: "Buyer", e: now })];
+    expect(sentSince(pushes, "382447", "jobtitle", "Buyer", now - 60_000)).toBe(true);
+    expect(sentSince(pushes, "382447", "jobtitle", "Buyer", now + PUSH_MATCH_MS)).toBe(true);
+    expect(sentSince(pushes, "382447", "jobtitle", "Buyer", now + PUSH_MATCH_MS + 1), "an edit made after the write").toBe(false);
+    expect(sentSince(pushes, "382447", "jobtitle", "Director", now - 60_000), "another value").toBe(false);
+    expect(sentSince(pushes, "999", "jobtitle", "Buyer", now - 60_000), "another record").toBe(false);
+  });
+
+  it("[1] the ledger: recorded per card, the newest few per property, kept PUSH_RETENTION_MS (with an alarm), then gone", () => {
+    let w = reduceNotePushes(undefined, base, [push()], now)!;
+    expect(w.pushes).toEqual([push()]);
+    expect(nextAlarmAt(w, now, true), "kept alive to forget it").toBe(now + 100 + PUSH_RETENTION_MS);
+    for (let i = 1; i <= PUSH_KEEP_PER_PROP + 3; i++)
+      w = reduceNotePushes(w, base, [push({ value: `v${i}`, s: now + 1000 * i, e: now + 1000 * i + 100 })], now)!;
+    expect(w.pushes!.length, "the newest per property").toBe(PUSH_KEEP_PER_PROP);
+    expect(w.pushes!.at(-1)!.value).toBe(`v${PUSH_KEEP_PER_PROP + 3}`);
+    expect(reduceAlarm(w, now + PUSH_RETENTION_MS + 60_000, W, true).watch, "forgotten: no watch left").toBeUndefined();
+  });
+
+  it("[6] the link time: the watch's, the id cell's later write -- except a monday-born create's own id write-back", () => {
+    const readAt = now, wb = { s: now + 500, e: now + 1500 };
+    expect(effectiveLinkAt({ linkedAt: readAt }, null), "the log cannot tell: nothing is after it").toBe(Infinity);
+    expect(effectiveLinkAt({ linkedAt: readAt }, undefined)).toBe(readAt);
+    expect(effectiveLinkAt(undefined, undefined)).toBe(-Infinity);
+    expect(effectiveLinkAt(undefined, { atMs: now + 2000, cls: "integration" }), "the watch never learnt the adoption").toBe(now + 2000);
+    expect(effectiveLinkAt({ linkedAt: now + 3000 }, { atMs: now + 2000, cls: "integration" }), "an adoption: the later").toBe(now + 3000);
+    expect(effectiveLinkAt({ linkedAt: readAt, linkWrite: wb }, { atMs: now + 1200, cls: "integration" }),
+      "the create's own write-back does not move its link").toBe(readAt);
+    expect(effectiveLinkAt({ linkedAt: readAt, linkWrite: wb }, { atMs: now + 60_000, cls: "integration" }),
+      "a later id write (a re-stamp) does").toBe(now + 60_000);
+    expect(effectiveLinkAt({ linkedAt: readAt, linkWrite: wb }, { atMs: now + 1200, cls: "person" }),
+      "a person typing the id is a link of its own").toBe(now + 1200);
+  });
+
+  it("[6] a create's id write-back window is stored with its link time, and goes with a later link", () => {
+    let r = reduceWatchCells(undefined, base, [], { all: true, linkedAt: now, linkWrite: { s: now + 1, e: now + 2 } }, now, W, true);
+    expect(r.watch).toMatchObject({ linkedAt: now, linkWrite: { s: now + 1, e: now + 2 } });
+    r = reduceWatchCells(r.watch, base, [], { linkedAt: now + 9000 }, now, W, true);
+    expect(r.watch!.linkedAt).toBe(now + 9000);
+    expect(r.watch!.linkWrite, "an adoption's link has no write-back of its own").toBeUndefined();
+  });
+
+  it("[3] every converge that begins is run, counted as a run of failures; only a FAILED one past CONVERGE_GIVE_UP_MS dead-letters (marks kept)", () => {
+    let w: CardWatch | undefined = watch({ cells: { c: { fp: "Buyer", since: now - W, typed: false, windowMs: W, due: now } },
+      marks: { m: { at: now, firstRx: now, lastRx: now, attempts: 0 } }, allAt: now });
+    for (let i = 1; i <= 50; i++) {
+      const b = reduceBeginConverge(w, now + i * 60_000);
+      expect(b.snapshot, `run ${i} begins: never refused at a begin`).toBeDefined();
+      w = b.watch;
+      expect(w!.convergeRuns).toBe(i);
+    }
+    expect(w!.convergeSince, "the first failure of the run").toBe(now + 60_000);
+    expect(reduceFailConverge(w, now + 51 * 60_000).deadLetter, "fifty failures in under an hour: backed off, never dropped")
+      .toBeUndefined();
+    const dead = reduceFailConverge(w, now + 60_000 + CONVERGE_GIVE_UP_MS);
+    expect(dead.deadLetter).toEqual(["c", "~all"]);
+    expect(dead.watch!.cells).toEqual({});
+    expect(dead.watch!.allAt).toBeUndefined();
+    expect(dead.watch!.marks.m, "a person's edit on its way keeps its own lifecycle").toBeDefined();
+    expect(dead.watch!.convergeRuns, "the episode is over").toBeUndefined();
+    expect(dead.watch!.convergeSince).toBeUndefined();
+    const ok = reduceFinishConverge(w, { resolved: ["c"], forwarded: [], held: [], stuck: [], rescued: [] }, now, W)!;
+    expect(ok.marks.m, "the watch stays (its mark)").toBeDefined();
+    expect(ok.convergeRuns, "a converge that finished: the run of failures is over").toBeUndefined();
+    expect(ok.convergeSince).toBeUndefined();
+    expect(reduceFailConverge(watch(), now).deadLetter, "nothing counted: nothing to dead-letter").toBeUndefined();
+  });
+
+  it("[R5] the re-queue backs off while converges keep failing: CONVERGE_RECHECK_MS, then as long as they have failed, at most CONVERGE_BACKOFF_MAX_MS", () => {
+    expect(convergeRecheckMs({})).toBe(CONVERGE_RECHECK_MS);
+    expect(convergeRecheckMs({ convergeRuns: 3, convergeSince: now, convergeQueuedAt: now + 20_000 }), "a first round's tries")
+      .toBe(CONVERGE_RECHECK_MS);
+    expect(convergeRecheckMs({ convergeRuns: 9, convergeSince: now, convergeQueuedAt: now + 22 * 60_000 })).toBe(22 * 60_000);
+    expect(convergeRecheckMs({ convergeRuns: 30, convergeSince: now, convergeQueuedAt: now + 9 * 3600_000 })).toBe(CONVERGE_BACKOFF_MAX_MS);
+    const failing = watch({ cells: { c: { fp: "B", since: now - W, typed: false, windowMs: W, due: now - W } },
+      convergeRuns: 6, convergeSince: now - 40 * 60_000, convergeQueuedAt: now });
+    expect(nextAlarmAt(failing, now, false), "re-queued 40 minutes on").toBe(now + 40 * 60_000);
+    expect(reduceAlarm(failing, now + 39 * 60_000, W, false).converge).toBe(false);
+    expect(reduceAlarm(failing, now + 40 * 60_000, W, false).converge).toBe(true);
+  });
+
+  it("[M3] a watch left with nothing to converge forgets its run of failures: a later episode starts afresh", () => {
+    const morning = watch({ cells: { c: { fp: "B", since: now, typed: false, windowMs: W } }, convergeRuns: 8,
+      convergeSince: now - 3600_000, convergeQueuedAt: now - 60_000, convergeAttempts: 2,
+      marks: { m: { at: now, firstRx: now, lastRx: now, attempts: 0 } } });
+    const settled = reduceClearMarks(morning, ["c"], now + 1, now + 1)!;     // a person's run settles the last cell
+    expect(settled.marks.m, "the watch stays (another mark)").toBeDefined();
+    for (const k of ["convergeRuns", "convergeSince", "convergeQueuedAt", "convergeAttempts"] as const)
+      expect(settled[k], k).toBeUndefined();
+    const later = now + 6 * 3600_000;
+    const afternoon = reduceWatchCells(settled, base, [{ key: "d", fp: "X", typed: false, anchor: later, kind: "candidate" }], {},
+      later, W, false).watch!;
+    const begun = reduceBeginConverge(afternoon, later).watch!;
+    expect(begun.convergeRuns, "counted from one").toBe(1);
+    expect(begun.convergeSince).toBe(later);
+    expect(convergeRecheckMs(begun), "one failure is no long run of them").toBe(CONVERGE_RECHECK_MS);
+    expect(reduceFailConverge(begun, later + 10_000).deadLetter).toBeUndefined();
+    expect(pruneWatch(watch({ allAt: now, convergeRuns: 2, convergeSince: now }), now)!.convergeRuns, "a converge-all still pending")
+      .toBe(2);
+  });
+});
+
+describe("the second review's rules", () => {
+  const now = T("2026-10-09T09:00:00.000Z");
+  const watch = (o: Partial<CardWatch> = {}): CardWatch => ({ ...base, cells: {}, marks: {}, ...o });
+  const own = (prop: string, value: string, at: number): TaggedVersion =>
+    ({ prop, value, timestamp: new Date(at).toISOString(), sourceType: "INTEGRATION", sourceId: OWN_HS_SOURCE_ID });
+  const P = (value: string, at: number, keys: string[] | undefined): PushRec =>
+    ({ recordId: "382447", prop: "jobtitle", value, mod: at, s: at - 300, e: at + 100, ...(keys ? { keys } : {}) });
+  const vs = (...v: TaggedVersion[]) => v;
+  const JOBK = JOB.col;
+  const verdict = (versions: TaggedVersion[], pushes: PushRec[], want: string) =>
+    ownLaterVerdict(versions, pushes, "382447", "jobtitle", JOBK, want, now);
+
+  it("[R3] this cell's own STALE push landing after its push of the edit: never 'already sent' -- the edit never landed", () => {
+    const race = [P("Director", now + 2000, [JOBK]), P("Buyer", now + 3000, [JOBK])];
+    expect(verdict(vs(own("jobtitle", "Buyer", now + 3000), own("jobtitle", "Director", now + 2000)), race, "Director")).toBeUndefined();
+    expect(sentSince(race, "382447", "jobtitle", "Director", now), "what the old rule read as 'sent once'").toBe(true);
+  });
+
+  it("[R3] sent once still holds: HubSpot holds the push of it (stored otherwise), or ignored it (holds something older)", () => {
+    const once = [P("Needs 20 seats", now + 2000, [JOBK])];
+    expect(verdict(vs(own("jobtitle", "NEEDS 20 SEATS", now + 2000)), once, "Needs 20 seats")).toBe("sent");
+    expect(verdict(vs({ ...own("jobtitle", "Engineer", now - 9000), sourceType: "CRM_UI" }), once, "Needs 20 seats")).toBe("sent");
+  });
+
+  it("[R3] another cell's later push of the same property wins (sibling); an older one does not; cells not recorded read as another's", () => {
+    expect(verdict(vs(own("jobtitle", "Acme Group", now + 10_000)), [P("Acme Group", now + 10_000, ["~name"])], "Acme Ltd"))
+      .toBe("sibling");
+    expect(verdict(vs(own("jobtitle", "Acme Group", now - 20_000)), [P("Acme Group", now - 20_000, ["~name"])], "Acme Holdings"),
+      "another cell's OLDER push: this edit is the newer one").toBeUndefined();
+    expect(verdict(vs(own("jobtitle", "X", now + 10_000)), [P("X", now + 10_000, undefined)], "Y"), "the safe side").toBe("sibling");
+    expect(verdict(vs(own("jobtitle", "Form", now + 10_000)), [P("Form", now + 10_000, [ALL_CELLS])], "Pick"),
+      "a write of the card as a whole is this cell's too").toBeUndefined();
+    expect(verdict(vs({ ...own("jobtitle", "Engineer", now - 9000), sourceType: "CRM_UI" }), [], "Buyer"), "nothing of this card's")
+      .toBeUndefined();
+  });
+
+  it("[R3] pushOf: the latest recorded write a version is", () => {
+    const pushes = [P("Buyer", now, [JOBK]), { ...P("Buyer", now, ["x"]), e: now + 150 }];
+    expect(pushOf(own("jobtitle", "Buyer", now), pushes, "382447")?.keys).toEqual(["x"]);
+    expect(pushOf(own("jobtitle", "Director", now), pushes, "382447")).toBeUndefined();
+    expect(isThisCardsPush(own("jobtitle", "Buyer", now), pushes, "382447")).toBe(true);
+  });
+
+  it("[R2] the watch remembers when it first held each value of a cell -- the rescue's horizon -- kept for the same value, new for a new one", () => {
+    let r = reduceWatchCells(undefined, base, [{ key: "c", fp: "A", typed: true, anchor: now - 5000, kind: "hold" }], {}, now, W, true);
+    expect(r.watch!.cells.c.seen).toBe(now);
+    r = reduceWatchCells(r.watch, base, [{ key: "c", fp: "A", typed: true, anchor: now - 5000, kind: "candidate" }], {}, now + 60_000, W, true);
+    expect(r.watch!.cells.c.seen, "the same value: its first sight kept").toBe(now);
+    r = reduceWatchCells(r.watch, base, [{ key: "c", fp: "B", typed: true, anchor: now + 70_000, kind: "hold" }], {}, now + 70_000, W, true);
+    expect(r.watch!.cells.c.seen, "a new value: seen afresh").toBe(now + 70_000);
+    const f = reduceFinishConverge(r.watch, { resolved: [], forwarded: [], held: [{ key: "c", fp: "B", typed: true, anchor: now, kind: "hold" }],
+      stuck: [], rescued: [] }, now + 90_000, W)!;
+    expect(f.cells.c.seen, "re-held by a converge: kept").toBe(now + 70_000);
+    expect(RESCUE_LOOKBACK_MS, "an hour").toBe(3600_000);
+  });
+
+  it("[R4] a retry that failed in its own reads gives its marks their attempt back (never below zero); its backoff stands", () => {
+    const w = watch({ marks: { a: { at: now, firstRx: now, lastRx: now, attempts: 2, retryQueuedAt: now + 60_000 },
+      b: { at: now, firstRx: now, lastRx: now, attempts: 0 } } });
+    const r = reduceRefundRetry(w, ["a", "b", "gone"], now + 70_000)!;
+    expect(r.marks.a.attempts).toBe(1);
+    expect(r.marks.a.retryQueuedAt).toBe(now + 60_000);
+    expect(r.marks.b.attempts).toBe(0);
+    expect(reduceRefundRetry(undefined, ["a"], now)).toBeUndefined();
   });
 });
 

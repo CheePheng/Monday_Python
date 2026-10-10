@@ -41,10 +41,11 @@ const w = () => W_.w;
 const pushes = () => W_.pushes(hubspot as never);
 const historyReads = () => W_.historyReads(hubspot as never);
 const { specByObject } = await import("../src/config");
+const { retryMarkedEdits } = await import("../src/sync");
 const { handleHubspot } = await import("../src/webhooks");
 const { uiActorTiming } = await import("../src/ui-actor");
 const { resetPairedEchoes } = await import("../src/relation-edit");
-const { MARK_LEASE_MS } = await import("../src/card-watch");
+const { MARK_LEASE_MS, STAMP_NOTE_WINDOW_MS } = await import("../src/card-watch");
 
 const field = (hs: string) => CRM_CONTACTS.fields.find(f => f.hs === hs)!.col;
 const LIFE = field("lifecyclestage");
@@ -106,7 +107,8 @@ describe("marks: a person's edit is protected from its webhook until its run res
     atHs.release(); await settleAll(waits);
     expect(pushes()).toEqual([{ lifecyclestage: "1029060900" }]);
     expect(await watchIdle(), JSON.stringify(await watchState())).toBe(true);
-    expect(watchAlarmAt(), "nothing left: no alarm either").toBeNull();
+    expect(watchAlarmAt(), "nothing left but the Sync State register's own cleanup (its notes are durable)")
+      .toBe(Date.parse("2026-10-09T09:00:00.000Z") + STAMP_NOTE_WINDOW_MS);
   });
 
   it("an edit of a column that can never push (not two-way) is not marked", async () => {
@@ -628,6 +630,49 @@ describe("relation cells: a person's pending link is never taken back out by a f
     await advance("2026-10-09T09:01:00.000Z");
     expect(w().links[ACCOUNT].ids, trail()).toEqual(["7001"]);
     expect(await watchIdle(), JSON.stringify(await watchState())).toBe(true);
+  });
+
+  it("[5] a marked relation edit served by the trailing re-run of an UNMARKED first event is cleared by that run", async () => {
+    linked();
+    clock("2026-10-09T09:00:00.000Z");
+    const atCard = hold("SAME", "card");
+    const same = await mondayWebhook("SAME", ACCOUNT, eventValue(ACCOUNT), REP);   // a person's event that changes nothing
+    await reachIn(atCard, same, "the first run's card read");
+    expect((await watchState())?.marks ?? {}, "an empty diff is not marked").toEqual({});
+    clock("2026-10-09T09:00:01.000Z");
+    const prev = repLinks(ACCOUNT, ["7001", "7002"]);
+    const add = await mondayWebhook("ADD", ACCOUNT, prev, REP);              // a real link: marked, folded into a re-run
+    expect((await watchState())?.marks["rel:contact_account"]).toBeDefined();
+    expect(logged(/action=coalesced-rerun key=md:2856382447:contact_account:person /)).toBe(true);
+    clock("2026-10-09T09:00:02.000Z");
+    atCard.release(); await settleAll([...same, ...add]);
+    expect(w().assoc.companies, trail()).toEqual(["501", "502"]);
+    expect((await watchState())?.marks["rel:contact_account"], "the run that served it cleared its mark").toBeUndefined();
+    expect(await watchIdle(), JSON.stringify(await watchState())).toBe(true);
+  });
+
+  it("[R1] a relation edit's retry never re-adds a card the person took back out meanwhile: it re-reads the cell before its PUT", async () => {
+    setEnv({ STALE_FORWARD_RETRY: "true" });
+    linked();
+    clock("2026-10-09T09:00:00.000Z");
+    const prev = repLinks(ACCOUNT, ["7001", "7002"]);
+    w().failGetRecord = "HOOK";                                               // its run dies: only its mark is left
+    await settleAll(await mondayWebhook("HOOK", ACCOUNT, prev, REP));
+    w().failGetRecord = undefined;
+    expect((await watchState())?.marks["rel:contact_account"]?.rel).toMatchObject({ added: ["7002"] });
+    const gate = hold("RTRY", "hs");
+    clock("2026-10-09T09:01:01.000Z");
+    expect(await fireWatch(), "the lease ended: a retry is queued").toBe(true);
+    spilled.length = 0;                                                       // run by hand, so it can be held
+    const retry = retryMarkedEdits(as("RTRY"), w().spec.boardId, w().card.id, W_.live, { left: 30 });
+    await reach(gate, retry, "the retry's record read, after its card read");
+    clock("2026-10-09T09:01:02.000Z");
+    const prev2 = repLinks(ACCOUNT, ["7001"]);                               // the person takes the card back out...
+    await settleAll(await mondayWebhook("HOOK2", ACCOUNT, prev2, REP));       // ...and that edit's own run is done first
+    clock("2026-10-09T09:01:04.000Z");
+    gate.release(); await retry;
+    expect(w().assoc.companies, "the minute-old add is never sent over the removal\n" + trail()).toEqual(["501"]);
+    expect(w().links[ACCOUNT].ids).toEqual(["7001"]);
   });
 
   it("an automation's relation edit is not marked (its run pushes nothing); nor is a person's event that changes nothing", async () => {

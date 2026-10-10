@@ -61,6 +61,14 @@ export interface ReverseScope {
   /** For logs only. The G3 re-check keys on the "person" actor class, never on this id, so a caller
    *  that omits it loses nothing (see relation-edit.ts). */
   actor?: string;
+  /**
+   * STALE_FORWARD_RETRY: the edit is a mark's RETRY (types.ts RetryEdit), run outside the cell's own queue and isolate,
+   * so the G3 re-check (removedSince, this isolate's pending removals) cannot see a newer removal of the card. An add is
+   * therefore also re-checked against the CELL as it is right before the PUT: a card no longer in it was taken back out
+   * by a newer edit, whose own run sent that. (Safe for a retry only: its mark keeps forward passes applying the add to
+   * the cell meanwhile, so a card missing from it is a person's removal, never a forward pass's.)
+   */
+  retry?: boolean;
 }
 
 /** The person's edit of one relation cell, or null when it cannot be told (no usable before-value). */
@@ -312,7 +320,8 @@ const unlinkRemovedCards: RelationStep = async (env, spec, a, col, target, rec, 
  *
  * Immediately before each PUT the pass re-checks whether the card has since been removed from this cell
  * (removedSince, on the shared person queue). The queued run behind this one carries that removal, so
- * skipping here is what stops a late add from re-creating a link a person removed.
+ * skipping here is what stops a late add from re-creating a link a person removed. A mark's RETRY runs in
+ * another isolate, where that queue is not visible: it re-reads the cell itself (ReverseScope.retry).
  */
 const pushAddedCards: RelationStep = async (env, spec, a, col, target, rec, item, opts, budget, scope, authRef) => {
   const added = scope.linked?.[col];
@@ -323,7 +332,7 @@ const pushAddedCards: RelationStep = async (env, spec, a, col, target, rec, item
   if (n > MAX_LINKS_PER_EDIT)
     return `${n} links added in one edit (max ${MAX_LINKS_PER_EDIT}); link them in HubSpot`;
   const key = personKey(item, col);
-  const stillWanted = (cards: string[]) => cards.some(c => !removedSince(key, c));
+  let stillWanted = (cards: string[]) => cards.some(c => !removedSince(key, c));
 
   const hsIdByCard = await getItemsColumnText(env, added, target.idCol);
   const cardsByHs = new Map<string, string[]>();
@@ -340,6 +349,12 @@ const pushAddedCards: RelationStep = async (env, spec, a, col, target, rec, item
   const current = await getAllAssociatedIds(env, spec.object, rec.id, a.toObject);
   if (current.truncated)
     return "HubSpot's association read is partial, so which of the added links are missing cannot be proven";
+  // A retry's add: only while the card is still in the cell (ReverseScope.retry), read now -- the last read before the PUT.
+  if (scope.retry) {
+    const inCell = new Set(await getLinkedItemIds(env, item.id, col));
+    const before = stillWanted;
+    stillWanted = (cards: string[]) => before(cards.filter(c => inCell.has(c)));
+  }
   const have = new Set(current.ids);
   const absent = [...cardsByHs.keys()].filter(h => !have.has(h));
   // Checked before the claim as well as before each PUT: an add that has already been taken back must

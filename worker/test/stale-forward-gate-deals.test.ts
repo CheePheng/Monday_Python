@@ -70,8 +70,8 @@ const writesOf = (col: string, text: string) => w().trail.filter(l => !/ REP /.t
 async function reachIn(g: { reached: Promise<void> }, waits: Promise<unknown>[], what: string): Promise<void> {
   await Promise.race([g.reached, Promise.allSettled(waits).then(() => { throw new Error(`${what} was never reached`); })]);
 }
-/** The card watch's in-memory Sync State notes (the register, §13). */
-const stampNotes = () => ((W_.doObjects.get(W_.watchKey()) ?? {}) as { stampNotes?: { ts: string }[] }).stampNotes?.map(n => n.ts) ?? [];
+/** The card watch's Sync State notes (the register, §13), as its Durable Object's storage holds them. */
+const stampNotes = () => ((W_.doObjects.get(W_.watchKey())?.ctx.map.get("stampNotes") ?? []) as { ts: string }[]).map(n => n.ts);
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });

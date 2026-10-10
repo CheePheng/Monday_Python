@@ -241,12 +241,12 @@ function hasUuid(d: any): boolean {
 
 class LookupTimeout extends Error {}
 
-/** `p`, or a LookupTimeout after uiActorTiming.attemptTimeoutMs. A read inside a webhook's waitUntil
+/** `p`, or a LookupTimeout after uiActorTiming.attemptTimeoutMs (or `ms`). A read inside a webhook's waitUntil
  *  must never sit through gql's own retries and rate-limit waits. */
-async function withTimeout<T>(p: Promise<T>): Promise<T> {
+async function withTimeout<T>(p: Promise<T>, ms = uiActorTiming.attemptTimeoutMs): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, rej) => {
-    timer = setTimeout(() => rej(new LookupTimeout("timeout")), uiActorTiming.attemptTimeoutMs);
+    timer = setTimeout(() => rej(new LookupTimeout("timeout")), ms);
   });
   try { return await Promise.race([p, timeout]); }
   finally { if (timer) clearTimeout(timer); }
@@ -497,16 +497,23 @@ export interface CellChange {
   removed?: string[] | null;
 }
 
+/** A PATIENT log read's bound: longer than gql's own retries and six rate-limit waits of at most 65 s; it only cuts off a
+ *  request that never answers. For a caller inside a Durable Object alarm (15 minutes of wall time), never a webhook. */
+export const PATIENT_LOG_TIMEOUT_MS = 8 * 60_000;
+
 /**
  * WHO LAST CHANGED EACH OF THESE CELLS, by monday's activity log (STALE_FORWARD_RETRY's rescue, sync.ts
  * settleCardWatch): one activity_logs query for the card -- every user -- from `fromMs` less 120 s to now, at most 50
  * rows; per column the NEWEST update_column_value row. A column with no row in that window is ABSENT from the answer;
  * one whose newest row cannot be told -- two rows at the same created_at, or one with an unreadable created_at -- has
- * no verdict (null). The whole answer is null when the query fails, times out (3 s) or a row is unreadable: fail
- * closed, nothing is rescued.
+ * no verdict (null). The whole answer is null when the query fails, times out or a row is unreadable: fail closed,
+ * nothing is rescued. The read is one try that never waits on monday's rate limit, bounded at 3 s -- the converge's,
+ * which holds its card read meanwhile -- unless `patient` (a mark's retry, sync.ts retryMarkedEdits, before it reads the
+ * card): then gql's own retries and rate-limit waits, bounded by PATIENT_LOG_TIMEOUT_MS. A retry runs under the very
+ * rate limits that killed the run it recovers, and a read refused at once there only defers it.
  */
-export async function lastCellChanges(env: Env, spec: ObjectSpec, itemId: string, cols: string[], fromMs: number):
-    Promise<Record<string, CellChange | null> | null> {
+export async function lastCellChanges(env: Env, spec: ObjectSpec, itemId: string, cols: string[], fromMs: number,
+    o: { patient?: boolean } = {}): Promise<Record<string, CellChange | null> | null> {
   if (!cols.length) return {};
   const query = `query ($b:[ID!], $i:[ID!], $c:[String], $f:ISO8601DateTime, $t:ISO8601DateTime) {
     boards(ids:$b) { activity_logs(item_ids:$i, column_ids:$c, from:$f, to:$t, limit:50) {
@@ -515,7 +522,7 @@ export async function lastCellChanges(env: Env, spec: ObjectSpec, itemId: string
   const vars = { b: [spec.boardId], i: [itemId], c: cols,
     f: new Date(from - 120_000).toISOString(), t: new Date(Date.now() + 1_000).toISOString() };
   let d: any;
-  try { d = await withTimeout(gql(env, query, vars, 1, 0)); }
+  try { d = o.patient ? await withTimeout(gql(env, query, vars), PATIENT_LOG_TIMEOUT_MS) : await withTimeout(gql(env, query, vars, 1, 0)); }
   catch (e) {
     console.log(`[ui-actor] source=monday board=${spec.boardId} item=${itemId} action=cell-log-unreadable`
       + ` reason="${e instanceof LookupTimeout ? "timeout" : String(e).slice(0, 100)}"`);

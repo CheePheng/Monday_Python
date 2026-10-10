@@ -1,6 +1,6 @@
 import type { Env } from "./types";
-import type { CardClaim, CreateSnapshot, PendingEdit } from "./create-idempotency-do";
-import type { CardWatch, ConvergeOutcome, EditMark, MarkInput, WatchBase, WatchReply, WatchReq } from "./card-watch";
+import type { CardClaim, CreateSnapshot, PendingEdit, RetryBegun } from "./create-idempotency-do";
+import type { CardWatch, ConvergeOutcome, MarkInput, PushRec, WatchBase, WatchReply, WatchReq } from "./card-watch";
 
 // monday's `items_page_by_column_values` (how every path asks "is there already a card for this HubSpot
 // record?") is EVENTUALLY CONSISTENT — a card created seconds ago is invisible to it. Several paths create
@@ -213,18 +213,19 @@ async function watchCall<T>(env: Env, boardId: string, itemId: string, what: str
 
 /** Tell the card's watch which cells a pass left in place (or found resolved), and learn per cell since when it is
  *  held, whether that hold ended, any live mark, and the loop breaker's word. Null: unreachable.
- *  `linkedAt`: the card was just linked to its record (an adoption, a create's write-back).
+ *  `linkedAt`: the card was just linked to its record (an adoption, a create's write-back) -- `linkWrite`, a monday-born
+ *  create's: the window of its own id write-back, which comes after the read that linked it (CardWatch.linkWrite).
  *  `dryRun` (a /resync dry run): the same answers, READ ONLY -- a dry run never leaves anything durable behind. */
 export async function watchCells(env: Env, base: WatchBase, reqs: WatchReq[],
-    o: { resolved?: string[]; all?: boolean; linkedAt?: number; windowMs: number; dryRun?: boolean }):
-    Promise<Record<string, WatchReply> | null> {
+    o: { resolved?: string[]; all?: boolean; linkedAt?: number; linkWrite?: { s: number; e: number }; windowMs: number;
+      dryRun?: boolean }): Promise<Record<string, WatchReply> | null> {
   if (o.dryRun) {
     if (!reqs.length) return {};
     return watchCall(env, base.boardId, base.itemId, "peekCells", stub => stub.peekCells(Date.now(), o.windowMs, base, reqs));
   }
   return watchCall(env, base.boardId, base.itemId, "watchCells",
     stub => stub.watchCells(Date.now(), o.windowMs, base, reqs, { resolved: o.resolved ?? [], all: !!o.all,
-      ...(o.linkedAt !== undefined ? { linkedAt: o.linkedAt } : {}) }));
+      ...(o.linkedAt !== undefined ? { linkedAt: o.linkedAt } : {}), ...(o.linkWrite ? { linkWrite: o.linkWrite } : {}) }));
 }
 
 /** A person's (or an automation's) edit is on its way: mark its cells until its run resolves. Unreachable: logged
@@ -254,14 +255,38 @@ export async function beginConverge(env: Env, boardId: string, itemId: string): 
   return watchCall(env, boardId, itemId, "beginConverge", stub => stub.beginConverge(Date.now()));
 }
 
+/** A converge threw: `deadLetter` when its converges had been failing for CONVERGE_GIVE_UP_MS and its cells were
+ *  dropped, loudly (card-watch.ts reduceFailConverge); `{}` otherwise; null when unreachable. */
+export async function failConverge(env: Env, boardId: string, itemId: string): Promise<{ deadLetter?: string[] } | null> {
+  return watchCall(env, boardId, itemId, "failConverge", stub => stub.failConverge(Date.now()));
+}
+
 export async function finishConverge(env: Env, boardId: string, itemId: string, outcome: ConvergeOutcome, windowMs: number): Promise<void> {
   await watchCall(env, boardId, itemId, "finishConverge", stub => stub.finishConverge(Date.now(), windowMs, outcome));
 }
 
-/** The retry's marks (past their lease), each counted as an attempt; null when unreachable. */
-export async function beginRetry(env: Env, boardId: string, itemId: string, windowMs: number):
-    Promise<Record<string, EditMark> | null> {
+/** The retry's marks (past their lease), each counted as an attempt, with this card's own writes and its link time;
+ *  null when unreachable. */
+export async function beginRetry(env: Env, boardId: string, itemId: string, windowMs: number): Promise<RetryBegun | null> {
   return watchCall(env, boardId, itemId, "beginRetry", stub => stub.beginRetry(Date.now(), windowMs));
+}
+
+/** A retry failed in its own reads, before it sent anything: its marks get the attempt back (card-watch.ts
+ *  reduceRefundRetry). Unreachable: the attempt stays counted (logged), the safe side -- the mark's TTL bounds it. */
+export async function refundRetry(env: Env, base: WatchBase, keys: string[]): Promise<void> {
+  if (!keys.length) return;
+  await watchCall(env, base.boardId, base.itemId, "refundRetry", stub => stub.refundRetry(Date.now(), keys));
+}
+
+/**
+ * THIS CARD'S OWN HUBSPOT WRITES (STALE_FORWARD_RETRY's provenance; card-watch.ts PushRec). Fail-soft like every watch
+ * call: a write that cannot be recorded (logged, push-unrecorded) later reads as someone else's -- the safe side: no
+ * retry or rescue is sent over it. Nothing in a dry run (nothing was written).
+ */
+export async function notePushes(env: Env, base: WatchBase, entries: PushRec[], dryRun = false): Promise<void> {
+  if (dryRun || !entries.length) return;
+  await watchCall(env, base.boardId, base.itemId, "notePushes", stub => stub.notePushes(Date.now(), base, entries),
+    "push-unrecorded");
 }
 
 /** A Sync State write on this card: `t` written between `s` and `e` (ms). See CreateIdempotency.noteStamp. A dry run

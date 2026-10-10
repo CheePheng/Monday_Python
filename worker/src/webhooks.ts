@@ -237,6 +237,33 @@ export { removedPersonIds };
 const pendingRemovedPeople = new Map<string, { ids: Set<string>; known: boolean }>();
 
 /**
+ * STALE_FORWARD_GATE: the marks each md:* queue's waiting events made, until the run that serves them clears them --
+ * drained by that run, exactly like the removed people above and for the same reason: coalesceLatest re-runs the FIRST
+ * event's closure, so the keys a later event marked are not in it. (A person's relation queue whose first event changed
+ * nothing carries no mark; the link marked by the event folded into its re-run was never cleared, and lived until its
+ * lease -- an extra converge, or with STALE_FORWARD_RETRY a redundant re-send.) Added after the event's mark is made
+ * and before it joins its queue, with no await between, so a run that starts later always drains it. Per isolate, like
+ * the queues; a run that throws drains without clearing (the marks' leases take over), and a ~stage queue whose run
+ * threw drops the marks still pending for it as well (see the queue's .catch). Bounded.
+ */
+const pendingMarks = new Map<string, Set<string>>();
+const PENDING_MARKS_MAX = 5_000;
+function addPendingMarks(queue: string, keys: string[]): void {
+  if (!pendingMarks.has(queue) && pendingMarks.size >= PENDING_MARKS_MAX) {
+    const oldest = pendingMarks.keys().next().value;
+    if (oldest !== undefined) pendingMarks.delete(oldest);
+  }
+  const s = pendingMarks.get(queue) ?? new Set<string>();
+  for (const k of keys) s.add(k);
+  pendingMarks.set(queue, s);
+}
+function drainPendingMarks(queue: string): string[] {
+  const s = pendingMarks.get(queue);
+  pendingMarks.delete(queue);
+  return s ? [...s] : [];
+}
+
+/**
  * What a person UNLINKED in a relation column: in monday's `previousValue` and not in `value`.
  *
  * Deliberately built only from monday's own before/after, never from a card read. The old reason for
@@ -740,6 +767,10 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
     else if (columnId && isGatedCol(env, spec, columnId)) markKeys = [columnId];
   }
   const watchBase = { boardId, itemId, object: spec.object };
+  // The queue this event joins (below): column-level, one per item+column (+ the relation class, or our echo's own).
+  const queueKey = spec.columnLevelReverse && edit
+    ? `md:${itemId}:${stageShared ? "~stage" : edit.name ? "~name" : edit.cols[0]}` + (relClass ? `:${relClass}` : ownEcho ? ":self" : "")
+    : `md:${itemId}`;
   if (markKeys.length) {
     const rx = Date.now();
     // A People cell's mark carries what this event removed, so a retry refuses emptying a stale cell exactly as
@@ -748,13 +779,16 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
       ...(actorId ? { actor: actorId } : {}), ...(byAutomation ? { byAutomation: true } : {}),
       ...(key.startsWith("rel:") ? { rel: relRecorded } : {}),
       ...(isPeopleCol && key === columnId ? { people: removedPersonIds(ev) } : {}) })));
+    // For whichever run of this queue serves it (see pendingMarks). No await from here until the event joins its queue.
+    addPendingMarks(queueKey, markKeys);
   }
   const runSync = async () => {
     const t0 = Date.now();
     // Drained FIRST, before any await, so this run owns exactly the relation edits that arrived before
-    // it started; anything later lands in the pending set for the trailing re-run.
+    // it started; anything later lands in the pending set for the trailing re-run. The marks likewise.
     const rel = edit && isRelationCol ? drainRelationEvents(relKey) : null;
     const stageDrained = stageShared ? drainStageCols(itemId) : [];
+    const marked = drainPendingMarks(queueKey);
     // isOwnEcho = isIntegrationActor, unless ASK_ADA_UI_EDITS proves a UI action. With the flag on, the
     // verdict was cached BEFORE this run joined its queue (routeAskAdaAware), so this never waits on the
     // log here: a lookup held inside the queue swallowed a real person's edit into our echo's run.
@@ -782,13 +816,10 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
     // the new record's birth pass would push whatever its relation cells hold. See syncMondayItem.
     const outcome = await syncMondayItem(env, boardId, itemId, webhookOpts(env), budget, false, selfOrigin, runEdit,
       { id: actorId, byAutomation });
-    // STALE_FORWARD_GATE: resolved (pushed, healed, nothing to send, skipped) -- its marks go, except one an event
-    // arrived for after this run started (its own trailing run clears it). A stage run served every stage column it
-    // drained. A run that threw never gets here: the mark's lease takes over.
-    if (markKeys.length) {
-      const served = stageShared ? stageDrained.filter(c => isGatedCol(env, spec, c)) : markKeys;
-      await clearMarks(env, watchBase, served.length ? served : markKeys, t0);
-    }
+    // STALE_FORWARD_GATE: resolved (pushed, healed, nothing to send, skipped) -- the marks of every event this run
+    // served go (whichever event's closure it is), except one an event reached after this run started (its own trailing
+    // run clears it). A run that threw never gets here: the mark's lease takes over.
+    if (marked.length) await clearMarks(env, watchBase, marked, t0);
     return outcome;
   };
   const onError = (e: unknown) =>
@@ -804,15 +835,18 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
   //
   // A person's STAGE edits (STAGE_COARSE_REVERSE on) share one queue per card: see pendingStageCols. A
   // queue whose run threw loses what arrived meanwhile, as every md:* queue does (stop-on-throw), and its
-  // stage entries go with it -- otherwise they would ride along with the next, unrelated stage edit.
+  // stage entries go with it -- otherwise they would ride along with the next, unrelated stage edit. Their
+  // pending MARKS go too (STALE_FORWARD_GATE): the next stage run sends only its own stage columns, so clearing
+  // a mark of an edit it never sent would leave that edit unsent and unwatched; dropped here, each mark runs out
+  // its lease instead (retried, or its cell converges). Any other md:* queue keeps its pending marks: its next run
+  // re-reads the same cell and sends what the card shows, which serves them.
   //
   // OUR OWN ECHO (STALE_FORWARD_GATE only): its own `:self` queue, so a person's edit of the cell never folds into it.
   if (spec.columnLevelReverse && edit)
-    ectx.waitUntil(coalesceLatest(`md:${itemId}:${stageShared ? "~stage" : edit.name ? "~name" : edit.cols[0]}`
-      + (relClass ? `:${relClass}` : ownEcho ? ":self" : ""), runSync)
-      .catch(e => { if (stageShared) pendingStageCols.delete(itemId); onError(e); }));
+    ectx.waitUntil(coalesceLatest(queueKey, runSync)
+      .catch(e => { if (stageShared) { pendingStageCols.delete(itemId); pendingMarks.delete(queueKey); } onError(e); }));
   else
-    ectx.waitUntil(coalesce(`md:${itemId}`, runSync).catch(onError));
+    ectx.waitUntil(coalesce(queueKey, runSync).catch(onError));
 }
 
 // ------------------------------- hubspot -------------------------------

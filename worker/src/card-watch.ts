@@ -19,7 +19,14 @@
  *   - NOTHING IS HELD FOREVER: every hold ends (W), and the card's watch converges whatever still differs when it
  *     does, with or without another event. A person's edit still on its way carries a MARK (from its webhook until
  *     its run resolves) that keeps the cell held; with STALE_FORWARD_RETRY a mark whose run died is re-sent.
- * See sync.ts forwardOnlyGated for the pass itself.
+ * THE TWO PATHS THAT WRITE HUBSPOT OUTSIDE A WEBHOOK (STALE_FORWARD_RETRY: a mark's retry, the converge's log rescue)
+ * judge HubSpot's versions by PROVENANCE, not by sourceId alone: our app's sourceId is on every write made with the
+ * CRM app's token -- this card's own push, but also an operator's script, the /app clear routes, a duplicate card's
+ * push. Only a version this card's own writes explain (PushRec, isThisCardsPush) is not news to them; any other is a
+ * change like a person's, and they never send an older value over it. What the card cannot account for is not sent.
+ * A retry runs outside the cell's own queue, so it reads both sides again right before it sends and the card back after
+ * (sync.ts RetryEdit): a newer edit of the cell is never written over. A rescue reaches back at most RESCUE_LOOKBACK_MS
+ * before the watch first held the cell: anything older is history, converged. See sync.ts forwardOnlyGated for the pass.
  */
 import type { Ctx, FieldSpec, HsRecord, MondayItem, ObjectSpec, PassScope } from "./types";
 import type { Diff } from "./reconcile";
@@ -81,16 +88,48 @@ export const ALARM_MARGIN_MS = 5_000;
 /** A suspicious Sync State stamp is read back this long after it. */
 export const VERIFY_DELAY_MS = 1_500;
 /**
- * How long the watch remembers the Sync State stamps written on its card: at least the longest a stamp-carrying
- * write can take to land. A write that does not refuse at once (HEAD's own, the create's write-back, an adoption's)
- * sits through up to six of monday's rate-limit waits of up to 65 s, plus its retries' pauses -- about seven
- * minutes. A newer stamp's note must still be here when such an older write's note arrives, or the overtaking goes
- * unseen (the register would have forgotten the newer stamp after a minute).
+ * How long the register keeps each Sync State stamp written on its card (in the watch's Durable Object STORAGE, so
+ * an instance evicted while idle forgets nothing): longer than any stamp-carrying write can take to land, because a
+ * newer stamp's note must still be there when an older write's note arrives, or the overtaking goes unseen.
+ *   - A write that does not refuse at once (HEAD's own, the edit pass's, the create's write-back, an adoption's) is
+ *     held by monday.ts gql through at most six rate-limit waits of at most 65 s, plus its retries' pauses (4.5 s):
+ *     6.6 minutes before any request's own time, and at most nine requests.
+ *   - Where it can wait that long it runs in a Durable Object alarm (the deferred queue's wave, the watch's own),
+ *     which has 15 minutes of wall time; a webhook's work is cut off about 30 s after its response.
+ * Sixteen minutes covers both bounds: gql's waits with a minute for each of its requests, and the longest any
+ * invocation that writes a stamp can live.
  */
-export const STAMP_NOTE_WINDOW_MS = 8 * 60_000;
+export const STAMP_NOTE_WINDOW_MS = 16 * 60_000;
+/** The register keeps at most this many notes (always the newest stamp among them). */
+export const STAMP_NOTES_MAX = 64;
 /** A converge whose activity-log read failed retries its rescue this long after, at most this many times. */
 export const LOG_RETRY_MS = 5 * 60_000;
 export const LOG_RETRY_MAX = 3;
+/**
+ * A CONVERGE THAT KEEPS FAILING (it throws: a value monday never takes, an outage) BACKS OFF instead of being re-queued
+ * every CONVERGE_RECHECK_MS for as long as it fails: each re-queue waits as long as its converges have been failing in a
+ * row -- never less than CONVERGE_RECHECK_MS, never more than CONVERGE_BACKOFF_MAX_MS -- so the waits double. An outage
+ * of minutes or hours is ridden out, cells and all, and the first converge after it heals them (convergeRecheckMs).
+ * Only a run of failures that has lasted CONVERGE_GIVE_UP_MS is DEAD-LETTERED -- decided after a run FAILED, never when
+ * one begins, so the run that would succeed is always tried: its cells leave the watch with a loud line naming them
+ * (reduceFailConverge). A finished converge ends the run of failures; so does a watch left with nothing to converge (no
+ * cell, no converge-all), so a later episode starts afresh. Marks are never touched: a person's edit still on its way
+ * keeps its own lifecycle.
+ */
+export const CONVERGE_BACKOFF_MAX_MS = 4 * 60 * 60_000;
+export const CONVERGE_GIVE_UP_MS = 24 * 60 * 60_000;
+/**
+ * THE RESCUE'S HORIZON (STALE_FORWARD_RETRY): a person's edit monday's log proves is rescued only when it was made at
+ * most this long before the watch first held that value of its cell (WatchCell.seen; a cell the converge judges without
+ * having held it: the converge's own time), and never before CRM_CUTOVER_AT. Anything older is HISTORY, not an edit on
+ * its way: a value left on a card from before the gate or the retry existed, a pre-cutover edit, a reassignment weeks
+ * old on a dormant record that a passive HubSpot recalculation brought into play. Pushed, it would claim the record,
+ * take the card out of No Activity and reassign owners on the strength of an old row -- so such a cell converges to
+ * HubSpot instead. An edit misread as our echo is held by its own echo's pass within seconds, one whose webhook monday
+ * never delivered by the next pass that sees the card: an hour covers both, with room for a slow queue. Measured from
+ * the watch's first sight, not from now, so a converge an outage holds up for hours still rescues an edit it held at once.
+ */
+export const RESCUE_LOOKBACK_MS = 60 * 60_000;
 
 /**
  * A pass's events older than this (2 x W) no longer NAME anything: their scope is dropped and the pass is unscoped
@@ -113,6 +152,138 @@ export interface HsVersion { value: string; timestamp: string; sourceType: strin
 /** Is this version our own write? Exactly: an INTEGRATION write carrying our app's sourceId. */
 export function isOwnVersion(v: HsVersion): boolean {
   return v.sourceType === "INTEGRATION" && String(v.sourceId ?? "") === OWN_HS_SOURCE_ID;
+}
+
+// ------------------------------------------------------------------------------------------ this card's own writes
+
+/**
+ * ONE OF THIS CARD'S OWN HUBSPOT WRITES (STALE_FORWARD_RETRY's provenance): a property this card's engine PATCHed --
+ * a person's column-level push (its retry's and a rescue's included), a backward move's clear / set / restore, the
+ * dangling-clear repair -- or sent in a monday-born create. HubSpot records every one of them under our app's
+ * sourceId; so does EVERY other write made with the CRM app's token: an operator's script, /app/clear-deal-fields and
+ * /app/clear-record-fields, the phone backfill, a DUPLICATE card's push of the same record. isOwnVersion cannot tell
+ * those apart; a version matching one of these records can (isThisCardsPush), and only it is "ours, from this card".
+ * Kept in the card's watch (CardWatch.pushes), and written only while STALE_FORWARD_RETRY is on: its two readers --
+ * the converge's log rescue and the mark's retry -- are the only paths that write HubSpot outside a webhook.
+ */
+export interface PushRec {
+  /** The HubSpot record written. */
+  recordId: string;
+  prop: string;
+  /** The value sent ("" for a clear). */
+  value: string;
+  /** The modified time HubSpot answered the write with (ms, HubSpot's own clock); NaN when it answered none. */
+  mod: number;
+  /** When the write was sent and answered (ms, the Worker's clock). */
+  s: number;
+  e: number;
+  /**
+   * The cells the run that sent it was sending (their watch keys: a column, NAME_KEY); ALL_CELLS for a write of the
+   * card as a whole (a monday-born create's payload, a drawer save). Two cells can feed one property (the Deals coarse
+   * and exact Stage; a company's item name and its Name column), and the rescue tells this cell's own stale push from a
+   * later edit of the property in another cell by it (ownLaterVerdict). Absent: not recorded -- read as another cell's.
+   */
+  keys?: string[];
+}
+/** PushRec.keys of a write of the card as a whole. */
+export const ALL_CELLS = "*";
+/** A version is this write's when it is within this of the write's answered modified time, or of its own window. */
+export const PUSH_MATCH_MS = 5_000;
+/** How long a card remembers its own writes: as long as the watch's other memories. Its readers need minutes. */
+export const PUSH_RETENTION_MS = WATCH_RETENTION_MS;
+/** At most this many writes per property (the newest), and in all. */
+export const PUSH_KEEP_PER_PROP = 8;
+export const PUSH_KEEP_MAX = 64;
+
+/**
+ * A value as this card sent it, against a value HubSpot stores: the same text (trimmed, in any case), the same
+ * number ("1000" / "1000.0"), or the same time ("2026-10-09" / its epoch ms). Lenient on purpose: a version it fails to
+ * match reads as someone else's, which is the safe side (nothing is pushed over it) but loses the double edit's later
+ * value; one it matches wrongly could only be a same-valued write in the same few seconds.
+ */
+export function sameStoredValue(sent: unknown, stored: unknown): boolean {
+  const a = String(sent ?? "").trim(), b = String(stored ?? "").trim();
+  if (a === b || a.toLowerCase() === b.toLowerCase()) return true;
+  if (!a || !b) return false;
+  const na = Number(a), nb = Number(b);
+  if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
+  const ta = timeOf(a), tb = timeOf(b);
+  return Number.isFinite(ta) && Number.isFinite(tb) && ta === tb;
+}
+
+/** The recorded write of THIS card that a version of `recordId` is -- our sourceId, the same property, the same value, at
+ *  the same time (HubSpot's answered modified time, or the write's own window, within PUSH_MATCH_MS); the latest such
+ *  write when several match -- or undefined. */
+export function pushOf(v: TaggedVersion, pushes: readonly PushRec[] | undefined, recordId: string): PushRec | undefined {
+  if (!isOwnVersion(v) || !pushes?.length) return undefined;
+  const t = timeOf(v.timestamp);
+  if (!Number.isFinite(t)) return undefined;
+  let best: PushRec | undefined;
+  for (const p of pushes)
+    if (p.recordId === recordId && p.prop === v.prop && sameStoredValue(p.value, v.value)
+        && ((Number.isFinite(p.mod) && Math.abs(t - p.mod) <= PUSH_MATCH_MS)
+          || (t >= p.s - PUSH_MATCH_MS && t <= p.e + PUSH_MATCH_MS))
+        && (!best || p.e > best.e)) best = p;
+  return best;
+}
+
+/** Is this version one of THIS card's own writes of `recordId` (pushOf)? */
+export function isThisCardsPush(v: TaggedVersion, pushes: readonly PushRec[] | undefined, recordId: string): boolean {
+  return !!pushOf(v, pushes, recordId);
+}
+
+/**
+ * THE NEWEST CHANGE THIS CARD DID NOT MAKE: the newest time of a version its own writes do not explain -- anyone
+ * else's, or our app's from another path or card -- or undefined when there is none. A version whose time cannot be
+ * read is +Infinity: it cannot be placed, so nothing is ever judged newer than it (never push on uncertainty).
+ */
+export function newestForeignAt(versions: TaggedVersion[] | undefined, pushes: readonly PushRec[] | undefined,
+    recordId: string): number | undefined {
+  if (!versions) return undefined;
+  let max = -Infinity;
+  for (const v of versions) {
+    if (isThisCardsPush(v, pushes, recordId)) continue;
+    const t = timeOf(v.timestamp);
+    max = Math.max(max, Number.isFinite(t) ? t : Infinity);
+  }
+  return max === -Infinity ? undefined : max;
+}
+
+/** Did this card already send `value` for `prop` -- a write that ended at or after `since` (a monday log row's time;
+ *  the write's is the Worker's clock, so within PUSH_MATCH_MS of it counts)? */
+export function sentSince(pushes: readonly PushRec[] | undefined, recordId: string, prop: string, value: unknown,
+    since: number): boolean {
+  return !!pushes?.some(p => p.recordId === recordId && p.prop === prop && sameStoredValue(p.value, value)
+    && p.e >= since - PUSH_MATCH_MS);
+}
+
+/**
+ * THE RESCUE'S LAST QUESTION, ABOUT THIS CARD'S OWN WRITES (after provenance: no foreign version is newer than the edit).
+ * `versions`: the property's history, newest first; `key`: the cell; `want`: what it would send; `rowAt`: the person's
+ * edit -- the cell's NEWEST row in monday's log, so any push of this very cell that holds another value was built from
+ * an older read than that edit.
+ *   - "sibling": HubSpot's newest version is this card's push of the property from ANOTHER cell (or from cells it did
+ *     not record), sent after the edit -- the Deals coarse Stage beside the exact one, a company's item name beside its
+ *     Name column: that later edit of the property wins, and this cell converges to it;
+ *   - "sent": this card already sent `want` since the edit, and what HubSpot holds instead is not explained by a stale
+ *     push of this very cell landing after it -- HubSpot's own answer (it stored the value otherwise, ignored it): the
+ *     edit is sent ONCE, and the cell converges, never re-sent in a loop;
+ *   - undefined: send it. Notably when this cell's own push of `want` was OVERTAKEN by a stale push of the same cell (a
+ *     run that read the card before the edit and sent last, another isolate's): the edit never landed. A sentSince that
+ *     ignored this lost the person's newest edit on both sides.
+ */
+export function ownLaterVerdict(versions: readonly TaggedVersion[], pushes: readonly PushRec[] | undefined, recordId: string,
+    prop: string, key: string, want: unknown, rowAt: number): "sibling" | "sent" | undefined {
+  const newest = versions.find(v => v.prop === prop);
+  const np = newest ? pushOf(newest, pushes, recordId) : undefined;
+  const ofThisCell = (p: PushRec) => !!p.keys && (p.keys.includes(key) || p.keys.includes(ALL_CELLS));
+  if (np && !ofThisCell(np) && np.e >= rowAt - PUSH_MATCH_MS) return "sibling";
+  const sent = (pushes ?? []).filter(p => p.recordId === recordId && p.prop === prop && sameStoredValue(p.value, want)
+    && p.e >= rowAt - PUSH_MATCH_MS);
+  if (!sent.length) return undefined;
+  const lastSent = Math.max(...sent.map(p => p.e));
+  const overtaken = !!np && ofThisCell(np) && !sameStoredValue(np.value, want) && np.e > lastSent;
+  return overtaken ? undefined : "sent";
 }
 
 /**
@@ -511,6 +682,9 @@ export interface WatchCell {
    * it, a coarse value is left to the next pass in which HubSpot is newer, as HEAD leaves it.
    */
   newer?: true;
+  /** When the watch first held THIS value of the cell (a new value starts again): the rescue's horizon is measured from
+   *  it (RESCUE_LOOKBACK_MS). Absent (a cell a mark's lapse or a give-up made): the converge's own time. */
+  seen?: number;
 }
 
 /** A relation edit's net change, composed in arrival order (relation-edit.ts recordRelationEvent's rule). */
@@ -555,6 +729,19 @@ export interface CardWatch {
    * a mark of an edit made before it is never re-sent -- such a cell converges to HubSpot. Kept while the watch is.
    */
   linkedAt?: number;
+  /**
+   * A monday-born create only: the window of its own id write-back (the Worker's clock). Its link time is the create's
+   * READ (linkedAt), which comes BEFORE that write: what the card showed then is what the create sent, and an edit
+   * made since -- during the write-back too -- is an edit of the new record. So the id cell's log row of that write
+   * does not move the link time (effectiveLinkAt); any other id write does.
+   */
+  linkWrite?: { s: number; e: number };
+  /** This card's own HubSpot writes, newest last (STALE_FORWARD_RETRY; see PushRec). */
+  pushes?: PushRec[];
+  /** Converges begun since the last one that finished (a run of failures), and when the first of them began: the
+   *  re-queue's back-off and the dead-letter are measured from it (CONVERGE_BACKOFF_MAX_MS, CONVERGE_GIVE_UP_MS). */
+  convergeRuns?: number;
+  convergeSince?: number;
   /**
    * The loop breaker's memory, per cell: a converge wrote HubSpot's value (`hs`, its text) at `at`, and monday then
    * showed `fp` -- NOT HubSpot's value (a re-rendering, a value that does not take). Only that state is left alone
@@ -627,20 +814,66 @@ function withBase(w: CardWatch | undefined, base: WatchBase): CardWatch {
 
 /** The watch with nothing left to do and no memory left is no watch. A cell the loop breaker left alone is due for
  *  a converge once its day is over -- never simply forgotten, so a value that still differs then is judged again.
- *  The link time (linkedAt) is kept only while something else keeps the watch. */
+ *  The link time (linkedAt) is kept only while something else keeps the watch; the card's own writes (pushes) for
+ *  PUSH_RETENTION_MS. With no cell and no converge-all left, the converge's bookkeeping goes too (its run of
+ *  failures, its queue time, its log-read failures): that episode is over, and a later one starts afresh. */
 export function pruneWatch(w: CardWatch, now: number): CardWatch | undefined {
   const out = clone(w);
   for (const c of Object.values(out.cells))
     if (c.stuckUntil !== undefined && c.stuckUntil <= now) { delete c.stuckUntil; c.due = now; }
+  if (!Object.keys(out.cells).length && out.allAt === undefined)
+    for (const k of ["convergeRuns", "convergeSince", "convergeQueuedAt", "convergeAttempts"] as const) delete out[k];
   for (const mem of ["fwd", "gaveUp"] as const) {
     const m = out[mem];
     if (!m) continue;
     for (const [k, v] of Object.entries(m)) if (now - v.at >= WATCH_RETENTION_MS) delete m[k];
     if (!Object.keys(m).length) delete out[mem];
   }
+  if (out.pushes) {
+    out.pushes = keepPushes(out.pushes, now);
+    if (!out.pushes.length) delete out.pushes;
+  }
   if (!Object.keys(out.cells).length && !Object.keys(out.marks).length && out.allAt === undefined
-      && !out.fwd && !out.gaveUp) return undefined;
+      && !out.fwd && !out.gaveUp && !out.pushes) return undefined;
   return out;
+}
+
+/** The writes still remembered: within PUSH_RETENTION_MS, the newest PUSH_KEEP_PER_PROP of each record's property and
+ *  PUSH_KEEP_MAX in all, oldest first. */
+function keepPushes(list: PushRec[], now: number): PushRec[] {
+  const byProp = new Map<string, PushRec[]>();
+  for (const p of list) {
+    if (!Number.isFinite(p.e) || now - p.e >= PUSH_RETENTION_MS) continue;
+    const k = `${p.recordId}|${p.prop}`;
+    byProp.set(k, [...(byProp.get(k) ?? []), p]);
+  }
+  return [...byProp.values()].flatMap(ps => ps.sort((a, b) => a.e - b.e).slice(-PUSH_KEEP_PER_PROP))
+    .sort((a, b) => a.e - b.e).slice(-PUSH_KEEP_MAX);
+}
+
+/** This card's own HubSpot writes, recorded (STALE_FORWARD_RETRY; see PushRec). */
+export function reduceNotePushes(w: CardWatch | undefined, base: WatchBase, entries: PushRec[], now: number): CardWatch | undefined {
+  const cur = withBase(w, base);
+  cur.pushes = keepPushes([...(cur.pushes ?? []), ...entries.map(e => clone(e))], now);
+  if (!cur.pushes.length) delete cur.pushes;
+  return pruneWatch(cur, now);
+}
+
+/**
+ * WHEN THE CARD WAS LINKED TO ITS RECORD, for the log rescue and the mark's retry: what the card showed before it is
+ * the form's starting state, never an edit of the record. From the watch's own record (linkedAt), and from the record-id
+ * cell's newest write in monday's log (`idRow`; absent: none in the window; null: it cannot be told), whichever is
+ * later -- except a monday-born create's own id write-back (linkWrite: our token's write inside that window), which
+ * does not move a link that the create's READ made. Infinity when the log cannot tell: nothing is proven after it.
+ */
+export function effectiveLinkAt(w: Pick<CardWatch, "linkedAt" | "linkWrite"> | undefined,
+    idRow: { atMs: number; cls: string } | null | undefined): number {
+  if (idRow === null) return Infinity;
+  const known = w?.linkedAt ?? -Infinity;
+  if (!idRow) return known;
+  const createsOwnWrite = !!w?.linkWrite && w.linkedAt !== undefined && idRow.cls === "integration"
+    && idRow.atMs >= w.linkWrite.s - PUSH_MATCH_MS && idRow.atMs <= w.linkWrite.e + PUSH_MATCH_MS;
+  return createsOwnWrite ? known : Math.max(known, Number.isFinite(idRow.atMs) ? idRow.atMs : Infinity);
 }
 
 /**
@@ -652,11 +885,16 @@ export function pruneWatch(w: CardWatch, now: number): CardWatch | undefined {
  *   - `resolved`: cells a pass found in line (removed); `all`: converge every two-way cell within W.
  */
 export function reduceWatchCells(w: CardWatch | undefined, base: WatchBase, reqs: WatchReq[],
-    o: { resolved?: string[]; all?: boolean; linkedAt?: number }, now: number, W: number, retryOn: boolean):
-    { watch: CardWatch | undefined; replies: Record<string, WatchReply> } {
+    o: { resolved?: string[]; all?: boolean; linkedAt?: number; linkWrite?: { s: number; e: number } }, now: number, W: number,
+    retryOn: boolean): { watch: CardWatch | undefined; replies: Record<string, WatchReply> } {
   const cur = withBase(w, base);
   for (const k of o.resolved ?? []) delete cur.cells[k];
-  if (o.linkedAt !== undefined && Number.isFinite(o.linkedAt)) cur.linkedAt = Math.max(cur.linkedAt ?? -Infinity, o.linkedAt);
+  // The latest link wins, with its own id write (a monday-born create's), or none.
+  if (o.linkedAt !== undefined && Number.isFinite(o.linkedAt) && !(cur.linkedAt !== undefined && cur.linkedAt > o.linkedAt)) {
+    cur.linkedAt = o.linkedAt;
+    if (o.linkWrite && Number.isFinite(o.linkWrite.s) && Number.isFinite(o.linkWrite.e)) cur.linkWrite = { ...o.linkWrite };
+    else delete cur.linkWrite;
+  }
   const replies: Record<string, WatchReply> = {};
   for (const r of reqs) {
     const m = cur.marks[r.key];
@@ -684,7 +922,8 @@ export function reduceWatchCells(w: CardWatch | undefined, base: WatchBase, reqs
     cur.cells[r.key] = { fp: r.fp, since, typed: r.typed, windowMs,
       ...(r.kind === "candidate" ? { due: now } : same && cell!.due !== undefined ? { due: cell!.due } : {}),
       ...(stuck ? { stuckUntil: cell!.stuckUntil } : {}),
-      ...(r.newer || (same && cell!.newer) ? { newer: true as const } : {}) };
+      ...(r.newer || (same && cell!.newer) ? { newer: true as const } : {}),
+      seen: same ? cell!.seen ?? now : now };
     replies[r.key] = { since, expired: now - since >= windowMs, stuck, ...(mark ? { mark } : {}), ...gaveUp };
   }
   if (o.all) cur.allAt = Math.min(cur.allAt ?? Infinity, now + W);
@@ -761,12 +1000,42 @@ export function reduceClearMarks(w: CardWatch | undefined, keys: string[], t0: n
   return pruneWatch(cur, now);
 }
 
-/** A converge takes a snapshot of the watch; it stays queued until finishConverge. */
+/**
+ * A converge takes a snapshot of the watch; it stays queued until finishConverge, and is counted (convergeRuns, from
+ * convergeSince) until then -- a run of failures, which backs the re-queue off (convergeRecheckMs). Every converge that
+ * begins is run: the cap is decided after one FAILED (reduceFailConverge), never here.
+ */
 export function reduceBeginConverge(w: CardWatch | undefined, now: number): { watch: CardWatch | undefined; snapshot?: CardWatch } {
   if (!w) return { watch: undefined };
   const cur = clone(w);
+  const runs = cur.convergeRuns ?? 0;
   cur.convergeQueuedAt = now;
+  cur.convergeRuns = runs + 1;
+  if (!runs || cur.convergeSince === undefined) cur.convergeSince = now;
   return { watch: cur, snapshot: clone(w) };
+}
+
+/**
+ * A CONVERGE FAILED (it threw): once its converges have been failing for CONVERGE_GIVE_UP_MS in a row, the watch's
+ * cells are DEAD-LETTERED (`deadLetter`: their keys, "~all" for a pending converge-all): they leave the watch, which stops
+ * re-queuing a converge that a day of back-off has not healed; the card's next HubSpot event judges them again. Before
+ * that nothing changes: the failure is the run already counted, and the re-queue backs off. Marks and memories are kept.
+ */
+export function reduceFailConverge(w: CardWatch | undefined, now: number):
+    { watch: CardWatch | undefined; deadLetter?: string[]; failingMs?: number } {
+  if (!w || !w.convergeRuns || w.convergeSince === undefined || now - w.convergeSince < CONVERGE_GIVE_UP_MS) return { watch: w };
+  const cur = clone(w);
+  const deadLetter = [...Object.keys(cur.cells), ...(cur.allAt !== undefined ? ["~all"] : [])];
+  cur.cells = {};
+  delete cur.allAt;
+  return { watch: pruneWatch(cur, now), deadLetter, failingMs: now - w.convergeSince };
+}
+
+/** How long a queued converge is left before the watch queues it again: CONVERGE_RECHECK_MS -- or, while its converges
+ *  keep failing (begun, never finished), as long as they have been failing in a row, at most CONVERGE_BACKOFF_MAX_MS. */
+export function convergeRecheckMs(w: Pick<CardWatch, "convergeRuns" | "convergeSince" | "convergeQueuedAt">): number {
+  if (!w.convergeRuns || w.convergeSince === undefined || w.convergeQueuedAt === undefined) return CONVERGE_RECHECK_MS;
+  return Math.min(CONVERGE_BACKOFF_MAX_MS, Math.max(CONVERGE_RECHECK_MS, w.convergeQueuedAt - w.convergeSince));
 }
 
 /** What a converge pass did, for the watch to keep. */
@@ -809,7 +1078,7 @@ export function reduceFinishConverge(w: CardWatch | undefined, o: ConvergeOutcom
     const anchor = Number.isFinite(r.anchor) ? r.anchor : now;
     cur.cells[r.key] = { fp: r.fp, since: r.typed ? anchor : same ? cell!.since : Math.min(now, anchor), typed: r.typed,
       windowMs: r.windowMs ?? cell?.windowMs ?? W, ...(same && cell!.stuckUntil !== undefined ? { stuckUntil: cell!.stuckUntil } : {}),
-      ...(r.newer || (same && cell!.newer) ? { newer: true as const } : {}) };
+      ...(r.newer || (same && cell!.newer) ? { newer: true as const } : {}), seen: same ? cell!.seen ?? now : now };
   }
   for (const k of o.stuck) {
     const c = cur.cells[k];
@@ -830,6 +1099,8 @@ export function reduceFinishConverge(w: CardWatch | undefined, o: ConvergeOutcom
   }
   if (cur.allAt !== undefined && cur.allAt <= now) delete cur.allAt;
   delete cur.convergeQueuedAt;
+  delete cur.convergeRuns;                                   // it finished: a run of failures, if any, is over
+  delete cur.convergeSince;
   return pruneWatch(cur, now);
 }
 
@@ -872,6 +1143,20 @@ export function reduceBeginRetry(w: CardWatch | undefined, now: number, W: numbe
     live[k] = clone(m);
   }
   return { watch: pruneWatch(cur, now), live, abandoned };
+}
+
+/**
+ * A RETRY THAT FAILED IN ITS OWN READS, BEFORE IT SENT ANYTHING (STALE_FORWARD_RETRY): monday's log for the link check,
+ * the card, HubSpot's history for the supersede check, the re-reads right before the push. Those fail under the very
+ * rate limits that kill the runs a retry recovers, and a read that could not be had is not a send that failed: each mark
+ * gets the attempt back, so three refused reads never spend a mark HubSpot never refused. Its backoff (retryQueuedAt)
+ * stands, and its TTL still bounds it. The push path's own failures count as before.
+ */
+export function reduceRefundRetry(w: CardWatch | undefined, keys: string[], now: number): CardWatch | undefined {
+  if (!w) return undefined;
+  const cur = clone(w);
+  for (const k of keys) { const m = cur.marks[k]; if (m && m.attempts > 0) m.attempts--; }
+  return pruneWatch(cur, now);
 }
 
 /**
@@ -936,7 +1221,7 @@ export function reduceAlarm(w: CardWatch | undefined, now: number, W: number, re
     const due = (pruned.allAt !== undefined && pruned.allAt <= now)
       || Object.entries(pruned.cells).some(([k, c]) => !((c.stuckUntil ?? 0) > now)
         && !isMarkLive(pruned.marks[k], now, retryOn) && cellDueAt(c) <= now);
-    if (due && (pruned.convergeQueuedAt === undefined || now - pruned.convergeQueuedAt >= CONVERGE_RECHECK_MS)) {
+    if (due && (pruned.convergeQueuedAt === undefined || now - pruned.convergeQueuedAt >= convergeRecheckMs(pruned))) {
       converge = true;
       pruned.convergeQueuedAt = now;
     }
@@ -948,8 +1233,9 @@ export function reduceAlarm(w: CardWatch | undefined, now: number, W: number, re
 export function nextAlarmAt(w: CardWatch | undefined, now: number, retryOn: boolean): number | null {
   if (!w) return null;
   let next = Infinity;
-  const queuedUntil = w.convergeQueuedAt !== undefined && now - w.convergeQueuedAt < CONVERGE_RECHECK_MS
-    ? w.convergeQueuedAt + CONVERGE_RECHECK_MS : -Infinity;
+  const recheck = convergeRecheckMs(w);
+  const queuedUntil = w.convergeQueuedAt !== undefined && now - w.convergeQueuedAt < recheck
+    ? w.convergeQueuedAt + recheck : -Infinity;
   const convergeAt = (t: number) => Math.max(t, queuedUntil);
   for (const [k, c] of Object.entries(w.cells)) {
     if (c.stuckUntil !== undefined && c.stuckUntil > now) { next = Math.min(next, c.stuckUntil); continue; }
@@ -960,6 +1246,7 @@ export function nextAlarmAt(w: CardWatch | undefined, now: number, retryOn: bool
   for (const m of Object.values(w.marks))
     next = Math.min(next, retryOn ? Math.min(retryDueAt(m), m.firstRx + MARK_TTL_MS) : m.firstRx + MARK_LEASE_MS);
   for (const mem of [w.fwd, w.gaveUp]) for (const v of Object.values(mem ?? {})) next = Math.min(next, v.at + WATCH_RETENTION_MS);
+  for (const p of w.pushes ?? []) if (Number.isFinite(p.e)) next = Math.min(next, p.e + PUSH_RETENTION_MS);
   if (!Number.isFinite(next)) return null;
   return Math.max(next, now + ALARM_MARGIN_MS);
 }
@@ -977,6 +1264,19 @@ export interface StampNote { t: number; ts: string; s: number; e: number; at: nu
 export function stampSuspicious(notes: StampNote[], cur: { t: number; s: number }): boolean {
   if (notes.some(n => n.t > cur.t)) return true;
   return notes.some(n => n.t < cur.t && n.e >= cur.s);
+}
+
+/** The register's notes still within STAMP_NOTE_WINDOW_MS (a stored value that is not a list reads as none). */
+export function liveStampNotes(notes: unknown, now: number): StampNote[] {
+  return Array.isArray(notes) ? (notes as StampNote[]).filter(n => n && now - n.at < STAMP_NOTE_WINDOW_MS) : [];
+}
+
+/** At most STAMP_NOTES_MAX notes, the most recently noted -- and always the newest stamp among them all. */
+export function trimStampNotes(notes: StampNote[]): StampNote[] {
+  if (notes.length <= STAMP_NOTES_MAX) return notes;
+  const newest = notes.reduce((a, n) => (n.t > a.t ? n : a));
+  const kept = notes.slice(-STAMP_NOTES_MAX);
+  return kept.includes(newest) ? kept : [newest, ...kept.slice(1)];
 }
 
 // ------------------------------------------------------------------------------------------ misc

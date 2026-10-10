@@ -1,6 +1,7 @@
 import type { CreateIdempotency } from "./create-idempotency-do";
 import type { ActivityRetry } from "./activity-retry-do";
 import type { DeferredSync } from "./deferred-sync-do";
+import type { PushRec } from "./card-watch";
 
 export interface Env {
   CREATE_IDEMPOTENCY: DurableObjectNamespace<CreateIdempotency>;
@@ -448,6 +449,32 @@ export interface MondayEdit {
    *  RELATION edit by an automation pushes nothing at all (logged, not snapped back): see
    *  reverseAssociations. */
   byAutomation?: boolean;
+  /** STALE_FORWARD_RETRY: this edit is a mark's RETRY (sync.ts retryMarkedEdits). See RetryEdit. */
+  retry?: RetryEdit;
+}
+
+/**
+ * A MARK'S RETRY, SENT FROM THE CARD (STALE_FORWARD_RETRY). It runs a minute or more after the person's edit, in a
+ * Durable Object alarm -- outside the cell's own md:<item>:<col> queue -- so a newer edit of the same cell can be read,
+ * pushed or still on its way while it runs, and HubSpot can change meanwhile. So the push (sync.ts pushColumnEdit) checks
+ * both sides again right before it sends anything -- before the claim -- and reads the card back after its PATCH; the
+ * OUT lists say what became of each key, and the retry acts on them:
+ *   - deferred: the card no longer shows the cell as this run read it -- a newer edit, its own run's to send (or this
+ *     mark's next try's): neither sent nor healed here, and its mark stays;
+ *   - superseded: HubSpot holds a version of it this card did not write, newer than the edit: the later change wins --
+ *     given up, and the cell converges to it;
+ *   - raced: sent, but the card showed something else once the PATCH returned -- a newer edit made while it was in
+ *     flight, whose own push may have landed first: marked again and re-sent from the card at once.
+ * A relation edit's retry re-reads the cell before its PUT the same way (associations.ts, ReverseScope.retry).
+ */
+export interface RetryEdit {
+  /** Each key's edit time: its mark's `at`. */
+  at: Record<string, number>;
+  /** This card's own HubSpot writes, as the retry began (the watch's ledger). */
+  pushes: PushRec[];
+  deferred: string[];
+  superseded: string[];
+  raced: string[];
 }
 
 export interface ObjectSpec {

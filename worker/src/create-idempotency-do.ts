@@ -4,14 +4,19 @@ import { decideClaim, type CreateState, type CreateResult, type Claim } from "./
 import { webhookOpts } from "./run-opts";
 import { retryMarkedEdits, settleAbandonedCreate, settleCardWatch } from "./sync";
 import {
-  STAMP_NOTE_WINDOW_MS, VERIFY_DELAY_MS, eventTypeOfObject, holdWindowMs, nextAlarmAt,
-  reduceAlarm, reduceBeginConverge, reduceBeginRetry, reduceClearMarks, reduceFinishConverge, reduceMarkEdits,
-  reduceSupersede, reduceWatchCells, stampSuspicious, timeOf, watchRetryOn,
-  type CardWatch, type ConvergeOutcome, type EditMark, type MarkInput, type StampNote, type WatchBase, type WatchReply,
-  type WatchReq,
+  ALARM_MARGIN_MS, STAMP_NOTE_WINDOW_MS, VERIFY_DELAY_MS, eventTypeOfObject, holdWindowMs, liveStampNotes, nextAlarmAt,
+  reduceAlarm, reduceBeginConverge, reduceBeginRetry, reduceClearMarks, reduceFailConverge, reduceFinishConverge,
+  reduceMarkEdits, reduceNotePushes, reduceRefundRetry, reduceSupersede, reduceWatchCells, stampSuspicious, timeOf,
+  trimStampNotes, watchRetryOn,
+  type CardWatch, type ConvergeOutcome, type EditMark, type MarkInput, type PushRec, type StampNote, type WatchBase,
+  type WatchReply, type WatchReq,
 } from "./card-watch";
 import { spillDeferred } from "./deferred-sync";
 import { getItemsColumnText, setColumns } from "./monday";
+
+/** What a retry begins with (beginRetry): the marks it re-sends, and what it judges them by -- this card's own writes
+ *  (the provenance of our app's versions) and its link to its record. */
+export interface RetryBegun { live: Record<string, EditMark>; pushes?: PushRec[]; linkedAt?: number; linkWrite?: { s: number; e: number } }
 
 /** A Sync State stamp to read back (the card watch's register): restore `hw` if the card holds an older one.
  *  `tries`: read-backs that failed (a rate-limited restamp is never waited out: it is tried again, VERIFY_TRIES times). */
@@ -478,9 +483,9 @@ export class CreateIdempotency extends DurableObject<Env> {
   // (pure, tested on its own); each method below is one critical section that applies it and re-arms the alarm.
   // ------------------------------------------------------------------------------------------------------------
 
-  /** The Sync State stamps written on this card in the last STAMP_NOTE_WINDOW_MS. IN MEMORY ONLY: an evicted
-   *  instance forgets them, and misses at most one detection (the card's next stamping pass corrects it). */
-  private stampNotes: StampNote[] = [];
+  // The Sync State register's notes (the stamps written on this card in the last STAMP_NOTE_WINDOW_MS) live in STORAGE,
+  // under "stampNotes": an instance evicted while idle (a minute or two) forgets nothing, so an older stamp that lands
+  // after a newer one is still compared with it. The alarm cleans them up once their window is over.
 
   private retryOn(): boolean { return watchRetryOn(this.env ?? {}); }
   private windowMs(): number { return holdWindowMs(this.env ?? {}); }
@@ -492,13 +497,23 @@ export class CreateIdempotency extends DurableObject<Env> {
     await this.armWatch(now);
   }
 
+  /** Arm the alarm for the watch, a queued read-back, and the register's cleanup; with none of them left, clear the
+   *  instance's storage. Notes past their window are dropped here. Call inside a critical section. */
   private async armWatch(now: number): Promise<void> {
     const w = await this.ctx.storage.get<CardWatch>("held");
     const sv = await this.ctx.storage.get<StampVerify>("stampVerify");
+    const stored = await this.ctx.storage.get<StampNote[]>("stampNotes");
+    const notes = liveStampNotes(stored, now);
+    if (stored !== undefined && notes.length !== (Array.isArray(stored) ? stored.length : -1)) {
+      if (notes.length) await this.ctx.storage.put("stampNotes", notes);
+      else await this.ctx.storage.delete("stampNotes");
+    }
     let next = nextAlarmAt(w, now, this.retryOn());
     if (sv) next = Math.min(next ?? Infinity, Math.max(sv.dueAt, now + 1));
+    if (notes.length)
+      next = Math.min(next ?? Infinity, Math.max(Math.max(...notes.map(n => n.at)) + STAMP_NOTE_WINDOW_MS, now + ALARM_MARGIN_MS));
     if (next === null || !Number.isFinite(next)) {
-      if (!w && !sv) { await this.ctx.storage.deleteAll(); await this.ctx.storage.deleteAlarm(); }
+      if (!w && !sv && !notes.length) { await this.ctx.storage.deleteAll(); await this.ctx.storage.deleteAlarm(); }
       return;
     }
     await this.ctx.storage.setAlarm(next);
@@ -506,7 +521,8 @@ export class CreateIdempotency extends DurableObject<Env> {
 
   /** A pass's holds, candidates and probes; see card-watch.ts reduceWatchCells. */
   async watchCells(nowMs: number, windowMs: number, base: WatchBase, reqs: WatchReq[],
-      o: { resolved?: string[]; all?: boolean; linkedAt?: number }): Promise<Record<string, WatchReply>> {
+      o: { resolved?: string[]; all?: boolean; linkedAt?: number; linkWrite?: { s: number; e: number } }):
+      Promise<Record<string, WatchReply>> {
     return this.ctx.blockConcurrencyWhile(async () => {
       const cur = await this.ctx.storage.get<CardWatch>("held");
       const { watch, replies } = reduceWatchCells(cur, base, reqs, o, nowMs, windowMs, this.retryOn());
@@ -548,7 +564,8 @@ export class CreateIdempotency extends DurableObject<Env> {
     });
   }
 
-  /** The converge's snapshot (`{}` when there is no watch). It stays queued until finishConverge. */
+  /** The converge's snapshot (`{}` when there is no watch). It stays queued until finishConverge, counted as a run of
+   *  failures until then (the re-queue backs off). Every converge that begins is run. */
   async beginConverge(nowMs: number): Promise<{ snapshot?: CardWatch }> {
     return this.ctx.blockConcurrencyWhile(async () => {
       const cur = await this.ctx.storage.get<CardWatch>("held");
@@ -556,6 +573,24 @@ export class CreateIdempotency extends DurableObject<Env> {
       if (!r.snapshot) return {};
       await this.saveWatch(r.watch, nowMs);
       return { snapshot: r.snapshot };
+    });
+  }
+
+  /** A converge THREW; see reduceFailConverge. After CONVERGE_GIVE_UP_MS of failures in a row its cells are dropped
+   *  (`deadLetter`), loudly; before that nothing changes but the back-off already counting it. */
+  async failConverge(nowMs: number): Promise<{ deadLetter?: string[] }> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      const r = reduceFailConverge(cur, nowMs);
+      if (!r.deadLetter) return {};
+      await this.saveWatch(r.watch, nowMs);
+      const hours = Math.round((r.failingMs ?? 0) / 3_600_000);
+      console.log(`[watch] board=${cur?.boardId} item=${cur?.itemId} cols=${r.deadLetter.join(",") || "-"}`
+        + ` action=converge-dead-letter runs=${cur?.convergeRuns ?? 0} failing_h=${hours} reason="its converges have failed`
+        + ` in a row for ${hours} h, backing off (each failure's own line says why): these cells are no longer watched and`
+        + ` are left as they are -- one may hold a person's edit that never reached HubSpot, or a value monday will not`
+        + ` take; the card's next HubSpot event judges them again"`);
+      return { deadLetter: r.deadLetter };
     });
   }
 
@@ -568,8 +603,9 @@ export class CreateIdempotency extends DurableObject<Env> {
     });
   }
 
-  /** The retry's marks (STALE_FORWARD_RETRY); see reduceBeginRetry. */
-  async beginRetry(nowMs: number, windowMs: number): Promise<Record<string, EditMark>> {
+  /** The retry's marks (STALE_FORWARD_RETRY; see reduceBeginRetry), with this card's own writes and its link time, read
+   *  in the same critical section. */
+  async beginRetry(nowMs: number, windowMs: number): Promise<RetryBegun> {
     return this.ctx.blockConcurrencyWhile(async () => {
       const cur = await this.ctx.storage.get<CardWatch>("held");
       const r = reduceBeginRetry(cur, nowMs, windowMs, this.retryOn());
@@ -577,7 +613,26 @@ export class CreateIdempotency extends DurableObject<Env> {
         console.log(`[watch] board=${cur?.boardId} item=${cur?.itemId} col=${k} action=edit-retry-abandoned`
           + ` reason="its retries ran out: the cell converges to HubSpot"`);
       if (cur) await this.saveWatch(r.watch, nowMs);
-      return r.live;
+      return { live: r.live, ...(cur?.pushes?.length ? { pushes: cur.pushes } : {}),
+        ...(cur?.linkedAt !== undefined ? { linkedAt: cur.linkedAt } : {}), ...(cur?.linkWrite ? { linkWrite: cur.linkWrite } : {}) };
+    });
+  }
+
+  /** A retry that failed in its own reads, before it sent anything, gives its marks their attempt back; see
+   *  reduceRefundRetry. */
+  async refundRetry(nowMs: number, keys: string[]): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      if (!cur) return;
+      await this.saveWatch(reduceRefundRetry(cur, keys, nowMs), nowMs);
+    });
+  }
+
+  /** This card's own HubSpot writes (STALE_FORWARD_RETRY); see card-watch.ts PushRec. */
+  async notePushes(nowMs: number, base: WatchBase, entries: PushRec[]): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      await this.saveWatch(reduceNotePushes(cur, base, entries, nowMs), nowMs);
     });
   }
 
@@ -592,24 +647,26 @@ export class CreateIdempotency extends DurableObject<Env> {
     await this.ctx.blockConcurrencyWhile(() => this.recordStamp(nowMs, base, t, s, e, syncCol));
   }
 
-  /** noteStamp's body: record the stamp, and queue a read-back when it may have been overtaken. Inside a critical
-   *  section. The register's own restamp (verifyStamp) is recorded here too, so a write it overtook is caught. */
+  /** noteStamp's body: record the stamp (in storage), and queue a read-back when it may have been overtaken. Inside a
+   *  critical section. The register's own restamp (verifyStamp) is recorded here too, so a write it overtook is caught. */
   private async recordStamp(nowMs: number, base: { boardId: string; itemId: string }, t: string, s: number, e: number,
       syncCol: string): Promise<void> {
     const tMs = timeOf(t);
     if (!Number.isFinite(tMs)) return;
-    this.stampNotes = this.stampNotes.filter(n => nowMs - n.at < STAMP_NOTE_WINDOW_MS);
-    const suspicious = stampSuspicious(this.stampNotes, { t: tMs, s });
-    this.stampNotes.push({ t: tMs, ts: t, s, e, at: nowMs });
-    if (!suspicious) return;
-    const hw = this.stampNotes.reduce((a, n) => (n.t > a.t ? n : a));
-    const prev = await this.ctx.storage.get<StampVerify>("stampVerify");
-    const keep = prev && timeOf(prev.hw) > hw.t ? prev.hw : hw.ts;
-    await this.ctx.storage.put("stampVerify", { hw: keep, syncCol, boardId: base.boardId, itemId: base.itemId,
-      dueAt: prev ? Math.min(prev.dueAt, nowMs + VERIFY_DELAY_MS) : nowMs + VERIFY_DELAY_MS } satisfies StampVerify);
-    console.log(`[sync-state] board=${base.boardId} item=${base.itemId} action=verify-queued`
-      + ` reason="a stamp may have been overtaken: read back in ${VERIFY_DELAY_MS} ms"`);
-    await this.armWatch(nowMs);
+    const notes = liveStampNotes(await this.ctx.storage.get<StampNote[]>("stampNotes"), nowMs);
+    const suspicious = stampSuspicious(notes, { t: tMs, s });
+    notes.push({ t: tMs, ts: t, s, e, at: nowMs });
+    await this.ctx.storage.put("stampNotes", trimStampNotes(notes));
+    if (suspicious) {
+      const hw = notes.reduce((a, n) => (n.t > a.t ? n : a));
+      const prev = await this.ctx.storage.get<StampVerify>("stampVerify");
+      const keep = prev && timeOf(prev.hw) > hw.t ? prev.hw : hw.ts;
+      await this.ctx.storage.put("stampVerify", { hw: keep, syncCol, boardId: base.boardId, itemId: base.itemId,
+        dueAt: prev ? Math.min(prev.dueAt, nowMs + VERIFY_DELAY_MS) : nowMs + VERIFY_DELAY_MS } satisfies StampVerify);
+      console.log(`[sync-state] board=${base.boardId} item=${base.itemId} action=verify-queued`
+        + ` reason="a stamp may have been overtaken: read back in ${VERIFY_DELAY_MS} ms"`);
+    }
+    await this.armWatch(nowMs);                                // the read-back, or the notes' own cleanup
   }
 
   /**
@@ -722,8 +779,10 @@ export class CreateIdempotency extends DurableObject<Env> {
    * up -- loudly, with the queue still stored for whoever reads the row next.
    */
   async alarm(): Promise<void> {
-    // THE CARD'S WATCH (`held:` instances only, STALE_FORWARD_GATE): its own alarm. Every other instance: as before.
-    if (await this.ctx.storage.get("held") !== undefined || await this.ctx.storage.get("stampVerify") !== undefined)
+    // THE CARD'S WATCH (`held:` instances only, STALE_FORWARD_GATE): its own alarm -- the watch, a read-back, or the
+    // register's cleanup. Every other instance: as before.
+    if (await this.ctx.storage.get("held") !== undefined || await this.ctx.storage.get("stampVerify") !== undefined
+        || await this.ctx.storage.get("stampNotes") !== undefined)
       return this.cardWatchAlarm();
     const watch = await this.ctx.storage.get<SettleWatch>("watch");
     if (!watch) { await this.ctx.storage.deleteAll(); return; }
