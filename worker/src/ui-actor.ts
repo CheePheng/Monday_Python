@@ -194,6 +194,28 @@ export function valueFingerprint(v: unknown): string {
   return body || "∅";
 }
 
+/**
+ * A card's RAW column value (items { column_values { value } }) fingerprinted as the webhook / activity log would show
+ * the same value: monday's column-value JSON spells some types differently from its events -- a status as
+ * {index, changed_at} (events: {label:{index}}), a text or numbers cell as a bare JSON string (events: {value}), a
+ * dropdown as {ids} (events: {chosenValues}). Anything else goes to valueFingerprint as it is. A shape this does not
+ * know simply never matches an event's -- the safe direction for its one reader (the converge's rescue).
+ */
+export function cardValueFingerprint(raw: unknown): string {
+  let o: any = raw;
+  if (typeof o === "string") {
+    const s = o.trim();
+    if (!s || s === "null") return "∅";
+    try { o = JSON.parse(s); } catch { return valueFingerprint({ value: s }); }
+  }
+  if (typeof o === "string" || typeof o === "number") return valueFingerprint({ value: o });
+  if (o && typeof o === "object" && !Array.isArray(o)) {
+    if (!("label" in o) && typeof o.index === "number") return valueFingerprint({ label: { index: o.index } });
+    if (!("chosenValues" in o) && Array.isArray(o.ids)) return valueFingerprint({ chosenValues: o.ids.map((id: unknown) => ({ id })) });
+  }
+  return valueFingerprint(o);
+}
+
 function canon(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(canon).join(",")}]`;
   if (v && typeof v === "object")
@@ -203,7 +225,7 @@ function canon(v: unknown): string {
 
 /** The event's own time in ms: changedAt (epoch seconds, fractional), else triggerTime, else null --
  *  never "now": a row pinned to the clock is pinned to nothing, and each caller would get its own key. */
-function eventMs(ev: any): number | null {
+export function eventMs(ev: any): number | null {
   const c = Number(ev?.changedAt);
   if (Number.isFinite(c) && c > 1e9) return c > 1e12 ? c : c * 1000;
   const t = Date.parse(String(ev?.triggerTime ?? ""));
@@ -438,6 +460,101 @@ export async function isOwnEcho(env: Env, spec: ObjectSpec | undefined, ev: any)
 export async function classifyMondayActor(env: Env, spec: ObjectSpec | undefined, ev: any): Promise<ActorClass> {
   if (isAutomationActor(String(ev?.userId ?? ""))) return "automation";
   return (await isOwnEcho(env, spec, ev)) ? "integration" : "person";
+}
+
+/**
+ * The monday PERSON ids a People-column event removed: in `previousValue`, not in `value`. null when
+ * the event did not carry the before-side, so the caller can tell "removed nobody" from "cannot tell".
+ * An emptied cell arrives as null, `{}` or `{changed_at}` -- all read as "no one".
+ */
+export function removedPersonIds(ev: any): string[] | null {
+  if (!ev || typeof ev !== "object" || !("previousValue" in ev)) return null;
+  const persons = (v: any): Set<string> | null => {
+    if (v === null || v === undefined) return new Set();
+    let o: any = v;
+    if (typeof o === "string") { try { o = JSON.parse(o); } catch { return null; } }
+    if (typeof o !== "object") return null;
+    if (!("personsAndTeams" in o)) return new Set();
+    if (!Array.isArray(o.personsAndTeams)) return null;
+    return new Set(o.personsAndTeams.filter((p: any) => p?.kind === "person").map((p: any) => String(p.id)));
+  };
+  const before = persons(ev.previousValue), after = persons(ev.value);
+  if (!before || !after) return null;
+  return [...before].filter(id => !after.has(id));
+}
+
+/** The newest change of one cell, as monday's activity log has it (lastCellChanges). */
+export interface CellChange {
+  atMs: number;
+  userId: string;
+  /** automation: a negative pseudo-user; integration: our token's API write; person: anyone else, or our token user
+   *  in the monday UI (the row carries an action_record_uuid, ASK_ADA_UI_EDITS on). */
+  cls: ActorClass;
+  /** valueFingerprint of the value the row set. */
+  valueFp: string;
+  /** A People column's row: the person ids it removed (removedPersonIds over the row's before/after; null when the
+   *  row carries no before-side). Absent for any other column. */
+  removed?: string[] | null;
+}
+
+/**
+ * WHO LAST CHANGED EACH OF THESE CELLS, by monday's activity log (STALE_FORWARD_RETRY's rescue, sync.ts
+ * settleCardWatch): one activity_logs query for the card -- every user -- from `fromMs` less 120 s to now, at most 50
+ * rows; per column the NEWEST update_column_value row. A column with no row in that window is ABSENT from the answer;
+ * one whose newest row cannot be told -- two rows at the same created_at, or one with an unreadable created_at -- has
+ * no verdict (null). The whole answer is null when the query fails, times out (3 s) or a row is unreadable: fail
+ * closed, nothing is rescued.
+ */
+export async function lastCellChanges(env: Env, spec: ObjectSpec, itemId: string, cols: string[], fromMs: number):
+    Promise<Record<string, CellChange | null> | null> {
+  if (!cols.length) return {};
+  const query = `query ($b:[ID!], $i:[ID!], $c:[String], $f:ISO8601DateTime, $t:ISO8601DateTime) {
+    boards(ids:$b) { activity_logs(item_ids:$i, column_ids:$c, from:$f, to:$t, limit:50) {
+      event user_id created_at data } } }`;
+  const from = Number.isFinite(fromMs) ? fromMs : Date.now();
+  const vars = { b: [spec.boardId], i: [itemId], c: cols,
+    f: new Date(from - 120_000).toISOString(), t: new Date(Date.now() + 1_000).toISOString() };
+  let d: any;
+  try { d = await withTimeout(gql(env, query, vars, 1, 0)); }
+  catch (e) {
+    console.log(`[ui-actor] source=monday board=${spec.boardId} item=${itemId} action=cell-log-unreadable`
+      + ` reason="${e instanceof LookupTimeout ? "timeout" : String(e).slice(0, 100)}"`);
+    return null;
+  }
+  const board = d?.boards?.[0];
+  if (!board) return null;
+  const want = new Set(cols);
+  const newest = new Map<string, { atMs: number; data: any; userId: string; tie: boolean; unreadable: boolean }>();
+  for (const r of board.activity_logs ?? []) {
+    if (String(r?.event ?? "") !== "update_column_value") continue;
+    let data: any = r?.data;
+    if (typeof data === "string") { try { data = JSON.parse(data); } catch { return null; } }
+    if (!data || typeof data !== "object") return null;
+    if (String(data.pulse_id ?? "") !== String(itemId)) continue;
+    const col = String(data.column_id ?? "");
+    if (!want.has(col)) continue;
+    const raw = String(r?.created_at ?? "").trim();
+    const atMs = /^\d+$/.test(raw) ? Number(raw) / 1e4 : NaN;
+    const cur = newest.get(col);
+    if (!Number.isFinite(atMs)) { newest.set(col, { ...(cur ?? { atMs: -Infinity, data, userId: "" }), tie: false, unreadable: true }); continue; }
+    if (!cur || atMs > cur.atMs) newest.set(col, { atMs, data, userId: String(r?.user_id ?? ""), tie: false, unreadable: cur?.unreadable ?? false });
+    else if (atMs === cur.atMs) cur.tie = true;
+  }
+  const out: Record<string, CellChange | null> = {};
+  const peopleCols = new Set(spec.fields.filter(f => f.type === "people").map(f => f.col));
+  for (const col of cols) {
+    const n = newest.get(col);
+    if (!n) continue;
+    if (n.tie || n.unreadable || !Number.isFinite(n.atMs)) { out[col] = null; continue; }
+    const cls: ActorClass = isAutomationActor(n.userId) ? "automation"
+      : (await isIntegrationActor(env, n.userId)) ? (hasUuid(n.data) && askAdaUiEditsOn(env) ? "person" : "integration")
+      : "person";
+    const removed = peopleCols.has(col)
+      ? { removed: removedPersonIds("previous_value" in n.data ? { previousValue: n.data.previous_value, value: n.data.value }
+        : { value: n.data.value }) } : {};
+    out[col] = { atMs: n.atMs, userId: n.userId, cls, valueFp: valueFingerprint(n.data.value), ...removed };
+  }
+  return out;
 }
 
 const selfName: { v?: string } = {};

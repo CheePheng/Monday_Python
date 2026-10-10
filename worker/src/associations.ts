@@ -4,7 +4,9 @@ import {
   getRecord, getRecordsByIds, patchLineItem, propertiesForSpec, putAssociation, putAssociationTypes,
   type AssociationType, type AssocPage,
 } from "./hubspot";
-import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItem, getItemStates, getItemsColumnText, getLinkedItemIds, getParentItemId, getSubitems, setColumns, updateItem } from "./monday";
+import { createItem, createSubitem, deleteItem, findItemIdsByColumn, getItem, getItemStates, getItemsColumnText, getLinkedCell, getLinkedItemIds, getParentItemId, getSubitems, setColumns, updateItem } from "./monday";
+import { RELATION_HOLD_MS, holdWindowMs, relKey, staleForwardGateOn } from "./card-watch";
+import { watchCells } from "./card-registry";
 import { relationEditKey, removedSince } from "./relation-edit";
 import { DEALS, LINE_ITEM_SUBITEMS, specByObject } from "./config";
 import { buildSubitemReversePatch, subitemFieldByCol, readSubitemEvent } from "./line-item-reverse";
@@ -844,7 +846,9 @@ export const shrinksFreshCard = (createdAt: string, want: string[], current: str
  * never creates a card: a missing one would race restoreDeletedCard into a duplicate. */
 async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids: string[],
     item: MondayItem, ctx: Ctx | undefined, opts: RunOpts, budget: Budget, truncated = false,
-    snapBack = false): Promise<void> {
+    snapBack = false,
+    /** STALE_FORWARD_GATE's converge of this cell: marks still applied, no recency hold. */
+    o: { converge?: boolean } = {}): Promise<RelationOutcome> {
   /**
    * A TRUNCATED ASSOCIATION READ MUST NEVER DRIVE A FULL-REPLACEMENT WRITE.
    *
@@ -871,13 +875,13 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject}`
       + ` read=${ids.length} action=kept-truncated reason="HubSpot returned a partial association page;`
       + ` a full-replacement write would clear every link outside it"`);
-    return;
+    return "kept";
   }
   // DEPLOYMENT-SPECIFIC. With the global map, a CRM contact's relation column would be filled with
   // cards from the WM companies board — a cross-deployment write. Undefined also covers line_items,
   // which have no board, and any object this deployment does not own.
   const target = specByObject(env, a.toObject);
-  if (!target) return;
+  if (!target) return "skipped";
   const existing = ids.length ? await findItemIdsByColumn(env, target.boardId, target.idCol, ids) : {};
   const cardByHsId: Record<string, string> = { ...existing };
   // Resolve every associated id to a monday card, creating on-demand for uncarded ones. A contact-heavy
@@ -903,17 +907,60 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
       }));
     }
   }
-  const want = ids.map(hsId => cardByHsId[hsId]).filter((x): x is string => !!x);
-  const current = await getLinkedItemIds(env, item.id, a.relationCol!);
-  if (sameSet(current, want)) {
-    console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} count=${want.length} action=skipped`);
-    return;
+  const resolved = ids.map(hsId => cardByHsId[hsId]).filter((x): x is string => !!x);
+  // STALE_FORWARD_GATE, forward mode only (a snap-back undoes a known refusal and is left exactly as it was).
+  const gate = !snapBack && staleForwardGateOn(env, spec);
+  let current: string[];
+  let changedAt: number | null = null;
+  if (gate) ({ ids: current, changedAt } = await getLinkedCell(env, item.id, a.relationCol!));
+  else current = await getLinkedItemIds(env, item.id, a.relationCol!);
+  if (sameSet(current, resolved)) {
+    console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} count=${resolved.length} action=skipped`);
+    return "matched";
+  }
+  /**
+   * A PERSON'S RELATION EDIT STILL ON ITS WAY (STALE_FORWARD_GATE). HubSpot's set does not have it yet, so writing
+   * that set would take a just-added card back out of the cell -- or put a just-removed one back, which made the
+   * person's unlink read as a re-link (agreement 2 in unlinkRemovedCards) and lost it. So the card's live marks for
+   * this cell are applied to HubSpot's set first (one watch RPC), and a cell a person changed less than
+   * RELATION_HOLD_MS ago -- before their mark is in -- is not written at all: held, and the watch rewrites it once
+   * the hold ends (its converge passes `converge`: marks applied, no recency hold).
+   */
+  let want = resolved;
+  if (gate) {
+    const key = relKey(a.relationCol!);
+    const recent = !o.converge && changedAt !== null && Date.now() - changedAt < RELATION_HOLD_MS;
+    const replies = await watchCells(env, { boardId: spec.boardId, itemId: item.id, object: spec.object },
+      [{ key, fp: [...current].sort().join(","), typed: true, anchor: changedAt ?? Date.now(), kind: recent ? "hold" : "probe",
+        windowMs: RELATION_HOLD_MS }], { windowMs: holdWindowMs(env), dryRun: !!opts.dryRun });
+    const mark = replies?.[key]?.mark;
+    if (mark?.rel && !mark.rel.known) {
+      console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} action=forward-held`
+        + ` reason="a person's edit of this cell is on its way, and what it changed cannot be told"`);
+      return "held";
+    }
+    if (mark?.rel) {
+      const set = new Set(resolved);
+      for (const c of mark.rel.added) set.add(c);
+      for (const c of mark.rel.removed) set.delete(c);
+      want = [...set];
+      if (sameSet(current, want)) {
+        console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} count=${want.length}`
+          + ` action=skipped reason="the cell shows HubSpot's links with a person's edit still on its way"`);
+        return "matched";
+      }
+    }
+    if (recent) {
+      console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} action=forward-held`
+        + ` reason="the cell changed ${Math.round((Date.now() - changedAt!) / 1000)} s ago: a person's edit may be on its way"`);
+      return "held";
+    }
   }
   // Never wipe existing links from an empty HubSpot read (see clearsFromEmpty) — this is the create-race guard.
   // A snap-back is exempt: its trigger is a known refusal, and an empty HubSpot set is then the answer.
   if (!snapBack && clearsFromEmpty(current, want)) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} current=${current.length} action=kept-no-clear reason="hubspot returned no associations"`);
-    return;
+    return "kept";
   }
   // ...and never wipe links just because some associated id didn't resolve to a card this pass (partial
   // eventual consistency, or the budget ran out before the card could be created). See resolvedAllIds.
@@ -921,25 +968,44 @@ async function syncRelationColumn(env: Env, spec: ObjectSpec, a: AssocSpec, ids:
   // and looks arithmetically identical to a real removal. See shrinksFreshCard.
   if (!snapBack && shrinksFreshCard(item.created_at, want, current, Date.now())) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} ids=${ids.length} resolved=${want.length} current=${current.length} action=kept-fresh reason="card created <90s ago; association index may lag"`);
-    return;
+    return "kept";
   }
   // A snap-back rewrites the whole cell with no person's edit to explain a shrink, and resolves ids to
   // cards through findItemIdsByColumn, which returns at most 100 -- so it must resolve EVERY id or write
   // nothing. The looser rule below does not hold for it: on a refused add, current is ids + 1, so 20
   // unresolved ids on a 150-link Account would be written away.
-  if (snapBack && !resolvedAllIds(ids, want)) {
+  if (snapBack && !resolvedAllIds(ids, resolved)) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} ids=${ids.length} resolved=${want.length} current=${current.length} action=kept-partial reason="snap-back: not every associated id resolved to a card"`);
-    return;
+    return "kept";
   }
   // Only skip when the unresolved ids FULLY EXPLAIN the shrinkage. Otherwise a permanently unresolvable id
   // (e.g. a merged-away HubSpot record) would freeze the column against every legitimate removal forever.
-  if (!resolvedAllIds(ids, want) && current.length - want.length <= ids.length - want.length) {
+  if (!resolvedAllIds(ids, resolved) && current.length - want.length <= ids.length - resolved.length) {
     console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} ids=${ids.length} resolved=${want.length} current=${current.length} action=kept-partial reason="not every associated id resolved to a card"`);
-    return;
+    return "kept";
   }
-  if (opts.dryRun) { console.log(`DRY relation ${spec.object}/${item.id} ${a.toObject}=[${want.join(",")}]`); return; }
+  if (opts.dryRun) { console.log(`DRY relation ${spec.object}/${item.id} ${a.toObject}=[${want.join(",")}]`); return "skipped"; }
   await setColumns(env, spec.boardId, item.id, { [a.relationCol!]: { item_ids: want.map(Number) } }, opts); budget.left--;
   console.log(`source=hubspot object=${spec.object} id=${item.id} relation=${a.toObject} board=${spec.boardId} item=${item.id} linked=${want.length} action=${snapBack ? "snapped-back-relation" : "updated-relation"}`);
+  return "written";
+}
+
+/** What syncRelationColumn did with a relation cell. */
+export type RelationOutcome = "skipped" | "matched" | "held" | "kept" | "written";
+
+/**
+ * THE CARD WATCH'S CONVERGE OF ONE RELATION CELL (STALE_FORWARD_GATE; sync.ts settleCardWatch): HubSpot's set, with
+ * the card's live marks for the cell applied, written over the cell -- no recency hold, every HEAD guard. "held" only
+ * while a person's edit of it whose shape cannot be told is still on its way (its mark bounds that).
+ */
+export async function convergeRelationCell(env: Env, spec: ObjectSpec, rec: HsRecord, item: MondayItem, col: string,
+    ctx: Ctx, opts: RunOpts, budget: Budget): Promise<RelationOutcome> {
+  const a = (spec.associations ?? []).find(x => x.relationCol === col);
+  if (!a || a.subitems) return "skipped";
+  const { ids, truncated } = a.via
+    ? await getAssociatedVia(env, spec.object, rec.id, a.via, a.toObject, a.viaPrimary)
+    : await getAssociatedPage(env, spec.object, rec.id, a.toObject);
+  return syncRelationColumn(env, spec, a, ids, item, ctx, opts, budget, truncated, false, { converge: true });
 }
 
 /** deal line items -> monday SUBITEMS under the deal card. Create/update by HubSpot Line Item ID,

@@ -11,6 +11,7 @@ import { itemNameFitOn } from "../src/mapping";
 import { noActivityReleaseOn } from "../src/no-activity";
 import { ownerNoticeOn } from "../src/owner-notice";
 import { cardNeedsOwnerOn } from "../src/ensure-card";
+import { staleForwardGateOn, staleForwardRetryOn } from "../src/card-watch";
 
 /** The four 2026-10-09 Contacts switches, each with the check the code itself makes. CONTACT_OWNER_HUBSPOT_ONLY
  *  is read by specsFor: it is on when the Contacts owner field comes back hubspotOnly. */
@@ -147,6 +148,34 @@ describe("the deployable CRM Wrangler config", () => {
     expect(isOn(vars)).toBe(false);
     expect(isOn({ ...vars, [name]: "true" })).toBe(true);
     for (const v of ["TRUE", "1", "yes", "", " true"]) expect(isOn({ ...vars, [name]: v })).toBe(false);
+  });
+
+  /**
+   * STALE_FORWARD_GATE (the per-cell forward pass and the card's watch) and STALE_FORWARD_RETRY (its two recoveries
+   * that write HubSpot outside a webhook) ship OFF: a bare `wrangler deploy` is today's engine. The deploy passes "true"
+   * with --var; only that literal arms either, only beside ENABLE_CRM "true", and the retry only with the gate.
+   */
+  it("ships STALE_FORWARD_GATE=\"false\" and STALE_FORWARD_RETRY=\"false\", read as OFF, armed only by the literal \"true\"", () => {
+    expect(vars.STALE_FORWARD_GATE).toBe("false");
+    expect(vars.STALE_FORWARD_RETRY).toBe("false");
+    for (const s of specsFor(vars)) {
+      expect(staleForwardGateOn(vars, s)).toBe(false);
+      expect(staleForwardRetryOn(vars, s)).toBe(false);
+    }
+    const armed: Record<string, string> = { ...vars, STALE_FORWARD_GATE: "true", STALE_FORWARD_RETRY: "true" };
+    expect(specsFor(armed).filter(s => staleForwardGateOn(armed, s)).length).toBe(specsFor(armed).length);
+    expect(specsFor(armed).every(s => staleForwardRetryOn(armed, s))).toBe(true);
+    expect(specsFor(armed).some(s => staleForwardRetryOn({ ...armed, STALE_FORWARD_GATE: "false" }, s))).toBe(false);
+    for (const v of ["TRUE", "1", "yes", "", " true"])
+      expect(specsFor(vars).some(s => staleForwardGateOn({ ...vars, STALE_FORWARD_GATE: v }, s))).toBe(false);
+  });
+
+  it("the WM config arms neither (and its specs could not be gated anyway)", () => {
+    const wmVars = (readWmConfig().vars ?? {}) as Record<string, string>;
+    expect(wmVars.STALE_FORWARD_GATE).not.toBe("true");
+    expect(wmVars.STALE_FORWARD_RETRY).not.toBe("true");
+    const wmArmed: Record<string, string> = { ...wmVars, STALE_FORWARD_GATE: "true" };
+    expect(specsFor(wmArmed).some(s => staleForwardGateOn(wmArmed, s))).toBe(false);
   });
 
   it("does NOT commit a temporary test cutover", () => {

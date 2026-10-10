@@ -1,13 +1,17 @@
-import type { Budget, Env, MondayEdit, ObjectSpec } from "./types";
+import type { Budget, Env, MondayEdit, ObjectSpec, PassScope, RunOpts } from "./types";
 import { LINE_ITEM_SUBITEMS, specByBoard, specByObject } from "./config";
 import { createNote, getAssociatedIds } from "./hubspot";
 import { getItem, getUserById } from "./monday";
 import { colText } from "./dedup";
 import { webhookOpts } from "./run-opts";
 import { actorLabel, isAutomationActor } from "./actor-label";
-import { askAdaUiEditsOn, classifyMondayActor, isOwnEcho, mondayActorLabel, uiLookupDue } from "./ui-actor";
-import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem } from "./sync";
-import { noteCreateWindowEdit } from "./card-registry";
+import { askAdaUiEditsOn, classifyMondayActor, eventMs, isOwnEcho, mondayActorLabel, removedPersonIds, uiLookupDue } from "./ui-actor";
+import { deleteHubspotObject, getCtxCached, syncHubspotObject, syncMondayItem, type HsEventObject } from "./sync";
+import { clearMarks, markEdits, noteCreateWindowEdit } from "./card-registry";
+import {
+  NAME_KEY, eventOwnness, freshScope, isGatedCol, mergeScopes, relKey as watchRelKey, scopeMaxAgeMs, staleForwardGateOn,
+  type MarkInput,
+} from "./card-watch";
 import { coarseStageField, exactStageField } from "./reconcile";
 import { reverseSubitemEdit } from "./associations";
 import { isReverseSubitemEvent, readSubitemEvent } from "./line-item-reverse";
@@ -223,25 +227,10 @@ function linkedIds(v: unknown): Set<string> | null {
 }
 
 /**
- * The monday PERSON ids a People-column event removed: in `previousValue`, not in `value`. null when
- * the event did not carry the before-side, so the caller can tell "removed nobody" from "cannot tell".
- * An emptied cell arrives as null, `{}` or `{changed_at}` -- all read as "no one".
+ * The monday PERSON ids a People-column event removed (null: cannot tell). Lives in ui-actor.ts, beside the other
+ * readers of monday's event values, so the card watch's log rescue reads a log row's removals by the same rule.
  */
-export function removedPersonIds(ev: any): string[] | null {
-  if (!ev || typeof ev !== "object" || !("previousValue" in ev)) return null;
-  const persons = (v: any): Set<string> | null => {
-    if (v === null || v === undefined) return new Set();
-    let o: any = v;
-    if (typeof o === "string") { try { o = JSON.parse(o); } catch { return null; } }
-    if (typeof o !== "object") return null;
-    if (!("personsAndTeams" in o)) return new Set();
-    if (!Array.isArray(o.personsAndTeams)) return null;
-    return new Set(o.personsAndTeams.filter((p: any) => p?.kind === "person").map((p: any) => String(p.id)));
-  };
-  const before = persons(ev.previousValue), after = persons(ev.value);
-  if (!before || !after) return null;
-  return [...before].filter(id => !after.has(id));
-}
+export { removedPersonIds };
 
 /** Removed people per item+column, accumulated until the run that consumes them (coalesceLatest keeps
  *  the FIRST event's closure for its re-runs, so the edits in between would otherwise be lost). */
@@ -701,28 +690,67 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
     ? await classifyMondayActor(env, spec, ev)
     : null;
   const relKey = relClass ? relationEditKey(itemId, columnId, relClass) : "";
+  // The relation diff as recorded: a person's with its paired echoes taken out (STALE_FORWARD_GATE marks it too).
+  let relRecorded: { added: string[]; removed: string[] } | null = null;
   if (relClass) {
     const diff = relationDiff(ev);
     if (!diff) console.log(`[webhook] source=monday item=${itemId} col=${columnId} user=${actorId}`
       + ` prev=${"previousValue" in ev ? JSON.stringify(ev.previousValue).slice(0, 60) : "absent"}`
       + ` action=relation-before-unknown reason="no usable before-value: nothing will be pushed, the cell snaps back"`);
     // Only a person's diff is checked for a paired echo: our own and automations' runs push nothing.
-    recordRelationEvent(relKey, relClass === "person" ? withoutPairedEchoes(diff, itemId, actorId) : diff);
+    relRecorded = relClass === "person" ? withoutPairedEchoes(diff, itemId, actorId) : diff;
+    recordRelationEvent(relKey, relRecorded);
   }
   const isPeopleCol = !!columnId && spec.fields.some(f => f.col === columnId && f.type === "people");
-  const peopleKey = `md:${itemId}:${columnId}`;
-  if (spec.columnLevelReverse && isPeopleCol) {
-    const r = removedPersonIds(ev);
-    const acc = pendingRemovedPeople.get(peopleKey) ?? { ids: new Set<string>(), known: true };
-    if (r === null) acc.known = false; else for (const id of r) acc.ids.add(id);
-    pendingRemovedPeople.set(peopleKey, acc);
-  }
   const byAutomation = isAutomationActor(String(ev.userId ?? ""));
   const base: MondayEdit | undefined = spec.columnLevelReverse
     ? (isNameEvent ? { cols: [], name: true } : columnId ? { cols: [columnId] } : undefined)
     : undefined;
   const edit: MondayEdit | undefined = base && byAutomation ? { ...base, byAutomation: true } : base;
+  /**
+   * STALE_FORWARD_GATE (off: none of this, and every line below runs as before).
+   *
+   * OUR OWN ECHO OF A CELL RUNS IN A QUEUE OF ITS OWN (`:self`). Every md:<item>:<col> queue re-runs its FIRST
+   * event's closure, so a person's edit arriving while our echo's run held the cell was re-run AS that echo --
+   * self-origin, forward only -- and never pushed. With forward passes leaving a person's recent cell alone, it would
+   * then sit unsent until its hold ended, and be put back. An echo's run only ever writes monday, so it needs no
+   * ordering against a person's: two queues. Resolved before the event joins one, from the same (cached) answer the
+   * run's own self-origin gate reads. Our echo's events neither add to nor drain the people removals.
+   *
+   * A MARK for every edit that will push -- a person's, or an automation's -- on its two-way cell, until its run
+   * resolves: a forward pass leaves the cell alone meanwhile, however HubSpot's record looks. Made BEFORE the event
+   * joins its queue (fails soft); cleared by the run that served it, unless an event of the cell arrived after that run
+   * started (that event's own run clears it). A run that throws clears nothing: the mark's lease takes over.
+   */
+  const gate = staleForwardGateOn(env, spec);
+  const ownEcho = gate && !!edit && !relClass && !stageShared && !!spec.suppressSelfOriginWrites && await isOwnEcho(env, spec, ev);
+  const peopleKey = `md:${itemId}:${columnId}`;
+  if (spec.columnLevelReverse && isPeopleCol && !ownEcho) {
+    const r = removedPersonIds(ev);
+    const acc = pendingRemovedPeople.get(peopleKey) ?? { ids: new Set<string>(), known: true };
+    if (r === null) acc.known = false; else for (const id of r) acc.ids.add(id);
+    pendingRemovedPeople.set(peopleKey, acc);
+  }
+  let markKeys: string[] = [];
+  if (gate && edit && !ownEcho) {
+    if (relClass) {
+      if (relClass === "person" && (relRecorded === null || relRecorded.added.length || relRecorded.removed.length))
+        markKeys = [watchRelKey(columnId)];
+    } else if (edit.name) { if (spec.nameReverse) markKeys = [NAME_KEY]; }
+    else if (columnId && isGatedCol(env, spec, columnId)) markKeys = [columnId];
+  }
+  const watchBase = { boardId, itemId, object: spec.object };
+  if (markKeys.length) {
+    const rx = Date.now();
+    // A People cell's mark carries what this event removed, so a retry refuses emptying a stale cell exactly as
+    // this run would (removedPeople) -- never "the person removed HubSpot's owner" on a cell that showed someone else.
+    await markEdits(env, watchBase, markKeys.map((key): MarkInput => ({ key, at: eventMs(ev) ?? rx, rx,
+      ...(actorId ? { actor: actorId } : {}), ...(byAutomation ? { byAutomation: true } : {}),
+      ...(key.startsWith("rel:") ? { rel: relRecorded } : {}),
+      ...(isPeopleCol && key === columnId ? { people: removedPersonIds(ev) } : {}) })));
+  }
   const runSync = async () => {
+    const t0 = Date.now();
     // Drained FIRST, before any await, so this run owns exactly the relation edits that arrived before
     // it started; anything later lands in the pending set for the trailing re-run.
     const rel = edit && isRelationCol ? drainRelationEvents(relKey) : null;
@@ -742,7 +770,7 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
         largestEvent: { [columnId]: { added: rel.largestAdd, removed: rel.largestRemove } },
         ...(rel.known ? { linked: { [columnId]: rel.added } } : {}) };
     }
-    if (edit && isPeopleCol && columnId) {
+    if (edit && isPeopleCol && columnId && !ownEcho) {
       const acc = pendingRemovedPeople.get(peopleKey);
       pendingRemovedPeople.delete(peopleKey);
       // Nothing pending = nobody removed since the last run drained it (a coalesced re-run), which is
@@ -752,8 +780,16 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
     // The actor rides separately from `edit` because an item-created event names no column and so has
     // no edit at all: without it, an automation that makes a row would read as a person making it, and
     // the new record's birth pass would push whatever its relation cells hold. See syncMondayItem.
-    return syncMondayItem(env, boardId, itemId, webhookOpts(env), budget, false, selfOrigin, runEdit,
+    const outcome = await syncMondayItem(env, boardId, itemId, webhookOpts(env), budget, false, selfOrigin, runEdit,
       { id: actorId, byAutomation });
+    // STALE_FORWARD_GATE: resolved (pushed, healed, nothing to send, skipped) -- its marks go, except one an event
+    // arrived for after this run started (its own trailing run clears it). A stage run served every stage column it
+    // drained. A run that threw never gets here: the mark's lease takes over.
+    if (markKeys.length) {
+      const served = stageShared ? stageDrained.filter(c => isGatedCol(env, spec, c)) : markKeys;
+      await clearMarks(env, watchBase, served.length ? served : markKeys, t0);
+    }
+    return outcome;
   };
   const onError = (e: unknown) =>
     console.log(`[webhook] source=monday item=${itemId} action=error reason="${String(e).slice(0, 160)}"`);
@@ -769,9 +805,11 @@ async function routeMondayEdit(env: Env, ectx: ExecutionContext, spec: ObjectSpe
   // A person's STAGE edits (STAGE_COARSE_REVERSE on) share one queue per card: see pendingStageCols. A
   // queue whose run threw loses what arrived meanwhile, as every md:* queue does (stop-on-throw), and its
   // stage entries go with it -- otherwise they would ride along with the next, unrelated stage edit.
+  //
+  // OUR OWN ECHO (STALE_FORWARD_GATE only): its own `:self` queue, so a person's edit of the cell never folds into it.
   if (spec.columnLevelReverse && edit)
     ectx.waitUntil(coalesceLatest(`md:${itemId}:${stageShared ? "~stage" : edit.name ? "~name" : edit.cols[0]}`
-      + (relClass ? `:${relClass}` : ""), runSync)
+      + (relClass ? `:${relClass}` : ownEcho ? ":self" : ""), runSync)
       .catch(e => { if (stageShared) pendingStageCols.delete(itemId); onError(e); }));
   else
     ectx.waitUntil(coalesce(`md:${itemId}`, runSync).catch(onError));
@@ -840,6 +878,89 @@ export function extractObjectEvents(body: any): { type: HsObjType; id: string; d
         deleted ? { type, id: String(raw), deleted: true } : { type, id: String(raw) });
   }
   return [...out.values()];
+}
+
+/**
+ * WHAT EACH RECORD'S EVENTS NAMED (STALE_FORWARD_GATE), keyed "type:id": the scope its forward pass is judged on.
+ * Types and ids resolve as extractObjectEvents resolves them -- and a line item (objectTypeId "0-8", or a
+ * `line_item.*` subscription) as "line_item", so its own card's pass is scoped too:
+ *   - propertyChange with a propertyName: that property, at the event's occurredAt, our own write or not
+ *     (eventOwnness; an event without a time cannot be placed, and its source is then left to the history);
+ *   - associationChange: an entry that names nothing (its pass forwards no two-way cell on its say-so);
+ *   - anything else -- creation, restore, merge, a bare workflow payload, an unknown kind -- is "unscoped": nothing is
+ *     known about what changed, and the pass reads the history of every differing two-way cell.
+ * Several events of one record merge: unscoped wins; otherwise the union, the newest event per property. A record
+ * with no entry here (a line item read from a deal's associations) is unscoped. Deletions are not passes: skipped.
+ */
+export function extractObjectScopes(body: any): Map<string, PassScope | "unscoped"> {
+  const arr = Array.isArray(body) ? body : [body];
+  const out = new Map<string, PassScope | "unscoped">();
+  for (const e of arr) {
+    if (!e || typeof e !== "object") continue;
+    const sub = String(e.subscriptionType ?? e.eventType ?? "");
+    const objTypeId = String(e.objectTypeId ?? e.fromObjectTypeId ?? "");
+    const objName = String(e.objectType ?? "").toLowerCase();
+    let type: HsObjType | undefined;
+    if (sub.startsWith("deal") || objName === "deal") type = "deal";
+    else if (sub.startsWith("contact") || objName === "contact") type = "contact";
+    else if (sub.startsWith("company") || objName === "company") type = "company";
+    else if (sub.startsWith("line_item") || objName === "line_item" || objTypeId === "0-8") type = "line_item";
+    else if (OBJ_BY_TYPEID[objTypeId]) type = OBJ_BY_TYPEID[objTypeId];
+    else if (!sub && !objTypeId) type = "deal";
+    if (!type) continue;
+    const kind = sub.split(".").pop() ?? "";
+    if (kind === "deletion") continue;
+    const p = e.properties ?? {};
+    let raw = e.objectId ?? e.fromObjectId ?? e.hs_object_id ?? e.dealId ?? e.vid ?? e.id ?? p.hs_object_id ?? p.dealId;
+    if (raw && typeof raw === "object") raw = raw.value;
+    if (raw == null || !/^\d+$/.test(String(raw))) continue;
+    let next: PassScope | "unscoped";
+    if (kind === "propertyChange" && e.propertyName) {
+      const at = Number(e.occurredAt);
+      next = { props: { [String(e.propertyName)]: Number.isFinite(at) && at > 0
+        ? { at, own: eventOwnness(e.changeSource, e.sourceId) } : { at: 0, own: null } } };
+    } else if (kind === "associationChange") next = { props: {} };
+    else next = "unscoped";
+    const key = `${type}:${raw}`;
+    out.set(key, mergeScopes(out.get(key), next));
+  }
+  return out;
+}
+
+/**
+ * The scopes waiting for each record's NEXT forward pass (STALE_FORWARD_GATE), keyed like coalesceLatest's queue
+ * (`hs:<type>:<id>:u`). An event merges its scope in BEFORE it joins the queue; the run takes -- and deletes -- what
+ * has gathered when it STARTS, so a trailing run gets exactly what arrived during the one before. A run that throws
+ * puts its scope back ONLY when a re-run is pending (another event arrived meanwhile): with none coming, a put-back
+ * scope would be read by the record's next, unrelated pass -- hours later -- as if its events had just named those
+ * properties. Taken scopes older than scopeMaxAgeMs are dropped (unscoped). Per isolate, like the queue; bounded.
+ */
+const pendingScopes = new Map<string, PassScope | "unscoped">();
+const PENDING_SCOPES_MAX = 5_000;
+function addPendingScope(key: string, s: PassScope | "unscoped"): void {
+  if (!pendingScopes.has(key) && pendingScopes.size >= PENDING_SCOPES_MAX) {
+    const oldest = pendingScopes.keys().next().value;
+    if (oldest !== undefined) pendingScopes.delete(oldest);
+  }
+  pendingScopes.set(key, mergeScopes(pendingScopes.get(key), s));
+}
+function takePendingScope(key: string): PassScope | "unscoped" | undefined {
+  const s = pendingScopes.get(key);
+  pendingScopes.delete(key);
+  return s;
+}
+
+/** One record's forward pass with the scope its events gathered (STALE_FORWARD_GATE). */
+async function syncWithScope(env: Env, key: string, type: HsEventObject, id: string, opts: RunOpts, budget: Budget): Promise<string> {
+  const taken = takePendingScope(key);
+  const scope = taken === undefined || taken === "unscoped" ? undefined : freshScope(taken, Date.now(), scopeMaxAgeMs(env));
+  try {
+    return await syncHubspotObject(env, type, id, scope ? { ...opts, scope } : opts, budget);
+  } catch (e) {
+    // Back for the re-run coalesceLatest is about to make -- and only then (see pendingScopes).
+    if (latest.get(key)?.again) addPendingScope(key, taken ?? "unscoped");
+    throw e;
+  }
 }
 
 /** Back-compat helper (deal ids only) — used by tests and any deal-only caller. */
@@ -1066,6 +1187,13 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
   console.log(`[webhook] source=hubspot events=${events.map(e => `${e.deleted ? "del:" : ""}${e.type}:${e.id}`).join(",")}${liIds.length ? ` line_items=${liIds.join(",")}` : ""} action=received`);
   const opts = webhookOpts(env);
   const budget: Budget = { left: 30 };
+  // STALE_FORWARD_GATE (CRM only, behind its own literal "true"): what each record's events named, carried into its
+  // forward pass (pendingScopes) or onto its deferred entry. Off: null, and nothing below changes.
+  const scopes = env.ENABLE_CRM === "true" && env.STALE_FORWARD_GATE === "true" ? extractObjectScopes(body) : null;
+  const scopeOf = (type: string, id: string): PassScope | undefined => {
+    const s = scopes?.get(`${type}:${id}`);
+    return s && s !== "unscoped" ? s : undefined;
+  };
   // Subrequest safety: a large import can batch many events into one webhook. Process a bounded slice
   // per invocation (each event costs a few subrequests); the 10-min backup reconcile sweeps overflow.
   const MAX = 15;
@@ -1121,7 +1249,10 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
     const spillOverflow = async (overflow: typeof events) => {
       const spill: DeferredItem[] = overflow
         .filter(e => e.type === "contact" || e.type === "company" || e.type === "deal" || e.type === "line_item")
-        .map(e => ({ type: e.type as DeferredItem["type"], id: e.id, deleted: e.deleted }));
+        .map(e => {
+          const scope = e.deleted ? undefined : scopeOf(e.type, e.id);
+          return { type: e.type as DeferredItem["type"], id: e.id, deleted: e.deleted, ...(scope ? { scope } : {}) };
+        });
       console.log(`[webhook] source=hubspot action=deferred count=${overflow.length}`
         + ` spilling=${spill.length} reason="batch > ${MAX}; ${env.DEFERRED_SYNC
           ? "overflow queued durably" : "no queue on this deployment; the incremental cron covers it"}"`);
@@ -1207,7 +1338,10 @@ export async function handleHubspot(req: Request, env: Env, ectx: ExecutionConte
     const latestWins = env.ENABLE_CRM === "true";
     await Promise.all(events.slice(0, MAX).map(ev => {
       const key = `hs:${ev.type}:${ev.id}:${ev.deleted ? "d" : "u"}`;
+      // STALE_FORWARD_GATE: this event's scope joins the record's next run BEFORE the event joins its queue.
+      if (scopes && !ev.deleted) addPendingScope(key, scopes.get(`${ev.type}:${ev.id}`) ?? "unscoped");
       const run = () => ev.deleted ? deleteHubspotObject(env, ev.type, ev.id, opts, budget)
+                                   : scopes ? syncWithScope(env, key, ev.type, ev.id, opts, budget)
                                    : syncHubspotObject(env, ev.type, ev.id, opts, budget);
       return (!ev.deleted && latestWins ? coalesceLatest(key, run, { rerunAfterError: true }) : coalesce(key, run))
         .catch(e => console.log(`[webhook] source=hubspot ${ev.type}=${ev.id} action=error reason="${String(e).slice(0, 160)}"`));

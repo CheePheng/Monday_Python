@@ -22,7 +22,7 @@
  * And not a cron, because a cron re-reads everything on a timer whether or not anything overflowed.
  * The queue only exists when a batch actually exceeded the limit.
  */
-import type { Env } from "./types";
+import type { Env, PassScope } from "./types";
 import type { DeferredSync } from "./deferred-sync-do";
 
 // Deals and line items since 2026-09-23 -- see the spill in webhooks.ts.
@@ -72,13 +72,29 @@ export interface DeferredItem {
    * fresh entry each wave, its attempts reset, and it ran ~40 times instead of MAX_ATTEMPTS.
    */
   ensure?: boolean;
+  /**
+   * AN UPDATE ONLY (STALE_FORWARD_GATE): what the HubSpot events behind it named (PassScope), carried from the
+   * webhook batch that spilled it. Absent = UNSCOPED (every differing two-way cell's history is read). Two waiting
+   * updates of one record merge: unscoped wins, otherwise the union, the newest event per property.
+   */
+  scope?: PassScope;
+  /**
+   * THE CARD WATCH'S WORK, not an update (STALE_FORWARD_GATE): `id` is then the monday ITEM id and `type` the spec's
+   * event type. "converge": sync.ts settleCardWatch -- the cells whose holds ended are judged and converged;
+   * "retry": sync.ts retryMarkedEdits -- a person's edit whose run died is sent again (STALE_FORWARD_RETRY).
+   */
+  watch?: { boardId: string; kind: "converge" | "retry" };
 }
 
 /** Identity for deduplication. A delete, an update, a re-check and an owner notice of the same record are
  *  different work: an update's forward pass does repair a dangling clear, but a re-check cannot stand in for an
- *  update, and neither tells an owner anything. */
-export const deferKey = (i: DeferredItem) =>
-  `${i.type}:${i.id}:${i.deleted ? "d" : i.recheck ? "r" : i.notice ? "n" : "u"}`;
+ *  update, and neither tells an owner anything. A card watch's converge and retry are keyed by the ITEM. */
+export const deferKey = (i: DeferredItem) => i.watch
+  ? `${i.type}:${i.id}:${i.watch.kind === "converge" ? "c" : "e"}`
+  : `${i.type}:${i.id}:${i.deleted ? "d" : i.recheck ? "r" : i.notice ? "n" : "u"}`;
+
+/** Is this deferred item an ordinary UPDATE (the only kind that carries a scope)? */
+export const isUpdateItem = (i: DeferredItem): boolean => !i.deleted && !i.recheck && !i.notice && !i.watch;
 
 /** How many records one alarm processes. Matches the webhook path's own per-invocation limit, for
  *  the same subrequest reason. */

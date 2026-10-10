@@ -2,7 +2,7 @@ import type {
   Budget, Ctx, Env, FieldSpec, HsRecord, LabelDict, MondayEdit, MondayItem, ObjectSpec, RunOpts, Stats, WriteAuth,
 } from "./types";
 import type { CreateSnapshot, PendingEdit } from "./create-idempotency-do";
-import { pushBirthAssociations, reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
+import { convergeRelationCell, pushBirthAssociations, reverseAssociations, reverseLineItems, syncAssociations } from "./associations";
 import {
   CREATE_CUTOFF_MS, CREATED_AFTER_MS, DEAL_SPECS, DEALS, PORTAL_ID,
   specByBoard, specByObject, specsFor,
@@ -14,7 +14,17 @@ import { colText, indexByHubspotId } from "./dedup";
 import {
   lookupCard, lookupCardOwner, finishCard, claimHubspotForItem, finishHubspotForItem, forgetHubspotForItem,
   createWindowOf, noteCreateWindowEdit,
+  beginConverge, beginRetry, clearMarks, finishConverge, markEdits, noteStamp, supersedeMarks, watchCells,
 } from "./card-registry";
+import {
+  LOG_RETRY_MAX, NAME_KEY, RELATION_HOLD_MS, STUCK_MS, applyVeto, cellFp, cellKey, diffProps, eventTypeOfObject, fpOfField,
+  fpOfName, gateKey, gatedCols, gatedProps, gaveUpMatches, holdWindowMs, isCoarseGated, isGatedField, judgeCell, mergedVersions,
+  needHistoryBefore, newestNamed, newestNonOwnAt, reduceWatchCells, relKey, staleForwardGateOn, staleForwardRetryOn,
+  updatedAtMs,
+  type CardWatch, type CellVerdict, type ConvergeOutcome, type FinalVerdict, type HsVersion, type MarkInput,
+  type TaggedVersion, type WatchBase, type WatchReply, type WatchReq,
+} from "./card-watch";
+import { cardValueFingerprint, lastCellChanges, type CellChange } from "./ui-actor";
 import { ensureCardForRecord } from "./ensure-card";
 import { releaseOnWorkedChanges } from "./no-activity";
 import { ownerNoticeOn, queueOwnerNotices } from "./owner-notice";
@@ -28,12 +38,12 @@ import {
 } from "./reconcile";
 import { spillDeferred } from "./deferred-sync";
 import {
-  createItem, deleteItem, findItemByColumn, getBoardItems, getItem, getItemsColumnText,
-  getLinkedItemIds, getUsersByEmail, moveItem, setColumns, updateItem,
+  createItem, deleteItem, findItemByColumn, getBoardItems, getItem, getItemFresh, getItemsColumnText,
+  getLinkedItemIds, getUsersByEmail, moveItem, setColumns, updateColumns, updateItem,
 } from "./monday";
 import {
   claimOwnership, createRecord, getCrmStageDicts, getDealStageLabels, getOwners, getPropertyHistory, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
-  propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
+  getRecordWithHistory, propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
 const emptyStats = (): Stats => ({
@@ -373,6 +383,9 @@ async function reconcileRecord(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOp
  * stale-overwrite this spec flag exists to remove.
  *
  * Never backfills and never claims: both are HubSpot writes, and this path has no person behind it.
+ *
+ * STALE_FORWARD_GATE (staleForwardGateOn): the per-cell pass below (forwardOnlyGated) instead -- unless forced. Off,
+ * or forced (an operator's /resync), this pass exactly as it was (forwardOnlyHead).
  */
 async function reconcileForwardOnly(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
     rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
@@ -387,6 +400,17 @@ async function reconcileForwardOnly(env: Env, spec: ObjectSpec, ctx: Ctx, opts: 
      * for records an operator has chosen; ordinary traffic never does.
      */
     force = false): Promise<void> {
+  if (!force && staleForwardGateOn(env, spec)) {
+    await forwardOnlyGated(env, spec, ctx, opts, budget, rec, existing, stats);
+    return;
+  }
+  return forwardOnlyHead(env, spec, ctx, opts, budget, rec, existing, stats, force);
+}
+
+/** reconcileForwardOnly as it always was: HEAD's body, unchanged. */
+async function forwardOnlyHead(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem,
+    stats: Stats, force: boolean): Promise<void> {
   // THE ONE HUBSPOT WRITE THIS PATH MAKES: a backward move's clear whose set never followed, finished from
   // the card (repairDanglingClears). Not finished now -> the pass still brings the card into line, but
   // leaves Sync State where it was and then throws, so the queue retries and the next event still sees it.
@@ -426,6 +450,582 @@ async function reconcileForwardOnly(env: Env, spec: ObjectSpec, ctx: Ctx, opts: 
       diffs.filter(d => d.kind === "field" && d.f).map(d => ({ col: d.f!.col, label: d.hsText })),
       "changed in HubSpot", opts);
   if (unfinished) throw unfinished;
+}
+
+// ===================================================================================================================
+// STALE_FORWARD_GATE: THE FORWARD PASS, CELL BY CELL. The rules are card-watch.ts's; this is the I/O around them.
+// ===================================================================================================================
+
+/** What a converge hands the forward pass: its own two reads, and the watch it judges against. */
+interface ConvergeIn {
+  snapshot: CardWatch;
+  history: Record<string, HsVersion[]>;
+  stamps: Record<string, number | null>;
+  values: Record<string, string | null>;
+}
+
+/** One gated cell in play, and what became of it. */
+interface Judged {
+  d: Diff;
+  key: string;
+  fp: string;
+  typed: boolean;
+  c: number | null;
+  props: string[];
+  coarse: boolean;
+  verdict: CellVerdict;
+  newestNonOwn?: number;
+  final?: FinalVerdict | "rescued" | "stuck" | "log-unreadable";
+  why?: string;
+  /** The watch's loop breaker leaves this value alone. */
+  stuck?: boolean;
+}
+
+/** Column types whose cells monday stamps with changed_at (live 2026-10-09: status, date, people). Before a card is
+ *  read, any other cell may be untyped; once read, the stamps say. */
+const TYPED_COL_TYPES = new Set(["status", "date", "people"]);
+
+/** The properties a gated pass reads back: the spec's, and everything its first read carried. */
+function readPropsOf(spec: ObjectSpec, rec: { properties: Record<string, string | null> }): string[] {
+  return [...new Set([...propertiesForSpec(spec), ...Object.keys(rec.properties)])];
+}
+
+/** The record again, with the history of `props`; "gone" on a 404, "failed" when it could not be read. */
+async function readHistory(env: Env, spec: ObjectSpec, rec: { id: string; properties: Record<string, string | null> },
+    props: string[], where: string): Promise<{ rec: HsRecord; history: Record<string, HsVersion[]> } | "gone" | "failed"> {
+  try {
+    const r = await getRecordWithHistory(env, spec.object, rec.id, readPropsOf(spec, rec), props);
+    if (!r) return "gone";
+    return { rec: { id: rec.id, properties: r.properties }, history: r.history };
+  } catch (e) {
+    console.log(`${where} action=history-unreadable props=${props.join(",")} reason="${String(e).slice(0, 160)}"`
+      + ` next="two-way cells judged without it: held while recent, left otherwise"`);
+    return "failed";
+  }
+}
+
+/** Would writing `stamp` move this card's Sync State FORWARD (or give it its first)? Never backwards, never a no-op. */
+function stampsForward(stamp: string | null | undefined, current: string): boolean {
+  return !!stamp && !(timeOf(current) >= timeOf(stamp));
+}
+
+/**
+ * COLUMN-LEVEL FORWARD PASS, CELL BY CELL (STALE_FORWARD_GATE).
+ *
+ *  1. A backward move's clear left unfinished is finished first (repairDanglingClears), as HEAD.
+ *  2. IN PLAY: every difference when HubSpot changed since Sync State (HEAD's rule), otherwise only those this pass's
+ *     events name -- and, in a converge, those the card's watch holds.
+ *  3. Nothing in play: HEAD (stamp a baseline that moves forward; leave the rest), but every two-way difference left
+ *     goes to the card's watch, so it converges when its hold ends even if HubSpot never changes again.
+ *  4. A one-way difference is HubSpot's alone: forwarded, as HEAD. A TWO-WAY one is judged by itself (card-watch.ts
+ *     judgeCell): HubSpot's history first (only when its verdict needs it), then the card with its changed_at
+ *     stamps; one more history read for a tie. The watch's veto (applyVeto) then holds a cell a person's edit is on
+ *     its way to (its mark), and turns an expired untyped hold into a candidate. A candidate is left for the watch to
+ *     converge -- in the converge itself it is rescued (STALE_FORWARD_RETRY, a person's edit the log proves, made
+ *     after the card was linked to its record) or converged, through the loop breaker.
+ *  5. ONE write: the forwarded cells, with HubSpot's name ONLY when the name itself is forwarded (a rename still on
+ *     its way is never written over), never waiting on monday's rate limit (a refused write leaves the cells due for
+ *     a converge on a fresh read; it is never sent minutes late). Sync State only when no two-way cell in play was
+ *     left, and only forward; every stamp goes to the card's register (noteStamp). A converge reads its written cells
+ *     back once, so the loop breaker remembers only a write that did not take.
+ * The Deals coarse Stage is gated like a typed cell and keeps HEAD's timing: a candidate is forwarded only when
+ * HubSpot is newer than Sync State -- at the pass, or (its hold registered with the watch) at a pass that judged the
+ * same value while it was held; never rescued. A DRY RUN (an operator's /resync dryRun) leaves nothing durable: the
+ * watch is only asked (read only), and nothing is noted, marked or queued.
+ */
+async function forwardOnlyGated(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, budget: Budget,
+    rec: { id: string; properties: Record<string, string | null> }, existing: MondayItem, stats: Stats,
+    conv?: ConvergeIn): Promise<ConvergeOutcome> {
+  const out: ConvergeOutcome = { resolved: [], forwarded: [], held: [], stuck: [], rescued: [] };
+  const W = holdWindowMs(env);
+  const dry = !!opts.dryRun;
+  const scope = conv ? undefined : opts.scope;
+  const base: WatchBase = { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id };
+  const where = `[forward] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`;
+  const unfinished = await repairDanglingClears(env, spec, ctx, opts, budget, rec, existing);
+  let fresh: HsRecord = { id: rec.id, properties: rec.properties };
+  let card = existing;
+  let history: Record<string, HsVersion[]> | undefined = conv?.history;
+  let stamps: Record<string, number | null> = conv?.stamps ?? {};
+  let values: Record<string, string | null> = conv?.values ?? {};
+  let historyFailed = false;
+
+  const newer = () => (Date.parse(fresh.properties[spec.modifiedProp] ?? "") || 0)
+    > (Date.parse(colText(card, spec.syncStateCol)) || 0);
+  const gp = (d: Diff) => gatedProps(env, spec, d, fresh);
+  const isCoarse = (d: Diff) => d.kind === "field" && !!d.f && isCoarseGated(env, spec, d.f);
+  const named = (d: Diff) => newestNamed(scope, gp(d) ?? diffProps(spec, d, fresh));
+  const watched = (d: Diff) => !!conv && !!gp(d)
+    && (conv.snapshot.allAt !== undefined || Object.hasOwn(conv.snapshot.cells, gateKey(d)));
+  const diffsOf = () => fieldDiffs(fresh, card, spec, ctx, false).filter(d => !d.backfill);
+  const inPlayOf = (ds: Diff[]) => newer() ? ds : ds.filter(d => !!named(d) || watched(d));
+  const resolveWatched = (ds: Diff[]) => {
+    if (!conv) return;
+    const differing = new Set(ds.filter(d => gp(d)).map(gateKey));
+    out.resolved.push(...Object.keys(conv.snapshot.cells).filter(k => !k.startsWith("rel:") && !differing.has(k)));
+  };
+  const gone = (why: string): ConvergeOutcome => {
+    stats.skipped++;
+    console.log(`${where} action=skipped reason="${why}"`);
+    if (unfinished) throw unfinished;
+    return { ...out, done: true };
+  };
+
+  let diffs = diffsOf();
+  let inPlay = inPlayOf(diffs);
+
+  // 3. NOTHING IN PLAY. (A coarse Stage difference here is one HubSpot is not newer than: HEAD's timing leaves it.)
+  const nothingInPlay = async (): Promise<ConvergeOutcome> => {
+    resolveWatched(diffs);
+    if (!diffs.length) {
+      stats.inSync++;
+      const stamp = fresh.properties[spec.modifiedProp] ?? "";
+      if (!unfinished && stampsForward(stamp, colText(card, spec.syncStateCol))) {
+        const s0 = Date.now();
+        await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: stamp }, opts);
+        budget.left--;
+        await noteStamp(env, base, stamp, s0, Date.now(), spec.syncStateCol, dry);
+      }
+    } else {
+      stats.skipped++;
+      const reqs: WatchReq[] = diffs.filter(d => gp(d) && !isCoarse(d)).map(d => ({ key: gateKey(d), fp: cellFp(d, card),
+        typed: false, anchor: updatedAtMs(card.updated_at), kind: "hold", hs: d.hsText }));
+      if (conv) out.held.push(...reqs);
+      else if (reqs.length) await watchCells(env, base, reqs, { windowMs: W, dryRun: dry });
+    }
+    if (unfinished) throw unfinished;
+    return out;
+  };
+  if (!inPlay.length) return nothingInPlay();
+
+  // 5. THE FRESH READS, only when a two-way cell is in play: HubSpot (with the history the verdicts need) FIRST,
+  // then the card with its stamps -- so the card read is never older than the HubSpot read it is judged against.
+  if (!conv && inPlay.some(d => gp(d))) {
+    const u0 = updatedAtMs(card.updated_at);
+    const ask = new Set<string>();
+    for (const d of inPlay) {
+      const props = gp(d);
+      if (!props) continue;
+      const possiblyUntyped = d.kind === "name" || !TYPED_COL_TYPES.has(d.f!.type);
+      if (needHistoryBefore({ scoped: !!scope, named: named(d), possiblyUntyped, u: u0 })) for (const p of props) ask.add(p);
+    }
+    if (ask.size) {
+      const r = await readHistory(env, spec, rec, [...ask], where);
+      if (r === "gone") return gone("the record is gone from HubSpot since this pass read it");
+      if (r === "failed") historyFailed = true;
+      else { fresh = r.rec; history = r.history; }
+    }
+    try {
+      const c = await getItemFresh(env, existing.id, gatedCols(env, spec));
+      if (!c) return gone("the card is gone since this pass read it");
+      card = c.item; stamps = c.stamps; values = c.values;
+    } catch (e) {
+      console.log(`${where} action=stamps-unreadable reason="${String(e).slice(0, 160)}" next="every cell judged as untyped"`);
+    }
+    diffs = diffsOf();
+    inPlay = inPlayOf(diffs);
+    if (!inPlay.length) return nothingInPlay();
+  }
+
+  // 6. JUDGE every two-way cell in play.
+  const now = Date.now();
+  const S = timeOf(colText(card, spec.syncStateCol));
+  const u = updatedAtMs(card.updated_at);
+  const judge = (d: Diff, props: string[]): Judged => {
+    const c = d.kind === "field" ? (stamps[d.f!.col] ?? null) : null;
+    const versions = mergedVersions(history, props);
+    const fpOf = d.kind === "name"
+      ? (v: TaggedVersion) => fpOfName(spec, ctx, v.prop, v.value)
+      : (v: TaggedVersion) => fpOfField(d.f!, v.value, ctx);
+    const md = d.kind === "name" ? card.name.trim() : d.mdText;
+    const fp = cellFp(d, card);
+    const verdict = judgeCell({ c, u, S, versions, named: named(d), md, fp, fpOf, now, W, historyFailed });
+    return { d, key: gateKey(d), fp, typed: c !== null, c, props, coarse: isCoarse(d), verdict,
+      newestNonOwn: newestNonOwnAt(versions) };
+  };
+  const plain: Diff[] = [];
+  const judged: Judged[] = [];
+  for (const d of inPlay) {
+    const props = gp(d);
+    if (props) judged.push(judge(d, props)); else plain.push(d);
+  }
+  // The tie zone, an event whose source cannot be told, an untyped cell changed since its event: ONE more read.
+  const more = judged.filter(j => j.verdict.v === "need-history");
+  if (more.length) {
+    const r = await readHistory(env, spec, rec, [...new Set(more.flatMap(j => j.props))], where);
+    if (r === "gone" || r === "failed") historyFailed = true;
+    else history = { ...(history ?? {}), ...r.history };
+    for (const j of more) Object.assign(j, judge(j.d, j.props));
+  }
+  /** HubSpot's newest change of the cell that is not ours, as this pass knows it: from the history when read, else
+   *  the event that named it (when not ours). A person's edit older than it never holds it off (V3). */
+  const newsAtOf = (j: Judged): number | undefined => {
+    if (j.newestNonOwn !== undefined) return j.newestNonOwn;
+    const ev = named(j.d);
+    return ev && ev.own === false && Number.isFinite(ev.at) && ev.at > 0 ? ev.at : undefined;
+  };
+
+  // 7. THE WATCH: one RPC (in a converge, the snapshot it was given), only when it can change something.
+  const reqs: WatchReq[] = [];
+  const resolvedKeys: string[] = [];
+  // Two-way differences this pass did not put in play (HubSpot not newer, nothing names them): left, as HEAD leaves
+  // them -- and handed to the watch, as step 3 hands them, so they converge when their hold ends whatever else happens.
+  const unplayed: WatchReq[] = diffs.filter(d => gp(d) && !isCoarse(d) && !inPlay.includes(d))
+    .map(d => ({ key: gateKey(d), fp: cellFp(d, card), typed: false, anchor: u, kind: "hold", hs: d.hsText }));
+  if (conv) out.held.push(...unplayed); else reqs.push(...unplayed);
+  for (const j of judged) {
+    const v = j.verdict;
+    const hs = j.d.hsText;
+    // The coarse Stage's hold remembers that HubSpot was newer while it was held: its converge then keeps HEAD's word.
+    const nw = j.coarse && newer() ? { newer: true } : {};
+    if (v.v === "hold") reqs.push({ key: j.key, fp: j.fp, typed: v.typed, anchor: v.anchor, kind: "hold", hs, ...nw });
+    // A coarse candidate is forwarded now when HubSpot is newer, and otherwise left to HEAD's timing: only asked.
+    else if (v.v === "candidate") reqs.push({ key: j.key, fp: j.fp, typed: v.typed, anchor: j.c ?? u,
+      kind: j.coarse ? "probe" : "candidate", hs, ...nw });
+    else if (v.v === "forward") {
+      // An untyped forward a live mark may veto (the card changed at or after HubSpot's news): the watch resolves it,
+      // or -- vetoed -- keeps it held, so it still converges once the mark resolves. Otherwise simply resolved.
+      const newsAt = newsAtOf(j);
+      if (!j.typed && (newsAt === undefined || u >= newsAt))
+        reqs.push({ key: j.key, fp: j.fp, typed: false, anchor: u, kind: "forward", hs,
+          ...(newsAt !== undefined ? { newsAt } : {}) });
+      else resolvedKeys.push(j.key);
+    }
+  }
+  let replies: Record<string, WatchReply> | null = {};
+  if (conv) replies = reduceWatchCells(conv.snapshot, base, reqs, { resolved: resolvedKeys }, now, W,
+    staleForwardRetryOn(env, spec)).replies;
+  else if (reqs.length || resolvedKeys.length)
+    replies = await watchCells(env, base, reqs, { resolved: resolvedKeys, windowMs: W, dryRun: dry });
+  if (replies === null)
+    console.log(`${where} action=watch-unreachable next="holds stand, candidates are left, forwards proceed"`);
+  for (const j of judged) {
+    const r = replies === null ? null : replies[j.key];
+    const v = applyVeto(j.verdict, r, { typed: j.typed, newestNonOwn: newsAtOf(j), unreachable: replies === null });
+    j.final = v.final; j.why = v.why; j.stuck = !!r?.stuck;
+    if (j.verdict.v === "hold" && v.final === "candidate")
+      console.log(`${where} col=${j.d.kind === "name" ? "name" : j.key} action=hold-ended reason="${v.why}"`);
+    // The coarse Stage keeps HEAD's timing: a candidate goes across only when HubSpot is newer than Sync State (in a
+    // converge: or was, at a pass that judged this held value).
+    if (j.coarse && j.final === "candidate") {
+      const go = conv ? newer() || !!conv.snapshot.cells[j.key]?.newer : newer();
+      j.final = go ? "forward" : "left";
+      j.why = go ? "HubSpot is newer than Sync State (the coarse Stage's own timing)"
+        : "the coarse Stage waits for HubSpot to be newer (HEAD's timing)";
+    } else if (!conv && j.final === "candidate") j.final = "left";      // V4: the watch converges it
+  }
+
+  // THE CONVERGE'S CANDIDATES: a person's edit the activity log proves is RESCUED (marked, and retried; never
+  // the name, a relation or the coarse Stage; never a value from before the card was linked to its record); every
+  // other one is CONVERGED to HubSpot -- through the loop breaker.
+  if (conv) {
+    const retryOn = staleForwardRetryOn(env, spec);
+    const cands = judged.filter(j => j.final === "candidate");
+    const rescuable = cands.filter(j => retryOn && j.d.kind === "field" && !j.coarse
+      && (conv.snapshot.convergeAttempts ?? 0) < LOG_RETRY_MAX
+      && !gaveUpMatches(conv.snapshot.gaveUp?.[j.key], j.fp, now)
+      && Object.hasOwn(columnEditPatch(fresh, card, spec, ctx, { cols: [j.key] }).patch, j.d.f!.hs));
+    let rows: Record<string, CellChange | null> | null = {};
+    if (rescuable.length) {
+      const anchors = rescuable.map(j => j.c ?? conv.snapshot.cells[j.key]?.since ?? u).filter(Number.isFinite);
+      // The record-id cell too: its newest write in the window is when the card was linked to its record.
+      rows = await lastCellChanges(env, spec, card.id, [...rescuable.map(j => j.key), spec.idCol],
+        anchors.length ? Math.min(...anchors) : now);
+    }
+    // WHEN THE CARD WAS LINKED to its record (an adoption, a monday-born create): its watch's record of it, or the id
+    // cell's newest write in the log window (none there: linked before it -- every row in the window is after it; one
+    // that cannot be told: nothing is rescued). A value set before it is the form's, never an edit of the record.
+    const idRow = rows === null ? undefined : rows[spec.idCol];
+    const linkAt = Math.max(conv.snapshot.linkedAt ?? -Infinity, idRow === null ? Infinity : idRow?.atMs ?? -Infinity);
+    const rescues: MarkInput[] = [];
+    for (const j of cands) {
+      if (!rescuable.includes(j)) { j.final = "forward"; continue; }
+      if (rows === null) { j.final = "log-unreadable"; continue; }
+      const row = rows[j.key];
+      // A People cell: the removal the row records -- emptying a cell that showed someone other than HubSpot's owner
+      // is refused, exactly as a live run refuses it (unknown: removed nobody, so a clear is never rescued).
+      const people = j.d.f!.type === "people";
+      if (row && row.atMs > linkAt && (row.cls === "person" || row.cls === "automation")
+          && row.valueFp === cardValueFingerprint(values[j.key])
+          && (!people || Object.hasOwn(columnEditPatch(fresh, card, spec, ctx,
+            { cols: [j.key], removedPeople: { [j.key]: row.removed ?? [] } }).patch, j.d.f!.hs))) {
+        j.final = "rescued";
+        rescues.push({ key: j.key, at: row.atMs, rx: now, actor: row.userId, byAutomation: row.cls === "automation", rescued: true,
+          ...(people ? { people: row.removed ?? null } : {}) });
+      } else j.final = "forward";
+    }
+    // THE LOOP BREAKER: a converged candidate (never HubSpot's own later change: a forward verdict) is left alone only
+    // when the cell shows exactly what our earlier write of the SAME HubSpot value became on monday, and HubSpot has
+    // not changed it since -- a write that does not take is not repeated. A new value on the cell is converged again.
+    for (const j of judged) {
+      if (j.final !== "forward" || j.verdict.v === "forward") continue;
+      const f = conv.snapshot.fwd?.[j.key];
+      if (f && f.fp !== undefined && f.fp === j.fp && f.hs === j.d.hsText && now - f.at < STUCK_MS
+          && !(j.newestNonOwn !== undefined && j.newestNonOwn > f.at)) {
+        j.final = "stuck";
+        console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} col=${j.key}`
+          + ` action=converge-stuck reason="the cell still shows what our write of this HubSpot value became on monday: not written again"`);
+      }
+    }
+    for (const j of judged) if (j.final === "log-unreadable")
+      console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} col=${j.key}`
+        + ` action=rescue-unreadable reason="monday's activity log could not be read: the cell is left, and judged again later"`);
+    if (rescues.length && !dry) {
+      await markEdits(env, base, rescues);
+      console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+        + ` cols=${rescues.map(r => r.key).join(",")} action=rescued reason="a person's (or an automation's) edit monday's log`
+        + ` proves, never pushed: it is sent from the card"`);
+      const type = eventTypeOfObject(spec.object);
+      if (type) await spillDeferred(env, [{ type, id: existing.id, watch: { boardId: spec.boardId, kind: "retry" } }]);
+    }
+  }
+
+  for (const j of judged) {
+    if (j.final === "forward" || j.final === "rescued" || j.final === "stuck") continue;
+    console.log(`${where} col=${j.d.kind === "name" ? "name" : j.key} action=${j.final === "hold" ? "forward-held" : "forward-left"}`
+      + ` reason="${j.why}"`);
+  }
+
+  // 8. ONE WRITE. A pass that judged a two-way cell never waits on monday's rate limit (§16); one that did not is
+  // HEAD's write -- which can land minutes late (gql's own rate-limit waits), and whose stamp is then caught by the
+  // card's register (noteStamp: every stamp is kept longer than any write can take).
+  const fwdDiffs = [...plain, ...judged.filter(j => j.final === "forward").map(j => j.d)];
+  const left = judged.filter(j => j.final !== "forward");
+  const waits = judged.length ? 0 : undefined;
+  const stamp = fresh.properties[spec.modifiedProp] ?? "";
+  // Never while a two-way cell in play is left (its value is not HubSpot's), never backwards, never over an
+  // unfinished repair. A cell the loop breaker leaves (stuck) shows what our write of HubSpot's CURRENT value became
+  // on monday (the breaker holds only for that value): it has HubSpot's value already, as monday renders it.
+  const mayStamp = !unfinished && !left.some(j => j.final !== "stuck" && !j.stuck)
+    && stampsForward(stamp, colText(card, spec.syncStateCol));
+  // The stamp's write window, for the card's register (§13): every gated Sync State write is noted.
+  let stampWindow: [number, number] | undefined;
+  if (!fwdDiffs.length) {
+    if (left.length) stats.skipped++; else stats.inSync++;
+    if (mayStamp) {
+      const s0 = Date.now();
+      await setColumns(env, spec.boardId, existing.id, { [spec.syncStateCol]: stamp }, opts, waits);
+      budget.left--;
+      stampWindow = [s0, Date.now()];
+    }
+  } else {
+    if (fwdDiffs.some(d => d.kind === "group")) {
+      const group = targetGroup(fresh, spec);
+      if (group) await moveItem(env, spec.boardId, existing.id, group, opts, waits);
+    }
+    const cv = buildUpdatePayload(fwdDiffs, fresh, spec, ctx);
+    if (mayStamp) cv[spec.syncStateCol] = stamp;
+    const renames = fwdDiffs.some(d => d.kind === "name");
+    const s0 = Date.now();
+    try {
+      if (renames) await updateItem(env, spec.boardId, existing.id, itemName(fresh, spec), cv, opts, waits);
+      else if (Object.keys(cv).length) await updateColumns(env, spec.boardId, existing.id, cv, opts, waits);
+    } catch (e) {
+      if ((e as Error)?.name === "MondayRateLimitedError") {
+        const due = judged.filter(j => j.final === "forward");
+        console.log(`${where} cols=${due.map(j => j.key).join(",") || "-"} action=write-rate-limited reason="monday refused`
+          + ` the write for its rate limit (it never ran): the cells are left due for a converge on a fresh read"`);
+        if (due.length) await watchCells(env, base, due.map(j => ({ key: j.key, fp: j.fp, typed: j.typed, anchor: j.c ?? u,
+          kind: "candidate" as const, hs: j.d.hsText, ...(j.coarse && newer() ? { newer: true } : {}) })), { windowMs: W, dryRun: dry });
+      }
+      throw e;
+    }
+    const e1 = Date.now();
+    stats.toMonday++; budget.left--;
+    if (mayStamp) stampWindow = [s0, e1];
+  }
+  if (stampWindow) await noteStamp(env, base, stamp, stampWindow[0], stampWindow[1], spec.syncStateCol, dry);
+  // Worked in HubSpot (a Lifecycle off 1.NEW, a Lead Status set) -> out of "No Activity" (NO_ACTIVITY_RELEASE).
+  if (fwdDiffs.length)
+    await releaseOnWorkedChanges(env, spec, existing.id, card.group?.id,
+      fwdDiffs.filter(d => d.kind === "field" && d.f).map(d => ({ col: d.f!.col, label: d.hsText })),
+      "changed in HubSpot", opts);
+
+  if (conv) {
+    // THE READ-BACK (loop breaker): what each written two-way cell shows now. A cell back in line needs no memory; one
+    // that still differs did not take as sent (monday re-rendered it, or refused it), and only that state is remembered.
+    const post: Record<string, string> = {};
+    const wrote = judged.filter(j => j.final === "forward");
+    if (wrote.length && !dry) {
+      try {
+        // Never waits on monday's rate limit: refused, nothing is remembered (a cell still differing converges again).
+        const back = (await getItemFresh(env, existing.id, [], 0))?.item;
+        if (back) {
+          const still = new Set(fieldDiffs(fresh, back, spec, ctx, false).filter(d => !d.backfill && gp(d)).map(gateKey));
+          for (const j of wrote) if (still.has(j.key)) post[j.key] = cellFp(j.d, back);
+        }
+      } catch (e) {
+        console.log(`[converge] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id} action=read-back-failed`
+          + ` reason="${String(e).slice(0, 120)}" next="nothing remembered: a cell that still differs is converged again"`);
+      }
+    }
+    resolveWatched(diffs);
+    for (const j of judged) {
+      if (j.final === "forward") out.forwarded.push({ key: j.key, fp: j.fp, hs: j.d.hsText,
+        ...(post[j.key] !== undefined ? { post: post[j.key] } : {}) });
+      else if (j.final === "hold") out.held.push({ key: j.key, fp: j.fp, typed: j.typed,
+        anchor: j.verdict.v === "hold" ? j.verdict.anchor : (j.c ?? u), kind: "hold", hs: j.d.hsText,
+        ...(j.coarse && newer() ? { newer: true } : {}) });
+      else if (j.final === "stuck" || j.stuck) out.stuck.push(j.key);
+      else if (j.final === "rescued") out.rescued.push(j.key);
+      else if (j.final === "log-unreadable") (out.logUnreadable ??= []).push(j.key);
+      // The coarse Stage HubSpot is not newer than: HEAD's timing leaves it, and so does the watch (no longer held).
+      else if (j.coarse && j.final === "left") out.resolved.push(j.key);
+    }
+  }
+  if (unfinished) throw unfinished;
+  return out;
+}
+
+/** The properties a watched key is judged on (the name: every property it can be built from). */
+function watchedProps(env: Env, spec: ObjectSpec, key: string): string[] {
+  if (key === NAME_KEY) return spec.nameReverse
+    ? [...new Set([spec.nameReverse, ...spec.nameProps, ...(spec.nameFallbackProps ?? [])])] : [];
+  const f = spec.fields.find(x => x.col === key);
+  return f && gatedCols(env, spec).includes(f.col) ? [f.hs] : [];
+}
+
+/**
+ * THE CARD WATCH'S CONVERGE (DEFERRED_SYNC `watch.kind: "converge"`, queued by the watch's alarm): a forward pass over
+ * the card in which the cells the watch holds -- or every two-way cell, after an adoption or a create -- are in play
+ * whether or not HubSpot is newer, judged against the watch's own snapshot. So a hold ends in a write when its clock
+ * says so, with or without another event. Exactly two reads (HubSpot with the history of the watched properties,
+ * then the card), plus one activity-log read when a candidate may be a person's edit to rescue. Relation cells the
+ * watch holds are rewritten from HubSpot's set, with their marks applied. Errors throw: the wave retries.
+ */
+export async function settleCardWatch(env: Env, boardId: string, itemId: string, opts: RunOpts, budget: Budget): Promise<string> {
+  const via = "via=card-watch";
+  const W = holdWindowMs(env);
+  const begun = await beginConverge(env, boardId, itemId);
+  if (begun === null) throw new Error(`the card watch of ${boardId}/${itemId} did not answer`);
+  const snap = begun.snapshot;
+  if (!snap) return wlog("monday", itemId, "skipped", `reason="the card has no watch" ${via}`);
+  const done = async (why: string) => {
+    await finishConverge(env, boardId, itemId, { done: true, resolved: [], forwarded: [], held: [], stuck: [], rescued: [] }, W);
+    return wlog("monday", itemId, "skipped", `reason="${why}: the watch is dropped" ${via}`);
+  };
+  const spec = specByBoard(env, boardId);
+  if (!spec || !staleForwardGateOn(env, spec)) return done("STALE_FORWARD_GATE is off for this board");
+  let recordId = snap.recordId ?? "";
+  if (!/^\d+$/.test(recordId)) recordId = ((await getItemsColumnText(env, [itemId], spec.idCol))[itemId] ?? "").trim();
+  if (!/^\d+$/.test(recordId)) return done("the card is not linked to a HubSpot record");
+  const ctx = await getCtxCached(env);
+  const keys = Object.keys(snap.cells);
+  const relCols = (spec.associations ?? []).flatMap(a => a.relationCol && keys.includes(relKey(a.relationCol)) ? [a.relationCol] : []);
+  const fieldKeys = snap.allAt !== undefined
+    ? [...gatedCols(env, spec), ...(spec.nameReverse ? [NAME_KEY] : [])]
+    : keys.filter(k => !k.startsWith("rel:"));
+  const props = [...new Set(fieldKeys.flatMap(k => watchedProps(env, spec, k)))];
+  const r = await getRecordWithHistory(env, spec.object, recordId,
+    [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])], props);
+  if (!r) return done(`${spec.object} ${recordId} is gone from HubSpot`);
+  const c = await getItemFresh(env, itemId, gatedCols(env, spec));
+  if (!c) return done("the card is gone");
+  if (colText(c.item, spec.idCol).trim() !== recordId) return done(`the card no longer shows ${spec.object} ${recordId}`);
+  const rec: HsRecord = { id: recordId, properties: r.properties };
+  const stats = emptyStats();
+  const out = await forwardOnlyGated(env, spec, ctx, opts, budget, rec, c.item, stats,
+    { snapshot: snap, history: r.history, stamps: c.stamps, values: c.values });
+  for (const col of relCols) {
+    const status = await convergeRelationCell(env, spec, rec, c.item, col, ctx, opts, budget);
+    if (status === "held") {
+      const cell = snap.cells[relKey(col)];
+      out.held.push({ key: relKey(col), fp: cell.fp, typed: true, anchor: cell.since, kind: "hold", windowMs: RELATION_HOLD_MS });
+    } else out.resolved.push(relKey(col));
+  }
+  // Every watched cell is settled or re-held above; one that is neither is put off (never re-converged at once).
+  out.considered = keys;
+  await finishConverge(env, boardId, itemId, out, W);
+  console.log(`[converge] object=${spec.object} hubspot_id=${recordId} monday_item=${itemId} action=converged`
+    + ` forwarded=${out.forwarded.map(f => f.key).join(",") || "-"} held=${out.held.map(h => h.key).join(",") || "-"}`
+    + ` rescued=${out.rescued.join(",") || "-"} stuck=${out.stuck.join(",") || "-"} resolved=${out.resolved.join(",") || "-"}`);
+  return wlog(spec.object, recordId, actionOf(stats), `board=${boardId} item=${itemId} ${via}`);
+}
+
+/**
+ * A MARK'S RETRY (STALE_FORWARD_RETRY; DEFERRED_SYNC `watch.kind: "retry"`, queued by the watch's alarm once a mark
+ * outlived its lease, or by a converge's rescue): the person's edits whose runs did not resolve are sent again, FROM
+ * THE CARD, through the ordinary column-level path (syncMondayItem), as the edit they are -- a person's with the
+ * human-edit basis, an automation's never claiming. A HubSpot change of the property later than the edit wins: that
+ * key's mark goes, and its cell is due for a converge at once (which writes HubSpot's later value, never rescuing
+ * the superseded one). On a throw the marks stay, and the watch retries on its backoff until MARK_TTL_MS; then they
+ * are given up and the cells converge. A People cell's retry carries the removals its events recorded (unknown:
+ * none), so emptying a cell that showed someone other than HubSpot's owner is refused and healed, as a live run does.
+ */
+export async function retryMarkedEdits(env: Env, boardId: string, itemId: string, opts: RunOpts, budget: Budget): Promise<string> {
+  const via = "via=edit-retry";
+  const spec = specByBoard(env, boardId);
+  if (!spec || !staleForwardRetryOn(env, spec))
+    return wlog("monday", itemId, "skipped", `reason="STALE_FORWARD_RETRY is off for this board" ${via}`);
+  const base: WatchBase = { boardId, itemId, object: spec.object };
+  const W = holdWindowMs(env);
+  const t0 = Date.now();
+  const marks = await beginRetry(env, boardId, itemId, W);
+  if (marks === null) throw new Error(`the card watch of ${boardId}/${itemId} did not answer`);
+  const keys = Object.keys(marks);
+  if (!keys.length) return wlog("monday", itemId, "skipped", `reason="no mark is due for a retry" ${via}`);
+  const card = await getItem(env, itemId);
+  const recordId = card ? colText(card, spec.idCol).trim() : "";
+  if (!card || !/^\d+$/.test(recordId)) {
+    await clearMarks(env, base, keys, t0);
+    return wlog("monday", itemId, "skipped", `reason="${card ? "the card is not linked to a HubSpot record" : "the card is gone"}" ${via}`);
+  }
+  const propsOf = (k: string): string[] => k === NAME_KEY
+    ? (spec.nameReverse ? [...new Set([spec.nameReverse, ...spec.nameProps, ...(spec.nameFallbackProps ?? [])])] : [])
+    : spec.fields.filter(f => f.col === k).map(f => f.hs);
+  const checked = keys.filter(k => !k.startsWith("rel:") && propsOf(k).length);
+  let send = keys;
+  if (checked.length) {
+    const r = await getRecordWithHistory(env, spec.object, recordId, [...new Set([...propertiesForSpec(spec), "sales_user", "createdate"])],
+      [...new Set(checked.flatMap(propsOf))]);
+    if (!r) {
+      await clearMarks(env, base, keys, t0);
+      return wlog("monday", itemId, "skipped", `reason="${spec.object} ${recordId} is gone from HubSpot" ${via}`);
+    }
+    const later = checked.filter(k => {
+      const t = newestNonOwnAt(mergedVersions(r.history, propsOf(k)));
+      return t !== undefined && t > marks[k].at;
+    });
+    if (later.length) {
+      console.log(`[watch] board=${boardId} item=${itemId} cols=${later.join(",")} action=edit-retry-superseded`
+        + ` reason="HubSpot changed it after the edit: the later change wins, and the cell converges to it"`);
+      // Not merely cleared: the card still shows the superseded value, so each cell is due for a converge at once
+      // (and that value is never rescued again).
+      const fps: Record<string, string> = {};
+      for (const k of later) {
+        const f = spec.fields.find(x => x.col === k);
+        fps[k] = k === NAME_KEY ? card.name.trim() : f ? cellKey(f, card) : "";
+      }
+      await supersedeMarks(env, base, fps, t0, W);
+      send = keys.filter(k => !later.includes(k));
+    }
+  }
+  for (const byAutomation of [false, true]) {
+    const ks = send.filter(k => !!marks[k].byAutomation === byAutomation);
+    if (!ks.length) continue;
+    const cols = ks.filter(k => k !== NAME_KEY).map(k => k.startsWith("rel:") ? k.slice(4) : k);
+    const actor = ks.map(k => marks[k].actor).find(Boolean) ?? "";
+    // A People cell: the people its events removed -- unknown or never recorded counts as nobody, so a retry never
+    // clears HubSpot's owner on the strength of a removal it cannot see (refused and healed instead).
+    const removedPeople: Record<string, string[]> = {};
+    for (const k of ks) if (spec.fields.some(f => f.col === k && f.type === "people"))
+      removedPeople[k] = marks[k].people?.known ? [...marks[k].people!.ids] : [];
+    const edit: MondayEdit = { cols, ...(ks.includes(NAME_KEY) ? { name: true } : {}), ...(byAutomation ? { byAutomation: true } : {}),
+      ...(actor ? { actor } : {}), ...(Object.keys(removedPeople).length ? { removedPeople } : {}) };
+    for (const k of ks.filter(x => x.startsWith("rel:"))) {
+      const col = k.slice(4);
+      const rel = marks[k].rel;
+      if (!rel) continue;
+      edit.unlinked = { ...(edit.unlinked ?? {}), [col]: rel.removed };
+      if (rel.known) edit.linked = { ...(edit.linked ?? {}), [col]: rel.added };
+      edit.largestEvent = { ...(edit.largestEvent ?? {}), [col]: { added: rel.largestAdd, removed: rel.largestRemove } };
+    }
+    console.log(`[watch] board=${boardId} item=${itemId} cols=${ks.join(",")} actor=${actor || "-"}`
+      + ` class=${byAutomation ? "automation" : "person"} action=edit-retried reason="its run did not resolve within its lease"`);
+    await syncMondayItem(env, boardId, itemId, opts, budget, false, false, edit, { id: actor, byAutomation });
+  }
+  await clearMarks(env, base, send, t0);
+  return wlog("monday", itemId, "edit-retried", `board=${boardId} cols=${send.join(",")} ${via}`);
 }
 
 /**
@@ -481,12 +1081,20 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
   const effective: HsRecord = { id: rec.id, properties: { ...rec.properties, ...pushed } };
   const pushedProps = new Set(Object.keys(pushed));
   const nameFedByPush = [...spec.nameProps, ...(spec.nameFallbackProps ?? [])].some(p => pushedProps.has(p));
+  // STALE_FORWARD_GATE: an unedited TWO-WAY cell is never written by this pass unless the push itself changed it --
+  // it may carry another edit still on its way (the same rep's Lifecycle, a second before this Lead Status). Only a
+  // HubSpot change of it is news, and that change's own pass (or the watch's converge, below) brings it.
+  const gate = staleForwardGateOn(env, spec);
+  const leftGated: Diff[] = [];
   const forward = fieldDiffs(effective, existing, spec, ctx, false).filter(d => {
     if (d.backfill || d.kind === "group") return false;
     // The name: never over a name this person just pushed; healed separately when refused; otherwise
     // only when HubSpot changed or the push itself changed what the name is built from. A difference
     // with neither cause is someone's rename still on its way, and must be left alone.
-    if (d.kind === "name") return !edit.name && !healName && (hubspotNewer || nameFedByPush);
+    if (d.kind === "name") {
+      if (gate && !edit.name && !healName && !nameFedByPush && gatedProps(env, spec, d, effective)) { leftGated.push(d); return false; }
+      return !edit.name && !healName && (hubspotNewer || nameFedByPush);
+    }
     if (d.kind !== "field" || !d.f || editedCols.has(d.f.col)) return false;
     // A repaired stage: HubSpot now holds what the card showed when re-read, newer than `existing`.
     if (repaired.has(d.f.col)) return false;
@@ -497,8 +1105,24 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
         + ` action=forward-held reason="a person's edit of it is still on its way, in its own run"`);
       return false;
     }
+    if (gate && !pushedProps.has(d.f.hs) && gatedProps(env, spec, d, effective)) { leftGated.push(d); return false; }
     return hubspotNewer || pushedProps.has(d.f.hs);
   });
+  if (leftGated.length) {
+    const W = holdWindowMs(env);
+    const base: WatchBase = { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id };
+    console.log(`[reverse] object=${spec.object} hubspot_id=${rec.id} monday_item=${existing.id}`
+      + ` cols=${leftGated.map(d => d.kind === "name" ? "name" : d.f!.col).join(",")} action=left-to-forward-pass`
+      + ` reason="two-way cells this edit did not change: ${hubspotNewer ? "the watch converges them on a fresh read"
+        : "someone's edit, or HubSpot's change, brings them"}"`);
+    // HubSpot changed since Sync State: what it changed is judged within a deferred cycle, on fresh reads -- HEAD's
+    // step 1, made per cell. The coarse Stage goes too, marked as seen while HubSpot was newer: this run stamps its
+    // push past that, and its converge must still keep HEAD's word (forward unless a person's edit holds it).
+    const due: WatchReq[] = leftGated.map(d => ({ key: gateKey(d), fp: cellFp(d, existing), typed: false,
+      anchor: updatedAtMs(existing.updated_at), kind: "candidate", hs: d.hsText,
+      ...(d.kind === "field" && isCoarseGated(env, spec, d.f) ? { newer: true } : {}) }));
+    if (hubspotNewer && due.length) await watchCells(env, base, due, { windowMs: W, dryRun: !!opts.dryRun });
+  }
 
   // 3. One monday write for everything that has to come back.
   // A People cell healed to an owner with no monday seat (or no owner at all) is emptied, not left
@@ -513,10 +1137,12 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
   // change it hides still reads as newer, so its own webhook brings it rather than finding it buried.
   // Not the push's own time while a backward move is pending (ColumnPush.pending): that time is the clear's.
   // And nothing at all while an earlier one is unfinished: Sync State behind it is what keeps it visible.
-  const stamp = unfinished ? "" : (pending ? null : newMod) ?? (hubspotNewer && !held.size ? recModified : "");
+  // STALE_FORWARD_GATE: without a push of its own, not while a two-way cell is left (leftGated: always empty off).
+  const stamp = unfinished ? "" : (pending ? null : newMod) ?? (hubspotNewer && !held.size && !leftGated.length ? recModified : "");
   if (stamp) cv[spec.syncStateCol] = stamp;
   if (unfinished) await rearmRecheck(env, spec, opts, rec.id, existing.id);
   const renames = healName || forward.some(d => d.kind === "name");
+  const s0 = Date.now();
   if (renames) {
     await updateItem(env, spec.boardId, existing.id, itemName(effective, spec), cv, opts);
     budget.left--;
@@ -524,6 +1150,9 @@ async function reconcileColumnEdit(env: Env, spec: ObjectSpec, ctx: Ctx, opts: R
     await setColumns(env, spec.boardId, existing.id, cv, opts);
     budget.left--;
   }
+  if (gate && stamp)
+    await noteStamp(env, { boardId: spec.boardId, itemId: existing.id, object: spec.object, recordId: rec.id },
+      stamp, s0, Date.now(), spec.syncStateCol, !!opts.dryRun);
   if (forward.length || heal.length || healName) stats.toMonday++;
   if (!fields.length && !forward.length && !heal.length && !healName) stats.inSync++;
   // Worked -> out of "No Activity" (NO_ACTIVITY_RELEASE): a PERSON's own status edits that LANDED in HubSpot (a
@@ -1029,9 +1658,6 @@ export interface Takeover {
   settled?: string;
 }
 
-/** The monday name edit, as a column key in the create window's per-column baselines. */
-const NAME_KEY = "~name";
-
 /** The Connect-Boards columns of a spec. A relation edit made mid-create is sent by the birth pass (it
  *  reads the cells after the id write-back), never by a column replay, which has no before/after diff. */
 function relationColsOf(spec: ObjectSpec): Set<string> {
@@ -1313,6 +1939,8 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   // create the deal, the second land here as "creating", and the forward pass that followed HubSpot's
   // creation webhook copy the first value back over the card (2026-09-30 17:40Z, user 104231430).
   // With CREATE_WINDOW_REPLAY off (createWindowReplayOn) the claim carries no edit: the old skip-and-drop.
+  // (STALE_FORWARD_GATE: `item` was read just now -- what it shows is what a create sends; a change after it is an edit.)
+  const readAt = Date.now();
   const windowOn = createWindowReplayOn(env, spec);
   const defer = windowOn
     ? pendingEditOf(edit, trigger.kind === "sweep" ? null : trigger.kind, trigger.actor) : undefined;
@@ -1417,8 +2045,20 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       // ADOPTION DOES NOT CLAIM. The card is linked to the existing HubSpot record so no duplicate is
       // made, but ownership is untouched: a historical record stays WM-owned (or unstamped), so the CRM
       // reverse write remains blocked by authorizeWrite. Recreating history must never migrate ownership.
+      const adoptedAt = Date.now();
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: adopt.id, [spec.syncStateCol]: adopt.modified, ...linkValue(spec, ctx, adopt.id) }, opts);
+      // STALE_FORWARD_GATE: the card shows the FORM's values, which are not edits of the record, under a Sync State
+      // it never synced to. Within W a forward pass holds them (they are recent); at +W the watch converges every
+      // two-way cell HubSpot holds otherwise -- with or without a HubSpot event (finding [0]). The link time goes
+      // with it: what the card showed before it is never rescued or re-sent as a person's edit of the record --
+      // adoption never pushes the form's values, and never claims (see above).
+      if (staleForwardGateOn(env, spec)) {
+        const base: WatchBase = { boardId: spec.boardId, itemId: item.id, object: spec.object, recordId: adopt.id };
+        const linkedAt = Date.now();
+        await noteStamp(env, base, adopt.modified, adoptedAt, linkedAt, spec.syncStateCol, !!opts.dryRun);
+        await watchCells(env, base, [], { all: true, linkedAt, windowMs: holdWindowMs(env), dryRun: !!opts.dryRun });
+      }
       // Column-level: settled as a link, handing back the edits that queued while the search ran. With
       // CREATE_WINDOW_REPLAY off nothing queued, and the plain finish is the old one.
       const queued = windowOn
@@ -1539,6 +2179,7 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
     // The write-back is idempotent -> retries hard (setColumns retries=3). If it still fails, the
     // HubSpot record exists but the card has no id and would re-create next tick: log the orphan and
     // signal the caller to STOP creating this run so the failure can't cascade into duplicates.
+    const writeBackAt = Date.now();
     try {
       await setColumns(env, spec.boardId, item.id,
         { [spec.idCol]: created.id, [spec.syncStateCol]: created.modified, ...linkValue(spec, ctx, created.id) }, opts);
@@ -1552,6 +2193,7 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
       console.log(`CRITICAL: created ${spec.object}/${created.id} but id write-back to card ${item.id} failed — aborting ${spec.object} create loop: ${String(e).slice(0, 200)}`);
       throw new Error("WRITEBACK_FAILED");
     }
+    const writeBackEnd = Date.now();
     /**
      * A contact a person created from the monday form gets its owner's notice, exactly as one assigned in HubSpot
      * would (OWNER_NOTICE; Contacts only) -- the queue decides, and flags 通知状态 for the board's workflow to send.
@@ -1564,6 +2206,10 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
      */
     if (spec.ownerNotice && ownerNoticeOn(env))
       await queueOwnerNotices(env, [created.id], "created in monday").catch(() => undefined);
+    // STALE_FORWARD_GATE, after the write-back (never able to fail it) and after the owner notice is queued (its
+    // reads and writes never wait on monday's rate limit either way).
+    if (staleForwardGateOn(env, spec))
+      await afterCreateWriteBack(env, spec, ctx, opts, item, created, props, windowOn, writeBackAt, writeBackEnd, readAt);
   }
   stats.createdInHubspot++; budget.left--;
   // HEARTBEAT before the birth pass: it can wait on monday's rate limit, and a hold that went stale while
@@ -1586,6 +2232,61 @@ async function createFromMonday(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunO
   // card into line with what HubSpot did on its own, and set the baseline. CREATE_WINDOW_REPLAY only.
   if (created && windowOn)
     await settleCreateWindow(env, spec, ctx, opts, budget, item, created.id, props, stats);
+}
+
+/**
+ * A MONDAY-BORN RECORD'S CARD, ONCE ITS ID WRITE-BACK LANDED (STALE_FORWARD_GATE). None of these steps can turn the
+ * create into a failure (the write-back already succeeded, finishCard already ran), and none waits on monday's rate
+ * limit (they run inside the creator's webhook, after its owner notice is queued):
+ *   1. the stamp it wrote goes to the card's register (noteStamp);
+ *   2. CREATE_WINDOW_REPLAY off: the card's watch converges at +W whatever HubSpot derived on its own (watch-all), and
+ *      learns the link time -- when the create READ the card (`readAt`): what it showed then is what the create sent
+ *      (or refused), never rescued or re-sent as a person's edit; a change made since is an edit of the new record;
+ *   3. ...and the card is shown what the create SENT where it showed something else -- a default it never had (Deals'
+ *      Pipeline, a default Stage), a name the create split into first/last -- so it is in line with its new record at
+ *      once (finding [12]). ONLY a cell that still shows what the create read: the card is re-read first, and a cell a
+ *      person changed since (a pick made during the create) or has an edit of on its way (a mark) is left to that
+ *      person's own run and to the converge, which judge it per cell. Best effort, with create_labels_if_missing
+ *      (updateColumns); a failure is logged.
+ * With CREATE_WINDOW_REPLAY on, the creator's own settle round does 2 and 3.
+ */
+async function afterCreateWriteBack(env: Env, spec: ObjectSpec, ctx: Ctx, opts: RunOpts, item: MondayItem,
+    created: { id: string; modified: string }, props: Record<string, string>, windowOn: boolean, s: number, e: number,
+    readAt: number): Promise<void> {
+  const base: WatchBase = { boardId: spec.boardId, itemId: item.id, object: spec.object, recordId: created.id };
+  const dry = !!opts.dryRun;
+  if (created.modified) await noteStamp(env, base, created.modified, s, e, spec.syncStateCol, dry);
+  if (windowOn) return;
+  const where = `${spec.object} card ${item.id} hubspot_id=${created.id}`;
+  const failed = (err: unknown) => console.log(`${where} action=create-fill-failed reason="${String(err).slice(0, 160)}"`
+    + ` next="the card's watch converges it at +W"`);
+  const sent: HsRecord = { id: created.id, properties: props };
+  const want = fieldDiffs(sent, item, spec, ctx, false)
+    .filter(d => d.kind === "field" && !d.backfill && !!d.f && Object.hasOwn(props, d.f.hs));
+  let shown: MondayItem | null = null;
+  if (want.length) {
+    try { shown = (await getItemFresh(env, item.id, [], 0))?.item ?? null; }
+    catch (err) { failed(err); }
+  }
+  // Still showing what the create read: the fill's to write. A cell changed since is someone's edit.
+  const unchanged = shown ? want.filter(d => cellKey(d.f!, shown!) === cellKey(d.f!, item)) : [];
+  const probes: WatchReq[] = unchanged.filter(d => isGatedField(env, spec, d.f!))
+    .map(d => ({ key: d.f!.col, fp: cellKey(d.f!, shown!), typed: false, anchor: Date.now(), kind: "probe" }));
+  const replies = await watchCells(env, base, probes, { all: true, linkedAt: readAt, windowMs: holdWindowMs(env), dryRun: dry });
+  const fill = unchanged.filter(d => !replies?.[d.f!.col]?.mark);
+  const skipped = shown ? want.filter(d => !fill.includes(d)) : [];
+  if (skipped.length)
+    console.log(`${where} cols=${skipped.map(d => d.f!.col).join(",")} action=create-fill-skipped reason="changed since the`
+      + ` create read the card, or a person's edit of it is on its way: left to that edit's own run and the watch"`);
+  if (!fill.length) return;
+  try {
+    const cv = buildUpdatePayload(fill, sent, spec, ctx);
+    if (Object.keys(cv).length) {
+      await updateColumns(env, spec.boardId, item.id, cv, opts, 0);
+      console.log(`${where} cols=${Object.keys(cv).join(",")}`
+        + ` action=create-filled reason="the card shows what the create sent (defaults, a split name)"`);
+    }
+  } catch (err) { failed(err); }
 }
 
 /**
@@ -1656,22 +2357,8 @@ async function settleCreateWindow(env: Env, spec: ObjectSpec, ctx: Ctx, opts: Ru
     settled === null ? {} : { ack: queued.filter(e => !e.note).length, ...(settled ? { baseline: settled } : {}) });
 }
 
-/** A card cell normalised exactly as fieldDiffs normalises the monday side, so a value this Worker wrote
- *  and monday re-rendered (a phone reformatted, a number with separators) still reads as the same cell. */
-function cellKey(f: FieldSpec, item: MondayItem): string {
-  if (f.type === "people") {
-    const cv = item.column_values.find(c => c.id === f.col);
-    return (cv?.persons_and_teams ?? []).filter(p => p.kind === "person").map(p => String(p.id)).sort().join(",");
-  }
-  const t = colText(item, f.col);
-  switch (f.type) {
-    case "phone": return phoneDigits(t);
-    case "email": return t.trim().toLowerCase();
-    case "link": return linkText(t);
-    case "numbers": return numText(t);
-    default: return t;
-  }
-}
+// cellKey (a card cell normalised exactly as fieldDiffs normalises the monday side) and NAME_KEY (the monday name
+// edit, as a column key) live in card-watch.ts, which the stale-forward gate shares with the create window.
 
 /** The creator's round, on its own fresh reads: HubSpot FIRST, then the card. An edit whose push lands
  *  between the two reads is then seen on the card with the later Sync State it stamped, so the baseline

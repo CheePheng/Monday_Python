@@ -8,12 +8,20 @@ import { DurableObject } from "cloudflare:workers";
 import type { Budget, Env } from "./types";
 import type { Ctx } from "./types";
 import { webhookOpts } from "./run-opts";
-import { deleteHubspotObject, getCtxCached, recheckDanglingClears, syncHubspotObject } from "./sync";
+import { deleteHubspotObject, getCtxCached, recheckDanglingClears, retryMarkedEdits, settleCardWatch, syncHubspotObject } from "./sync";
 import { noticeOwnerChange, NOTICE_BUSY_GRACE_MS, NOTICE_ERROR_GRACE_MS, type NoticeOutcome } from "./owner-notice";
 import {
-  deferKey, WAVE, WAVE_GAP_MS, FIRST_DELAY_MS, MAX_ATTEMPTS, MAX_QUEUE,
+  deferKey, isUpdateItem, WAVE, WAVE_GAP_MS, FIRST_DELAY_MS, MAX_ATTEMPTS, MAX_QUEUE,
   type DeferredItem,
 } from "./deferred-sync";
+import { freshScope, mergeScopes, scopeMaxAgeMs } from "./card-watch";
+
+/** Two updates of one record, as one (STALE_FORWARD_GATE): unscoped wins, otherwise the union of what they named. */
+function withMergedScope(waiting: DeferredItem, incoming: DeferredItem): DeferredItem {
+  const merged = mergeScopes(waiting.scope ?? "unscoped", incoming.scope ?? "unscoped");
+  const { scope: _drop, ...rest } = waiting;
+  return merged === "unscoped" ? rest : { ...rest, scope: merged };
+}
 
 /** `droppedKeys`: the deferKey of each item refused at the ceiling (the TAIL of the batch), so a caller with a
  *  fallback runs it for exactly those (spillDeferredLeftover). */
@@ -101,12 +109,15 @@ export class DeferredSync extends DurableObject<Env> {
           const w = q[at];
           if (w.notice && (w.attempts || w.busySince != null || w.errorSince != null))
             q[at] = { type: w.type, id: w.id, notice: true };
+          // Two updates of one record are one pass: what either's events named is kept (unscoped wins).
+          else if (isUpdateItem(w) && (w.scope || it.scope)) q[at] = withMergedScope(w, it);
           continue;
         }
         if (it.ensure && running.has(k)) { duplicate++; continue; }
         if (q.length >= MAX_QUEUE) { dropped++; droppedKeys.push(k); continue; }
         q.push({ type: it.type, id: it.id, ...(it.deleted ? { deleted: true } : {}), ...(it.recheck ? { recheck: true } : {}),
-          ...(it.notice ? { notice: true } : {}) });
+          ...(it.notice ? { notice: true } : {}), ...(it.scope && isUpdateItem(it) ? { scope: it.scope } : {}),
+          ...(it.watch ? { watch: { boardId: it.watch.boardId, kind: it.watch.kind } } : {}) });
         waiting.set(k, q.length - 1);
         queued++;
       }
@@ -151,7 +162,10 @@ export class DeferredSync extends DurableObject<Env> {
     try {
       for (const it of wave) {
         try {
-          if (it.deleted) await deleteHubspotObject(this.env, it.type, it.id, opts, budget);
+          // The card watch's work (STALE_FORWARD_GATE): keyed by the monday item, never an update of a record.
+          if (it.watch?.kind === "converge") await settleCardWatch(this.env, it.watch.boardId, it.id, opts, budget);
+          else if (it.watch?.kind === "retry") await retryMarkedEdits(this.env, it.watch.boardId, it.id, opts, budget);
+          else if (it.deleted) await deleteHubspotObject(this.env, it.type, it.id, opts, budget);
           else if (it.recheck) await recheckDanglingClears(this.env, it.type, it.id, opts, budget);
           else if (it.notice) {
             /**
@@ -205,7 +219,11 @@ export class DeferredSync extends DurableObject<Env> {
               throw new NoticeStillBusy(noticeGivenUp(r, forMs, grace), clocked);
             }
           }
-          else await syncHubspotObject(this.env, it.type, it.id, opts, budget);
+          else {
+            // What its events named, unless they are too old to name anything now (a long queue): then unscoped.
+            const scope = freshScope(it.scope, Date.now(), scopeMaxAgeMs(this.env));
+            await syncHubspotObject(this.env, it.type, it.id, scope ? { ...opts, scope } : opts, budget);
+          }
           ok++;
         } catch (e) {
           /**
@@ -238,6 +256,12 @@ export class DeferredSync extends DurableObject<Env> {
         }
         const owed = new Set(rest.map(deferKey));
         const kept = retry.filter(r => !owed.has(deferKey(r)));
+        // A retry dropped for the fresh entry of the same update hands it what its own events named.
+        for (const r of retry) {
+          if (!isUpdateItem(r) || !owed.has(deferKey(r))) continue;
+          const i = rest.findIndex(x => deferKey(x) === deferKey(r));
+          if (i >= 0 && (rest[i].scope || r.scope)) rest[i] = withMergedScope(rest[i], r);
+        }
         const out = [...rest, ...kept];
         if (out.length) {
           await this.ctx.storage.put("q", out);

@@ -138,7 +138,27 @@ export interface Env {
    *  monday is still born with its owner. Anything else, including absent: the owner column is app-save two-way,
    *  as before. Ships "false". */
   CONTACT_OWNER_HUBSPOT_ONLY?: string;
+  /** "true", with ENABLE_CRM "true": a column-level forward write judges each differing TWO-WAY cell by itself --
+   *  monday's per-cell changed_at against HubSpot's per-property history -- and leaves one alone only while it
+   *  plausibly carries a person's edit still on its way, for at most STALE_FORWARD_HOLD_S; every such cell is
+   *  watched by its card's Durable Object and converges to HubSpot when its hold ends (card-watch.ts, sync.ts
+   *  forwardOnlyGated). Anything else, including absent: the engine exactly as before. Ships "false". */
+  STALE_FORWARD_GATE?: string;
+  /** "true", with STALE_FORWARD_GATE on: a person's edit whose run died is re-sent from the card (the mark's
+   *  retry), and an unmarked edit monday's log proves was a person's is rescued instead of converged. Both WRITE
+   *  HubSpot outside a webhook. Anything else: a mark simply expires at its lease. Ships "false". */
+  STALE_FORWARD_RETRY?: string;
+  /** W, seconds (default 180, clamped 60..900): the longest a person's push is believed to take. */
+  STALE_FORWARD_HOLD_S?: string;
 }
+
+/**
+ * WHAT THE HUBSPOT EVENTS BEHIND A FORWARD PASS NAMED (STALE_FORWARD_GATE): per property, the newest event's
+ * time (occurredAt, ms) and whether it was our own write (true), someone else's (false), or cannot be told
+ * (null: the history read decides). Built by webhooks.ts extractObjectScopes. ABSENT on a pass means UNSCOPED:
+ * nothing is known about what changed, and every differing two-way cell's history is read.
+ */
+export interface PassScope { props: Record<string, { at: number; own: boolean | null }> }
 
 export type ColType = "text" | "long_text" | "numbers" | "status" | "dropdown" | "date" | "people" | "phone" | "email" | "link";
 export type LabelDict =
@@ -746,6 +766,8 @@ export interface RunOpts {
    *  a record's first card -- CONTACT_CARD_NEEDS_OWNER -- does not apply to it; any other card this pass makes
    *  (an associated contact's) is still a first card. */
   restore?: string;
+  /** STALE_FORWARD_GATE: what the HubSpot events behind this forward pass named. ABSENT = UNSCOPED. */
+  scope?: PassScope;
 }
 
 export interface Stats {

@@ -1344,6 +1344,41 @@ export async function getPropertyHistory(env: Env, object: string, id: string, p
 }
 
 /**
+ * THE RECORD, WITH THE HISTORY OF THE PROPERTIES ASKED ABOUT: one GET carrying `properties` and
+ * `propertiesWithHistory` (STALE_FORWARD_GATE). Read by a column-level forward pass only when a two-way cell differs
+ * and its verdict needs HubSpot's own versions (sync.ts forwardOnlyGated), by the card watch's converge, and by a
+ * mark's retry. `history` maps each asked property to its versions, newest first (HubSpot's order); a property HubSpot
+ * never held has none. Every requested property is present in `properties` (null when HubSpot has no value).
+ * Null on 404. retries=1, as getRecord: HS_RATE_LIMIT_RETRY retries every GET on its own.
+ */
+export async function getRecordWithHistory(env: Env, object: string, id: string, properties: string[],
+    withHistory: string[]): Promise<{ properties: Record<string, string | null>; history: Record<string, PropertyVersion[]> } | null> {
+  const props = [...new Set([...properties, ...withHistory])];
+  let res: any;
+  try {
+    res = await hs(env, "GET", `/crm/v3/objects/${object}/${id}?properties=${encodeURIComponent(props.join(","))}`
+      + (withHistory.length ? `&propertiesWithHistory=${encodeURIComponent([...new Set(withHistory)].join(","))}` : ""),
+      undefined, 1);
+  } catch (e) {
+    if (/: 404 /.test(String(e))) return null;
+    throw e;
+  }
+  const got = (res?.properties ?? {}) as Record<string, string | null>;
+  const properties_: Record<string, string | null> = {};
+  for (const p of props) properties_[p] = got[p] ?? null;
+  for (const [p, v] of Object.entries(got)) if (!(p in properties_)) properties_[p] = v ?? null;
+  const history: Record<string, PropertyVersion[]> = {};
+  for (const p of withHistory) {
+    const list: unknown = res?.propertiesWithHistory?.[p];
+    history[p] = Array.isArray(list) ? list.map((v: any) => ({
+      value: String(v?.value ?? ""), timestamp: String(v?.timestamp ?? ""), sourceType: String(v?.sourceType ?? ""),
+      ...(v?.sourceId != null ? { sourceId: String(v.sourceId) } : {}),
+    })) : [];
+  }
+  return { properties: properties_, history };
+}
+
+/**
  * A 200 THAT CHANGED NOTHING. HubSpot answers a lifecycle stage it will not apply (a move to an earlier
  * stage, without the clear) with success and the OLD value, and nothing else in this Worker can tell:
  * Sync State is stamped from the response, so the card simply goes on showing a stage HubSpot never took.

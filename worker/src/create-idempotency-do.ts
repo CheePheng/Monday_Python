@@ -2,7 +2,22 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./types";
 import { decideClaim, type CreateState, type CreateResult, type Claim } from "./idempotency";
 import { webhookOpts } from "./run-opts";
-import { settleAbandonedCreate } from "./sync";
+import { retryMarkedEdits, settleAbandonedCreate, settleCardWatch } from "./sync";
+import {
+  STAMP_NOTE_WINDOW_MS, VERIFY_DELAY_MS, eventTypeOfObject, holdWindowMs, nextAlarmAt,
+  reduceAlarm, reduceBeginConverge, reduceBeginRetry, reduceClearMarks, reduceFinishConverge, reduceMarkEdits,
+  reduceSupersede, reduceWatchCells, stampSuspicious, timeOf, watchRetryOn,
+  type CardWatch, type ConvergeOutcome, type EditMark, type MarkInput, type StampNote, type WatchBase, type WatchReply,
+  type WatchReq,
+} from "./card-watch";
+import { spillDeferred } from "./deferred-sync";
+import { getItemsColumnText, setColumns } from "./monday";
+
+/** A Sync State stamp to read back (the card watch's register): restore `hw` if the card holds an older one.
+ *  `tries`: read-backs that failed (a rate-limited restamp is never waited out: it is tried again, VERIFY_TRIES times). */
+interface StampVerify { hw: string; syncCol: string; boardId: string; itemId: string; dueAt: number; tries?: number }
+const VERIFY_TRIES = 3;
+const VERIFY_RETRY_MS = 15_000;
 
 /** Self-clean stored state 24h after the last claim/save. Exported only so a test can pin sync.ts's
  *  create-window gate (CREATE_WINDOW_MS) to it: a row's queue can be read for as long as the row lives. */
@@ -458,6 +473,231 @@ export class CreateIdempotency extends DurableObject<Env> {
     });
   }
 
+  // ------------------------------------------------------------------------------------------------------------
+  // THE CARD'S WATCH (STALE_FORWARD_GATE; `held:<board>:<item>` instances only). The state machine is card-watch.ts's
+  // (pure, tested on its own); each method below is one critical section that applies it and re-arms the alarm.
+  // ------------------------------------------------------------------------------------------------------------
+
+  /** The Sync State stamps written on this card in the last STAMP_NOTE_WINDOW_MS. IN MEMORY ONLY: an evicted
+   *  instance forgets them, and misses at most one detection (the card's next stamping pass corrects it). */
+  private stampNotes: StampNote[] = [];
+
+  private retryOn(): boolean { return watchRetryOn(this.env ?? {}); }
+  private windowMs(): number { return holdWindowMs(this.env ?? {}); }
+
+  /** Store the watch (or drop it), and arm the alarm for what it is now. Call inside a critical section. */
+  private async saveWatch(w: CardWatch | undefined, now: number): Promise<void> {
+    if (w) await this.ctx.storage.put("held", w);
+    else await this.ctx.storage.delete("held");
+    await this.armWatch(now);
+  }
+
+  private async armWatch(now: number): Promise<void> {
+    const w = await this.ctx.storage.get<CardWatch>("held");
+    const sv = await this.ctx.storage.get<StampVerify>("stampVerify");
+    let next = nextAlarmAt(w, now, this.retryOn());
+    if (sv) next = Math.min(next ?? Infinity, Math.max(sv.dueAt, now + 1));
+    if (next === null || !Number.isFinite(next)) {
+      if (!w && !sv) { await this.ctx.storage.deleteAll(); await this.ctx.storage.deleteAlarm(); }
+      return;
+    }
+    await this.ctx.storage.setAlarm(next);
+  }
+
+  /** A pass's holds, candidates and probes; see card-watch.ts reduceWatchCells. */
+  async watchCells(nowMs: number, windowMs: number, base: WatchBase, reqs: WatchReq[],
+      o: { resolved?: string[]; all?: boolean; linkedAt?: number }): Promise<Record<string, WatchReply>> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      const { watch, replies } = reduceWatchCells(cur, base, reqs, o, nowMs, windowMs, this.retryOn());
+      await this.saveWatch(watch, nowMs);
+      return replies;
+    });
+  }
+
+  /** The same answers, READ ONLY (a dry run: /resync dryRun): nothing is registered, resolved or stored. */
+  async peekCells(nowMs: number, windowMs: number, base: WatchBase, reqs: WatchReq[]): Promise<Record<string, WatchReply>> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      return reduceWatchCells(cur, base, reqs, {}, nowMs, windowMs, this.retryOn()).replies;
+    });
+  }
+
+  /** A retry superseded by HubSpot's later changes; see reduceSupersede. */
+  async supersede(nowMs: number, windowMs: number, base: WatchBase, fps: Record<string, string>, t0: number): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      await this.saveWatch(reduceSupersede(cur, base, fps, t0, nowMs, windowMs), nowMs);
+    });
+  }
+
+  /** A person's (or an automation's) edits on their way; see reduceMarkEdits. */
+  async markEdits(nowMs: number, base: WatchBase, marks: MarkInput[]): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      await this.saveWatch(reduceMarkEdits(cur, base, marks, nowMs), nowMs);
+    });
+  }
+
+  /** A run resolved; see reduceClearMarks. */
+  async clearMarks(nowMs: number, keys: string[], t0: number): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      if (!cur) return;
+      await this.saveWatch(reduceClearMarks(cur, keys, t0, nowMs), nowMs);
+    });
+  }
+
+  /** The converge's snapshot (`{}` when there is no watch). It stays queued until finishConverge. */
+  async beginConverge(nowMs: number): Promise<{ snapshot?: CardWatch }> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      const r = reduceBeginConverge(cur, nowMs);
+      if (!r.snapshot) return {};
+      await this.saveWatch(r.watch, nowMs);
+      return { snapshot: r.snapshot };
+    });
+  }
+
+  /** What the converge did; see reduceFinishConverge. Applied over whatever passes registered while it ran. */
+  async finishConverge(nowMs: number, windowMs: number, outcome: ConvergeOutcome): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      if (!cur) return;
+      await this.saveWatch(reduceFinishConverge(cur, outcome, nowMs, windowMs), nowMs);
+    });
+  }
+
+  /** The retry's marks (STALE_FORWARD_RETRY); see reduceBeginRetry. */
+  async beginRetry(nowMs: number, windowMs: number): Promise<Record<string, EditMark>> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      const r = reduceBeginRetry(cur, nowMs, windowMs, this.retryOn());
+      for (const k of r.abandoned)
+        console.log(`[watch] board=${cur?.boardId} item=${cur?.itemId} col=${k} action=edit-retry-abandoned`
+          + ` reason="its retries ran out: the cell converges to HubSpot"`);
+      if (cur) await this.saveWatch(r.watch, nowMs);
+      return r.live;
+    });
+  }
+
+  /**
+   * THE SYNC STATE REGISTER (R4). Called after every gated Sync State write on this card: `t` written between `s`
+   * and `e`. monday has no compare-and-set, so an older stamp can land after a newer one; the two write windows say
+   * when that may have happened (stampSuspicious), and then the card is read back VERIFY_DELAY_MS later and the
+   * newest stamp restored (the alarm). In the meantime no verdict can be misled: our own versions are never news,
+   * the typed and never-held verdicts ignore Sync State, and marks veto untyped news.
+   */
+  async noteStamp(nowMs: number, base: WatchBase, t: string, s: number, e: number, syncCol: string): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(() => this.recordStamp(nowMs, base, t, s, e, syncCol));
+  }
+
+  /** noteStamp's body: record the stamp, and queue a read-back when it may have been overtaken. Inside a critical
+   *  section. The register's own restamp (verifyStamp) is recorded here too, so a write it overtook is caught. */
+  private async recordStamp(nowMs: number, base: { boardId: string; itemId: string }, t: string, s: number, e: number,
+      syncCol: string): Promise<void> {
+    const tMs = timeOf(t);
+    if (!Number.isFinite(tMs)) return;
+    this.stampNotes = this.stampNotes.filter(n => nowMs - n.at < STAMP_NOTE_WINDOW_MS);
+    const suspicious = stampSuspicious(this.stampNotes, { t: tMs, s });
+    this.stampNotes.push({ t: tMs, ts: t, s, e, at: nowMs });
+    if (!suspicious) return;
+    const hw = this.stampNotes.reduce((a, n) => (n.t > a.t ? n : a));
+    const prev = await this.ctx.storage.get<StampVerify>("stampVerify");
+    const keep = prev && timeOf(prev.hw) > hw.t ? prev.hw : hw.ts;
+    await this.ctx.storage.put("stampVerify", { hw: keep, syncCol, boardId: base.boardId, itemId: base.itemId,
+      dueAt: prev ? Math.min(prev.dueAt, nowMs + VERIFY_DELAY_MS) : nowMs + VERIFY_DELAY_MS } satisfies StampVerify);
+    console.log(`[sync-state] board=${base.boardId} item=${base.itemId} action=verify-queued`
+      + ` reason="a stamp may have been overtaken: read back in ${VERIFY_DELAY_MS} ms"`);
+    await this.armWatch(nowMs);
+  }
+
+  /**
+   * THE WATCH'S ALARM. Decides what is due under the lock (reduceAlarm), releases it, then does the I/O:
+   *   (A) a converge, queued on DEFERRED_SYNC (rate-controlled by its waves); run inline when there is no queue;
+   *   (B) the marks: a retry queued (STALE_FORWARD_RETRY), or -- off -- a lease ended, and the cell falls back on
+   *       its own hold clock; a mark given up makes its cell due;
+   *   (C) a suspicious Sync State read back, and the newest stamp restored;
+   *   (D) re-armed for what is left; (E) nothing left: cleaned up.
+   */
+  private async cardWatchAlarm(): Promise<void> {
+    const now = Date.now();
+    const W = this.windowMs();
+    const retryOn = this.retryOn();
+    const step = await this.ctx.blockConcurrencyWhile(async () => {
+      const cur = await this.ctx.storage.get<CardWatch>("held");
+      const sv = await this.ctx.storage.get<StampVerify>("stampVerify");
+      const r = cur ? reduceAlarm(cur, now, W, retryOn) : undefined;
+      if (cur) {
+        if (r!.watch) await this.ctx.storage.put("held", r!.watch);
+        else await this.ctx.storage.delete("held");
+      }
+      const verify = sv && sv.dueAt <= now ? sv : undefined;
+      if (verify) await this.ctx.storage.delete("stampVerify");
+      return { cur, r, verify };
+    });
+    const w = step.cur;
+    const at = w ? `board=${w.boardId} item=${w.itemId}` : "";
+    for (const k of step.r?.expired ?? [])
+      console.log(`[watch] ${at} col=${k} action=mark-expired reason="the edit's run did not resolve within its lease;`
+        + ` the cell falls back on its own hold clock"`);
+    for (const k of step.r?.abandoned ?? [])
+      console.log(`[watch] ${at} col=${k} action=edit-retry-abandoned reason="its retries ran out: the cell converges to HubSpot"`);
+    const type = w ? eventTypeOfObject(w.object) : undefined;
+    if (w && type && step.r?.converge) await this.queueOrRun(w, type, "converge");
+    if (w && type && step.r?.retry) await this.queueOrRun(w, type, "retry");
+    if (step.verify) await this.verifyStamp(step.verify);
+    await this.ctx.blockConcurrencyWhile(() => this.armWatch(Date.now()));
+  }
+
+  /** A converge or retry for this card on DEFERRED_SYNC; without a queue (or when it refuses), run here. Never throws. */
+  private async queueOrRun(w: CardWatch, type: NonNullable<ReturnType<typeof eventTypeOfObject>>, kind: "converge" | "retry"): Promise<void> {
+    const at = `board=${w.boardId} item=${w.itemId}`;
+    if (await spillDeferred(this.env, [{ type, id: w.itemId, watch: { boardId: w.boardId, kind } }])) {
+      console.log(`[watch] ${at} action=${kind}-queued`);
+      return;
+    }
+    console.log(`[watch] ${at} action=${kind}-inline reason="no deferred queue took it"`);
+    try {
+      const opts = webhookOpts(this.env);
+      if (kind === "converge") await settleCardWatch(this.env, w.boardId, w.itemId, opts, { left: 30 });
+      else await retryMarkedEdits(this.env, w.boardId, w.itemId, opts, { left: 30 });
+    } catch (e) {
+      console.log(`[watch] ${at} action=${kind}-failed reason="${String(e).slice(0, 160)}"`);
+    }
+  }
+
+  /**
+   * (C): the card's Sync State is older than the newest stamp written on it -- an overtaken write: restore it. The
+   * restamp is itself a read-then-write with no compare-and-set, so it never waits on monday's rate limit (never sent
+   * late), and it is recorded like any stamp: a newer stamp written while it was in flight makes it suspicious in
+   * turn, and that one is read back and restored.
+   */
+  private async verifyStamp(v: StampVerify): Promise<void> {
+    try {
+      const shown = (await getItemsColumnText(this.env, [v.itemId], v.syncCol))[v.itemId] ?? "";
+      if (timeOf(shown) >= timeOf(v.hw)) return;
+      const s = Date.now();
+      await setColumns(this.env, v.boardId, v.itemId, { [v.syncCol]: v.hw }, webhookOpts(this.env), 0);
+      const e = Date.now();
+      console.log(`[sync-state] board=${v.boardId} item=${v.itemId} action=restamped`
+        + ` reason="an older stamp landed after a newer one: the newest is restored"`);
+      await this.ctx.blockConcurrencyWhile(() => this.recordStamp(Date.now(), v, v.hw, s, e, v.syncCol));
+    } catch (e) {
+      const tries = (v.tries ?? 0) + 1;
+      const again = tries < VERIFY_TRIES;
+      console.log(`[sync-state] board=${v.boardId} item=${v.itemId} action=restamp-failed reason="${String(e).slice(0, 140)}"`
+        + ` next="${again ? `read back again in ${VERIFY_RETRY_MS / 1000} s` : "given up: the card's next stamping pass corrects it"}"`);
+      if (!again) return;
+      await this.ctx.blockConcurrencyWhile(async () => {
+        const prev = await this.ctx.storage.get<StampVerify>("stampVerify");
+        const hw = prev && timeOf(prev.hw) > timeOf(v.hw) ? prev.hw : v.hw;
+        await this.ctx.storage.put("stampVerify", { ...v, hw, tries,
+          dueAt: Math.min(prev?.dueAt ?? Infinity, Date.now() + VERIFY_RETRY_MS) } satisfies StampVerify);
+      });
+    }
+  }
+
   /**
    * THE ROW'S ALARM: for every row but a watched create window, the 24 h cleanup, exactly as before.
    *
@@ -482,6 +722,9 @@ export class CreateIdempotency extends DurableObject<Env> {
    * up -- loudly, with the queue still stored for whoever reads the row next.
    */
   async alarm(): Promise<void> {
+    // THE CARD'S WATCH (`held:` instances only, STALE_FORWARD_GATE): its own alarm. Every other instance: as before.
+    if (await this.ctx.storage.get("held") !== undefined || await this.ctx.storage.get("stampVerify") !== undefined)
+      return this.cardWatchAlarm();
     const watch = await this.ctx.storage.get<SettleWatch>("watch");
     if (!watch) { await this.ctx.storage.deleteAll(); return; }
     const now = Date.now();

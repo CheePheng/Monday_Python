@@ -103,6 +103,54 @@ export async function getItem(env: Env, itemId: string): Promise<MondayItem | nu
   return items[0] ?? null;
 }
 
+/**
+ * ONE CARD, FRESH, WITH WHEN EACH OF `cols` LAST CHANGED (STALE_FORWARD_GATE): the ordinary item read plus, for those
+ * columns only, the value JSON -- `values` (raw, for the activity-log fingerprint) and its `changed_at` -- `stamps`,
+ * ms, null when the value carries none (a text or numbers column does not; an API write to a status column gets one
+ * too). One query. Read only by a gated forward pass when a two-way cell differs, and by the card watch's converge.
+ * `maxRateWaits` as for gql (a monday-born record's create fill passes 0: it never holds up its creator).
+ */
+export async function getItemFresh(env: Env, itemId: string, cols: string[], maxRateWaits?: number):
+    Promise<{ item: MondayItem; stamps: Record<string, number | null>; values: Record<string, string | null> } | null> {
+  const withStamps = cols.length > 0;
+  const data = await gql(env, withStamps
+    ? `query ($i:[ID!], $c:[String!]) { items(ids:$i) { ${ITEM_FIELDS} stamps: column_values(ids:$c) { id value } } }`
+    : `query ($i:[ID!]) { items(ids:$i) { ${ITEM_FIELDS} } }`,
+    withStamps ? { i: [itemId], c: cols } : { i: [itemId] }, 3, maxRateWaits);
+  const raw: any = data.items?.[0];
+  if (!raw) return null;
+  const stamps: Record<string, number | null> = {};
+  const values: Record<string, string | null> = {};
+  for (const c of cols) { stamps[c] = null; values[c] = null; }
+  for (const s of raw.stamps ?? []) {
+    const id = String(s?.id ?? "");
+    if (!id) continue;
+    stamps[id] = changedAtOf(s.value);
+    values[id] = s.value === null || s.value === undefined ? null : typeof s.value === "string" ? s.value : JSON.stringify(s.value);
+  }
+  const { stamps: _drop, ...item } = raw;
+  return { item: item as MondayItem, stamps, values };
+}
+
+/** A column value JSON's changed_at in ms, or null (absent, unparseable, or a value that is not JSON). */
+export function changedAtOf(value: unknown): number | null {
+  let o: any = value;
+  if (typeof o === "string") { try { o = JSON.parse(o); } catch { return null; } }
+  const t = o && typeof o === "object" ? Date.parse(String(o.changed_at ?? "")) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
+/** A relation (Connect Boards) cell: the linked item ids, and when the cell last changed (changed_at; null if none). */
+export async function getLinkedCell(env: Env, itemId: string, relationCol: string):
+    Promise<{ ids: string[]; changedAt: number | null }> {
+  const data = await gql(env,
+    `query ($i:[ID!], $c:[String!]) {
+       items(ids:$i) { column_values(ids:$c) { value ... on BoardRelationValue { linked_item_ids } } } }`,
+    { i: [itemId], c: [relationCol] });
+  const cv = data.items?.[0]?.column_values?.[0];
+  return { ids: (cv?.linked_item_ids ?? []).map((x: any) => String(x)), changedAt: changedAtOf(cv?.value) };
+}
+
 /** Subitems under a parent item (id, name, columns incl. the HubSpot Line Item ID column). */
 export async function getSubitems(env: Env, parentItemId: string): Promise<MondayItem[]> {
   const data = await gql(env, `query ($i:[ID!]) { items(ids:$i) { subitems { ${ITEM_FIELDS} } } }`, { i: [parentItemId] });
@@ -261,16 +309,33 @@ export async function createItem(env: Env, boardId: string, groupId: string, nam
   return data.create_item?.id ?? null;
 }
 
-/** Writes `cv` AND the item name, always (a forward write renames as it goes): see sendableName. */
+/** Writes `cv` AND the item name, always (a forward write renames as it goes): see sendableName.
+ *  `maxRateWaits` as for gql (a gated forward write passes 0: never a stale write sent a minute late). */
 export async function updateItem(env: Env, boardId: string, itemId: string, name: string,
-    cv: Record<string, unknown>, opts: RunOpts): Promise<void> {
+    cv: Record<string, unknown>, opts: RunOpts, maxRateWaits?: number): Promise<void> {
   const withName = { ...cv, name: sendableName(env, name, `op=update board=${boardId} item=${itemId}`) };
   if (opts.dryRun) { console.log(`DRY update item ${itemId} on ${boardId}`); return; }
   await gql(env,
     `mutation ($b:ID!, $i:ID!, $c:JSON!) {
        change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c,
                                      create_labels_if_missing:true) { id } }`,
-    { b: boardId, i: itemId, c: JSON.stringify(withName) }, 1);
+    { b: boardId, i: itemId, c: JSON.stringify(withName) }, 1, maxRateWaits);
+  console.log(`updated item ${itemId} on ${boardId}`);
+}
+
+/**
+ * Write `cv` WITHOUT the item name, and with create_labels_if_missing like updateItem (STALE_FORWARD_GATE's forward
+ * writes: a name is sent only when the name itself is forwarded, so a rename still on its way is never written over,
+ * and a new HubSpot label is still created as updateItem creates it). retries=1, like updateItem.
+ */
+export async function updateColumns(env: Env, boardId: string, itemId: string,
+    cv: Record<string, unknown>, opts: RunOpts, maxRateWaits?: number): Promise<void> {
+  if (opts.dryRun) { console.log(`DRY update columns item ${itemId} on ${boardId}`); return; }
+  await gql(env,
+    `mutation ($b:ID!, $i:ID!, $c:JSON!) {
+       change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c,
+                                     create_labels_if_missing:true) { id } }`,
+    { b: boardId, i: itemId, c: JSON.stringify(cv) }, 1, maxRateWaits);
   console.log(`updated item ${itemId} on ${boardId}`);
 }
 
@@ -278,12 +343,12 @@ export async function updateItem(env: Env, boardId: string, itemId: string, name
  * This write is IDEMPOTENT (same values every retry), so it retries hard: a dropped write-back
  * after a HubSpot create is what would otherwise re-create the record next tick. */
 export async function setColumns(env: Env, boardId: string, itemId: string,
-    cv: Record<string, unknown>, opts: RunOpts): Promise<void> {
+    cv: Record<string, unknown>, opts: RunOpts, maxRateWaits?: number): Promise<void> {
   if (opts.dryRun) { console.log(`DRY setColumns item ${itemId}: ${JSON.stringify(cv)}`); return; }
   await gql(env,
     `mutation ($b:ID!, $i:ID!, $c:JSON!) {
        change_multiple_column_values(board_id:$b, item_id:$i, column_values:$c) { id } }`,
-    { b: boardId, i: itemId, c: JSON.stringify(cv) }, 3);
+    { b: boardId, i: itemId, c: JSON.stringify(cv) }, 3, maxRateWaits);
 }
 
 export async function moveItem(env: Env, boardId: string, itemId: string, groupId: string,

@@ -36,6 +36,8 @@ const hs = vi.hoisted(() => ({
   createRecord: vi.fn(), getRecord: vi.fn(), patchRecord: vi.fn(), claimOwnership: vi.fn(),
   getCrmStageDicts: vi.fn(), getDealStageLabels: vi.fn(), getOwners: vi.fn(), getPropertyOptions: vi.fn(),
   searchAll: vi.fn(), searchModifiedIds: vi.fn(), searchContactByEmail: vi.fn(), searchCompanyByDomain: vi.fn(),
+  // STALE_FORWARD_GATE's read: never the real one (a live HubSpot GET) should a test here ever turn the gate on.
+  getRecordWithHistory: vi.fn(async () => { throw new Error("getRecordWithHistory is not faked in this file"); }),
 }));
 // The real module for everything pure (propertiesForSpec, OwnershipError, ...); every network call faked.
 vi.mock("../src/hubspot", async (importOriginal) => ({
@@ -54,6 +56,8 @@ const mondayApi = vi.hoisted(() => ({
   getItem: vi.fn(), setColumns: vi.fn(), updateItem: vi.fn(), findItemByColumn: vi.fn(), createItem: vi.fn(),
   deleteItem: vi.fn(), moveItem: vi.fn(), getUsersByEmail: vi.fn(), getBoardItems: vi.fn(),
   getItemsColumnText: vi.fn(), getLinkedItemIds: vi.fn(),
+  // STALE_FORWARD_GATE's reads and write (inert here: the gate is off in every test of this file).
+  getItemFresh: vi.fn(), getLinkedCell: vi.fn(), updateColumns: vi.fn(),
 }));
 vi.mock("../src/monday", () => mondayApi);
 

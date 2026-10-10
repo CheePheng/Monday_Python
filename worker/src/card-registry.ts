@@ -1,5 +1,6 @@
 import type { Env } from "./types";
 import type { CardClaim, CreateSnapshot, PendingEdit } from "./create-idempotency-do";
+import type { CardWatch, ConvergeOutcome, EditMark, MarkInput, WatchBase, WatchReply, WatchReq } from "./card-watch";
 
 // monday's `items_page_by_column_values` (how every path asks "is there already a card for this HubSpot
 // record?") is EVENTUALLY CONSISTENT — a card created seconds ago is invisible to it. Several paths create
@@ -178,4 +179,95 @@ export async function noteCreateWindowEdit(env: Env, boardId: string, itemId: st
 export async function forgetHubspotForItem(env: Env, boardId: string, itemId: string): Promise<void> {
   try { await itemStub(env, boardId, itemId).forgetCard(); }
   catch (e) { console.log(`[md-create] forget board=${boardId} item=${itemId} error="${String(e).slice(0, 120)}"`); }
+}
+
+// --- THE CARD'S WATCH (STALE_FORWARD_GATE, card-watch.ts): one instance per card, `held:<board>:<item>` ----------
+// Every call is FAIL-SOFT and BOUNDED (WATCH_RPC_TIMEOUT_MS): a watch that cannot be reached returns null and logs,
+// and the caller falls back to its own verdicts (holds stand, candidates are left, forwards proceed). A pass must
+// never fail -- or wait out a webhook's time -- because its card's watch did not answer.
+
+function watchStub(env: Env, boardId: string, itemId: string) {
+  return env.CREATE_IDEMPOTENCY.get(env.CREATE_IDEMPOTENCY.idFromName(`held:${boardId}:${itemId}`));
+}
+
+/** How long a watch RPC may take before its caller goes on without it. */
+export const WATCH_RPC_TIMEOUT_MS = 3_000;
+
+async function bounded<T>(p: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new Error(`no answer within ${WATCH_RPC_TIMEOUT_MS} ms`)), WATCH_RPC_TIMEOUT_MS);
+  });
+  try { return await Promise.race([p, timeout]); }
+  finally { if (timer) clearTimeout(timer); }
+}
+
+async function watchCall<T>(env: Env, boardId: string, itemId: string, what: string,
+    call: (stub: any) => Promise<T>, action = "watch-unreachable"): Promise<T | null> {
+  try { return await bounded(call(watchStub(env, boardId, itemId))); }
+  catch (e) {
+    console.log(`[watch] board=${boardId} item=${itemId} action=${action} call=${what} reason="${String(e).slice(0, 120)}"`);
+    return null;
+  }
+}
+
+/** Tell the card's watch which cells a pass left in place (or found resolved), and learn per cell since when it is
+ *  held, whether that hold ended, any live mark, and the loop breaker's word. Null: unreachable.
+ *  `linkedAt`: the card was just linked to its record (an adoption, a create's write-back).
+ *  `dryRun` (a /resync dry run): the same answers, READ ONLY -- a dry run never leaves anything durable behind. */
+export async function watchCells(env: Env, base: WatchBase, reqs: WatchReq[],
+    o: { resolved?: string[]; all?: boolean; linkedAt?: number; windowMs: number; dryRun?: boolean }):
+    Promise<Record<string, WatchReply> | null> {
+  if (o.dryRun) {
+    if (!reqs.length) return {};
+    return watchCall(env, base.boardId, base.itemId, "peekCells", stub => stub.peekCells(Date.now(), o.windowMs, base, reqs));
+  }
+  return watchCall(env, base.boardId, base.itemId, "watchCells",
+    stub => stub.watchCells(Date.now(), o.windowMs, base, reqs, { resolved: o.resolved ?? [], all: !!o.all,
+      ...(o.linkedAt !== undefined ? { linkedAt: o.linkedAt } : {}) }));
+}
+
+/** A person's (or an automation's) edit is on its way: mark its cells until its run resolves. Unreachable: logged
+ *  (mark-unreachable), and the edit goes on unmarked -- its own run still pushes it. Nothing in a dry run. */
+export async function markEdits(env: Env, base: WatchBase, marks: MarkInput[], dryRun = false): Promise<void> {
+  if (dryRun) return;
+  await watchCall(env, base.boardId, base.itemId, "markEdits",
+    stub => stub.markEdits(Date.now(), base, marks), "mark-unreachable");
+}
+
+/** A retry superseded by HubSpot's later changes: its marks go (unless an event reached them after `t0`), and each
+ *  cell (as it shows now: `fps`) is due for a converge at once and never rescued again. See reduceSupersede. */
+export async function supersedeMarks(env: Env, base: WatchBase, fps: Record<string, string>, t0: number,
+    windowMs: number): Promise<void> {
+  if (!Object.keys(fps).length) return;
+  await watchCall(env, base.boardId, base.itemId, "supersede", stub => stub.supersede(Date.now(), windowMs, base, fps, t0));
+}
+
+/** A run resolved: clear its marks (no event since `t0`) and the holds it settled. */
+export async function clearMarks(env: Env, base: WatchBase, keys: string[], t0: number): Promise<void> {
+  if (!keys.length) return;
+  await watchCall(env, base.boardId, base.itemId, "clearMarks", stub => stub.clearMarks(Date.now(), keys, t0));
+}
+
+/** The converge's snapshot: `{}` when the card has no watch; null when unreachable. */
+export async function beginConverge(env: Env, boardId: string, itemId: string): Promise<{ snapshot?: CardWatch } | null> {
+  return watchCall(env, boardId, itemId, "beginConverge", stub => stub.beginConverge(Date.now()));
+}
+
+export async function finishConverge(env: Env, boardId: string, itemId: string, outcome: ConvergeOutcome, windowMs: number): Promise<void> {
+  await watchCall(env, boardId, itemId, "finishConverge", stub => stub.finishConverge(Date.now(), windowMs, outcome));
+}
+
+/** The retry's marks (past their lease), each counted as an attempt; null when unreachable. */
+export async function beginRetry(env: Env, boardId: string, itemId: string, windowMs: number):
+    Promise<Record<string, EditMark> | null> {
+  return watchCall(env, boardId, itemId, "beginRetry", stub => stub.beginRetry(Date.now(), windowMs));
+}
+
+/** A Sync State write on this card: `t` written between `s` and `e` (ms). See CreateIdempotency.noteStamp. A dry run
+ *  wrote nothing, so it notes nothing (the register would otherwise "restore" a stamp that was never written). */
+export async function noteStamp(env: Env, base: WatchBase, t: string, s: number, e: number, syncCol: string,
+    dryRun = false): Promise<void> {
+  if (dryRun) return;
+  await watchCall(env, base.boardId, base.itemId, "noteStamp", stub => stub.noteStamp(Date.now(), base, t, s, e, syncCol));
 }

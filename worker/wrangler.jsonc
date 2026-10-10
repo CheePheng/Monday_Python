@@ -69,7 +69,13 @@
             // CONTACT_CARD_NEEDS_OWNER: no Contacts card until HubSpot sets an owner (ensure-card.ts).
             // CONTACT_OWNER_HUBSPOT_ONLY: a monday edit of Contact owner is put back (config.ts withContactOwnerRule).
             "NO_ACTIVITY_RELEASE": "false", "OWNER_NOTICE": "false",
-            "CONTACT_CARD_NEEDS_OWNER": "false", "CONTACT_OWNER_HUBSPOT_ONLY": "false" },
+            "CONTACT_CARD_NEEDS_OWNER": "false", "CONTACT_OWNER_HUBSPOT_ONLY": "false",
+            // STALE_FORWARD_GATE: a HubSpot-side forward pass judges each differing two-way cell by itself (monday's
+            // changed_at vs HubSpot's history of that property) and never writes over a person's edit still on its way;
+            // every hold ends within STALE_FORWARD_HOLD_S (default 180) and the card's watch converges it (card-watch.ts).
+            // STALE_FORWARD_RETRY: a person's edit whose run died is re-sent, and one monday's log proves is rescued --
+            // both WRITE HubSpot outside a webhook. Both ship OFF (a bare deploy is today's engine); only "true" arms one.
+            "STALE_FORWARD_GATE": "false", "STALE_FORWARD_RETRY": "false" },
 
   "observability": { "enabled": true },
 
