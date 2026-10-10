@@ -46,6 +46,7 @@ import type { Env } from "./types";
 import { hs } from "./hubspot";
 import { gql, findItemByColumn } from "./monday";
 import { CRM_CONTACTS } from "./config/crm";
+import { releaseOnActivity } from "./no-activity";
 import { PORTAL_ID } from "./config";
 import { MONDAY_ACTIVITY_TYPE } from "./activities";
 import { activitySyncEnabled, staffEmails, alreadyOnCard, internalDomains } from "./activity-sync";
@@ -627,7 +628,7 @@ async function deliver(run: Run, e: PlannedEntry): Promise<Step> {
   const tries = await readNote(env, triesName(e, contactId));
   if (isDeadNote(tries)) { r.skipped++; count(run, "dead-lettered-earlier"); return "done"; }
 
-  let card: { id: string } | undefined;
+  let card: { id: string; group?: { id?: string } | null } | undefined;
   try { card = (await findItemByColumn(env, CRM_CONTACTS.boardId, CRM_CONTACTS.idCol, contactId, POLL_RATE_WAITS))[0]; }
   catch (err) {
     r.failures++; log("card-lookup-failed", `contact=${contactId} reason="${String(err).slice(0, 100)}"`);
@@ -687,6 +688,12 @@ async function deliver(run: Run, e: PlannedEntry): Promise<Step> {
     run.used++; r.written++;
     log("created", `item=${card.id} contact=${contactId} timeline=${timelineId}`);
     await appendLedger(run, [timelineId, card.id, e.object, e.id, contactId].join("|"));
+    // A marketing send, open or click is activity too (the business's call, 2026-10-10): out of "No Activity"
+    // when recent by the poll's own clock -- the backfill's older events never move a card. On the poll's
+    // rate-wait budget, and it never throws.
+    await releaseOnActivity(env, CRM_CONTACTS, String(card.id), e.timestamp, `marketing ${e.object} ${e.id}`,
+      { dryRun: false }, { groupId: card.group?.id ? String(card.group.id) : undefined, nowMs: run.now,
+        maxRateWaits: POLL_RATE_WAITS });
     return "done";
   } catch (err) {
     /**

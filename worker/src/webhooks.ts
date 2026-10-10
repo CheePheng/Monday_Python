@@ -23,6 +23,7 @@ import {
   syncHubspotActivity, syncMondayTimeline, resetHelperOnReassignment,
 } from "./activity-sync";
 import { ownerNoticeOn, queueOwnerNotices, runOwnerNoticesInline } from "./owner-notice";
+import { releaseOnActivity } from "./no-activity";
 
 /** monday "Last Activity Date" on CRM Contacts. The doorbell until 2026-09-30; see ACTIVITY_WAKE_COLS. */
 export const LAST_ACTIVITY_DATE_COL = "date_mm7054jz";
@@ -325,8 +326,12 @@ export function extractUpdate(ev: any): { itemId: string; userId: string; text: 
   return { itemId, userId: String(ev.userId ?? ""), text };
 }
 
-/** A monday Update -> a Note on the matching HubSpot record, prefixed with the author. */
-async function syncMondayUpdate(env: Env, spec: ObjectSpec, ev: any): Promise<void> {
+/**
+ * A monday Update -> a Note on the matching HubSpot record, prefixed with the author. On a Contacts card it is
+ * also work: the card leaves "No Activity" (no-activity.ts releaseOnActivity; the Worker posts no Updates of its
+ * own, so every one is a person's). Exported for its test only.
+ */
+export async function syncMondayUpdate(env: Env, spec: ObjectSpec, ev: any): Promise<void> {
   const u = extractUpdate(ev);
   if (!u) return;
   const item = await getItem(env, u.itemId);
@@ -345,6 +350,8 @@ async function syncMondayUpdate(env: Env, spec: ObjectSpec, ev: any): Promise<vo
   const noteId = await createNote(env, `Update by ${author} (via monday): ${u.text}`,
     Date.now(), ownerId, spec.object, hsId, webhookOpts(env));
   console.log(`[webhook] source=monday-update item=${u.itemId} object=${spec.object}/${hsId} note=${noteId} action=created`);
+  await releaseOnActivity(env, spec, u.itemId, Date.now(), "a monday Update", webhookOpts(env),
+    { groupId: item?.group?.id ? String(item.group.id) : undefined });
 }
 
 /**

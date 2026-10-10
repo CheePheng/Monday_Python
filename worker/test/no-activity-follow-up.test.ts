@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Env } from "../src/types";
 
 /**
- * THE OTHER HALF OF "WORKED": the contact's owner reached out. An outbound email or call by the CURRENT owner,
- * after they were assigned -- exactly the activity that writes Last qualifying follow-up date -- takes the card
- * out of "No Activity" (NO_ACTIVITY_RELEASE). Driven through the real syncHubspotActivity against fakes, and
- * asserted on the move that did or did not happen.
+ * THE OTHER HALF OF "WORKED": ANY ACTIVITY THAT REACHES THE CARD (NO_ACTIVITY_RELEASE; the business's rule since
+ * 2026-10-10). The owner's email or call, a colleague's email, the customer's own reply, a note -- each takes the
+ * card out of "No Activity" when it is synced onto it. Driven through the real syncHubspotActivity against fakes,
+ * and asserted on the move that did or did not happen.
  *
- * What must NOT move it is just as deliberate, and is the qualification rule unchanged: the customer's own
- * reply, a colleague's email, a note.
+ * Two things deliberately do NOT change with it:
+ *   - only RECENT activity moves a card (WORK_RECENT_MS): a replay or backfill of last week's email is not today's
+ *     work;
+ *   - the follow-up reminders' own rule: only the owner's outbound email or call after assignment writes Last
+ *     qualifying follow-up date -- a customer's reply must never silence the chaser.
  */
 
 const hubspot = vi.hoisted(() => ({ hs: vi.fn() }));
@@ -53,20 +56,25 @@ const env = {
 let group = NO_ACTIVITY;
 let engagement: Record<string, string> = {};
 let timelineWrites = 0;
+/** Writes of Last qualifying follow-up date (the reminders' column): the owner's outbound email/call only. */
+let helperWrites = 0;
 /** An activity time this many minutes ago: release needs RECENT outreach (WORK_RECENT_MS). */
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
 
 beforeEach(() => {
   vi.clearAllMocks();
   reg.settled.clear(); reg.inflight.clear();
-  group = NO_ACTIVITY; timelineWrites = 0;
+  group = NO_ACTIVITY; timelineWrites = 0; helperWrites = 0;
   engagement = { hs_timestamp: minutesAgo(5), hs_email_subject: "Following up",
     hs_email_direction: "EMAIL", hubspot_owner_id: "A" };
   monday.findItemByColumn.mockResolvedValue([{ id: CARD }]);
   monday.moveItem.mockResolvedValue(undefined);
   monday.gql.mockImplementation(async (_e: Env, q: string, v: any) => {
     if (q.includes("create_timeline_item")) { timelineWrites++; return { create_timeline_item: { id: "tl1" } }; }
-    if (q.includes("change_multiple_column_values")) return { change_multiple_column_values: { id: v.i } };
+    if (q.includes("change_multiple_column_values")) {
+      if (String(v.c).includes("date_mm78yd2c")) helperWrites++;
+      return { change_multiple_column_values: { id: v.i } };
+    }
     if (q.includes("group { id }")) return { items: [{ group: { id: group } }] };
     return { items: [{ column_values: [{ text: "" }] }] };
   });
@@ -85,10 +93,11 @@ beforeEach(() => {
 
 const movedTo = () => monday.moveItem.mock.calls.map(c => [c[2], c[3]]);
 
-describe("the owner reached out -> the card leaves No Activity", () => {
-  it("an outbound email by the owner after assignment moves the card to Active Contacts", async () => {
+describe("any activity that reaches the card -> it leaves No Activity", () => {
+  it("an outbound email by the owner moves the card to Active Contacts (and writes the reminders' date)", async () => {
     await syncHubspotActivity(env, "emails", "800001");
     expect(movedTo()).toEqual([[CARD, "topics"]]);
+    expect(helperWrites).toBe(1);
   });
 
   it("an outbound call by the owner moves it too", async () => {
@@ -96,6 +105,30 @@ describe("the owner reached out -> the card leaves No Activity", () => {
       hubspot_owner_id: "A" };
     await syncHubspotActivity(env, "calls", "800002");
     expect(movedTo()).toEqual([[CARD, "topics"]]);
+  });
+
+  /** These moved nothing until 2026-10-10. They move the card now -- and still never write the reminders' date:
+   *  a customer's reply is the reason a reply is owed, and silencing the chaser for it is the expensive mistake. */
+  it("the customer's own reply (inbound) moves it; the reminders' date is NOT written", async () => {
+    engagement.hs_email_direction = "INCOMING_EMAIL";
+    await syncHubspotActivity(env, "emails", "800004");
+    expect(movedTo()).toEqual([[CARD, "topics"]]);
+    expect(helperWrites).toBe(0);
+  });
+
+  it("a colleague's email moves it; the reminders' date is NOT written", async () => {
+    engagement.hubspot_owner_id = "B";
+    await syncHubspotActivity(env, "emails", "800005");
+    expect(movedTo()).toEqual([[CARD, "topics"]]);
+    expect(helperWrites).toBe(0);
+  });
+
+  it("a note moves it; the reminders' date is NOT written", async () => {
+    engagement = { hs_timestamp: minutesAgo(5), hs_note_body: "Spoke to her at the dinner", hubspot_owner_id: "A" };
+    await syncHubspotActivity(env, "notes", "800009");
+    expect(timelineWrites).toBe(1);
+    expect(movedTo()).toEqual([[CARD, "topics"]]);
+    expect(helperWrites).toBe(0);
   });
 
   it("a card already out of No Activity is left where it is", async () => {
@@ -107,22 +140,8 @@ describe("the owner reached out -> the card leaves No Activity", () => {
 
 /** Each of these still DELIVERS the activity to the card's timeline -- only the move is withheld. Asserting the
  *  write keeps the case honest: a broken delivery would otherwise pass for a correct refusal. */
-describe("what does not count, unchanged", () => {
-  it("the customer's reply (inbound) does not move it -- it is the reason a reply is owed", async () => {
-    engagement.hs_email_direction = "INCOMING_EMAIL";
-    await syncHubspotActivity(env, "emails", "800004");
-    expect(timelineWrites).toBe(1);
-    expect(monday.moveItem).not.toHaveBeenCalled();
-  });
-
-  it("a colleague's email does not move it", async () => {
-    engagement.hubspot_owner_id = "B";
-    await syncHubspotActivity(env, "emails", "800005");
-    expect(timelineWrites).toBe(1);
-    expect(monday.moveItem).not.toHaveBeenCalled();
-  });
-
-  it("an email from before the owner was assigned does not move it", async () => {
+describe("what does not move it", () => {
+  it("an email from weeks ago does not move it -- not today's work", async () => {
     engagement.hs_timestamp = "2026-09-15T09:00:00Z";
     await syncHubspotActivity(env, "emails", "800006");
     expect(timelineWrites).toBe(1);
@@ -134,6 +153,13 @@ describe("what does not count, unchanged", () => {
   it("the owner's email from three days ago, replayed now, does not move it", async () => {
     engagement.hs_timestamp = minutesAgo(3 * 24 * 60);
     await syncHubspotActivity(env, "emails", "800008");
+    expect(timelineWrites).toBe(1);
+    expect(monday.moveItem).not.toHaveBeenCalled();
+  });
+
+  it("a colleague's note from three days ago, replayed now, does not move it either", async () => {
+    engagement = { hs_timestamp: minutesAgo(3 * 24 * 60), hs_note_body: "old", hubspot_owner_id: "B" };
+    await syncHubspotActivity(env, "notes", "800010");
     expect(timelineWrites).toBe(1);
     expect(monday.moveItem).not.toHaveBeenCalled();
   });

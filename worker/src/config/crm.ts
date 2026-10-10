@@ -75,9 +75,11 @@ export const CRM_CONTACTS: ObjectSpec = {
    * ...EXCEPT OUT OF "No Activity - 未跟进" WHEN THE CARD IS WORKED (2026-10-09, NO_ACTIVITY_RELEASE). The board's
    * own automations put cards INTO that group; nothing took them out again when a rep did the work, so a
    * contact Elaine moved to 10.Other / In Progress on 5 Oct sat there until hiffer dragged it out on 9 Oct.
-   * Worked = the owner's outbound email or call syncs (activity-sync.ts), or Lifecycle changes off 1.NEW, or
-   * Lead Status changes to anything but New -- in monday or in HubSpot. Labels as reps see them; a change, not
-   * a state, so a card swept back in by the nightly automation stays put until it is worked again.
+   * Worked = ANY activity reaching the card within a day -- a note, call, email, meeting or task by anyone, a
+   * customer's reply, a marketing send or open (the business's call, 2026-10-10; no-activity.ts
+   * releaseOnActivity) -- or Lifecycle changes off 1.NEW, or Lead Status changes to anything but New -- in monday
+   * or in HubSpot. Labels as reps see them; a change, not a state, so a card swept back in by the nightly
+   * automation stays put until it is worked again.
    */
   leaveWhenWorked: { from: "group_mm7cj2yx", to: "topics",
     notWorked: { color_mm70k2wk: ["1.NEW"], color_mm6zb4tc: ["New"] } },

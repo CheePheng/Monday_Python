@@ -16,7 +16,7 @@ import { hs } from "./hubspot";
 import { isPublicEmailDomain } from "./adopt";
 import { normalizeDomain } from "./normalize";
 import { gql, findItemByColumn } from "./monday";
-import { releaseWorkedCard, WORK_RECENT_MS } from "./no-activity";
+import { releaseOnActivity } from "./no-activity";
 import { webhookOpts } from "./run-opts";
 /** MondayRateLimitedError's name -- see monday.ts. */
 const MONDAY_RATE_LIMITED = "MondayRateLimitedError";
@@ -617,7 +617,7 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
 
     // Cards for every destination, on whichever board that kind lives, with the bounded backoff the
     // late-card race needs. Resolved together so the waits are shared rather than paid per card.
-    const cards = new Map<string, { id: string }>();
+    const cards = new Map<string, { id: string; group?: { id?: string } | null }>();
     const keyOf = (d: Destination) => `${d.kind}:${d.hubspotId}`;
     for (const wait of RESOLVE_BACKOFF_MS) {
       if (wait) await new Promise(r => setTimeout(r, wait));
@@ -802,9 +802,15 @@ export async function syncHubspotActivity(env: Env, object: string, hubspotId: s
         continue;
       }
 
-      // The follow-up helper is a CONTACT concept: it answers "has the person responsible for this
-      // person reached out". A Company or Deal timeline entry says nothing about that.
-      if (d.kind === "contact") await maybeMarkFollowUp(env, card.id, d.hubspotId, activity);
+      if (d.kind === "contact") {
+        // ANY activity that lands on a Contact card is work: out of "No Activity" when recent (no-activity.ts
+        // releaseOnActivity). Never throws.
+        await releaseOnActivity(env, CRM_CONTACTS, card.id, activity.timestamp, `${object} ${hubspotId}`,
+          webhookOpts(env), { groupId: card.group?.id ? String(card.group.id) : undefined });
+        // The follow-up helper is a CONTACT concept too, with its own stricter rule: it answers "has the
+        // person responsible for this person reached out". A Company or Deal timeline entry says nothing.
+        await maybeMarkFollowUp(env, card.id, d.hubspotId, activity);
+      }
     }
 
     if (retryable) return retryable;
@@ -860,15 +866,8 @@ async function maybeMarkFollowUp(env: Env, itemId: string, contactId: string,
     if (!owner || !Number.isFinite(assignedMs)) return;   // unowned or never assigned: no cycle to satisfy
 
     if (!qualifiesAsFollowUp(activity, { contactOwnerId: owner, ownerAssignedAtMs: assignedMs })) return;
-
-    // The owner reached out: the card is worked, so it leaves "No Activity" (NO_ACTIVITY_RELEASE) -- for RECENT
-    // outreach only (WORK_RECENT_MS: a replayed old email is not today's work). Before the helper's no-churn
-    // return below: a second outbound email on the same day is still a new piece of work, and the nightly sweep
-    // may have put the card back since the first. Never throws.
-    const sentAt = Date.parse(String(activity.timestamp ?? ""));
-    if (Number.isFinite(sentAt) && Date.now() - sentAt <= WORK_RECENT_MS)
-      await releaseWorkedCard(env, CRM_CONTACTS, itemId, undefined,
-        `the owner's outbound ${activity.object === "calls" ? "call" : "email"} synced`, webhookOpts(env));
+    // (Leaving "No Activity" is no longer decided here: since 2026-10-10 ANY activity reaching the card releases
+    // it -- the caller's releaseOnActivity. This helper keeps the owner-only rule the reminders need.)
 
     const day = String(activity.timestamp ?? "").slice(0, 10);
     if (!day) return;
@@ -962,7 +961,16 @@ export async function syncMondayTimeline(env: Env, itemId: string): Promise<stri
     if (!fresh.length) return log("nothing-to-sync", 'reason="all entries predate the cutover"');
 
     let pushed = 0;
-    for (const entry of fresh) if (await pushOne(env, itemId, contactId, entry, log)) pushed++;
+    let newest = "";   // the latest created_at among the entries this pass sent
+    for (const entry of fresh)
+      if (await pushOne(env, itemId, contactId, entry, log)) {
+        pushed++;
+        if (String(entry.created_at ?? "") > newest) newest = String(entry.created_at ?? "");
+      }
+    // A note or call logged on this card in monday is work too: out of "No Activity" when recent (no-activity.ts
+    // releaseOnActivity). Never throws.
+    if (pushed) await releaseOnActivity(env, CRM_CONTACTS, itemId, newest, `monday timeline (${pushed} sent)`,
+      webhookOpts(env));
     return `action=done pushed=${pushed} fresh=${fresh.length} contact=${contactId}`;
   } catch (e) {
     return log("error", `reason="${String(e).slice(0, 140)}"`);

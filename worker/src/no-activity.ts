@@ -12,9 +12,9 @@
  * the fix was to stop moving cards at all. This module is the deliberate, narrow exception: only out of
  * `from`, only into `to`, and only when the card has just been worked.
  *
- * WORKED IS A CHANGE, NOT A STATE. A card is released by the pass that brings the work -- the owner's outbound
- * email or call arriving (activity-sync.ts), or a pass that changes a `notWorked` status column to a label the
- * list does not name -- never by finding a worked value already sitting on it. A state rule would fight the
+ * WORKED IS A CHANGE, NOT A STATE. A card is released by the pass that brings the work -- ANY activity reaching
+ * the card (releaseOnActivity, below), or a pass that changes a `notWorked` status column to a label the list
+ * does not name -- never by finding a worked value already sitting on it. A state rule would fight the
  * nightly sweep: the sweep ignores Lead Status, so it puts a card with an Open Deal status back, and a state
  * rule would move it out again on the very next update, every night. With a change rule the card stays where
  * the sweep put it until someone works it again.
@@ -55,21 +55,22 @@ export function workedColumns(spec: ObjectSpec, changes: { col: string; label: s
 /**
  * Move the card from `from` to `to`, when -- and only when -- it is in `from` now. `groupId` is the group the
  * caller already read the card in; pass undefined to have it read here. Returns true when the card was moved
- * (or would have been, in a dry run).
+ * (or would have been, in a dry run). `maxRateWaits`: monday rate-limit waits allowed per call, for a caller
+ * on a time budget (the marketing poller); monday.ts's own default otherwise.
  */
 export async function releaseWorkedCard(env: Env, spec: ObjectSpec, itemId: string, groupId: string | undefined,
-    why: string, opts: Pick<RunOpts, "dryRun">): Promise<boolean> {
+    why: string, opts: Pick<RunOpts, "dryRun">, maxRateWaits?: number): Promise<boolean> {
   const rule = spec.leaveWhenWorked;
   if (!rule || !noActivityReleaseOn(env)) return false;
   const where = `[no-activity] board=${spec.boardId} item=${itemId}`;
   try {
     let group = groupId;
     if (group === undefined) {
-      const d = await gql(env, `query ($i: [ID!]) { items(ids: $i) { group { id } } }`, { i: [itemId] }, 2);
+      const d = await gql(env, `query ($i: [ID!]) { items(ids: $i) { group { id } } }`, { i: [itemId] }, 2, maxRateWaits);
       group = d?.items?.[0]?.group?.id ? String(d.items[0].group.id) : "";
     }
     if (group !== rule.from) return false;
-    await moveItem(env, spec.boardId, itemId, rule.to, opts as RunOpts);
+    await moveItem(env, spec.boardId, itemId, rule.to, opts as RunOpts, maxRateWaits);
     console.log(`${where} action=released from=${rule.from} to=${rule.to}${opts.dryRun ? " result=dry-run" : ""}`
       + ` reason="${why}"`);
     return true;
@@ -77,6 +78,31 @@ export async function releaseWorkedCard(env: Env, spec: ObjectSpec, itemId: stri
     console.log(`${where} action=release-failed reason="${String(e).slice(0, 140)}" worked="${why}"`);
     return false;
   }
+}
+
+/**
+ * ANY ACTIVITY IS WORK (the business's rule since 2026-10-10): a note, call, email, meeting or task -- by the
+ * owner, a colleague, the customer replying, an automation, a marketing send -- logged in HubSpot or in monday,
+ * takes the card out of `from` when it reaches the card. Called by every path that puts an activity on a
+ * Contacts card or sends one from it: the HubSpot -> monday activity sync, the monday timeline push, the
+ * marketing email poller, a monday Update. The follow-up reminders keep their own, stricter rule
+ * (activities.ts qualifiesAsFollowUp: the owner's own outbound email or call) -- "this card was worked" and
+ * "its owner reached out" are different questions.
+ *
+ * ONLY RECENT ACTIVITY (WORK_RECENT_MS, by the activity's own time `at`: ISO, or epoch ms as a number or digit
+ * string). The same paths deliver replays and backfills -- /resync-activity, the catch-up scripts, the marketing
+ * backfill reaching back to April -- and an entry from last week arriving today is not today's work. One dated
+ * in the future (a meeting or task being scheduled) is being logged now, so it counts. Unparseable: not recent.
+ * `nowMs`: the caller's clock (the marketing poller runs on its own). Never throws.
+ */
+export async function releaseOnActivity(env: Env, spec: ObjectSpec, itemId: string,
+    at: string | number | null | undefined, what: string, opts: Pick<RunOpts, "dryRun">,
+    o: { groupId?: string; nowMs?: number; maxRateWaits?: number } = {}): Promise<boolean> {
+  if (!spec.leaveWhenWorked || !noActivityReleaseOn(env)) return false;
+  const raw = typeof at === "number" ? String(at) : String(at ?? "").trim();
+  const ms = /^\d+$/.test(raw) ? Number(raw) : Date.parse(raw);
+  if (!Number.isFinite(ms) || (o.nowMs ?? Date.now()) - ms > WORK_RECENT_MS) return false;
+  return releaseWorkedCard(env, spec, itemId, o.groupId, `an activity reached the card: ${what}`, opts, o.maxRateWaits);
 }
 
 /**

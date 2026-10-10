@@ -287,9 +287,9 @@ export async function setColumns(env: Env, boardId: string, itemId: string,
 }
 
 export async function moveItem(env: Env, boardId: string, itemId: string, groupId: string,
-    opts: RunOpts): Promise<void> {
+    opts: RunOpts, maxRateWaits?: number): Promise<void> {
   if (opts.dryRun) { console.log(`DRY move item ${itemId} -> group ${groupId}`); return; }
   await gql(env, `mutation ($i:ID!, $g:String!) { move_item_to_group(item_id:$i, group_id:$g) { id } }`,
-    { i: itemId, g: groupId }, 1);
+    { i: itemId, g: groupId }, 1, maxRateWaits);
   console.log(`moved item ${itemId} -> group ${groupId}`);
 }

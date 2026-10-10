@@ -24,6 +24,7 @@ const st = vi.hoisted(() => ({
   badEmails: new Set<string>(),
   contacts: {} as Record<string, string>,     // email -> contact id
   cards: {} as Record<string, string>,        // contact id -> card id
+  groups: {} as Record<string, string>,       // card id -> group id (default Active Contacts)
   eventCalls: [] as URLSearchParams[],
   hsCalls: [] as string[],
   creates: [] as any[],
@@ -32,7 +33,7 @@ const st = vi.hoisted(() => ({
 }));
 
 const hubspot = vi.hoisted(() => ({ hs: vi.fn() }));
-const monday = vi.hoisted(() => ({ gql: vi.fn(), findItemByColumn: vi.fn() }));
+const monday = vi.hoisted(() => ({ gql: vi.fn(), findItemByColumn: vi.fn(), moveItem: vi.fn() }));
 const sync = vi.hoisted(() => ({
   activitySyncEnabled: (e: any) => e.ENABLE_ACTIVITY_SYNC === "true",
   staffEmails: vi.fn(),
@@ -105,7 +106,8 @@ beforeEach(() => {
   for (const m of [reg.marks, reg.settled, reg.notes]) m.clear();
   reg.reserved.clear(); reg.stale.clear(); reg.strictFail.clear();
   Object.assign(st, { events: [], campaignFail: null, campaignFailById: {}, badEmails: new Set(), contacts: {},
-    cards: {}, eventCalls: [], hsCalls: [], creates: [], createFail: [], eventsHandler: null });
+    cards: {}, groups: {}, eventCalls: [], hsCalls: [], creates: [], createFail: [], eventsHandler: null });
+  monday.moveItem.mockReset().mockResolvedValue(undefined);
   st.campaigns = { "100": { id: 100, name: "Dinner confirm 2", subject: "Your Place Is Confirmed",
     type: "BATCH_EMAIL", contentId: 555 } };
   MONDAY_ACTIVITY_TYPE.marketing_emails = TYPE;
@@ -139,7 +141,7 @@ beforeEach(() => {
     throw new Error(`unexpected hs ${method} ${path}`);
   });
   monday.findItemByColumn.mockReset().mockImplementation(async (_e: Env, _b: string, _c: string, id: string) =>
-    st.cards[id] ? [{ id: st.cards[id] }] : []);
+    st.cards[id] ? [{ id: st.cards[id], group: { id: st.groups[st.cards[id]] ?? "topics" } }] : []);
   monday.gql.mockReset().mockImplementation(async (_e: Env, _q: string, v: any) => {
     const f = st.createFail.shift();
     if (f) throw f;
@@ -301,6 +303,60 @@ describe("the live cursor", () => {
     await poll();
     expect(st.creates.map(c => c.t)).toEqual(["Marketing email opened: Your Place Is Confirmed",
       "Marketing email clicked: Your Place Is Confirmed"]);
+  });
+});
+
+/**
+ * ANY ACTIVITY COUNTS, MARKETING TOO (NO_ACTIVITY_RELEASE; the business's call, 2026-10-10): a written send, open
+ * or click takes the contact's card out of "No Activity" -- when RECENT by the poll's own clock, so the backfill
+ * (reaching back to April) never moves a card -- and on the poll's rate-wait budget, with the card's group the
+ * lookup already returned (no extra read).
+ */
+describe("a marketing activity takes the card out of No Activity", () => {
+  const released = (e: Env = env({ NO_ACTIVITY_RELEASE: "true" })) => e;
+
+  it("a recent send to a card in No Activity moves it to Active Contacts", async () => {
+    const s = sendTo("cust@x.com", "2026-09-30T09:00:00Z");
+    customer("cust@x.com", "501", "CARD-501"); st.groups["CARD-501"] = "group_mm7cj2yx";
+    st.events = [ev("DELIVERED", "cust@x.com", s, "2026-09-30T09:00:30Z")];
+    const r = await poll(released());
+    expect(r.written).toBe(1);
+    expect(monday.moveItem.mock.calls.map(c => [c[2], c[3], c[5]])).toEqual([["CARD-501", "topics", P.POLL_RATE_WAITS]]);
+    expect(st.creates).toHaveLength(1);        // no extra monday read for the group: the lookup carried it
+  });
+
+  it("a send older than a day (the backfill) is written but moves nothing", async () => {
+    const s = sendTo("cust@x.com", "2026-09-29T01:00:00Z");
+    customer("cust@x.com", "501", "CARD-501"); st.groups["CARD-501"] = "group_mm7cj2yx";
+    st.events = [ev("DELIVERED", "cust@x.com", s, "2026-09-29T01:00:30Z")];
+    const r = await poll(released());
+    expect(r.written).toBe(1);
+    expect(monday.moveItem).not.toHaveBeenCalled();
+  });
+
+  it("a card already in Active Contacts stays where it is", async () => {
+    const s = sendTo("cust@x.com", "2026-09-30T09:00:00Z");
+    customer("cust@x.com", "501", "CARD-501");
+    st.events = [ev("DELIVERED", "cust@x.com", s, "2026-09-30T09:00:30Z")];
+    await poll(released());
+    expect(monday.moveItem).not.toHaveBeenCalled();
+  });
+
+  it("switch off: written, not moved", async () => {
+    const s = sendTo("cust@x.com", "2026-09-30T09:00:00Z");
+    customer("cust@x.com", "501", "CARD-501"); st.groups["CARD-501"] = "group_mm7cj2yx";
+    st.events = [ev("DELIVERED", "cust@x.com", s, "2026-09-30T09:00:30Z")];
+    const r = await poll();
+    expect(r.written).toBe(1);
+    expect(monday.moveItem).not.toHaveBeenCalled();
+  });
+
+  it("a dry-run poll writes nothing and moves nothing", async () => {
+    const s = sendTo("cust@x.com", "2026-09-30T09:00:00Z");
+    customer("cust@x.com", "501", "CARD-501"); st.groups["CARD-501"] = "group_mm7cj2yx";
+    st.events = [ev("DELIVERED", "cust@x.com", s, "2026-09-30T09:00:30Z")];
+    await poll(released(env({ NO_ACTIVITY_RELEASE: "true", DRY_RUN: "true" })));
+    expect(monday.moveItem).not.toHaveBeenCalled();
   });
 });
 

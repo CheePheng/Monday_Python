@@ -116,8 +116,9 @@ export interface Env {
    *  including absent, sends and compares names exactly as before. Ships "false". */
   ITEM_NAME_FIT?: string;
   /** "true", with ENABLE_CRM "true": a Contacts card in "No Activity - 未跟进" moves to "Active Contacts" when it
-   *  is worked -- the owner's outbound email or call syncs, or Lifecycle moves off 1.NEW or a Lead Status is set,
-   *  in monday or in HubSpot (no-activity.ts, ObjectSpec.leaveWhenWorked). The only group move the Worker makes,
+   *  is worked -- any activity reaches it within a day (a note, call, email, meeting, task, a customer's reply, a
+   *  marketing send), or Lifecycle moves off 1.NEW or a Lead Status is set, in monday or in HubSpot (no-activity.ts,
+   *  ObjectSpec.leaveWhenWorked). The only group move the Worker makes,
    *  and only ever OUT of that group. Anything else, including absent: no card is moved, as before. Ships "false". */
   NO_ACTIVITY_RELEASE?: string;
   /** "true", with ENABLE_CRM "true": when HubSpot assigned a contact's owner recently and that owner is not the
@@ -624,8 +625,8 @@ export interface ObjectSpec {
    * THE ONE GROUP MOVE THE WORKER MAKES: out of `from`, into `to`, the moment the card is WORKED -- and only
    * while NO_ACTIVITY_RELEASE is on. See no-activity.ts.
    *
-   * Worked means a change, never a state: the owner's outbound email or call syncs, or a pass changes one of
-   * `notWorked`'s status columns to a non-empty label that its list does not name. A card that merely SITS in
+   * Worked means a change, never a state: an activity reaches the card (any kind, anyone's, within a day), or a
+   * pass changes one of `notWorked`'s status columns to a non-empty label that its list does not name. A card that merely SITS in
    * `from` with a worked value is left there, so whatever put it there (a person, or the board's nightly
    * sweep) is never fought over and over.
    */
