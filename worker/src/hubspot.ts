@@ -1283,13 +1283,45 @@ const OPTION_ORDER_KEY = "dkm-crm-sync:hubspot-option-order";
 export async function getPropertyOptions(env: Env, object: string, prop: string):
     Promise<Record<string, string>> {
   const res = await hs(env, "GET", `/crm/v3/properties/${object}/${prop}`);
+  return optionsDictOf(res.options ?? []);
+}
+
+/** value -> label for one property definition's options, carrying their display order. Shared by the single
+ *  read and the batch read, so both build the very same dictionary from the very same options. */
+function optionsDictOf(options: Array<{ value?: unknown; label?: unknown; displayOrder?: unknown }>): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const o of res.options ?? []) out[String(o.value)] = String(o.label);
+  for (const o of options) out[String(o.value)] = String(o.label);
   // The options' own order rides on the dictionary, from the same response: see optionOrderOf in
   // reconcile.ts, which reads it under this same registered key (it cannot be imported from there
   // without a reconcile <-> hubspot import cycle). Non-enumerable: the dictionary is unchanged as data.
-  const order = optionDisplayOrder(res.options ?? []);
+  const order = optionDisplayOrder(options);
   if (order) Object.defineProperty(out, Symbol.for(OPTION_ORDER_KEY), { value: order, enumerable: false, configurable: true });
+  return out;
+}
+
+/**
+ * PROPERTY_BATCH_READ: several properties' option dictionaries of ONE object in ONE request
+ * (POST /crm/v3/properties/{object}/batch/read), instead of one GET per property.
+ *
+ * WHY. buildCtx loads every label dictionary the CRM specs use -- about 27 properties over contacts,
+ * companies, deals and line items -- one GET each, and every fresh isolate does it again (the ctx is cached
+ * per isolate for 60 s). A few cold isolates in the same ten seconds exceed HubSpot's ten-second rolling
+ * limit: live on 2026-10-12, 530 of 547 rate-limit retries in 76 s were these property GETs, and 11 HubSpot
+ * webhooks gave up after their retry window. One request per object makes a cold build ~4 property calls.
+ *
+ * Same data: the batch returns each property's full definition, options identical to the single GET's
+ * (verified live 2026-10-12, contacts hs_lead_status). A name the batch does not return -- HubSpot answers 207
+ * with a PROPERTY_NOT_FOUND error for it -- is read alone, exactly as before, so a missing property fails or
+ * succeeds just as it always did.
+ */
+export async function getPropertyOptionsBatch(env: Env, object: string, props: string[]):
+    Promise<Record<string, Record<string, string>>> {
+  const names = [...new Set(props)];
+  const res = await hs(env, "POST", `/crm/v3/properties/${object}/batch/read`,
+    { archived: false, inputs: names.map(name => ({ name })) });
+  const out: Record<string, Record<string, string>> = {};
+  for (const p of res?.results ?? []) if (p?.name && names.includes(String(p.name))) out[String(p.name)] = optionsDictOf(p.options ?? []);
+  for (const name of names) if (!out[name]) out[name] = await getPropertyOptions(env, object, name);
   return out;
 }
 

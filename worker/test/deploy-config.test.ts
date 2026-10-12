@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readWranglerConfig, readWmConfig } from "../scripts/read-wrangler.mjs";
 import { scanWriteMode } from "../scripts/scan-write-mode.mjs";
 import { writeModeFor, maxWritesFor, webhookOpts } from "../src/run-opts";
-import { birthLinksOn, createWindowReplayOn, labelDictsFor } from "../src/sync";
+import { birthLinksOn, createWindowReplayOn, labelDictsFor, propertyBatchReadOn } from "../src/sync";
 import { specsFor, specByBoard, specByObject, ALL_SPECS } from "../src/config";
 import { CRM_SPECS } from "../src/config/crm";
 import { cutoverFromEnv } from "../src/ownership";
@@ -137,6 +137,15 @@ describe("the deployable CRM Wrangler config", () => {
       expect(hsRateLimitRetryOn({ ...vars, HS_RATE_LIMIT_RETRY: v })).toBe(false);
       expect(itemNameFitOn({ ...vars, ITEM_NAME_FIT: v })).toBe(false);
     });
+
+  /** PROPERTY_BATCH_READ (sync.ts batchedDicts) ships OFF: a bare deploy reads every dictionary one GET each. */
+  it("ships PROPERTY_BATCH_READ=\"false\"; only the literal \"true\" arms it, beside ENABLE_CRM", () => {
+    expect(vars.PROPERTY_BATCH_READ).toBe("false");
+    expect(propertyBatchReadOn(vars)).toBe(false);
+    expect(propertyBatchReadOn({ ...vars, PROPERTY_BATCH_READ: "true" })).toBe(true);
+    for (const v of ["TRUE", "True", "1", "yes", "on", "", " true"])
+      expect(propertyBatchReadOn({ ...vars, PROPERTY_BATCH_READ: v })).toBe(false);
+  });
 
   /**
    * The 2026-10-09 Contacts rules -- leaving "No Activity", the owner notice, owner-before-first-sync and the
@@ -450,6 +459,11 @@ describe("the deployable Work Management Wrangler config", () => {
     expect(wmVars.ITEM_NAME_FIT).toBeUndefined();
     expect(hsRateLimitRetryOn({ ...wmVars, HS_RATE_LIMIT_RETRY: "true" })).toBe(false);
     expect(itemNameFitOn({ ...wmVars, ITEM_NAME_FIT: "true" })).toBe(false);
+  });
+
+  it("never carries PROPERTY_BATCH_READ, and could not arm it if it did", () => {
+    expect(wmVars.PROPERTY_BATCH_READ).toBeUndefined();
+    expect(propertyBatchReadOn({ ...wmVars, PROPERTY_BATCH_READ: "true" })).toBe(false);
   });
 
   /** Nor any of the 2026-10-09 Contacts rules: CRM-only, so a value leaked onto WM cannot arm one. */

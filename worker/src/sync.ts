@@ -44,7 +44,7 @@ import {
   getLinkedItemIds, getUsersByEmail, moveItem, setColumns, updateColumns, updateItem,
 } from "./monday";
 import {
-  claimOwnership, createRecord, getCrmStageDicts, getDealStageLabels, getOwners, getPropertyHistory, getPropertyOptions, getRecord, patchRecord, searchCompanyByDomain,
+  claimOwnership, createRecord, getCrmStageDicts, getDealStageLabels, getOwners, getPropertyHistory, getPropertyOptions, getPropertyOptionsBatch, getRecord, patchRecord, searchCompanyByDomain,
   getRecordWithHistory, propertiesForSpec, searchAll, searchContactByEmail, searchModifiedIds,
 } from "./hubspot";
 
@@ -120,6 +120,32 @@ const LABEL_SOURCE: Record<LabelDict, { object: string; prop: string } | "dealPi
   liCurrency:    { object: "line_items", prop: "hs_line_item_currency_code" },
 };
 
+/** PROPERTY_BATCH_READ: only the literal "true", and only on the CRM Worker. */
+export function propertyBatchReadOn(env: { ENABLE_CRM?: string; PROPERTY_BATCH_READ?: string }): boolean {
+  return env.ENABLE_CRM === "true" && env.PROPERTY_BATCH_READ === "true";
+}
+
+/**
+ * PROPERTY_BATCH_READ: the same dictionaries as the per-property GETs, from ONE batch read per object
+ * (hubspot.ts getPropertyOptionsBatch), handed back in `fetched`'s own order so buildCtx assigns them exactly
+ * as before. A cold build then makes ~4 property calls instead of ~27 -- the calls that ran into HubSpot's
+ * ten-second limit live on 2026-10-12.
+ */
+function batchedDicts(env: Env, fetched: LabelDict[]): Promise<Record<string, string>>[] {
+  const propsOf = new Map<string, string[]>();
+  for (const d of fetched) {
+    const src = LABEL_SOURCE[d];
+    if (typeof src === "object") propsOf.set(src.object, [...(propsOf.get(src.object) ?? []), src.prop]);
+  }
+  const byObject = new Map([...propsOf].map(([object, props]) => [object, getPropertyOptionsBatch(env, object, props)]));
+  return fetched.map(d => {
+    const src = LABEL_SOURCE[d];
+    if (src === "dealPipelines") return getDealStageLabels(env);
+    const { object, prop } = src as { object: string; prop: string };
+    return byObject.get(object)!.then(all => all[prop]);
+  });
+}
+
 /** The label dictionaries THIS deployment's specs actually reference. */
 export function labelDictsFor(env: { ENABLE_CRM?: string }): LabelDict[] {
   const want = new Set<LabelDict>();
@@ -138,11 +164,11 @@ export async function buildCtx(env: Env): Promise<Ctx> {
   const [ownersById, mondayUsersByEmail, ...dicts] = await Promise.all([
     getOwners(env),
     getUsersByEmail(env),
-    ...fetched.map(d => {
+    ...(propertyBatchReadOn(env) ? batchedDicts(env, fetched) : fetched.map(d => {
       const src = LABEL_SOURCE[d];
       return src === "dealPipelines" ? getDealStageLabels(env)
         : getPropertyOptions(env, (src as { object: string }).object, (src as { prop: string }).prop);
-    }),
+    })),
   ]);
 
   const labels: Partial<Record<LabelDict, Record<string, string>>> = {};

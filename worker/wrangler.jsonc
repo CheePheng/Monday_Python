@@ -63,6 +63,8 @@
             "HS_RATE_LIMIT_RETRY": "false",
             // "true": item names are fitted to monday's 255-char limit and compared fitted (mapping.ts fitItemName).
             "ITEM_NAME_FIT": "false",
+            // "true": buildCtx reads its label dictionaries with one batch read per object, not one GET per property (sync.ts batchedDicts).
+            "PROPERTY_BATCH_READ": "false",
             // The 2026-10-09 Contacts rules, each its own switch, all OFF until the deploy passes "true":
             // NO_ACTIVITY_RELEASE: a worked card leaves "No Activity - 未跟进" (no-activity.ts).
             // OWNER_NOTICE: a new assignment sets 通知状态 to 待通知 once; monday workflow #06 (5031811440) emails (Outlook) and records 上次通知Owner (owner-notice.ts).

@@ -116,6 +116,11 @@ export interface Env {
    *  instead of a long HubSpot name failing the card's create and every later update of it. Anything else,
    *  including absent, sends and compares names exactly as before. Ships "false". */
   ITEM_NAME_FIT?: string;
+  /** "true", with ENABLE_CRM "true": buildCtx reads its label dictionaries with ONE batch read per object
+   *  (hubspot.ts getPropertyOptionsBatch) instead of one GET per property -- the same data, ~4 calls instead of
+   *  ~27 per cold build, which ran into HubSpot's ten-second limit on 2026-10-12. Anything else, including
+   *  absent, reads them one GET each exactly as before. Ships "false". */
+  PROPERTY_BATCH_READ?: string;
   /** "true", with ENABLE_CRM "true": a Contacts card in "No Activity - 未跟进" moves to "Active Contacts" when it
    *  is worked -- any activity reaches it within a day (a note, call, email, meeting, task, a customer's reply, a
    *  marketing send), or Lifecycle moves off 1.NEW or a Lead Status is set, in monday or in HubSpot (no-activity.ts,
