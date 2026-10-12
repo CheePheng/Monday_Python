@@ -203,7 +203,7 @@ const ownerOfCycle = (cycle: string | undefined) => (cycle ?? "").split("|")[0];
  * answered "no-email", which the queue counts as done, so one HubSpot blip on this read -- most likely in the very
  * 429 burst a bulk reassignment brings, when the wave's owner list could not be built either -- lost the notice.
  */
-async function ownerEmail(env: Env, ctx: Ctx | undefined, owner: string): Promise<string | null> {
+export async function ownerEmail(env: Env, ctx: Ctx | undefined, owner: string): Promise<string | null> {
   let email = String(ctx?.ownersById?.[owner]?.email ?? "").trim().toLowerCase();
   if (!email) {
     // No cached list, or an owner added since it was cached. A 404, or an owner with no email: nobody to tell.
@@ -250,7 +250,7 @@ export function statusOfCell(cell: { text?: string | null; index?: number | null
 }
 
 /** When monday last changed a cell, from its value's own changed_at (epoch ms); NaN when it does not say. */
-function changedMs(value: string | null | undefined): number {
+export function changedMs(value: string | null | undefined): number {
   try { return Date.parse(String(JSON.parse(value ?? "null")?.changed_at ?? "")); }
   catch { return NaN; }
 }

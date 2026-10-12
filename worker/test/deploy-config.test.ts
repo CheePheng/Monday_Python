@@ -59,14 +59,15 @@ describe("the deployable CRM Wrangler config", () => {
 
   /**
    * AN ALLOWLIST OF EXACTLY TWO. The marketing email poller needs the 15-minute cron, and the 02.2 follow-up
-   * reminder its own five-minute one (FOLLOW_UP_CRON, a no-op until FOLLOW_UP_REMINDER is "true"); every other
-   * expression index.ts dispatches would switch on something deliberately off on CRM -- the 5-minute one the Task
-   * poller, the 10-minute and 03:00 ones the CRM incremental and full sweeps (ruled out 2026-09-07), 04:00 the
-   * Task sweep.
+   * reminder the five-minute one (FOLLOW_UP_CRON "*\/5", a no-op until FOLLOW_UP_REMINDER is "true" -- on the CRM
+   * Worker index.ts runs the reminder on it and never the Task poller); every other expression index.ts dispatches
+   * would switch on something deliberately off on CRM -- the 10-minute and 03:00 ones the CRM incremental and full
+   * sweeps (ruled out 2026-09-07), 04:00 the Task sweep.
    */
-  it("declares exactly TWO crons, */15 (marketing poller) and the follow-up reminder's -- no unattended sweeps", () => {
-    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *", FOLLOW_UP_CRON]);
-    for (const off of ["*/5 * * * *", "*/10 * * * *", "0 3 * * *", "0 4 * * *"])
+  it("declares exactly TWO crons, */15 (marketing poller) and */5 (follow-up reminder) -- no unattended sweeps", () => {
+    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *", "*/5 * * * *"]);
+    expect(FOLLOW_UP_CRON).toBe("*/5 * * * *");
+    for (const off of ["*/10 * * * *", "0 3 * * *", "0 4 * * *"])
       expect(cfg.triggers?.crons).not.toContain(off);
   });
 
@@ -77,7 +78,6 @@ describe("the deployable CRM Wrangler config", () => {
     expect(followUpReminderOn({ ...vars, FOLLOW_UP_REMINDER: "true" })).toBe(true);
     for (const v of ["TRUE", "True", "1", "yes", "on", "", " true"])
       expect(followUpReminderOn({ ...vars, FOLLOW_UP_REMINDER: v })).toBe(false);
-    expect(FOLLOW_UP_CRON).not.toBe("*/5 * * * *");   // the Task poller's expression stays unscheduled
   });
 
   it("ships the marketing poller OFF, with no cursors and the default cap", () => {

@@ -35,7 +35,8 @@ async function gql(token, query, variables = {}) {
 export function columnRefs(specBlock) {
   const refs = new Map();
   const add = (id, role) => { if (id) refs.set(id, role); };
-  for (const [, key, id] of specBlock.matchAll(/(idCol|syncStateCol|linkCol):\s*"([^"]+)"/g)) add(id, key);
+  for (const [, key, id] of specBlock.matchAll(/(idCol|syncStateCol|linkCol|followUpCol|lastToldCol|statusCol):\s*"([^"]+)"/g))
+    add(id, key);
   for (const [, id] of specBlock.matchAll(/relationCol:\s*"([^"]+)"/g)) add(id, "relationCol");
   for (const [, hs, id] of specBlock.matchAll(/\{ hs: "([^"]+)", col: "([^"]+)"/g)) add(id, `field ${hs}`);
   const adopt = specBlock.match(/adoptBy: \{ kind: "[a-z]+", col: "([^"]+)"/);

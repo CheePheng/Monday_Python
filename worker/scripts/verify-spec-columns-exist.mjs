@@ -52,9 +52,13 @@ export function specColumnRefs(spec) {
   // The bookkeeping columns, named on ObjectSpec rather than in `fields`. `idCol` is the dedup key and
   // `syncStateCol` the write watermark — if either went missing the board would not merely stop
   // updating, it would start creating duplicate cards.
-  for (const key of ["idCol", "syncStateCol", "linkCol", "ownerCol"])
+  for (const key of ["idCol", "syncStateCol", "linkCol", "ownerCol", "followUpCol"])
     if (spec[key]) refs.push({ col: spec[key], where: key });
   if (spec.ownership?.col) refs.push({ col: spec.ownership.col, where: "ownership" });
+  // The owner notice's two columns (ObjectSpec.ownerNotice): its 待通知 write names 通知状态, and a dead one stops
+  // every notice the same way.
+  if (spec.ownerNotice?.statusCol) refs.push({ col: spec.ownerNotice.statusCol, where: "ownerNotice.statusCol" });
+  if (spec.ownerNotice?.lastToldCol) refs.push({ col: spec.ownerNotice.lastToldCol, where: "ownerNotice.lastToldCol" });
   return refs;
 }
 

@@ -92,9 +92,11 @@ export async function ringOnPersonEdit(env: Env, itemId: string, actorId: string
 export function ignoredColumns(spec: ObjectSpec): Set<string> {
   // The owner notice's two columns (ObjectSpec.ownerNotice) are bookkeeping too, and map to nothing in HubSpot:
   // 通知状态 is set to 待通知 by owner-notice.ts and to 已通知 by the board's workflow, and 上次通知Owner is written
-  // by that workflow alone. A reconcile on either would be pure waste.
+  // by that workflow alone. A reconcile on either would be pure waste. So is the follow-up reminder's 跟进提醒
+  // (ObjectSpec.followUpCol): set by follow-up-reminder.ts, then to 已提醒 by workflows #07 / #07b -- three events a
+  // reminder, each a whole-card sync on the token the run's next write waits on.
   const out = new Set<string>([spec.syncStateCol, spec.idCol, spec.linkCol,
-    spec.ownerNotice?.lastToldCol, spec.ownerNotice?.statusCol].filter(Boolean) as string[]);
+    spec.ownerNotice?.lastToldCol, spec.ownerNotice?.statusCol, spec.followUpCol].filter(Boolean) as string[]);
   for (const f of spec.fields) if (f.oneWay) out.add(f.col);
   return out;
 }

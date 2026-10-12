@@ -52,9 +52,17 @@ describe("the follow-up reminder cron", () => {
     await expect(worker.scheduled(cron(FOLLOW_UP_CRON), on, ectx())).resolves.toBeUndefined();
   });
 
-  it("is not the Task poller's expression, and that one still only polls tasks", async () => {
-    expect(FOLLOW_UP_CRON).not.toBe("*/5 * * * *");
+  it("on the CRM Worker, */5 runs the reminder and NEVER the task poller -- armed or not", async () => {
+    expect(FOLLOW_UP_CRON).toBe("*/5 * * * *");
     await worker.scheduled(cron("*/5 * * * *"), on, ectx());
+    expect(fur.runFollowUpReminders).toHaveBeenCalledTimes(1);
+    await worker.scheduled(cron("*/5 * * * *"), { ENABLE_CRM: "true" } as unknown as Env, ectx());
+    expect(fur.runFollowUpReminders).toHaveBeenCalledTimes(1);     // switch off: nothing at all
+    expect(tasks.pollTasks).not.toHaveBeenCalled();
+  });
+
+  it("a Worker without ENABLE_CRM (the WM one) still polls tasks on */5, as before", async () => {
+    await worker.scheduled(cron("*/5 * * * *"), { FOLLOW_UP_REMINDER: "true" } as unknown as Env, ectx());
     expect(fur.runFollowUpReminders).not.toHaveBeenCalled();
     expect(tasks.pollTasks).toHaveBeenCalledTimes(1);
   });

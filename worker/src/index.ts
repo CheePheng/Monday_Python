@@ -163,11 +163,12 @@ export default {
         : Promise.resolve();
       return marketing.then(sweep);
     }
-    if (event.cron === FOLLOW_UP_CRON) {
-      // 02.2 follow-up reminder (follow-up-reminder.ts): CRM only, and only with FOLLOW_UP_REMINDER "true" -- a
-      // quiet no-op otherwise, so the trigger can ship before the switch is armed. RETURNED, like the 15-minute
-      // poll, so its few HubSpot and monday calls get the whole cron budget.
-      if (env.ENABLE_CRM !== "true" || !followUpReminderOn(env)) return;
+    if (event.cron === FOLLOW_UP_CRON && env.ENABLE_CRM === "true") {
+      // ON THE CRM WORKER, "*/5" IS THE 02.2 FOLLOW-UP REMINDER (follow-up-reminder.ts) AND NEVER THE TASK POLLER,
+      // which stays deliberately off on CRM: armed only by FOLLOW_UP_REMINDER "true", a quiet no-op otherwise.
+      // RETURNED, like the 15-minute poll, so its few HubSpot and monday calls get the whole cron budget. A Worker
+      // without ENABLE_CRM (the WM one) falls through to the task poller below, as before.
+      if (!followUpReminderOn(env)) return;
       return runFollowUpReminders(env, opts).then(() => undefined)
         .catch(e => console.log(`[follow-up] action=error reason="${String(e).slice(0, 140)}"`));
     }

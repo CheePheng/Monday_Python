@@ -97,6 +97,9 @@ export const CRM_CONTACTS: ObjectSpec = {
    *                                           unset cell is still read by its index, never its text.
    */
   ownerNotice: { lastToldCol: "email_mm7v3xxg", statusCol: "color_mm7zktxc", pending: "待通知", done: "已通知" },
+  /** 跟进提醒 (status), created 2026-10-12: the 02.2 follow-up reminder's flag (follow-up-reminder.ts). Labels exactly
+   *  {0: 30分钟未跟进, 2: 60分钟未跟进, 1: 已提醒}; read by its index, never its text. */
+  followUpCol: "color_mm82ccsb",
   includeAll: true,                          // SAFE ONLY WITH Task 3B's mayCreateCrmCard
   skipFullReconcile: true,
   ownership: OWN_CONTACTS,

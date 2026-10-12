@@ -714,6 +714,13 @@ export interface ObjectSpec {
    * once that cell shows HubSpot's owner. Absent on every spec but Contacts: no other board is noticed.
    */
   ownerNotice?: { lastToldCol: string; statusCol: string; pending: string; done: string };
+  /**
+   * THE 02.2 FOLLOW-UP REMINDER'S COLUMN (FOLLOW_UP_REMINDER, follow-up-reminder.ts): 跟进提醒, the status column the
+   * Worker sets to 30分钟未跟进 / 60分钟未跟进 and the board's workflows #07 / #07b set to 已提醒 once they have
+   * emailed. Bookkeeping like the owner notice's: it maps to nothing in HubSpot, so a change to it is never
+   * reconciled (webhooks.ts ignoredColumns). Contacts only.
+   */
+  followUpCol?: string;
 }
 
 // A HubSpot association synced onto the parent monday item (HubSpot -> monday only, no reverse).

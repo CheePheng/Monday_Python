@@ -12,16 +12,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
 
-  // ONE CRON, and only this one: */15 drives the HubSpot marketing email poller, which does nothing
-  // until ENABLE_MARKETING_EMAIL_SYNC is "true" (and ENABLE_ACTIVITY_SYNC, and the monday activity
-  // type exists), and beside it the bounded Last Activity backstop sweep, which does nothing until
-  // ENABLE_LAD_SWEEP is "true" (lad-sweep.ts). Every other expression index.ts knows is deliberately ABSENT: */5 would start the
-  // Task poller, */10 and 0 3 the CRM incremental and full sweeps (off permanently for CRM since the
-  // 09-07 decision -- handoff §5, §19), 0 4 the Task sweep. deploy-config.test.ts pins exactly this list.
-  // The second expression is the 02.2 follow-up reminder (follow-up-reminder.ts FOLLOW_UP_CRON): every 5 minutes,
-  // one minute off the 15-minute poll; a no-op unless FOLLOW_UP_REMINDER is "true". Never "*/5": that one is the
-  // task poller's (index.ts), which is not scheduled.
-  "triggers": { "crons": ["*/15 * * * *", "1,6,11,16,21,26,31,36,41,46,51,56 * * * *"] },
+  // TWO CRONS, and only these. */15 drives the HubSpot marketing email poller, which does nothing until
+  // ENABLE_MARKETING_EMAIL_SYNC is "true" (and ENABLE_ACTIVITY_SYNC, and the monday activity type exists), and
+  // beside it the bounded Last Activity backstop sweep, which does nothing until ENABLE_LAD_SWEEP is "true"
+  // (lad-sweep.ts). */5 is the 02.2 follow-up reminder (follow-up-reminder.ts FOLLOW_UP_CRON), a no-op unless
+  // FOLLOW_UP_REMINDER is "true": on this (ENABLE_CRM) Worker index.ts runs the reminder on it, NEVER the Task
+  // poller, which */5 starts only on a Worker without ENABLE_CRM. A plain step expression: a minute list
+  // ("1,6,11,...") deployed but never fired on 2026-10-12. Every other expression index.ts knows is deliberately
+  // ABSENT: */10 and 0 3 the CRM incremental and full sweeps (off permanently for CRM since the 09-07 decision --
+  // handoff §5, §19), 0 4 the Task sweep. deploy-config.test.ts pins exactly this list.
+  "triggers": { "crons": ["*/15 * * * *", "*/5 * * * *"] },
 
   // DRY_RUN starts TRUE: Phase A writes nothing at all. Phase B flips this to "false" while the
   // code path keeps writeHubspot=false, giving real HubSpot -> monday CRM writes with every

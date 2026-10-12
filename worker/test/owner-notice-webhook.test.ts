@@ -138,6 +138,13 @@ describe("owner change -> one queued notice per contact", () => {
     expect(ignored.has(CRM_CONTACTS.ownerNotice!.lastToldCol)).toBe(true);
     expect(ignored.has(CRM_CONTACTS.syncStateCol)).toBe(true);
   });
+
+  /** The 02.2 follow-up reminder's 跟进提醒 is the same kind of column: three events a reminder (the Worker's clear and
+   *  label, #07's 已提醒), none of them anything HubSpot holds. */
+  it("跟进提醒 events are ignored too", () => {
+    expect(CRM_CONTACTS.followUpCol).toBe("color_mm82ccsb");
+    expect(ignoredColumns(CRM_CONTACTS).has("color_mm82ccsb")).toBe(true);
+  });
 });
 
 describe("the notices never wait behind the batch's deal-association reads", () => {
