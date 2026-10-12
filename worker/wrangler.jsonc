@@ -18,7 +18,10 @@
   // ENABLE_LAD_SWEEP is "true" (lad-sweep.ts). Every other expression index.ts knows is deliberately ABSENT: */5 would start the
   // Task poller, */10 and 0 3 the CRM incremental and full sweeps (off permanently for CRM since the
   // 09-07 decision -- handoff §5, §19), 0 4 the Task sweep. deploy-config.test.ts pins exactly this list.
-  "triggers": { "crons": ["*/15 * * * *"] },
+  // The second expression is the 02.2 follow-up reminder (follow-up-reminder.ts FOLLOW_UP_CRON): every 5 minutes,
+  // one minute off the 15-minute poll; a no-op unless FOLLOW_UP_REMINDER is "true". Never "*/5": that one is the
+  // task poller's (index.ts), which is not scheduled.
+  "triggers": { "crons": ["*/15 * * * *", "1,6,11,16,21,26,31,36,41,46,51,56 * * * *"] },
 
   // DRY_RUN starts TRUE: Phase A writes nothing at all. Phase B flips this to "false" while the
   // code path keeps writeHubspot=false, giving real HubSpot -> monday CRM writes with every
@@ -65,6 +68,8 @@
             "ITEM_NAME_FIT": "false",
             // "true": buildCtx reads its label dictionaries with one batch read per object, not one GET per property (sync.ts batchedDicts).
             "PROPERTY_BATCH_READ": "false",
+            // "true": the 02.2 follow-up reminder flags 跟进提醒 for workflow #07 (follow-up-reminder.ts).
+            "FOLLOW_UP_REMINDER": "false",
             // The 2026-10-09 Contacts rules, each its own switch, all OFF until the deploy passes "true":
             // NO_ACTIVITY_RELEASE: a worked card leaves "No Activity - 未跟进" (no-activity.ts).
             // OWNER_NOTICE: a new assignment sets 通知状态 to 待通知 once; monday workflow #06 (5031811440) emails (Outlook) and records 上次通知Owner (owner-notice.ts).

@@ -5,6 +5,7 @@ export { DeferredSync } from "./deferred-sync-do";
 import { pollTasks, reconcileRecentTasks } from "./task-poller";
 import { pollMarketingEmails, readLedger } from "./marketing-email-poller";
 import { ladSweepEnabled, sweepDeadline, sweepLastActivity } from "./lad-sweep";
+import { FOLLOW_UP_CRON, followUpReminderOn, runFollowUpReminders } from "./follow-up-reminder";
 import { runAll, runIncremental, syncMondayItem, getCtxCached, syncHubspotRecord, legacyDealRouting } from "./sync";
 import { writeModeFor, maxWritesFor, dryRunModeFor } from "./run-opts";
 import { createContactOrCompany, type CreateInput } from "./create-records";
@@ -161,6 +162,14 @@ export default {
           .catch(e => console.log(`[lad-sweep] action=error reason="${String(e).slice(0, 140)}"`))
         : Promise.resolve();
       return marketing.then(sweep);
+    }
+    if (event.cron === FOLLOW_UP_CRON) {
+      // 02.2 follow-up reminder (follow-up-reminder.ts): CRM only, and only with FOLLOW_UP_REMINDER "true" -- a
+      // quiet no-op otherwise, so the trigger can ship before the switch is armed. RETURNED, like the 15-minute
+      // poll, so its few HubSpot and monday calls get the whole cron budget.
+      if (env.ENABLE_CRM !== "true" || !followUpReminderOn(env)) return;
+      return runFollowUpReminders(env, opts).then(() => undefined)
+        .catch(e => console.log(`[follow-up] action=error reason="${String(e).slice(0, 140)}"`));
     }
     if (event.cron === "*/5 * * * *") {
       ectx.waitUntil(pollTasks(env)

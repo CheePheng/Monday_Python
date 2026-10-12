@@ -121,6 +121,11 @@ export interface Env {
    *  ~27 per cold build, which ran into HubSpot's ten-second limit on 2026-10-12. Anything else, including
    *  absent, reads them one GET each exactly as before. Ships "false". */
   PROPERTY_BATCH_READ?: string;
+  /** "true", with ENABLE_CRM "true": the 02.2 follow-up reminder (follow-up-reminder.ts) -- 30 and 60 minutes after
+   *  a new DocuSign/HubSpot lead's owner assignment with nothing logged, the card's 跟进提醒 is flagged once and
+   *  monday workflow #07 emails the owner (CC ZMark). Anything else, including absent: its cron does nothing.
+   *  Ships "false". */
+  FOLLOW_UP_REMINDER?: string;
   /** "true", with ENABLE_CRM "true": a Contacts card in "No Activity - 未跟进" moves to "Active Contacts" when it
    *  is worked -- any activity reaches it within a day (a note, call, email, meeting, task, a customer's reply, a
    *  marketing send), or Lifecycle moves off 1.NEW or a Lead Status is set, in monday or in HubSpot (no-activity.ts,

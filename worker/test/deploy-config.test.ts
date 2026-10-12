@@ -12,6 +12,7 @@ import { noActivityReleaseOn } from "../src/no-activity";
 import { ownerNoticeOn } from "../src/owner-notice";
 import { cardNeedsOwnerOn } from "../src/ensure-card";
 import { staleForwardGateOn, staleForwardRetryOn } from "../src/card-watch";
+import { FOLLOW_UP_CRON, followUpReminderOn } from "../src/follow-up-reminder";
 
 /** The four 2026-10-09 Contacts switches, each with the check the code itself makes. CONTACT_OWNER_HUBSPOT_ONLY
  *  is read by specsFor: it is on when the Contacts owner field comes back hubspotOnly. */
@@ -57,15 +58,26 @@ describe("the deployable CRM Wrangler config", () => {
     expect(vars.WRITE_HUBSPOT).toBe("false"));
 
   /**
-   * AN ALLOWLIST OF EXACTLY ONE. The marketing email poller needs the 15-minute cron; every other
-   * expression index.ts dispatches would switch on something deliberately off on CRM -- the 5-minute
-   * one the Task poller, the 10-minute and 03:00 ones the CRM incremental and full sweeps (ruled out
-   * 2026-09-07), 04:00 the Task sweep.
+   * AN ALLOWLIST OF EXACTLY TWO. The marketing email poller needs the 15-minute cron, and the 02.2 follow-up
+   * reminder its own five-minute one (FOLLOW_UP_CRON, a no-op until FOLLOW_UP_REMINDER is "true"); every other
+   * expression index.ts dispatches would switch on something deliberately off on CRM -- the 5-minute one the Task
+   * poller, the 10-minute and 03:00 ones the CRM incremental and full sweeps (ruled out 2026-09-07), 04:00 the
+   * Task sweep.
    */
-  it("declares exactly ONE cron, */15, for the marketing poller -- no unattended sweeps", () => {
-    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *"]);
+  it("declares exactly TWO crons, */15 (marketing poller) and the follow-up reminder's -- no unattended sweeps", () => {
+    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *", FOLLOW_UP_CRON]);
     for (const off of ["*/5 * * * *", "*/10 * * * *", "0 3 * * *", "0 4 * * *"])
       expect(cfg.triggers?.crons).not.toContain(off);
+  });
+
+  /** FOLLOW_UP_REMINDER (follow-up-reminder.ts) ships OFF: its cron then does nothing. */
+  it("ships FOLLOW_UP_REMINDER=\"false\"; only the literal \"true\" arms it, beside ENABLE_CRM", () => {
+    expect(vars.FOLLOW_UP_REMINDER).toBe("false");
+    expect(followUpReminderOn(vars)).toBe(false);
+    expect(followUpReminderOn({ ...vars, FOLLOW_UP_REMINDER: "true" })).toBe(true);
+    for (const v of ["TRUE", "True", "1", "yes", "on", "", " true"])
+      expect(followUpReminderOn({ ...vars, FOLLOW_UP_REMINDER: v })).toBe(false);
+    expect(FOLLOW_UP_CRON).not.toBe("*/5 * * * *");   // the Task poller's expression stays unscheduled
   });
 
   it("ships the marketing poller OFF, with no cursors and the default cap", () => {
@@ -82,7 +94,7 @@ describe("the deployable CRM Wrangler config", () => {
    */
   it("ships the Last Activity sweep OFF (ENABLE_LAD_SWEEP=\"false\"), on the one existing cron", () => {
     expect(vars.ENABLE_LAD_SWEEP).toBe("false");
-    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *"]);   // no cron of its own
+    expect(cfg.triggers?.crons).toEqual(["*/15 * * * *", FOLLOW_UP_CRON]);   // no cron of its own
   });
 
   /** The derived P&S Account reverse (line item's Account -> its deal's company) is opt-in. Shipped
@@ -459,6 +471,12 @@ describe("the deployable Work Management Wrangler config", () => {
     expect(wmVars.ITEM_NAME_FIT).toBeUndefined();
     expect(hsRateLimitRetryOn({ ...wmVars, HS_RATE_LIMIT_RETRY: "true" })).toBe(false);
     expect(itemNameFitOn({ ...wmVars, ITEM_NAME_FIT: "true" })).toBe(false);
+  });
+
+  it("never carries FOLLOW_UP_REMINDER or its cron, and could not arm it if it did", () => {
+    expect(wmVars.FOLLOW_UP_REMINDER).toBeUndefined();
+    expect(followUpReminderOn({ ...wmVars, FOLLOW_UP_REMINDER: "true" })).toBe(false);
+    expect(readWmConfig().triggers?.crons).not.toContain(FOLLOW_UP_CRON);
   });
 
   it("never carries PROPERTY_BATCH_READ, and could not arm it if it did", () => {
