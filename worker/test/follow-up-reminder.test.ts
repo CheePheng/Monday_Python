@@ -81,11 +81,19 @@ describe("reminderDue (pure)", () => {
     expect(reminderDue(c, assigned + 31 * MIN)).toEqual({ checkpoint: 30 });   // 00:26 MYT the next day
   });
 
-  it("Lifecycle other than 1.NEW, a Last Activity Date, or no owner: no reminder", () => {
+  it("Lifecycle other than 1.NEW, activity logged after the assignment, or no owner: no reminder", () => {
     expect(reminderDue(lead({ lifecycle: "marketingqualifiedlead" }), T0 + 31 * MIN)).toHaveProperty("skip");
     expect(reminderDue(lead({ lastActivity: new Date(T0 + 10 * MIN).toISOString() }), T0 + 31 * MIN))
-      .toEqual({ skip: "followed up (Last Activity Date set)" });
+      .toEqual({ skip: "followed up since the assignment" });
+    expect(reminderDue(lead({ lastActivity: new Date(T0).toISOString() }), T0 + 31 * MIN))
+      .toEqual({ skip: "followed up since the assignment" });       // at the very moment of the assignment counts
     expect(reminderDue(lead({ owner: "" }), T0 + 31 * MIN)).toEqual({ skip: "no owner" });
+  });
+
+  it("OPTION A: activity only BEFORE the (re)assignment does not count -- the new owner is still reminded", () => {
+    expect(reminderDue(lead({ lastActivity: new Date(T0 - 20 * MIN).toISOString() }), T0 + 31 * MIN))
+      .toEqual({ checkpoint: 30 });
+    expect(reminderDue(lead({ lastActivity: String(T0 - 1) }), T0 + 61 * MIN)).toEqual({ checkpoint: 60 });
   });
 
   it("an epoch-ms assignment stamp works as well as an ISO one", () =>
@@ -101,7 +109,7 @@ describe("runFollowUpReminders", () => {
     expect(followUpReminderOn({ FOLLOW_UP_REMINDER: "true" })).toBe(false);   // never without ENABLE_CRM
   });
 
-  it("asks HubSpot only for the 30-90 minute window, Lifecycle 1.NEW, a term, and no Last Activity Date", async () => {
+  it("asks HubSpot only for the 30-90 minute window, Lifecycle 1.NEW and a term -- activity is judged by date, here", async () => {
     searchReturns();
     const now = T0 + 31 * MIN;
     await runFollowUpReminders(ON, live, now);
@@ -112,8 +120,20 @@ describe("runFollowUpReminders", () => {
       { propertyName: "hubspot_owner_assigneddate", operator: "LTE", value: String(now - 30 * MIN) },
       { propertyName: "lifecyclestage", operator: "EQ", value: "lead" },
       { propertyName: "utm_term", operator: "HAS_PROPERTY" },
-      { propertyName: "notes_last_updated", operator: "NOT_HAS_PROPERTY" },
     ]);
+    expect(body.properties).toContain("notes_last_updated");
+  });
+
+  it("logs one summary line every run, even with nothing to do (proof the cron is alive)", async () => {
+    searchReturns();
+    await runFollowUpReminders(ON, live, T0 + 31 * MIN);
+    expect(logs.filter(l => l.startsWith("[follow-up] action=run "))).toHaveLength(1);
+  });
+
+  it("a lead with activity only before its reassignment is flagged for the new owner", async () => {
+    searchReturns(lead({ lastActivity: new Date(T0 - 5 * MIN).toISOString() }));
+    const s = await runFollowUpReminders(ON, live, T0 + 31 * MIN);
+    expect(s.flagged).toBe(1);
   });
 
   it("flags 30分钟未跟进 once: cleared then set, the note saved before the write and marked sent after", async () => {

@@ -7,7 +7,9 @@
  *     midnight;
  *   - its term (`utm_term`, the Contacts "term" column) contains "hubspot" or "docusign", in any case;
  *   - Lifecycle Stage is 1.NEW (`lifecyclestage` "lead");
- *   - Last Activity Date (`notes_last_updated`) is empty: nobody has followed the customer up at all.
+ *   - nothing logged SINCE THE ASSIGNMENT: Last Activity Date (`notes_last_updated`) empty or earlier than it. The
+ *     user's choice ("option A", 2026-10-12): a contact that had activity before being (re)assigned is still
+ *     reminded when its new owner logs nothing.
  *
  * Then the card's 跟进提醒 is set to 30分钟未跟进 or 60分钟未跟进 -- at most once per assignment and checkpoint --
  * and the board's workflow #07 emails the Contact owner (CC ZMark) and sets 已提醒. ALL the timing and every
@@ -15,8 +17,8 @@
  * the moment this flags the card -- the same split as the owner notice (#06).
  *
  * Run every 5 minutes by its own cron (index.ts), so a reminder lands 30-35 / 60-65 minutes after the assignment.
- * Each run asks HubSpot for the contacts assigned 30-90 minutes ago that already match the HubSpot-side conditions
- * -- one search, a handful of results -- and decides each with `reminderDue`, which is pure.
+ * Each run asks HubSpot for the contacts assigned 30-90 minutes ago with Lifecycle 1.NEW and a term -- one search,
+ * a handful of results -- and decides each with `reminderDue`, which is pure.
  *
  * NEVER TWICE. A reminder is noted durably (activity-registry watermark, fails closed) BEFORE the card is written,
  * keyed by contact, assignment stamp and checkpoint: a note that cannot be read or saved means no write. A write
@@ -78,7 +80,8 @@ export function reminderDue(c: Candidate, now: number): Due {
   if (!Number.isFinite(created) || assigned - created > FOLLOW_UP.newLeadMs) return { skip: "not a new lead" };
   if (!FOLLOW_UP.term.test(c.term ?? "")) return { skip: "term has neither hubspot nor docusign" };
   if ((c.lifecycle ?? "").trim() !== FOLLOW_UP.lifecycle) return { skip: "lifecycle is not 1.NEW" };
-  if ((c.lastActivity ?? "").trim()) return { skip: "followed up (Last Activity Date set)" };
+  const activity = ms(c.lastActivity);
+  if (Number.isFinite(activity) && activity >= assigned) return { skip: "followed up since the assignment" };
   const age = now - assigned;
   if (age > FOLLOW_UP.lookbackMs) return { skip: "assignment too old" };
   if (age >= 60 * MINUTE) return { checkpoint: 60 };
@@ -97,7 +100,7 @@ async function candidates(env: Env, now: number): Promise<Candidate[]> {
         { propertyName: "hubspot_owner_assigneddate", operator: "LTE", value: String(now - 30 * MINUTE) },
         { propertyName: "lifecyclestage", operator: "EQ", value: FOLLOW_UP.lifecycle },
         { propertyName: "utm_term", operator: "HAS_PROPERTY" },
-        { propertyName: "notes_last_updated", operator: "NOT_HAS_PROPERTY" },
+        // No activity filter here: an activity BEFORE the assignment does not count, so reminderDue compares dates.
       ] }],
       properties: ["hubspot_owner_id", "hubspot_owner_assigneddate", "createdate", "utm_term", "lifecyclestage", "notes_last_updated"],
       limit: 100, ...(after ? { after } : {}),
@@ -169,6 +172,7 @@ export async function runFollowUpReminders(env: Env, opts: RunOpts, now = Date.n
       console.log(`[follow-up] ${tag} action=error reason="${String(e).replace(/[^\s"'<>()]+@[^\s"'<>()]+/g, "<address>").slice(0, 160)}"`);
     }
   }
-  if (stats.candidates) console.log(`[follow-up] action=run ${JSON.stringify(stats)}`);
+  // One line per run, empty or not: proof in the logs that the five-minute cron is alive.
+  console.log(`[follow-up] action=run ${JSON.stringify(stats)}`);
   return stats;
 }
