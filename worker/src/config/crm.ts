@@ -180,6 +180,11 @@ export const CRM_CONTACTS: ObjectSpec = {
     // where label != value (a single option, "Others" -> "其他"), so the dictionary genuinely translates
     // here rather than only checking membership.
     { hs: "leadsource", col: "text_mm6sc26t", type: "text", labels: "contactSource", reverse: true },
+    // RECORD SOURCE, added 2026-10-12 at the team's request: what created the contact in HubSpot (IMPORT, CRM_UI,
+    // FORM, INTEGRATION, BCC_TO_CRM...), shown as on the Accounts board (text_mm707cf3 -- see there why TEXT). It
+    // tells which contacts came in through an import, which no monday email announces; that decision reads HubSpot
+    // itself (assignment-source.ts), never this cell. A read-only HubSpot system property: oneWay.
+    { hs: "hs_object_source_label", col: "text_mm82k1vk", type: "text", oneWay: true },
     // Event Name — the marketing/event a contact came in from (e.g. "Reimagine - For HB/Aircall").
     // Verified `type: "string"` (free text), and the monday column was already text, so no retype was
     // needed. FORWARD-ONLY: HubSpot owns it and it is set at import/form time, not edited by reps.

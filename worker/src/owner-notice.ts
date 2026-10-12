@@ -75,6 +75,11 @@
  * HubSpot resets hubspot_owner_assigneddate on every real (re)assignment, so the notice also requires that
  * assignment to be recent (NOTICE_WINDOW_MS); an older one is only remembered ("baseline").
  *
+ * AN IMPORT IS NEVER ANNOUNCED (the team's rule, 2026-10-12): HubSpot already mails the owner of every contact an
+ * import assigns, and a 100-contact upload gave Myla a hundred emails from each. An assignment the import made --
+ * directly, or through the company's owner -- or one of a contact the import created within the last day
+ * (assignment-source.ts importOf, read with the owner) is remembered and nobody told ("import").
+ *
  * HUBSPOT DECIDES, READ INSIDE THE LOCK AND AGAIN JUST BEFORE THE WRITE: nothing is taken from the caller, and a
  * monday rate-limit wait in between (up to a minute) cannot let an assignment HubSpot has already replaced be the
  * one flagged. A change between the two reads is decided again from the top, a few times at most ("busy"). The
@@ -107,6 +112,7 @@ import {
 import { specByObject } from "./config";
 import { webhookOpts } from "./run-opts";
 import { spillDeferred, spillDeferredLeftover } from "./deferred-sync";
+import { ASSIGNMENT_READ, assignmentFactsOf, importOf, type AssignmentFacts } from "./assignment-source";
 
 /** An assignment older than this is not news: remembered, nobody told. HubSpot stamps the assignment time on
  *  every real (re)assignment, and the queue reaches it within a minute or two. */
@@ -174,12 +180,13 @@ export function ownerNoticeOn(env: { ENABLE_CRM?: string; OWNER_NOTICE?: string 
  * held, the owner kept changing, or the card does not show the owner yet), "pending" (an earlier flag still waits
  * on the workflow), "waiting" (THIS assignment's own flag still waits on it) and "error" are retried by the queue --
  * when the queue ran it: an inline run's "busy", "pending" and "error" are lost, and logged so
- * (runOwnerNoticesInline). "stuck", "no-user", "no-email", "no-owner" and "no-card" are final. Nothing else
- * remembers anything -- except that whenever 上次通知Owner names the owner, the assignment is remembered as told,
- * whatever the run answers ("waiting" or "stuck" when this assignment's own flag still stands).
+ * (runOwnerNoticesInline). "stuck", "no-user", "no-email", "no-owner" and "no-card" are final. "import" (an import
+ * made the assignment: the header) is final and remembered, like "baseline". Nothing else remembers anything --
+ * except that whenever 上次通知Owner names the owner, the assignment is remembered as told, whatever the run answers
+ * ("waiting" or "stuck" when this assignment's own flag still stands).
  */
 export type NoticeOutcome = "off" | "no-owner" | "no-email" | "no-user" | "no-card" | "already" | "pending" | "waiting"
-  | "stuck" | "flagged" | "baseline" | "dry-run" | "busy" | "error";
+  | "stuck" | "flagged" | "baseline" | "import" | "dry-run" | "busy" | "error";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -280,18 +287,17 @@ async function findCard(env: Env, spec: ObjectSpec, contactId: string): Promise<
   return (await findItemByColumn(env, spec.boardId, spec.idCol, contactId, MAX_RATE_WAITS))[0]?.id ?? null;
 }
 
-/** HubSpot's owner of the contact, and when it was assigned. null: HubSpot has no such contact (404) -- final. */
-async function readOwner(env: Env, contactId: string): Promise<{ owner: string; assigned: string } | null> {
+/** HubSpot's owner of the contact, when it was assigned, and what decides whether an import did it
+ *  (assignment-source.ts). null: HubSpot has no such contact (404) -- final. */
+async function readOwner(env: Env, contactId: string): Promise<AssignmentFacts | null> {
   let rec: any;
   try {
-    rec = await hs(env, "GET",
-      `/crm/v3/objects/contacts/${contactId}?properties=hubspot_owner_id,hubspot_owner_assigneddate`, undefined, 2);
+    rec = await hs(env, "GET", `/crm/v3/objects/contacts/${contactId}?${ASSIGNMENT_READ}`, undefined, 2);
   } catch (e) {
     if (/: 404\b/.test(String(e))) return null;
     throw e;
   }
-  return { owner: String(rec?.properties?.hubspot_owner_id ?? "").trim(),
-    assigned: String(rec?.properties?.hubspot_owner_assigneddate ?? "").trim() };
+  return assignmentFactsOf(rec);
 }
 
 /** What a person does about a standing 待通知 -- after checking whom the workflow already told. */
@@ -350,6 +356,13 @@ export async function noticeOwner(env: Env, ctx: Ctx | undefined, spec: ObjectSp
       if (!cur) return gone();
       const cycle = cycleOf(cur);
       if (!cur.owner) return log("no-owner");
+      // AN IMPORT IS NEVER ANNOUNCED (the header): settled and remembered, nobody told.
+      const imported = await importOf(env, cur);
+      if (imported) {
+        await remember(cycle);
+        return log("import", `owner=${cur.owner} reason="${imported}: HubSpot notifies the owner of an import itself --`
+          + ` remembered, nobody told"`);
+      }
       const email = await ownerEmail(env, ctx, cur.owner);
       if (!email) return log("no-email", `owner=${cur.owner}`);
       const at = assignedMs(cur.assigned);

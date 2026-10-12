@@ -1317,3 +1317,146 @@ describe("peopleOfCell", () => {
     expect(peopleOfCell(undefined)).toEqual([]);
   });
 });
+
+// ===================================================================================================
+/**
+ * AN IMPORT IS NEVER ANNOUNCED (the team's rule, 2026-10-12): HubSpot mails the owner of every contact an import
+ * assigns, and a 100-contact upload gave Myla a hundred emails from each. The shapes below are the upload's own, as
+ * HubSpot's history recorded them (import 190432563): a contact the import created, an existing one it reassigned,
+ * and one whose owner followed its company's -- set by the import.
+ */
+describe("an import is never announced", () => {
+  let created = "";
+  let source = "";
+  let history: object[] = [];
+  let company: { status: number; history: object[] } = { status: 200, history: [] };
+  const IMPORT_ID = "190432563";
+  const COMPANY = "37197369250";
+  const at = (iso: string, ms: number) => new Date(Date.parse(iso) + ms).toISOString();
+  beforeEach(() => {
+    created = minutesAgo(400 * 24 * 60); source = "IMPORT"; history = []; company = { status: 200, history: [] };
+    hubspot.hs.mockImplementation(async (_e: unknown, _m: string, path: string) => {
+      if (path.startsWith(`/crm/v3/objects/contacts/${CONTACT}`))
+        return { properties: { hubspot_owner_id: hsOwner, hubspot_owner_assigneddate: hsAssigned, createdate: created,
+          hs_object_source: source }, propertiesWithHistory: { hubspot_owner_id: history } };
+      if (path.startsWith(`/crm/v3/objects/companies/${COMPANY}`)) {
+        if (company.status !== 200) throw new Error(`hubspot GET ${path}: ${company.status} {"status":"error"}`);
+        return { propertiesWithHistory: { hubspot_owner_id: company.history } };
+      }
+      return null;
+    });
+  });
+  const run = async (e: Env = env) => {
+    let out = "";
+    const lines = await logged(async () => { out = await notice(e); });
+    return { out, lines };
+  };
+  const cascade = () => [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "COMPANIES",
+    sourceId: `OwnerChangeToContactUpdate:triggered by companyId=${COMPANY}` }];
+
+  it("the import set the owner of a contact it created: not flagged, remembered -- and the same assignment stays settled", async () => {
+    created = hsAssigned;
+    history = [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "IMPORT", sourceId: IMPORT_ID }];
+    const { out, lines } = await run();
+    expect(out).toBe("import");
+    expect(writes).toEqual([]);
+    expect(reg.notes.get(CONTACT)?.cycle).toBe(cycleOf(MYLA.owner, hsAssigned));
+    expect(lines.some(l => /action=import why="test" owner=1739141284 reason="the contact was created by an import 0 min before/
+      .test(l))).toBe(true);
+    // The same assignment again (a second trigger): the same answer, before any monday read, nothing written, and the
+    // settlement is not saved twice.
+    const gqlCalls = monday.gql.mock.calls.length;
+    expect(await notice()).toBe("import");
+    expect(writes).toEqual([]);
+    expect(monday.gql.mock.calls.length).toBe(gqlCalls);
+    expect(reg.rememberNoticedCycle).toHaveBeenCalledTimes(1);
+  });
+
+  it("the import reassigned an EXISTING contact (its record source is not Import): not flagged", async () => {
+    source = "BCC_TO_CRM"; created = minutesAgo(18 * 24 * 60);
+    history = [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "IMPORT", sourceId: IMPORT_ID },
+      { value: "", timestamp: created, sourceType: "BCC_TO_CRM" }];
+    const { out, lines } = await run();
+    expect(out).toBe("import");
+    expect(writes).toEqual([]);
+    expect(lines.some(l => l.includes(`import ${IMPORT_ID} set the owner`))).toBe(true);
+  });
+
+  it("its owner followed its company's, which the import set (HubSpot's cascade): not flagged", async () => {
+    source = "FORM";
+    history = cascade();
+    company.history = [{ value: MYLA.owner, timestamp: at(hsAssigned, -300), sourceType: "IMPORT", sourceId: IMPORT_ID },
+      { value: DESMOND.owner, timestamp: minutesAgo(90 * 24 * 60), sourceType: "CRM_UI" }];
+    const { out, lines } = await run();
+    expect(out).toBe("import");
+    expect(writes).toEqual([]);
+    expect(lines.some(l => l.includes(`import ${IMPORT_ID} set the owner of company ${COMPANY}`))).toBe(true);
+  });
+
+  it("...but a company owner a PERSON changed moves the contact's like any assignment: announced", async () => {
+    source = "FORM";
+    history = cascade();
+    company.history = [{ value: MYLA.owner, timestamp: at(hsAssigned, -300), sourceType: "CRM_UI", sourceId: "userId:1" }];
+    expect((await run()).out).toBe("flagged");
+    expect(writes).toEqual([FLAG]);
+  });
+
+  it("a contact uploaded this morning and bulk-assigned by hand this afternoon is still a fresh upload: not flagged", async () => {
+    created = at(hsAssigned, -4 * HOUR);
+    history = [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "CRM_UI_BULK_ACTION", sourceId: "userId:1" }];
+    expect((await run()).out).toBe("import");
+    expect(writes).toEqual([]);
+  });
+
+  it("a contact imported LAST YEAR and assigned by hand today IS announced: 89% of all contacts were imported once", async () => {
+    history = [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "CRM_UI", sourceId: "userId:1" }];
+    expect((await run()).out).toBe("flagged");
+    expect(writes).toEqual([FLAG]);
+  });
+
+  it("the change that SET the owner decides: a workflow re-writing the same owner since does not hide the import", async () => {
+    source = "BCC_TO_CRM";
+    history = [{ value: MYLA.owner, timestamp: at(hsAssigned, 60_000), sourceType: "WORKFLOWS" },
+      { value: MYLA.owner, timestamp: hsAssigned, sourceType: "IMPORT", sourceId: IMPORT_ID },
+      { value: DESMOND.owner, timestamp: minutesAgo(30 * 24 * 60), sourceType: "CRM_UI" }];
+    expect((await run()).out).toBe("import");
+  });
+
+  it("an import that set ANOTHER owner earlier does not hide a person's reassignment since", async () => {
+    source = "BCC_TO_CRM";
+    history = [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "CRM_UI", sourceId: "userId:1" },
+      { value: DESMOND.owner, timestamp: minutesAgo(60), sourceType: "IMPORT", sourceId: IMPORT_ID }];
+    expect((await run()).out).toBe("flagged");
+  });
+
+  it("a company that cannot be read is an error -- retried by the queue, nothing remembered -- never a guess", async () => {
+    source = "FORM";
+    history = cascade();
+    company.status = 503;
+    expect((await run()).out).toBe("error");
+    expect(writes).toEqual([]);
+    expect(reg.notes.get(CONTACT)).toBeUndefined();
+  });
+
+  it("a company HubSpot no longer has is no import: announced", async () => {
+    source = "FORM";
+    history = cascade();
+    company.status = 404;
+    expect((await run()).out).toBe("flagged");
+  });
+
+  it("DRY_RUN: answered, nothing remembered", async () => {
+    created = hsAssigned;
+    history = [{ value: MYLA.owner, timestamp: hsAssigned, sourceType: "IMPORT", sourceId: IMPORT_ID }];
+    expect((await run(dry)).out).toBe("import");
+    expect(reg.notes.get(CONTACT)).toBeUndefined();
+  });
+
+  it("the owner is read with what decides it, in the same GET", async () => {
+    await run();
+    const path = String(hubspot.hs.mock.calls.find(c => String(c[2]).startsWith(`/crm/v3/objects/contacts/${CONTACT}`))![2]);
+    expect(path).toContain("hs_object_source");
+    expect(path).toContain("createdate");
+    expect(path).toContain("propertiesWithHistory=hubspot_owner_id");
+  });
+});
