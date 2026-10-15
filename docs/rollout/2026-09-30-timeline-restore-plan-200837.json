@@ -1,0 +1,378 @@
+{
+ "generatedAt": "2026-09-30T20:08:37.945Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 6,
+ "filters": {
+  "cards": [
+   "2861838695",
+   "2866353999",
+   "2866357399",
+   "2866358377",
+   "2866359047"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "would-create": 6
+ },
+ "done": true,
+ "cards": {
+  "2861838695": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2866353999": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2866357399": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2866358377": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2866359047": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2861838695",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:401903188726]",
+   "object": "emails",
+   "activityId": "401903188726",
+   "outcome": "would-create",
+   "recordId": "553250297531",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0beb92df-4881-4bd0-b41a-065f68c01adb",
+    "card": "2855624663",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1206,
+    "contentSha": "eb37d189c6cddc8c",
+    "timestamp": "2026-09-23T07:04:00.689Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:08:43.104Z"
+    }
+   }
+  },
+  {
+   "card": "2866353999",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401774822125]",
+   "object": "emails",
+   "activityId": "401774822125",
+   "outcome": "would-create",
+   "recordId": "347928537845",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3ed04229-e04c-460e-9b14-186d2f7aaf53",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "【报价单】Q26565_TB_北京梦诚科技有限公司_20260923",
+    "contentLength": 417,
+    "contentSha": "0ca435e714ecda6c",
+    "timestamp": "2026-09-23T08:34:51Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:08:44.096Z"
+    }
+   }
+  },
+  {
+   "card": "2866357399",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401855189735]",
+   "object": "emails",
+   "activityId": "401855189735",
+   "outcome": "would-create",
+   "recordId": "348083534577",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "66b89fdc-def1-4acf-ad83-f1160f1c060a",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "接受:Invitation: Docusign - 沟通 @ Thu Sep 24, 2026 10am - 11am (GMT+8) (jimshen@dkmeco.com)",
+    "contentLength": 154,
+    "contentSha": "01dcd1ac110d4c1e",
+    "timestamp": "2026-09-23T09:26:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:08:48.829Z"
+    }
+   }
+  },
+  {
+   "card": "2866357399",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401859507918]",
+   "object": "emails",
+   "activityId": "401859507918",
+   "outcome": "would-create",
+   "recordId": "348083534577",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "de535610-f627-4c7e-b552-a577d8c3e550",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Invitation: Docusign - 沟通 @ Thu Sep 24, 2026 10am - 11am (GMT+8) (jimshen@dkmeco.com)",
+    "contentLength": 1825,
+    "contentSha": "bbdef6ea20963cde",
+    "timestamp": "2026-09-23T09:23:20Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:08:48.829Z"
+    }
+   }
+  },
+  {
+   "card": "2866358377",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:calls:399088007925]",
+   "object": "calls",
+   "activityId": "399088007925",
+   "outcome": "would-create",
+   "recordId": "349500811964",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2a377459-f47c-48e2-bc8c-f615dd130592",
+    "card": "2857217952",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 eric.zhao@velotricbike.cn 的呼叫",
+    "contentLength": 68,
+    "contentSha": "e70f83c8bc96c3d0",
+    "timestamp": "2026-09-11T09:36:14.017Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:08:49.717Z"
+    }
+   }
+  },
+  {
+   "card": "2866359047",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:401859507918]",
+   "object": "emails",
+   "activityId": "401859507918",
+   "outcome": "would-create",
+   "recordId": "555354540778",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "de535610-f627-4c7e-b552-a577d8c3e550",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Invitation: Docusign - 沟通 @ Thu Sep 24, 2026 10am - 11am (GMT+8) (jimshen@dkmeco.com)",
+    "contentLength": 1825,
+    "contentSha": "bbdef6ea20963cde",
+    "timestamp": "2026-09-23T09:23:20Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:08:53.770Z"
+    }
+   }
+  }
+ ]
+}

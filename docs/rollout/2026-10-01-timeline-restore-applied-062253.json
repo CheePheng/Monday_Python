@@ -1,0 +1,4235 @@
+{
+ "generatedAt": "2026-10-01T06:22:53.103Z",
+ "mode": "applied",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 69,
+ "filters": {
+  "cards": [
+   "2856292710",
+   "2856293845",
+   "2856298279",
+   "2856299551",
+   "2856299552",
+   "2856299636",
+   "2856299944",
+   "2856299945",
+   "2856300670",
+   "2856300672",
+   "2856300703",
+   "2856301039",
+   "2856303895",
+   "2856306867",
+   "2856307057",
+   "2856307401",
+   "2856308669",
+   "2856310738",
+   "2856315497",
+   "2856320098",
+   "2856320261",
+   "2856320262",
+   "2856322486",
+   "2856322490",
+   "2856334077",
+   "2856334078",
+   "2856346325",
+   "2856352063",
+   "2856352064",
+   "2856355755",
+   "2856356610",
+   "2856363696",
+   "2856366683",
+   "2856367731",
+   "2856367761",
+   "2856367762",
+   "2856367763",
+   "2856367764",
+   "2856367833",
+   "2856367920"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied-222841.json",
+   "2026-09-30-timeline-restore-applied.json",
+   "2026-10-01-timeline-restore-applied-041852.json",
+   "2026-10-01-timeline-restore-applied-044237.json",
+   "2026-10-01-timeline-restore-applied-045725.json",
+   "2026-10-01-timeline-restore-applied-051130.json",
+   "2026-10-01-timeline-restore-applied-052355.json",
+   "2026-10-01-timeline-restore-applied-053051.json",
+   "2026-10-01-timeline-restore-applied-054153.json",
+   "2026-10-01-timeline-restore-applied-055437.json",
+   "2026-10-01-timeline-restore-applied-060139.json",
+   "2026-10-01-timeline-restore-applied-061455.json",
+   "2026-10-01-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "created": 69
+ },
+ "done": true,
+ "cards": {
+  "2856292710": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856293845": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 29,
+   "rowsReturned": 29,
+   "distinctRows": 29,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856298279": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856299551": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856299552": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856299636": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856299944": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856299945": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856300670": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856300672": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856300703": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856301039": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 28,
+   "rowsReturned": 28,
+   "distinctRows": 28,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856303895": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856306867": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856307057": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 4,
+   "rowsReturned": 4,
+   "distinctRows": 4,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856307401": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856308669": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856310738": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856315497": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856320098": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856320261": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856320262": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856322486": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 4,
+   "rowsReturned": 4,
+   "distinctRows": 4,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856322490": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856334077": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856334078": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856346325": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856352063": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856352064": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856355755": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856356610": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856363696": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856366683": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367731": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 4,
+   "rowsReturned": 4,
+   "distinctRows": 4,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367761": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367762": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367763": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367764": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367833": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856367920": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2856292710",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:314070959845]",
+   "object": "emails",
+   "activityId": "314070959845",
+   "outcome": "created",
+   "recordId": "396284562153",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ad3ad074-80d8-4744-9b1a-3da66049517f",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Fw: Co-delivering Partnership with Wendt Partners",
+    "contentLength": 2541,
+    "contentSha": "4a35f2bb62e6ebc9",
+    "timestamp": "2026-01-23T11:21:14Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:22:58.214Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:22:58.214Z",
+   "newId": "b228a5a4-ba28-41bb-8b19-44ee42b3af67",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-23T11:21:14.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856293845",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:361896980191]",
+   "object": "emails",
+   "activityId": "361896980191",
+   "outcome": "created",
+   "recordId": "408201645764",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "611e6e97-092a-4541-a4d5-bea06e849761",
+    "card": "2855846901",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Finda <> DKM 2026",
+    "contentLength": 14475,
+    "contentSha": "178d04eb0d60a056",
+    "timestamp": "2026-04-01T03:54:12Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 29,
+     "rowsReturned": 29,
+     "distinctRows": 29,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:00.775Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:00.775Z",
+   "newId": "5f9dee57-04e7-459c-9d8a-719dd0682b50",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-01T03:54:12.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856293845",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:362677493441]",
+   "object": "emails",
+   "activityId": "362677493441",
+   "outcome": "created",
+   "recordId": "408201645764",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "fb3c0136-c571-4a53-a4fa-993e25528e27",
+    "card": "2856283108",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Finda <> DKM 2026",
+    "contentLength": 17278,
+    "contentSha": "94954d55d0d8655c",
+    "timestamp": "2026-04-02T07:01:09Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 29,
+     "rowsReturned": 29,
+     "distinctRows": 29,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:00.775Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:08.069Z",
+   "newId": "18799be1-ec2a-445d-a92c-11fc63758b0d",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-02T07:01:09.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856293845",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:366039480007]",
+   "object": "emails",
+   "activityId": "366039480007",
+   "outcome": "created",
+   "recordId": "408201645764",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "84102c4f-a8c1-4b27-88ec-083500a055d8",
+    "card": "2856283108",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Finda <> DKM 2026",
+    "contentLength": 5335,
+    "contentSha": "e8088f247f042e34",
+    "timestamp": "2026-04-24T08:29:01Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 29,
+     "rowsReturned": 29,
+     "distinctRows": 29,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:00.775Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:15.631Z",
+   "newId": "5161eff6-7824-42e5-8755-ff76ea173b17",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-24T08:29:01.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856293845",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:336775054038]",
+   "object": "meetings",
+   "activityId": "336775054038",
+   "outcome": "created",
+   "recordId": "408201645764",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c54b44cc-a8b5-491f-9adc-b6eee43caf17",
+    "card": "2856283108",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Finda x DKM ",
+    "contentLength": 173,
+    "contentSha": "c8153d14c7828e1e",
+    "timestamp": "2026-02-26T06:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 29,
+     "rowsReturned": 29,
+     "distinctRows": 29,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:00.775Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:21.834Z",
+   "newId": "23bf9678-afd1-4e20-9bd0-6d33be2cbcef",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-02-26T06:00:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856293845",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:366991209179]",
+   "object": "meetings",
+   "activityId": "366991209179",
+   "outcome": "created",
+   "recordId": "408201645764",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6032a98a-9d7e-4ccd-9db0-2d4e3feff9a1",
+    "card": "2856283108",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Finda <> DKM: Freshworks Enablement Session (SEA)",
+    "contentLength": 57,
+    "contentSha": "4c329ab2132c66ca",
+    "timestamp": "2026-05-04T06:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 29,
+     "rowsReturned": 29,
+     "distinctRows": 29,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:00.775Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:27.948Z",
+   "newId": "251da053-bf9c-4bba-9ed7-9b530cfd0cfc",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-04T06:00:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856298279",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:287816494807]",
+   "object": "emails",
+   "activityId": "287816494807",
+   "outcome": "created",
+   "recordId": "361177782995",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9f44d870-6bac-4ff9-9a11-1b926b020659",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Follow-up: Slides and Next Steps for Fin AI",
+    "contentLength": 13469,
+    "contentSha": "074426c892fab82c",
+    "timestamp": "2025-12-23T06:32:28.671Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:11.272Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:11.272Z",
+   "newId": "8eacab1d-f460-4c75-9274-a2018ccc740c",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-12-23T06:32:28.671Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856298279",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:288994699996]",
+   "object": "meetings",
+   "activityId": "288994699996",
+   "outcome": "created",
+   "recordId": "361177782995",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2e5739a3-9ca6-4e99-86d9-f242c4d7ba08",
+    "card": "2855719497",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom trial - 2nd follow up for VoyagerX ",
+    "contentLength": 220,
+    "contentSha": "23b2ceb55a5bbffa",
+    "timestamp": "2025-12-26T07:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:11.272Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:18.558Z",
+   "newId": "7d67614a-d5dd-42f4-a535-b4136c58084a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-12-26T07:00:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299551",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:362665459402]",
+   "object": "meetings",
+   "activityId": "362665459402",
+   "outcome": "created",
+   "recordId": "350206656224",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "00b66da7-8b20-4c8c-96bf-601886596a78",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "DKM <> Intercom: Manus Fin Resolution Chat",
+    "contentLength": 213,
+    "contentSha": "9f2c202f6ff40119",
+    "timestamp": "2025-11-12T05:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:28.176Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:28.176Z",
+   "newId": "8438c626-94a6-4dc8-984e-871d311e371a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-11-12T05:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299552",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394786022079]",
+   "object": "emails",
+   "activityId": "394786022079",
+   "outcome": "created",
+   "recordId": "350316387049",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "51b24725-3986-47be-9c3c-37ee493f01ca",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: 【上海药明康德新药开发有限公司】您的Tableau软件维保将于 2025/6/12 到期--PR226151",
+    "contentLength": 10896,
+    "contentSha": "e4c768aeba466aa8",
+    "timestamp": "2026-08-28T07:10:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:37.393Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:37.393Z",
+   "newId": "74fce1f3-5730-493c-a7a2-da4bcc0d1793",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-08-28T07:10:05.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299552",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:399057074906]",
+   "object": "emails",
+   "activityId": "399057074906",
+   "outcome": "created",
+   "recordId": "350316387049",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "03dd6696-658f-4ed1-92eb-f9836626d63a",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: 【上海药明康德新药开发有限公司】您的Tableau软件维保将于 2025/6/12 到期--PR226151",
+    "contentLength": 11387,
+    "contentSha": "30fcf0ffc18fc414",
+    "timestamp": "2026-09-11T07:06:29Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:37.393Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:46.031Z",
+   "newId": "c4f9d644-6343-421f-946c-620970b646c7",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-11T07:06:29.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299552",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:400321142478]",
+   "object": "emails",
+   "activityId": "400321142478",
+   "outcome": "created",
+   "recordId": "350316387049",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1bfc8216-9826-43f1-b4d4-975e4e50467a",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: docusign 许可问题沟通",
+    "contentLength": 1784,
+    "contentSha": "256bf20fbe19e316",
+    "timestamp": "2026-09-16T08:13:17Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:37.393Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:53.071Z",
+   "newId": "8d9224ab-d11c-4219-a8b4-00b99adcfeb1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-16T08:13:17.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299552",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:400345354952]",
+   "object": "emails",
+   "activityId": "400345354952",
+   "outcome": "created",
+   "recordId": "350316387049",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6b035b9d-ef5c-405b-b3ba-172628fb3e43",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: docusign 许可问题沟通",
+    "contentLength": 2452,
+    "contentSha": "51286da0ddeb62eb",
+    "timestamp": "2026-09-16T08:25:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:37.393Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:59.538Z",
+   "newId": "37226907-0110-4a15-8a97-b361a3ca128f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-16T08:25:53.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299636",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:297910000319]",
+   "object": "emails",
+   "activityId": "297910000319",
+   "outcome": "created",
+   "recordId": "340557708010",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0ccce65f-6036-405d-987a-f18d72271dd9",
+    "card": "2855710611",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: DKM Ecosystem: Zendesk follow-up",
+    "contentLength": 7535,
+    "contentSha": "246b0cabfef6de37",
+    "timestamp": "2026-01-08T05:42:24.326Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:38.437Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:38.437Z",
+   "newId": "87aaedf6-acad-479d-91ec-9b758068f3cd",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-08T05:42:24.326Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299944",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:301651570393]",
+   "object": "notes",
+   "activityId": "301651570393",
+   "outcome": "created",
+   "recordId": "357512712914",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "60451771-32b6-40fc-8960-de7c44bb0a2e",
+    "card": "2855719465",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "暂无采购的计划",
+    "contentLength": 64,
+    "contentSha": "41f1c13c10fd555d",
+    "timestamp": "2026-01-13T10:36:48.923Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:49.015Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:49.015Z",
+   "newId": "c938e3eb-9e34-4f82-bbb2-d6b0d5c6f52b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-01-13T10:36:48.923Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856299945",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:301664418543]",
+   "object": "notes",
+   "activityId": "301664418543",
+   "outcome": "created",
+   "recordId": "357512742633",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "cd2047d0-05b2-4dd6-88a4-40ffdb91bfb2",
+    "card": "2855719465",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "随便看看 不考虑",
+    "contentLength": 65,
+    "contentSha": "6de94b8af28e5cee",
+    "timestamp": "2026-01-13T10:31:46.456Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:23:59.815Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:23:59.816Z",
+   "newId": "dd6d9b09-653d-4ed4-b8f7-799ce9e68e32",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-01-13T10:31:46.456Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856300670",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:301159962343]",
+   "object": "emails",
+   "activityId": "301159962343",
+   "outcome": "created",
+   "recordId": "376199461593",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "af3636a7-c5b2-4495-98b1-75db7b9e40f4",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership (DKM x Arbaan)",
+    "contentLength": 6073,
+    "contentSha": "8381a0e599d92860",
+    "timestamp": "2026-01-12T15:06:59.361Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:10.725Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:10.725Z",
+   "newId": "c11f9379-387d-497e-8e5a-e8de2509944e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-12T15:06:59.361Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856300672",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:301159962343]",
+   "object": "emails",
+   "activityId": "301159962343",
+   "outcome": "created",
+   "recordId": "376249367268",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "af3636a7-c5b2-4495-98b1-75db7b9e40f4",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership (DKM x Arbaan)",
+    "contentLength": 6073,
+    "contentSha": "8381a0e599d92860",
+    "timestamp": "2026-01-12T15:06:59.361Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:11.494Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:11.494Z",
+   "newId": "c3bcd212-eadf-4bcd-9bda-5ad12cd2893e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-12T15:06:59.361Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856300703",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:287816494807]",
+   "object": "emails",
+   "activityId": "287816494807",
+   "outcome": "created",
+   "recordId": "361621013195",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9f44d870-6bac-4ff9-9a11-1b926b020659",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Follow-up: Slides and Next Steps for Fin AI",
+    "contentLength": 13469,
+    "contentSha": "074426c892fab82c",
+    "timestamp": "2025-12-23T06:32:28.671Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:21.501Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:21.501Z",
+   "newId": "02fcebaa-0842-413e-8666-c0e526d30236",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-12-23T06:32:28.671Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856300703",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:288994699996]",
+   "object": "meetings",
+   "activityId": "288994699996",
+   "outcome": "created",
+   "recordId": "361621013195",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2e5739a3-9ca6-4e99-86d9-f242c4d7ba08",
+    "card": "2855719497",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom trial - 2nd follow up for VoyagerX ",
+    "contentLength": 220,
+    "contentSha": "23b2ceb55a5bbffa",
+    "timestamp": "2025-12-26T07:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:21.501Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:30.139Z",
+   "newId": "95f0cec3-40ee-4703-b77a-1d959c662216",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-12-26T07:00:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856301039",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:319816942296]",
+   "object": "emails",
+   "activityId": "319816942296",
+   "outcome": "created",
+   "recordId": "394787880657",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "35b998cf-e55c-46c6-a130-8bdfd64aa348",
+    "card": "2855619270",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Scaling Support without adding headcount",
+    "contentLength": 1678,
+    "contentSha": "a2dd37702b96a8b7",
+    "timestamp": "2026-01-29T09:48:55.580Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 28,
+     "rowsReturned": 28,
+     "distinctRows": 28,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:22.682Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:22.682Z",
+   "newId": "6ba491cb-12ce-45dd-a046-321c652a2d0b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-01-29T09:48:55.580Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856303895",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:301651585732]",
+   "object": "notes",
+   "activityId": "301651585732",
+   "outcome": "created",
+   "recordId": "357494783691",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5cf37520-8fb5-47aa-b1ec-e331772cda6f",
+    "card": "2855719465",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "之前Wendy在沟通",
+    "contentLength": 67,
+    "contentSha": "19b603d9c8c3b672",
+    "timestamp": "2026-01-13T11:24:27.293Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:34.433Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:34.433Z",
+   "newId": "8ae9b78c-72ab-4ef0-b0ef-47785c55497b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-01-13T11:24:27.293Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856306867",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359397510868]",
+   "object": "emails",
+   "activityId": "359397510868",
+   "outcome": "created",
+   "recordId": "411783764721",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "310c5e7d-b9ed-4fa5-87f2-635cd3b93b77",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1113,
+    "contentSha": "51796e5f10dd62cc",
+    "timestamp": "2026-03-18T03:13:59.836Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:39.610Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:39.610Z",
+   "newId": "24e2ef55-10bb-4f4a-a165-b511fff93c70",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-18T03:13:59.836Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856307057",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:362608771775]",
+   "object": "calls",
+   "activityId": "362608771775",
+   "outcome": "created",
+   "recordId": "411892420283",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1b0d308f-ea4f-4a36-8800-73dcf8aa032d",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Anirudh Subramaniam 的呼叫",
+    "contentLength": 136,
+    "contentSha": "f129799990603cae",
+    "timestamp": "2026-04-06T03:40:39.041Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:44.323Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:44.323Z",
+   "newId": "517493dd-a1e3-4857-9044-affe3b506acd",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-06T03:40:39.041Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856307057",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:364955022022]",
+   "object": "calls",
+   "activityId": "364955022022",
+   "outcome": "created",
+   "recordId": "411892420283",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "457c3195-1b9e-473d-b645-5ea8816abe8e",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Anirudh Subramaniam 的呼叫",
+    "contentLength": 140,
+    "contentSha": "3c215776211b8349",
+    "timestamp": "2026-04-20T02:43:33.969Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:44.323Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:52.863Z",
+   "newId": "ca39cb4b-b990-4c3b-95da-fe5cab4972c5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-20T02:43:33.969Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856307057",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360032312028]",
+   "object": "emails",
+   "activityId": "360032312028",
+   "outcome": "created",
+   "recordId": "411892420283",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "18cef454-0095-4817-b6e1-8c61dcfa8c91",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1855,
+    "contentSha": "0a044bf02a7a4456",
+    "timestamp": "2026-03-23T02:53:00.542Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:44.323Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:59.253Z",
+   "newId": "0c697ab1-14a8-4f8e-86f2-f960e14e8622",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-23T02:53:00.542Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856307401",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359466959551]",
+   "object": "emails",
+   "activityId": "359466959551",
+   "outcome": "created",
+   "recordId": "411790888684",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "97be8fd1-4739-4eb5-8e6e-e68162934841",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1115,
+    "contentSha": "7435387a2363b7e7",
+    "timestamp": "2026-03-18T10:06:00.132Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:49.552Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:49.552Z",
+   "newId": "9e2a9b54-5063-46ce-96b8-c73b20dce37b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-18T10:06:00.132Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856308669",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359395374794]",
+   "object": "emails",
+   "activityId": "359395374794",
+   "outcome": "created",
+   "recordId": "411799522002",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5fc38a0e-731a-4ed9-bbd8-9045363b697c",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1114,
+    "contentSha": "158c9c829038a39a",
+    "timestamp": "2026-03-18T01:00:00.336Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:59.424Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:24:59.424Z",
+   "newId": "88ebf735-fb90-4f7b-a866-5af8af685c0f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-18T01:00:00.336Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856308669",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360024436453]",
+   "object": "emails",
+   "activityId": "360024436453",
+   "outcome": "created",
+   "recordId": "411799522002",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "69aa80ef-2a01-4e61-a00c-5b4a0892ab34",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1838,
+    "contentSha": "6dec87dad8a95be3",
+    "timestamp": "2026-03-23T02:42:59.581Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:24:59.424Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:07.229Z",
+   "newId": "dedb708d-105d-4b05-b656-766ef519db2e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-23T02:42:59.581Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856310738",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:402266502881]",
+   "object": "emails",
+   "activityId": "402266502881",
+   "outcome": "created",
+   "recordId": "412151101129",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "50badee9-68b8-422f-89e1-350b464f9dfc",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Follow up from Intercom",
+    "contentLength": 996,
+    "contentSha": "fb39c225f0084b1c",
+    "timestamp": "2026-09-24T11:45:50Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:09.993Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:09.993Z",
+   "newId": "ae366f2f-9091-42e8-8555-c9e45117c400",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-24T11:45:50.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856315497",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360022183656]",
+   "object": "emails",
+   "activityId": "360022183656",
+   "outcome": "created",
+   "recordId": "411640386251",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ad7c4ab0-0585-4a51-b704-bd8ec6597398",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1846,
+    "contentSha": "9188afd5b4c5f379",
+    "timestamp": "2026-03-23T02:55:00.636Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:17.953Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:17.953Z",
+   "newId": "1b639a42-4c4b-454e-8d15-3746e35e91b3",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-23T02:55:00.636Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856320098",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:352614679270]",
+   "object": "emails",
+   "activityId": "352614679270",
+   "outcome": "created",
+   "recordId": "446336244461",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "56ec4928-bed9-4e2c-8fd1-30adfa15ebb8",
+    "card": "2855709948",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Partnership Discussion: Elliptic + DKM",
+    "contentLength": 790,
+    "contentSha": "cd528eba4e4826f8",
+    "timestamp": "2026-03-03T06:57:44.067Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:18.923Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:18.923Z",
+   "newId": "c485a0ed-898a-43bd-aff6-26dcb82b3947",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-03T06:57:44.067Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856320261",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:326999909095]",
+   "object": "emails",
+   "activityId": "326999909095",
+   "outcome": "created",
+   "recordId": "412945992388",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "61e7b857-2277-4d19-ac69-04fba17e8dcc",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 回复: 回复: Intercom + Dimension 5 : Let's connect",
+    "contentLength": 5078,
+    "contentSha": "65cbac75b57b2e00",
+    "timestamp": "2026-02-03T16:28:30.762Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:29.708Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:29.708Z",
+   "newId": "e1fa2cea-38d1-4674-939a-560e6202dff6",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-02-03T16:28:30.762Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856320262",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:327525031656]",
+   "object": "emails",
+   "activityId": "327525031656",
+   "outcome": "created",
+   "recordId": "412959180524",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8c81d3a7-11e9-4574-886c-0eecf3db0b6e",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: 回复: Intercom + Dimension 5 : Let's connect",
+    "contentLength": 5710,
+    "contentSha": "7a7c7ede59948c4a",
+    "timestamp": "2026-02-04T03:45:12Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:30.796Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:30.796Z",
+   "newId": "6b6cd7e2-bf55-48fe-aa9f-afdc8be27208",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-02-04T03:45:12.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856322486",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360032048879]",
+   "object": "emails",
+   "activityId": "360032048879",
+   "outcome": "created",
+   "recordId": "411801325245",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "365c48c7-5f88-4792-90b1-72ea8c3a59b3",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1845,
+    "contentSha": "1b391828ae0c4e0e",
+    "timestamp": "2026-03-23T02:46:00.190Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:40.205Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:40.205Z",
+   "newId": "3179e1b3-8a35-4ca8-9ee6-77d2a023e7c1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-23T02:46:00.190Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856322490",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360022168297]",
+   "object": "emails",
+   "activityId": "360022168297",
+   "outcome": "created",
+   "recordId": "411801325247",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "674ac18f-9e0b-4409-ab6f-62e8f459ef54",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from DKMECO Intercom Team",
+    "contentLength": 1844,
+    "contentSha": "e1664263ae2a1efb",
+    "timestamp": "2026-03-23T02:46:59.755Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:40.947Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:40.947Z",
+   "newId": "0870faed-d9e6-4c57-a671-fffd5e1f9680",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-23T02:46:59.755Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856334077",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:343440479951]",
+   "object": "emails",
+   "activityId": "343440479951",
+   "outcome": "created",
+   "recordId": "433693240021",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7d14ce3a-6904-4365-a2ba-bbb0357f9d4c",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom + Cyberbiz",
+    "contentLength": 1763,
+    "contentSha": "95e62d2c4114d303",
+    "timestamp": "2026-02-18T15:16:54.934Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:50.280Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:50.280Z",
+   "newId": "17cc81d5-49ec-4c4e-be15-6cf0d4e9728b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-02-18T15:16:54.934Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856334078",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:343440479951]",
+   "object": "emails",
+   "activityId": "343440479951",
+   "outcome": "created",
+   "recordId": "433693240022",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7d14ce3a-6904-4365-a2ba-bbb0357f9d4c",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom + Cyberbiz",
+    "contentLength": 1763,
+    "contentSha": "95e62d2c4114d303",
+    "timestamp": "2026-02-18T15:16:54.934Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:25:51.382Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:25:51.382Z",
+   "newId": "76e84c1b-36a9-472d-81e5-c0284b5bcedf",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-02-18T15:16:54.934Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856346325",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:365247088330]",
+   "object": "calls",
+   "activityId": "365247088330",
+   "outcome": "created",
+   "recordId": "453169067751",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "bc11f360-99ca-4def-8143-1853f80e3ab4",
+    "card": "2855718585",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Ankit Agarwal 的呼叫",
+    "contentLength": 204,
+    "contentSha": "ce0bda79b013e4c6",
+    "timestamp": "2026-04-20T02:51:18Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:01.800Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:01.800Z",
+   "newId": "49dc6dc2-b6dd-4680-85d0-f967d5e2b9b0",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-20T02:51:18.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856352063",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:368345827002]",
+   "object": "calls",
+   "activityId": "368345827002",
+   "outcome": "created",
+   "recordId": "453300721387",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "47f4ff82-751e-4b7d-a7ba-1b1f694bb320",
+    "card": "2855718585",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Neha Goyal 的呼叫",
+    "contentLength": 147,
+    "contentSha": "6c709233a493aa9b",
+    "timestamp": "2026-05-07T08:32:42.147Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:05.078Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:05.078Z",
+   "newId": "2e0715cf-e402-4724-9982-9b3857c2a457",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-07T08:32:42.147Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856352064",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:368338842317]",
+   "object": "calls",
+   "activityId": "368338842317",
+   "outcome": "created",
+   "recordId": "453300721388",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4b0c0670-418b-4993-b304-31c6ddbccc5b",
+    "card": "2855634105",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Garima Malhotra 的呼叫",
+    "contentLength": 205,
+    "contentSha": "f0aa59c847399d7c",
+    "timestamp": "2026-05-07T08:18:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:13.737Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:13.737Z",
+   "newId": "fe1d5cd8-ed62-4c61-bc9b-1c0b28d34da2",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-07T08:18:05.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856355755",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:368345796337]",
+   "object": "calls",
+   "activityId": "368345796337",
+   "outcome": "created",
+   "recordId": "453300721380",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2a284c94-8946-432c-806d-a48180b19f7c",
+    "card": "2855634105",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Mayar Soliman 的呼叫",
+    "contentLength": 142,
+    "contentSha": "4aab1d5f02def6df",
+    "timestamp": "2026-05-07T09:13:24.592Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:14.407Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:14.407Z",
+   "newId": "9c651d9c-7557-4a6a-af85-99fd55f81cd5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-07T09:13:24.592Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856356610",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358464710332]",
+   "object": "emails",
+   "activityId": "358464710332",
+   "outcome": "created",
+   "recordId": "454894127827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "589e6bd6-2606-421b-9ca6-a507caf6f75b",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 34333,
+    "contentSha": "22050b71c940ac39",
+    "timestamp": "2026-03-11T04:12:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:24.359Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:24.359Z",
+   "newId": "4e331dd4-9188-4d22-a195-e8a0fb361bf9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T04:12:26.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856356610",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358478763724]",
+   "object": "emails",
+   "activityId": "358478763724",
+   "outcome": "created",
+   "recordId": "454894127827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1271aee4-f13c-4444-bad1-631beb535c82",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 32934,
+    "contentSha": "695e365b30213e84",
+    "timestamp": "2026-03-11T02:41:55.723Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:24.359Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:32.854Z",
+   "newId": "167a2b5d-3b78-4d4e-8389-7cfbd6dadf4f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T02:41:55.723Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856356610",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359207687889]",
+   "object": "emails",
+   "activityId": "359207687889",
+   "outcome": "created",
+   "recordId": "454894127827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c1d6a468-df80-4d3e-97ce-d9c458e4ee77",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 37256,
+    "contentSha": "ccbd78c57ae1e317",
+    "timestamp": "2026-03-16T16:35:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:24.359Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:40.398Z",
+   "newId": "9641cbc9-77a4-4459-a1a2-9073c749258b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-16T16:35:53.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856356610",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:375994637039]",
+   "object": "emails",
+   "activityId": "375994637039",
+   "outcome": "created",
+   "recordId": "454894127827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4978b409-2b7e-460d-8e74-a647f9e7ddad",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 61747,
+    "contentSha": "1595710854960e17",
+    "timestamp": "2026-06-16T01:47:46Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:24.359Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:47.175Z",
+   "newId": "a51c054f-36e2-455f-b950-d24d1c2aa90f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-16T01:47:46.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856356610",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:378749874888]",
+   "object": "emails",
+   "activityId": "378749874888",
+   "outcome": "created",
+   "recordId": "454894127827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0de298d1-4983-4e1a-b98e-8a58f809525c",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 64470,
+    "contentSha": "205da06ffe95f93d",
+    "timestamp": "2026-06-25T03:39:25Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:24.359Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:54.160Z",
+   "newId": "5349df8b-6bc8-43bc-9a9f-b9b2f4945530",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-25T03:39:25.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856363696",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:365481211625]",
+   "object": "calls",
+   "activityId": "365481211625",
+   "outcome": "created",
+   "recordId": "453355043574",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1a451de6-aac8-4e42-a8e0-57d2fcb7995d",
+    "card": "2855634105",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Max Hillier 的呼叫",
+    "contentLength": 152,
+    "contentSha": "52b4ae61dd49e17a",
+    "timestamp": "2026-04-21T05:18:17.987Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:25.055Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:25.055Z",
+   "newId": "5cf72655-5673-45fe-b8ef-24cc5d8b5c0e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-21T05:18:17.987Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856366683",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:365581603575]",
+   "object": "calls",
+   "activityId": "365581603575",
+   "outcome": "created",
+   "recordId": "453224868596",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "233cae64-f82f-455c-9887-f8208f00ee17",
+    "card": "2855634105",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 David Liao 的呼叫",
+    "contentLength": 210,
+    "contentSha": "c7475e0a7f7a1343",
+    "timestamp": "2026-04-22T01:41:57Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:35.895Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:35.895Z",
+   "newId": "62ef8329-6054-4c28-b230-726ad96e3bbe",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-22T01:41:57.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856366683",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:365587035874]",
+   "object": "calls",
+   "activityId": "365587035874",
+   "outcome": "created",
+   "recordId": "453224868596",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c40b580f-8e93-4a63-be8a-2964ce7357c3",
+    "card": "2855634105",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 David Liao 的呼叫",
+    "contentLength": 150,
+    "contentSha": "b5739d9bb4129dd7",
+    "timestamp": "2026-04-22T01:41:40.307Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:35.895Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:44.038Z",
+   "newId": "27c87078-74d3-4ddd-b94c-2df3b01a8550",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-22T01:41:40.307Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367731",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:358968827600]",
+   "object": "notes",
+   "activityId": "358968827600",
+   "outcome": "created",
+   "recordId": "455469852403",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0aeabf6b-c2d3-43b6-8372-40a9d9335fa8",
+    "card": "2855728267",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "线上做了操作，说了集成后的跳转，他感觉这个集成可以先不做，关于法务的签署，有中国和海外，了解了CA认证，还有证书，她们内部要再确认下",
+    "contentLength": 121,
+    "contentSha": "c515769b78030849",
+    "timestamp": "2026-03-16T02:57:57.517Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:26:54.663Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:26:54.663Z",
+   "newId": "2458455b-392a-4bca-979d-c32fd0ca4917",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-16T02:57:57.517Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367761",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358464710332]",
+   "object": "emails",
+   "activityId": "358464710332",
+   "outcome": "created",
+   "recordId": "454894127828",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "589e6bd6-2606-421b-9ca6-a507caf6f75b",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 34333,
+    "contentSha": "22050b71c940ac39",
+    "timestamp": "2026-03-11T04:12:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.156Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:05.156Z",
+   "newId": "97fb0120-a327-4a98-b5b9-04fd9aa8ac75",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T04:12:26.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367761",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358478763724]",
+   "object": "emails",
+   "activityId": "358478763724",
+   "outcome": "created",
+   "recordId": "454894127828",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1271aee4-f13c-4444-bad1-631beb535c82",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 32934,
+    "contentSha": "695e365b30213e84",
+    "timestamp": "2026-03-11T02:41:55.723Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.156Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:12.815Z",
+   "newId": "a4726944-ceea-49d6-9d25-dfd447a4f424",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T02:41:55.723Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367761",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:375994637039]",
+   "object": "emails",
+   "activityId": "375994637039",
+   "outcome": "created",
+   "recordId": "454894127828",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4978b409-2b7e-460d-8e74-a647f9e7ddad",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 61747,
+    "contentSha": "1595710854960e17",
+    "timestamp": "2026-06-16T01:47:46Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.156Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:20.192Z",
+   "newId": "70b07e56-2be8-423b-9ae2-fff0d6eadce4",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-16T01:47:46.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367761",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:378749874888]",
+   "object": "emails",
+   "activityId": "378749874888",
+   "outcome": "created",
+   "recordId": "454894127828",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0de298d1-4983-4e1a-b98e-8a58f809525c",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 64470,
+    "contentSha": "205da06ffe95f93d",
+    "timestamp": "2026-06-25T03:39:25Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.156Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:27.035Z",
+   "newId": "a31cf57a-a5b3-4a52-9719-e30a74f10918",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-25T03:39:25.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367762",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358464710332]",
+   "object": "emails",
+   "activityId": "358464710332",
+   "outcome": "created",
+   "recordId": "454895451868",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "589e6bd6-2606-421b-9ca6-a507caf6f75b",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 34333,
+    "contentSha": "22050b71c940ac39",
+    "timestamp": "2026-03-11T04:12:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.991Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:05.991Z",
+   "newId": "ef118b35-0cf3-4586-b528-37d71e2e7ec9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T04:12:26.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367762",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358478763724]",
+   "object": "emails",
+   "activityId": "358478763724",
+   "outcome": "created",
+   "recordId": "454895451868",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1271aee4-f13c-4444-bad1-631beb535c82",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 32934,
+    "contentSha": "695e365b30213e84",
+    "timestamp": "2026-03-11T02:41:55.723Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.991Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:16.259Z",
+   "newId": "318b93a7-8e13-4aa6-a193-02b7c608da2f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T02:41:55.723Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367762",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359207687889]",
+   "object": "emails",
+   "activityId": "359207687889",
+   "outcome": "created",
+   "recordId": "454895451868",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c1d6a468-df80-4d3e-97ce-d9c458e4ee77",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 37256,
+    "contentSha": "ccbd78c57ae1e317",
+    "timestamp": "2026-03-16T16:35:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.991Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:23.698Z",
+   "newId": "b832df80-5d5a-4408-b014-79aa1e1344a8",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-16T16:35:53.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367762",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:375994637039]",
+   "object": "emails",
+   "activityId": "375994637039",
+   "outcome": "created",
+   "recordId": "454895451868",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4978b409-2b7e-460d-8e74-a647f9e7ddad",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 61747,
+    "contentSha": "1595710854960e17",
+    "timestamp": "2026-06-16T01:47:46Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.991Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:30.562Z",
+   "newId": "64d1f3c7-3d84-4b36-9f27-8cbc2fe7f068",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-16T01:47:46.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367762",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:378749874888]",
+   "object": "emails",
+   "activityId": "378749874888",
+   "outcome": "created",
+   "recordId": "454895451868",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0de298d1-4983-4e1a-b98e-8a58f809525c",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 64470,
+    "contentSha": "205da06ffe95f93d",
+    "timestamp": "2026-06-25T03:39:25Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:05.991Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:37.280Z",
+   "newId": "030f85a5-afc3-41f3-88be-ac0cabc60bbc",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-25T03:39:25.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367763",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358478763724]",
+   "object": "emails",
+   "activityId": "358478763724",
+   "outcome": "created",
+   "recordId": "454897996535",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1271aee4-f13c-4444-bad1-631beb535c82",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 32934,
+    "contentSha": "695e365b30213e84",
+    "timestamp": "2026-03-11T02:41:55.723Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:38.356Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:38.356Z",
+   "newId": "1ebbe143-e441-4b0e-8522-e6815e4810c2",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T02:41:55.723Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367763",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359207687889]",
+   "object": "emails",
+   "activityId": "359207687889",
+   "outcome": "created",
+   "recordId": "454897996535",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c1d6a468-df80-4d3e-97ce-d9c458e4ee77",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 37256,
+    "contentSha": "ccbd78c57ae1e317",
+    "timestamp": "2026-03-16T16:35:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:38.356Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:46.408Z",
+   "newId": "cea73464-a6ab-490c-ba91-fbb0c619cbcf",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-16T16:35:53.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367764",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358464710332]",
+   "object": "emails",
+   "activityId": "358464710332",
+   "outcome": "created",
+   "recordId": "454897996537",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "589e6bd6-2606-421b-9ca6-a507caf6f75b",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 34333,
+    "contentSha": "22050b71c940ac39",
+    "timestamp": "2026-03-11T04:12:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:49.386Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:49.386Z",
+   "newId": "84fb5f71-1715-458f-a4fd-a7de016cde9f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T04:12:26.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367764",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358478763724]",
+   "object": "emails",
+   "activityId": "358478763724",
+   "outcome": "created",
+   "recordId": "454897996537",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1271aee4-f13c-4444-bad1-631beb535c82",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:  Intercom Demo & Technical Questions",
+    "contentLength": 32934,
+    "contentSha": "695e365b30213e84",
+    "timestamp": "2026-03-11T02:41:55.723Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:49.386Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:55.658Z",
+   "newId": "d1b20f6d-4496-4788-a4e8-5b4b7f5459e1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-11T02:41:55.723Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367764",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359207687889]",
+   "object": "emails",
+   "activityId": "359207687889",
+   "outcome": "created",
+   "recordId": "454897996537",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c1d6a468-df80-4d3e-97ce-d9c458e4ee77",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 37256,
+    "contentSha": "ccbd78c57ae1e317",
+    "timestamp": "2026-03-16T16:35:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:49.386Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:28:02.777Z",
+   "newId": "76e7b632-44ea-4de4-b37e-d50e5d57ca10",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-16T16:35:53.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367764",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:375994637039]",
+   "object": "emails",
+   "activityId": "375994637039",
+   "outcome": "created",
+   "recordId": "454897996537",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4978b409-2b7e-460d-8e74-a647f9e7ddad",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 61747,
+    "contentSha": "1595710854960e17",
+    "timestamp": "2026-06-16T01:47:46Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:49.386Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:28:09.737Z",
+   "newId": "a94c4b56-006a-499c-9e64-f0a4ec7f560b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-16T01:47:46.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367764",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:378749874888]",
+   "object": "emails",
+   "activityId": "378749874888",
+   "outcome": "created",
+   "recordId": "454897996537",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0de298d1-4983-4e1a-b98e-8a58f809525c",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Demo & Technical Questions",
+    "contentLength": 64470,
+    "contentSha": "205da06ffe95f93d",
+    "timestamp": "2026-06-25T03:39:25Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:49.386Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:28:15.240Z",
+   "newId": "ff259323-bae6-418a-87e5-80b571f275cc",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-06-25T03:39:25.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367833",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:365400567488]",
+   "object": "calls",
+   "activityId": "365400567488",
+   "outcome": "created",
+   "recordId": "453355043568",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "35db755f-c847-417e-9725-2c147e2ecfb3",
+    "card": "2855634105",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Ida Liu 的呼叫",
+    "contentLength": 141,
+    "contentSha": "4bfcd79a0a378603",
+    "timestamp": "2026-04-21T05:19:27.813Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:27:55.726Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:27:55.726Z",
+   "newId": "64db4a5a-3c0e-49f4-aa49-d329918a884e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-21T05:19:27.813Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856367920",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358506168049]",
+   "object": "emails",
+   "activityId": "358506168049",
+   "outcome": "created",
+   "recordId": "454878400249",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "55e9cf4d-49eb-454f-957c-14878233b3cb",
+    "card": "2856320104",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Follow up: Habitto + Intercom",
+    "contentLength": 617,
+    "contentSha": "0e6c4d4996353d64",
+    "timestamp": "2026-03-11T09:53:58.446Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:28:05.853Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:28:05.853Z",
+   "newId": "56bd5eb3-3938-4f58-a5c9-a5e49bc561fe",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-11T09:53:58.446Z",
+    "createdAtExact": true
+   }
+  }
+ ]
+}

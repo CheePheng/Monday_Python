@@ -1,0 +1,745 @@
+{
+ "takenAt": "2026-09-22T01:43:56.201Z",
+ "Contacts": {
+  "hubspot": 95993,
+  "monday": 95970,
+  "missing": [
+   "120351",
+   "548317294315",
+   "553190843104",
+   "553199377085",
+   "553208435408",
+   "553208435409",
+   "553231686361",
+   "553232416470",
+   "553232416501",
+   "553249487567",
+   "553249806045",
+   "553249905368",
+   "553250296561",
+   "553250916067",
+   "553250916081",
+   "553251170036",
+   "553251171006",
+   "553254751969",
+   "553254751988",
+   "553258686195",
+   "553287165647",
+   "553293119192",
+   "553298669249",
+   "553298669259",
+   "553304045270",
+   "553306497763",
+   "553306497774",
+   "553309917927"
+  ],
+  "dead": [
+   "549073706716",
+   "551715824375"
+  ],
+  "dupes": []
+ },
+ "Companies/Accounts": {
+  "hubspot": 28619,
+  "monday": 29933,
+  "missing": [
+   "346823102180",
+   "346857256678",
+   "346874115816",
+   "346890519289",
+   "346917879518",
+   "346966131426",
+   "346966131430",
+   "346967912152",
+   "347012118246",
+   "347017485019",
+   "347017485026",
+   "347040760563",
+   "347051363058",
+   "347051363061",
+   "347053147888",
+   "347055246061",
+   "347060731589",
+   "347064323827",
+   "347064324794",
+   "347080628932",
+   "347080628933"
+  ],
+  "dead": [],
+  "dupes": [
+   {
+    "hsId": "34840061452",
+    "cards": [
+     "2855632725",
+     "2855811089"
+    ]
+   },
+   {
+    "hsId": "37126913386",
+    "cards": [
+     "2855652128",
+     "2855981678",
+     "2856516926"
+    ]
+   },
+   {
+    "hsId": "37136172643",
+    "cards": [
+     "2855648070",
+     "2856408539"
+    ]
+   },
+   {
+    "hsId": "37199867738",
+    "cards": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   {
+    "hsId": "37200027791",
+    "cards": [
+     "2855643479",
+     "2855836266"
+    ]
+   },
+   {
+    "hsId": "37243386543",
+    "cards": [
+     "2855681617",
+     "2856652671",
+     "2856705329"
+    ]
+   },
+   {
+    "hsId": "205195307718",
+    "cards": [
+     "2855679722",
+     "2856772877"
+    ]
+   },
+   {
+    "hsId": "312430609140",
+    "cards": [
+     "2855700900",
+     "2857040519"
+    ]
+   },
+   {
+    "hsId": "312450639552",
+    "cards": [
+     "2855725789",
+     "2857008862",
+     "2857053237",
+     "2857048068",
+     "2857053361",
+     "2857066000",
+     "2857070099",
+     "2857058153"
+    ]
+   },
+   {
+    "hsId": "345510440690",
+    "cards": [
+     "2855768363",
+     "2855766337"
+    ]
+   },
+   {
+    "hsId": "345760686791",
+    "cards": [
+     "2856857594",
+     "2857007351"
+    ]
+   },
+   {
+    "hsId": "345751960262",
+    "cards": [
+     "2856899730",
+     "2856895312"
+    ]
+   },
+   {
+    "hsId": "345644947181",
+    "cards": [
+     "2856900629",
+     "2856900458"
+    ]
+   },
+   {
+    "hsId": "345883270854",
+    "cards": [
+     "2856945587",
+     "2856921575"
+    ]
+   },
+   {
+    "hsId": "345848916698",
+    "cards": [
+     "2856964557",
+     "2856964556"
+    ]
+   },
+   {
+    "hsId": "345749478096",
+    "cards": [
+     "2857116802",
+     "2857130877"
+    ]
+   },
+   {
+    "hsId": "345961007842",
+    "cards": [
+     "2857170303",
+     "2857168740"
+    ]
+   }
+  ]
+ },
+ "Deals": {
+  "hubspot": 8665,
+  "monday": 8668,
+  "missing": [
+   "348350508786",
+   "348354729671",
+   "348945169124",
+   "348946436814",
+   "348946476770",
+   "349204144871",
+   "349500811964"
+  ],
+  "dead": [],
+  "dupes": []
+ },
+ "accountPairs": [
+  {
+   "hsId": "34840061452",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2855632725",
+   "keepName": "n.com",
+   "keepTimeline": 1,
+   "drop": [
+    {
+     "card": "2855811089",
+     "name": "n.com",
+     "timeline": 1
+    }
+   ],
+   "uniqueOnDrop": [
+    "2855811089: 1 timeline entries"
+   ]
+  },
+  {
+   "hsId": "37126913386",
+   "classification": "SAFE_TO_MERGE_AND_DELETE_DUPLICATE",
+   "keep": "2855652128",
+   "keepName": "Group Publishing",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2855981678",
+     "name": "Group Publishing",
+     "timeline": 0
+    },
+    {
+     "card": "2856516926",
+     "name": "Group Publishing",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": []
+  },
+  {
+   "hsId": "37136172643",
+   "classification": "SAFE_TO_MERGE_AND_DELETE_DUPLICATE",
+   "keep": "2855648070",
+   "keepName": "Spring Airlines",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2856408539",
+     "name": "Spring Airlines",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": []
+  },
+  {
+   "hsId": "37199867738",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2855666123",
+   "keepName": "STMicroelectronics",
+   "keepTimeline": 3,
+   "drop": [
+    {
+     "card": "2856696010",
+     "name": "St",
+     "timeline": 0
+    },
+    {
+     "card": "2855830301",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2855824266",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2855850628",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2856101720",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2856232276",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2856386092",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2856489857",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2856521469",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    },
+    {
+     "card": "2856522769",
+     "name": "STMicroelectronics",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2856696010: 1 Contacts relation(s) not on canonical"
+   ]
+  },
+  {
+   "hsId": "37200027791",
+   "classification": "SAFE_TO_MERGE_AND_DELETE_DUPLICATE",
+   "keep": "2855643479",
+   "keepName": "LL",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2855836266",
+     "name": "LL",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": []
+  },
+  {
+   "hsId": "37243386543",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856652671",
+   "keepName": "M",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2856705329",
+     "name": "M",
+     "timeline": 0
+    },
+    {
+     "card": "2855681617",
+     "name": "m",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2856705329: 1 Contacts relation(s) not on canonical",
+    "2855681617: Record source=\"CRM_SETTING\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "205195307718",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856772877",
+   "keepName": "Oup",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2855679722",
+     "name": "Oxford University Press",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2855679722: Company name=\"Oxford University Press\" absent on canonical",
+    "2855679722: Record source=\"CRM_SETTING\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "312430609140",
+   "classification": "SAFE_TO_MERGE_AND_DELETE_DUPLICATE",
+   "keep": "2857040519",
+   "keepName": "Financial Times",
+   "keepTimeline": 2,
+   "drop": [
+    {
+     "card": "2855700900",
+     "name": "Financial Times",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": []
+  },
+  {
+   "hsId": "312450639552",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2857066000",
+   "keepName": "ING Australia",
+   "keepTimeline": 2,
+   "drop": [
+    {
+     "card": "2857058153",
+     "name": "ING Australia",
+     "timeline": 2
+    },
+    {
+     "card": "2857008862",
+     "name": "ING Australia",
+     "timeline": 0
+    },
+    {
+     "card": "2857053237",
+     "name": "ING Australia",
+     "timeline": 0
+    },
+    {
+     "card": "2857048068",
+     "name": "ING Australia",
+     "timeline": 0
+    },
+    {
+     "card": "2857053361",
+     "name": "ING Australia",
+     "timeline": 0
+    },
+    {
+     "card": "2857070099",
+     "name": "ING Australia",
+     "timeline": 0
+    },
+    {
+     "card": "2855725789",
+     "name": "ING Australia",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2857058153: 2 timeline entries",
+    "2857058153: 1 Contacts relation(s) not on canonical",
+    "2857008862: 1 Contacts relation(s) not on canonical",
+    "2857053237: 1 Contacts relation(s) not on canonical",
+    "2857048068: 1 Contacts relation(s) not on canonical",
+    "2857053361: 1 Contacts relation(s) not on canonical",
+    "2857070099: 1 Contacts relation(s) not on canonical"
+   ]
+  },
+  {
+   "hsId": "345510440690",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2855768363",
+   "keepName": "Procol",
+   "keepTimeline": 11,
+   "drop": [
+    {
+     "card": "2855766337",
+     "name": "Procol",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2855766337: Company name=\"Procol\" absent on canonical",
+    "2855766337: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "345760686791",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856857594",
+   "keepName": "Goldman Sachs",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2857007351",
+     "name": "Gs",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2857007351: 1 Contacts relation(s) not on canonical"
+   ]
+  },
+  {
+   "hsId": "345751960262",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856899730",
+   "keepName": "In",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2856895312",
+     "name": "abb",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2856895312: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "345644947181",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856900458",
+   "keepName": "Christiandior",
+   "keepTimeline": 1,
+   "drop": [
+    {
+     "card": "2856900629",
+     "name": "Christian Dior",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2856900629: Company name=\"Christian Dior\" absent on canonical",
+    "2856900629: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "345883270854",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856921575",
+   "keepName": "Henner",
+   "keepTimeline": 1,
+   "drop": [
+    {
+     "card": "2856945587",
+     "name": "henner",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2856945587: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "345848916698",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2856964556",
+   "keepName": "Infolks",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2856964557",
+     "name": "Infoloks",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2856964557: Company name=\"Infoloks\" absent on canonical",
+    "2856964557: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "345749478096",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2857116802",
+   "keepName": "Eagle",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2857130877",
+     "name": "sophia",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2857130877: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  },
+  {
+   "hsId": "345961007842",
+   "classification": "NEEDS_DATA_MIGRATION_FIRST",
+   "keep": "2857170303",
+   "keepName": "Smithery",
+   "keepTimeline": 0,
+   "drop": [
+    {
+     "card": "2857168740",
+     "name": "Smithery",
+     "timeline": 0
+    }
+   ],
+   "uniqueOnDrop": [
+    "2857168740: Company name=\"Smithery\" absent on canonical",
+    "2857168740: Record source=\"INTEGRATION\" absent on canonical"
+   ]
+  }
+ ],
+ "blankDeals": [
+  {
+   "card": "2771847395",
+   "name": "test-deal-0917",
+   "created": "2026-07-07T06:36:22Z",
+   "updated": "2026-09-17T06:27:31Z",
+   "timeline": 56,
+   "contacts": 1,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "23456.00",
+   "stage": "Proposal",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2771854513",
+   "name": "test-0918-hkz",
+   "created": "2026-07-07T06:34:42Z",
+   "updated": "2026-09-21T07:00:23Z",
+   "timeline": 0,
+   "contacts": 1,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "",
+   "stage": "Discovery",
+   "sync": "",
+   "classification": "CONFIRMED_TEST_SAFE_TO_DELETE_has_contact_link"
+  },
+  {
+   "card": "2673961653",
+   "name": "Google deal",
+   "created": "2026-04-22T17:56:22Z",
+   "updated": "2026-09-14T07:09:21Z",
+   "timeline": 3,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "70000",
+   "stage": "Discovery",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2673962135",
+   "name": "Apple deal",
+   "created": "2026-04-22T17:56:23Z",
+   "updated": "2026-04-22T17:56:23Z",
+   "timeline": 3,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "55000",
+   "stage": "Discovery",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2673961654",
+   "name": "Amazon deal",
+   "created": "2026-04-22T17:56:23Z",
+   "updated": "2026-04-22T17:56:23Z",
+   "timeline": 3,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "100000",
+   "stage": "Proposal",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2828641429",
+   "name": "Test0812",
+   "created": "2026-08-12T06:37:45Z",
+   "updated": "2026-08-12T06:56:37Z",
+   "timeline": 1,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "3333",
+   "stage": "Proposal",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2862519149",
+   "name": "xtopup",
+   "created": "2026-09-18T07:20:03Z",
+   "updated": "2026-09-18T07:31:21Z",
+   "timeline": 1,
+   "contacts": 1,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "",
+   "stage": "Discovery",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2862544051",
+   "name": "Incoming form answer",
+   "created": "2026-09-18T08:07:14Z",
+   "updated": "2026-09-18T08:07:18Z",
+   "timeline": 0,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "",
+   "stage": "New",
+   "sync": "",
+   "classification": "CONFIRMED_TEST_SAFE_TO_DELETE"
+  },
+  {
+   "card": "2862614691",
+   "name": "test-op0918",
+   "created": "2026-09-18T08:25:50Z",
+   "updated": "2026-09-18T08:25:53Z",
+   "timeline": 0,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "3567",
+   "stage": "New",
+   "sync": "",
+   "classification": "AMBIGUOUS"
+  },
+  {
+   "card": "2862590391",
+   "name": "测试",
+   "created": "2026-09-18T09:59:11Z",
+   "updated": "2026-09-18T10:01:24Z",
+   "timeline": 0,
+   "contacts": 0,
+   "accounts": 0,
+   "lineItems": 0,
+   "value": "",
+   "stage": "New",
+   "sync": "",
+   "classification": "CONFIRMED_TEST_SAFE_TO_DELETE"
+  }
+ ]
+}

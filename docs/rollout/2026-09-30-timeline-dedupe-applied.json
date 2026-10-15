@@ -1,0 +1,3307 @@
+{
+  "generatedAt": "2026-09-30T09:07:27.792Z",
+  "apply": true,
+  "canary": false,
+  "intentLog": true,
+  "types": [
+    "emails",
+    "calls",
+    "notes",
+    "meetings",
+    "tasks"
+  ],
+  "activities": 34280,
+  "cardsChecked": 3359,
+  "cardsWithDuplicates": 35,
+  "entriesToDelete": 127,
+  "identicalExtras": 127,
+  "bodylessExtras": 0,
+  "deleted": 109,
+  "deleteFailed": 0,
+  "noLongerQualifying": 2,
+  "divergentMarkers": 0,
+  "foreignItemEntries": 0,
+  "guardTripped": 0,
+  "byBoard": {
+    "contacts": 127
+  },
+  "byType": {
+    "emails": 93,
+    "tasks": 14,
+    "notes": 12,
+    "meetings": 8
+  },
+  "includeCleaned": false,
+  "skippedCleaned": 2,
+  "maxLost": 5,
+  "lateCheckSeconds": 45,
+  "finalCheckSeconds": 300,
+  "keeperMissing": 0,
+  "bodyMissing": 0,
+  "keeperUnconfirmed": 0,
+  "keeperPartlyUnconfirmed": 0,
+  "keeperRechosen": 2,
+  "heldByKeeperCheck": 2,
+  "keeperLost": 8,
+  "keeperLostLate": 1,
+  "keeperOk": 106,
+  "keeperOkPartial": 0,
+  "keeperUnverified": 0,
+  "settledGroups": 114,
+  "unsettledGroups": 0,
+  "lookupProvedBy": 109,
+  "lookupUnknown": 0,
+  "finalCheck": {
+    "at": "2026-09-30T10:19:44.226Z",
+    "groups": 107,
+    "secondsAfterLastDelete": 374,
+    "lost": 1,
+    "unknown": 0
+  },
+  "toVerify": [],
+  "lostFile": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-dedupe-lost-090727.json",
+  "erroredCards": [],
+  "incompleteCards": [
+    {
+      "kind": "contacts",
+      "card": "2856253113",
+      "why": "run stopped before its deletes",
+      "seenExtras": 6
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253106",
+      "why": "run stopped during its deletes",
+      "seenExtras": 1
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253107",
+      "why": "run stopped during its deletes",
+      "seenExtras": 1
+    }
+  ],
+  "cards": [
+    {
+      "kind": "contacts",
+      "card": "2855833187",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402781030117]",
+          "keep": [
+            "3613dc69-91b2-4830-91a3-363e8dce6f68"
+          ],
+          "identical": [
+            "8fc185de-f453-42f2-97c7-cf82e7f52cf6"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "3613dc69-91b2-4830-91a3-363e8dce6f68"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:31.108Z",
+            "secondsAfterLastDelete": 3210,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402744978140]",
+          "keep": [
+            "372aeedd-26e5-4f0f-abe6-9faa726eaee9"
+          ],
+          "identical": [
+            "ad7f6939-664b-460b-a63d-b29fd7d9d353"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "372aeedd-26e5-4f0f-abe6-9faa726eaee9"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:30.908Z",
+            "secondsAfterLastDelete": 3209,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "8fc185de-f453-42f2-97c7-cf82e7f52cf6",
+        "ad7f6939-664b-460b-a63d-b29fd7d9d353"
+      ],
+      "lastSentAt": "2026-09-30T09:25:01.542Z",
+      "deleted": [
+        "8fc185de-f453-42f2-97c7-cf82e7f52cf6",
+        "ad7f6939-664b-460b-a63d-b29fd7d9d353"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855847677",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032131]",
+          "keep": [
+            "40439d89-e8c3-428e-b56c-a356cd492527"
+          ],
+          "identical": [
+            "ce983f4a-4f76-4ec0-bde4-776aca38c43f"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "40439d89-e8c3-428e-b56c-a356cd492527"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:30.951Z",
+            "secondsAfterLastDelete": 2927,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "ce983f4a-4f76-4ec0-bde4-776aca38c43f"
+      ],
+      "lastSentAt": "2026-09-30T09:29:44.381Z",
+      "deleted": [
+        "ce983f4a-4f76-4ec0-bde4-776aca38c43f"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855849583",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032056]",
+          "keep": [
+            "13e790bc-3782-42af-b9df-3612de414ef3"
+          ],
+          "identical": [
+            "8b4e8a20-f020-49d8-b640-16ee3f684730"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "13e790bc-3782-42af-b9df-3612de414ef3"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:31.132Z",
+            "secondsAfterLastDelete": 2893,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "8b4e8a20-f020-49d8-b640-16ee3f684730"
+      ],
+      "lastSentAt": "2026-09-30T09:30:17.733Z",
+      "deleted": [
+        "8b4e8a20-f020-49d8-b640-16ee3f684730"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855856142",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402803067602]",
+          "keep": [
+            "a9fc4e4e-2d68-4d84-bbc5-ee4c09b8ddac"
+          ],
+          "identical": [
+            "d85b5733-afc4-48f8-b641-4fa95aa3bf80"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "a9fc4e4e-2d68-4d84-bbc5-ee4c09b8ddac"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:31.133Z",
+            "secondsAfterLastDelete": 2779,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402792614649]",
+          "keep": [
+            "3b676069-d42d-49c9-88de-b1ef57ebbe9f"
+          ],
+          "identical": [
+            "770ced91-b327-46af-a473-1fb9a2163324"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "3b676069-d42d-49c9-88de-b1ef57ebbe9f"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:31.152Z",
+            "secondsAfterLastDelete": 2779,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "d85b5733-afc4-48f8-b641-4fa95aa3bf80",
+        "770ced91-b327-46af-a473-1fb9a2163324"
+      ],
+      "lastSentAt": "2026-09-30T09:32:12.624Z",
+      "deleted": [
+        "d85b5733-afc4-48f8-b641-4fa95aa3bf80",
+        "770ced91-b327-46af-a473-1fb9a2163324"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855910935",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032129]",
+          "keep": [
+            "d865c9bf-c12f-42c8-bc84-14a2ca1f8c29"
+          ],
+          "identical": [
+            "fe5ea70c-621f-4006-b21f-a41f89919d98"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "d865c9bf-c12f-42c8-bc84-14a2ca1f8c29"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:30.957Z",
+            "secondsAfterLastDelete": 2295,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "fe5ea70c-621f-4006-b21f-a41f89919d98"
+      ],
+      "lastSentAt": "2026-09-30T09:40:16.200Z",
+      "deleted": [
+        "fe5ea70c-621f-4006-b21f-a41f89919d98"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855985175",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032055]",
+          "keep": [
+            "22f90f7d-b4c1-4dac-95aa-b06147e213a1"
+          ],
+          "identical": [
+            "5abf6012-41eb-4fe2-b941-b9fb081b45c9"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "22f90f7d-b4c1-4dac-95aa-b06147e213a1"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:31.154Z",
+            "secondsAfterLastDelete": 1906,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "5abf6012-41eb-4fe2-b941-b9fb081b45c9"
+      ],
+      "lastSentAt": "2026-09-30T09:46:45.586Z",
+      "deleted": [
+        "5abf6012-41eb-4fe2-b941-b9fb081b45c9"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856097741",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032054]",
+          "keep": [
+            "c2908397-83c1-49fc-8e1c-11802adb635d"
+          ],
+          "identical": [
+            "f27cb2a1-00e6-46ac-bf57-080a63542ae8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "c2908397-83c1-49fc-8e1c-11802adb635d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:31.983Z",
+            "secondsAfterLastDelete": 1464,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "f27cb2a1-00e6-46ac-bf57-080a63542ae8"
+      ],
+      "lastSentAt": "2026-09-30T09:54:08.148Z",
+      "deleted": [
+        "f27cb2a1-00e6-46ac-bf57-080a63542ae8"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856127429",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402798734055]",
+          "keep": [
+            "055f2d94-ceee-42eb-9226-6ff8afc2f186"
+          ],
+          "identical": [
+            "143b9914-5c3a-4b59-a8bc-726ac2f797b0"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "055f2d94-ceee-42eb-9226-6ff8afc2f186"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:32.671Z",
+            "secondsAfterLastDelete": 1393,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "143b9914-5c3a-4b59-a8bc-726ac2f797b0"
+      ],
+      "lastSentAt": "2026-09-30T09:55:19.492Z",
+      "deleted": [
+        "143b9914-5c3a-4b59-a8bc-726ac2f797b0"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856144696",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:403696991992]",
+          "keep": [
+            "4af5be56-0ff4-4ad5-ab39-300ecccdb44e"
+          ],
+          "identical": [
+            "d34f6a21-5e51-4a06-8a15-a02fd0e55f55"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "4af5be56-0ff4-4ad5-ab39-300ecccdb44e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:33.327Z",
+            "secondsAfterLastDelete": 1383,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "d34f6a21-5e51-4a06-8a15-a02fd0e55f55"
+      ],
+      "lastSentAt": "2026-09-30T09:55:30.383Z",
+      "deleted": [
+        "d34f6a21-5e51-4a06-8a15-a02fd0e55f55"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856156186",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:403803945682]",
+          "keep": [
+            "9d394080-6a97-4f45-b654-6bb50f42a57e"
+          ],
+          "identical": [
+            "b895903b-e2c5-43ac-9598-d83c6c480359"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "9d394080-6a97-4f45-b654-6bb50f42a57e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:33.947Z",
+            "secondsAfterLastDelete": 1366,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "b895903b-e2c5-43ac-9598-d83c6c480359"
+      ],
+      "lastSentAt": "2026-09-30T09:55:47.774Z",
+      "deleted": [
+        "b895903b-e2c5-43ac-9598-d83c6c480359"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856163520",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:403357927110]",
+          "keep": [
+            "4623cb54-4f42-4e87-b1b8-57eb9a71255e"
+          ],
+          "identical": [
+            "5198d347-a9a3-437b-905f-5d2785886dcf"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "4623cb54-4f42-4e87-b1b8-57eb9a71255e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:34.623Z",
+            "secondsAfterLastDelete": 1355,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:403080896206]",
+          "keep": [
+            "66c2c4cb-ac43-4e65-83cc-c6aacb06419e"
+          ],
+          "identical": [
+            "877bd24c-c93c-4033-b38a-c92b0791028f"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "66c2c4cb-ac43-4e65-83cc-c6aacb06419e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:35.253Z",
+            "secondsAfterLastDelete": 1355,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "5198d347-a9a3-437b-905f-5d2785886dcf",
+        "877bd24c-c93c-4033-b38a-c92b0791028f"
+      ],
+      "lastSentAt": "2026-09-30T09:55:59.970Z",
+      "deleted": [
+        "5198d347-a9a3-437b-905f-5d2785886dcf",
+        "877bd24c-c93c-4033-b38a-c92b0791028f"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856167619",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402803067602]",
+          "keep": [
+            "323df645-2b61-4488-abae-08fb5b8e576e"
+          ],
+          "identical": [
+            "8a3b3bb5-103c-41df-ace4-7d7938eaf7e9"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "323df645-2b61-4488-abae-08fb5b8e576e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:36.100Z",
+            "secondsAfterLastDelete": 1350,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "8a3b3bb5-103c-41df-ace4-7d7938eaf7e9"
+      ],
+      "lastSentAt": "2026-09-30T09:56:06.216Z",
+      "deleted": [
+        "8a3b3bb5-103c-41df-ace4-7d7938eaf7e9"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856183118",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402753890037]",
+          "keep": [
+            "89861ceb-785a-4410-bab0-d25ebf1c5eaf"
+          ],
+          "identical": [
+            "c4a4c986-927e-492d-b75a-4f7a7a42f97e"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "89861ceb-785a-4410-bab0-d25ebf1c5eaf"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:36.850Z",
+            "secondsAfterLastDelete": 1321,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "c4a4c986-927e-492d-b75a-4f7a7a42f97e"
+      ],
+      "lastSentAt": "2026-09-30T09:56:35.635Z",
+      "deleted": [
+        "c4a4c986-927e-492d-b75a-4f7a7a42f97e"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856182624",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:273949702847]",
+          "keep": [
+            "2f4e8686-8b31-44a6-8712-80e6bc9941d5"
+          ],
+          "identical": [
+            "5d4641be-1e5e-421f-be2c-65c6e516ab78"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2f4e8686-8b31-44a6-8712-80e6bc9941d5"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:37.579Z",
+            "secondsAfterLastDelete": 1196,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:notes:270077121221]",
+          "keep": [
+            "8dfb36fb-33bf-44d2-b121-20579d731132"
+          ],
+          "identical": [
+            "d410a2f3-86f0-43bd-bb39-f658c8ca8624"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "8dfb36fb-33bf-44d2-b121-20579d731132"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:38.239Z",
+            "secondsAfterLastDelete": 1196,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:notes:267572368085]",
+          "keep": [
+            "1fea9f5d-20d4-40eb-9c2c-66c3eb1426b0"
+          ],
+          "identical": [
+            "5cb4aa0d-c433-4895-aaf5-fc710f7e8fbd",
+            "718e5ad1-601e-4311-a434-8b7d9d7a7263"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1fea9f5d-20d4-40eb-9c2c-66c3eb1426b0"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:38.944Z",
+            "secondsAfterLastDelete": 1197,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:notes:267579241156]",
+          "keep": [
+            "0a75c91c-50fc-46fb-a86f-a0285fc5e78a"
+          ],
+          "identical": [
+            "47dfa548-f233-4b01-8f14-af9cb80acd27"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "0a75c91c-50fc-46fb-a86f-a0285fc5e78a"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:39.829Z",
+            "secondsAfterLastDelete": 1198,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:notes:231123817161]",
+          "keep": [
+            "18a70eb6-e7f8-4c5a-9c48-aa4d8df69611"
+          ],
+          "identical": [
+            "1c1f4377-f721-4f27-a196-4c17ff2673fe"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "18a70eb6-e7f8-4c5a-9c48-aa4d8df69611"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:40.466Z",
+            "secondsAfterLastDelete": 1199,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:notes:229416421059]",
+          "keep": [
+            "5ae9be85-13f5-4893-9854-55f98b32d210"
+          ],
+          "identical": [
+            "a44b81ec-e006-4ab6-a011-89bfbfc8a4cc"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "5ae9be85-13f5-4893-9854-55f98b32d210"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:41.403Z",
+            "secondsAfterLastDelete": 1199,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86496655202]",
+          "keep": [
+            "960f4095-d3e8-436d-a462-f22f8e37e0bc"
+          ],
+          "identical": [
+            "dcd7e952-cd8f-4cbd-8528-f3e84f93ee34"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "960f4095-d3e8-436d-a462-f22f8e37e0bc"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:42.031Z",
+            "secondsAfterLastDelete": 1200,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86495633238]",
+          "keep": [
+            "11bb8b30-ebca-471e-8169-a5aa8fd86e96"
+          ],
+          "identical": [
+            "22a6167c-ccb6-41c8-bd69-80c60351d0ff"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "11bb8b30-ebca-471e-8169-a5aa8fd86e96"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:42.692Z",
+            "secondsAfterLastDelete": 1201,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86424474753]",
+          "keep": [
+            "bfa787b5-4b3a-48f9-8c3b-55acec5a891e"
+          ],
+          "identical": [
+            "f84fb9d5-5aac-4b7d-8425-c1bb36638cd2"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "bfa787b5-4b3a-48f9-8c3b-55acec5a891e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:43.338Z",
+            "secondsAfterLastDelete": 1201,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86495747118]",
+          "keep": [
+            "0b518294-5923-4d54-afda-9d7eda28c71d"
+          ],
+          "identical": [
+            "1c6ba1ab-a245-4492-bc50-11f5705a4e63"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "0b518294-5923-4d54-afda-9d7eda28c71d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:44.004Z",
+            "secondsAfterLastDelete": 1202,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86482032046]",
+          "keep": [
+            "506b38cb-435a-4cec-8127-c55a7f3599a0"
+          ],
+          "identical": [
+            "936468f5-a7eb-4560-8983-0a18950612a3"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "506b38cb-435a-4cec-8127-c55a7f3599a0"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:44.626Z",
+            "secondsAfterLastDelete": 1203,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86495608384]",
+          "keep": [
+            "2549cf96-0f43-4e6d-ad78-cf8e23fc15ab"
+          ],
+          "identical": [
+            "8b710e05-d4e3-487c-9100-9206d542ed3b"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2549cf96-0f43-4e6d-ad78-cf8e23fc15ab"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:45.512Z",
+            "secondsAfterLastDelete": 1204,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86426756218]",
+          "keep": [
+            "3d6b819d-6b7a-4df9-9c47-5f2285e281e6"
+          ],
+          "identical": [
+            "a13cb4d4-54f9-4370-b90a-57567437ae9c"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "3d6b819d-6b7a-4df9-9c47-5f2285e281e6"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:46.688Z",
+            "secondsAfterLastDelete": 1205,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86495652107]",
+          "keep": [
+            "2002ecc7-5c66-4854-b152-3316300046be"
+          ],
+          "identical": [
+            "2c0c0e0a-5257-42ae-990c-003fedbb96f0"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2002ecc7-5c66-4854-b152-3316300046be"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:47.424Z",
+            "secondsAfterLastDelete": 1205,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:tasks:86495747082]",
+          "keep": [
+            "01e0d8da-5f55-487d-9d04-ee87d5c5286b"
+          ],
+          "identical": [
+            "04af5639-66e5-4b7f-b2c5-9608352cfb53"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "01e0d8da-5f55-487d-9d04-ee87d5c5286b"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:48.295Z",
+            "secondsAfterLastDelete": 1206,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "5d4641be-1e5e-421f-be2c-65c6e516ab78",
+        "d410a2f3-86f0-43bd-bb39-f658c8ca8624",
+        "5cb4aa0d-c433-4895-aaf5-fc710f7e8fbd",
+        "718e5ad1-601e-4311-a434-8b7d9d7a7263",
+        "47dfa548-f233-4b01-8f14-af9cb80acd27",
+        "1c1f4377-f721-4f27-a196-4c17ff2673fe",
+        "a44b81ec-e006-4ab6-a011-89bfbfc8a4cc",
+        "dcd7e952-cd8f-4cbd-8528-f3e84f93ee34",
+        "22a6167c-ccb6-41c8-bd69-80c60351d0ff",
+        "f84fb9d5-5aac-4b7d-8425-c1bb36638cd2",
+        "1c6ba1ab-a245-4492-bc50-11f5705a4e63",
+        "936468f5-a7eb-4560-8983-0a18950612a3",
+        "8b710e05-d4e3-487c-9100-9206d542ed3b",
+        "a13cb4d4-54f9-4370-b90a-57567437ae9c",
+        "2c0c0e0a-5257-42ae-990c-003fedbb96f0",
+        "04af5639-66e5-4b7f-b2c5-9608352cfb53"
+      ],
+      "lastSentAt": "2026-09-30T09:58:41.960Z",
+      "deleted": [
+        "5d4641be-1e5e-421f-be2c-65c6e516ab78",
+        "d410a2f3-86f0-43bd-bb39-f658c8ca8624",
+        "5cb4aa0d-c433-4895-aaf5-fc710f7e8fbd",
+        "718e5ad1-601e-4311-a434-8b7d9d7a7263",
+        "47dfa548-f233-4b01-8f14-af9cb80acd27",
+        "1c1f4377-f721-4f27-a196-4c17ff2673fe",
+        "a44b81ec-e006-4ab6-a011-89bfbfc8a4cc",
+        "dcd7e952-cd8f-4cbd-8528-f3e84f93ee34",
+        "22a6167c-ccb6-41c8-bd69-80c60351d0ff",
+        "f84fb9d5-5aac-4b7d-8425-c1bb36638cd2",
+        "1c6ba1ab-a245-4492-bc50-11f5705a4e63",
+        "936468f5-a7eb-4560-8983-0a18950612a3",
+        "8b710e05-d4e3-487c-9100-9206d542ed3b",
+        "a13cb4d4-54f9-4370-b90a-57567437ae9c",
+        "2c0c0e0a-5257-42ae-990c-003fedbb96f0",
+        "04af5639-66e5-4b7f-b2c5-9608352cfb53"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856197372",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:363441953486]",
+          "keep": [
+            "369a5673-8ba1-42f5-a65c-980f0c4749ef"
+          ],
+          "identical": [
+            "daf76714-b7a8-4651-a11c-640c64bdd630"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "369a5673-8ba1-42f5-a65c-980f0c4749ef"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:49.184Z",
+            "secondsAfterLastDelete": 1254,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "daf76714-b7a8-4651-a11c-640c64bdd630"
+      ],
+      "lastSentAt": "2026-09-30T09:57:54.987Z",
+      "deleted": [
+        "daf76714-b7a8-4651-a11c-640c64bdd630"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856208666",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:403145455334]",
+          "keep": [
+            "8816365d-1abb-4fb3-8f7e-93b4a92c7ad2"
+          ],
+          "identical": [
+            "be186084-696c-4393-937a-0d22e7389cb8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "8816365d-1abb-4fb3-8f7e-93b4a92c7ad2"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:49.804Z",
+            "secondsAfterLastDelete": 1002,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402802264807]",
+          "keep": [
+            "434e0e5e-1497-464f-ab6e-639322ce86e2"
+          ],
+          "identical": [
+            "43c4e979-1bba-4082-924e-f4ff111629ec"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "434e0e5e-1497-464f-ab6e-639322ce86e2"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:50.663Z",
+            "secondsAfterLastDelete": 1002,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402693631727]",
+          "keep": [
+            "275349b0-d763-4036-8c80-7938b6e96f0e"
+          ],
+          "identical": [
+            "9701b333-1a69-4379-9784-4122155f2049"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "275349b0-d763-4036-8c80-7938b6e96f0e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:51.524Z",
+            "secondsAfterLastDelete": 1003,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402780908243]",
+          "keep": [
+            "27adf78b-8ab4-46c0-8ad8-0253e9ed3822"
+          ],
+          "identical": [
+            "ab2ae542-d6e2-45d6-8e4d-ad322bd976fd"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "27adf78b-8ab4-46c0-8ad8-0253e9ed3822"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:52.367Z",
+            "secondsAfterLastDelete": 1004,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402758446788]",
+          "keep": [
+            "030732a4-2140-4dbc-bbb3-dd036e756ecc"
+          ],
+          "identical": [
+            "6c7a5a92-9b1d-4832-b26b-37cd05f3dc44"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "030732a4-2140-4dbc-bbb3-dd036e756ecc"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:53.274Z",
+            "secondsAfterLastDelete": 1005,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402753643207]",
+          "keep": [
+            "c4c09f1d-5c6f-4d6f-9d45-33883c0085a2"
+          ],
+          "identical": [
+            "e82d2122-1021-4ffd-b23e-f5559411266c"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "c4c09f1d-5c6f-4d6f-9d45-33883c0085a2"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:53.920Z",
+            "secondsAfterLastDelete": 1006,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "be186084-696c-4393-937a-0d22e7389cb8",
+        "43c4e979-1bba-4082-924e-f4ff111629ec",
+        "9701b333-1a69-4379-9784-4122155f2049",
+        "ab2ae542-d6e2-45d6-8e4d-ad322bd976fd",
+        "6c7a5a92-9b1d-4832-b26b-37cd05f3dc44",
+        "e82d2122-1021-4ffd-b23e-f5559411266c"
+      ],
+      "lastSentAt": "2026-09-30T10:02:08.206Z",
+      "deleted": [
+        "be186084-696c-4393-937a-0d22e7389cb8",
+        "43c4e979-1bba-4082-924e-f4ff111629ec",
+        "9701b333-1a69-4379-9784-4122155f2049",
+        "ab2ae542-d6e2-45d6-8e4d-ad322bd976fd",
+        "6c7a5a92-9b1d-4832-b26b-37cd05f3dc44",
+        "e82d2122-1021-4ffd-b23e-f5559411266c"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856208826",
+      "groups": [
+        {
+          "marker": "[hubspot:meetings:219488918217]",
+          "keep": [
+            "617adc12-7693-4699-8d06-8f3c9e33519c"
+          ],
+          "identical": [
+            "e56be7a1-1c20-4b34-9af7-386b1ee895cc"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "617adc12-7693-4699-8d06-8f3c9e33519c"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:54.825Z",
+            "secondsAfterLastDelete": 1027,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:216953528022]",
+          "keep": [
+            "6dace84f-a854-4f93-8436-6c9aad4ad467"
+          ],
+          "identical": [
+            "8524e0eb-5107-4dd5-96c8-2ab59364ed45"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "6dace84f-a854-4f93-8436-6c9aad4ad467"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:55.473Z",
+            "secondsAfterLastDelete": 1028,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:215869893321]",
+          "keep": [
+            "1ef60b5d-bd45-4682-b58f-6262eec1bf6b"
+          ],
+          "identical": [
+            "67ce0b6e-26c5-47c8-93c2-630ab936e591"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1ef60b5d-bd45-4682-b58f-6262eec1bf6b"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:56.106Z",
+            "secondsAfterLastDelete": 1028,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "e56be7a1-1c20-4b34-9af7-386b1ee895cc",
+        "8524e0eb-5107-4dd5-96c8-2ab59364ed45",
+        "67ce0b6e-26c5-47c8-93c2-630ab936e591"
+      ],
+      "lastSentAt": "2026-09-30T10:01:47.889Z",
+      "deleted": [
+        "e56be7a1-1c20-4b34-9af7-386b1ee895cc",
+        "8524e0eb-5107-4dd5-96c8-2ab59364ed45",
+        "67ce0b6e-26c5-47c8-93c2-630ab936e591"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856208828",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:383200710365]",
+          "keep": [
+            "8bd4790a-1488-447c-ae93-f171684f8e45"
+          ],
+          "identical": [
+            "c3d4e21c-a3c0-4e37-905c-9908c451c6c5"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "8bd4790a-1488-447c-ae93-f171684f8e45"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:56.848Z",
+            "secondsAfterLastDelete": 978,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:383147991798]",
+          "keep": [
+            "b09bde43-3617-4f86-996e-bd7830053d88"
+          ],
+          "identical": [
+            "cb9235c6-fed2-4962-a0c3-886e2e106bb9"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "b09bde43-3617-4f86-996e-bd7830053d88"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:57.677Z",
+            "secondsAfterLastDelete": 978,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:374989472505]",
+          "keep": [
+            "7f508871-26e1-451f-9da4-5c49a29531ae"
+          ],
+          "identical": [
+            "f28a0845-33b9-48c0-9f20-7de1a066cbfb"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "7f508871-26e1-451f-9da4-5c49a29531ae"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:58.345Z",
+            "secondsAfterLastDelete": 979,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:374989869777]",
+          "keep": [
+            "2658ccce-9624-40bf-9be5-e24b92370036"
+          ],
+          "identical": [
+            "6126df51-561c-4265-b665-80e8ab3bf96e"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2658ccce-9624-40bf-9be5-e24b92370036"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:58.998Z",
+            "secondsAfterLastDelete": 980,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:250599873214]",
+          "keep": [
+            "1f9559a9-c375-412c-8c9d-fd8e1518d187"
+          ],
+          "identical": [
+            "69fe1bd0-17ce-4a92-aeb0-44d99a63fa9f"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1f9559a9-c375-412c-8c9d-fd8e1518d187"
+          ],
+          "lastCheck": {
+            "phase": "card",
+            "at": "2026-09-30T10:03:14.476Z",
+            "secondsAfterLastDelete": 35,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "1f9559a9-c375-412c-8c9d-fd8e1518d187"
+          ],
+          "settled": "lost"
+        },
+        {
+          "marker": "[hubspot:emails:216953528022]",
+          "keep": [
+            "76259928-a9c6-4c03-8aa2-c673c4df679c"
+          ],
+          "identical": [
+            "b340d3ae-1ead-418a-9b53-3362222b2061"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "76259928-a9c6-4c03-8aa2-c673c4df679c"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:18:59.645Z",
+            "secondsAfterLastDelete": 980,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "c3d4e21c-a3c0-4e37-905c-9908c451c6c5",
+        "cb9235c6-fed2-4962-a0c3-886e2e106bb9",
+        "f28a0845-33b9-48c0-9f20-7de1a066cbfb",
+        "6126df51-561c-4265-b665-80e8ab3bf96e",
+        "69fe1bd0-17ce-4a92-aeb0-44d99a63fa9f",
+        "b340d3ae-1ead-418a-9b53-3362222b2061"
+      ],
+      "lastSentAt": "2026-09-30T10:02:39.316Z",
+      "deleted": [
+        "c3d4e21c-a3c0-4e37-905c-9908c451c6c5",
+        "cb9235c6-fed2-4962-a0c3-886e2e106bb9",
+        "f28a0845-33b9-48c0-9f20-7de1a066cbfb",
+        "6126df51-561c-4265-b665-80e8ab3bf96e",
+        "69fe1bd0-17ce-4a92-aeb0-44d99a63fa9f"
+      ],
+      "alreadyGone": [
+        "b340d3ae-1ead-418a-9b53-3362222b2061"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856209119",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:383124072163]",
+          "keep": [
+            "718c072f-486a-43df-b861-5bb251889c32"
+          ],
+          "identical": [
+            "92c3c610-40ac-42c8-a894-6b2f58a1100c"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "718c072f-486a-43df-b861-5bb251889c32"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:00.256Z",
+            "secondsAfterLastDelete": 968,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:375183364813]",
+          "keep": [
+            "61c05d73-b8d7-46c0-9901-3aa243e2b331"
+          ],
+          "identical": [
+            "f7500d6e-46f6-4ab7-bd39-82b68fa6d9e1"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "61c05d73-b8d7-46c0-9901-3aa243e2b331"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:00.914Z",
+            "secondsAfterLastDelete": 968,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:250599873214]",
+          "keep": [
+            "1a0d7dc5-a6a7-44bc-adfd-a36a7c8ae765"
+          ],
+          "identical": [
+            "66add89c-72d9-4b72-8536-9b698c87c3aa"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1a0d7dc5-a6a7-44bc-adfd-a36a7c8ae765"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:01.576Z",
+            "secondsAfterLastDelete": 969,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:228353750715]",
+          "keep": [
+            "00238789-ecbe-4941-bb4c-49b8987562f8"
+          ],
+          "identical": [
+            "bb73833b-c794-40c3-872a-4e40fab448d0"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "00238789-ecbe-4941-bb4c-49b8987562f8"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:02.381Z",
+            "secondsAfterLastDelete": 970,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "92c3c610-40ac-42c8-a894-6b2f58a1100c",
+        "f7500d6e-46f6-4ab7-bd39-82b68fa6d9e1",
+        "66add89c-72d9-4b72-8536-9b698c87c3aa",
+        "bb73833b-c794-40c3-872a-4e40fab448d0"
+      ],
+      "lastSentAt": "2026-09-30T10:02:52.657Z",
+      "deleted": [
+        "92c3c610-40ac-42c8-a894-6b2f58a1100c",
+        "f7500d6e-46f6-4ab7-bd39-82b68fa6d9e1",
+        "66add89c-72d9-4b72-8536-9b698c87c3aa",
+        "bb73833b-c794-40c3-872a-4e40fab448d0"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856209160",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:250599873214]",
+          "keep": [
+            "342d47d7-d35e-476c-8270-fab2e9d863f6"
+          ],
+          "identical": [
+            "b9cde714-894f-4703-bd98-f1cd56d2c31f"
+          ],
+          "bodyless": [],
+          "rechosen": [
+            {
+              "ghost": "342d47d7-d35e-476c-8270-fab2e9d863f6",
+              "keeper": "b9cde714-894f-4703-bd98-f1cd56d2c31f"
+            }
+          ],
+          "keepers": [
+            "b9cde714-894f-4703-bd98-f1cd56d2c31f"
+          ],
+          "held": [
+            "b9cde714-894f-4703-bd98-f1cd56d2c31f"
+          ]
+        },
+        {
+          "marker": "[hubspot:emails:249726166751]",
+          "keep": [
+            "053f4f3c-647e-4b8c-9ce8-dee0cf3ed030"
+          ],
+          "identical": [
+            "aa24fe0e-4754-4906-a414-6d3a8d816cfd"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "053f4f3c-647e-4b8c-9ce8-dee0cf3ed030"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:03.035Z",
+            "secondsAfterLastDelete": 938,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "aa24fe0e-4754-4906-a414-6d3a8d816cfd"
+      ],
+      "lastSentAt": "2026-09-30T10:03:25.044Z",
+      "deleted": [
+        "aa24fe0e-4754-4906-a414-6d3a8d816cfd"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856212672",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:403798974167]",
+          "keep": [
+            "389ee195-92d3-4bf2-8027-c46bc4c3dc6d"
+          ],
+          "identical": [
+            "6683929a-bb05-4d5d-bd5f-2cb7ee00e2e7"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "389ee195-92d3-4bf2-8027-c46bc4c3dc6d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:03.748Z",
+            "secondsAfterLastDelete": 877,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "6683929a-bb05-4d5d-bd5f-2cb7ee00e2e7"
+      ],
+      "lastSentAt": "2026-09-30T10:04:27.008Z",
+      "deleted": [
+        "6683929a-bb05-4d5d-bd5f-2cb7ee00e2e7"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856217934",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:234467686096]",
+          "keep": [
+            "817a8f29-de6d-4830-9bd1-4fdcf2716314"
+          ],
+          "identical": [
+            "eacb07fc-6bc5-4c68-8527-10fd7830b4d1"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "817a8f29-de6d-4830-9bd1-4fdcf2716314"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:04.571Z",
+            "secondsAfterLastDelete": 812,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:235245231856]",
+          "keep": [
+            "4486c6e4-de6f-460c-ab93-8574c74df030"
+          ],
+          "identical": [
+            "5b7231f6-360e-4d5c-88df-0045f4ec7c60"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "4486c6e4-de6f-460c-ab93-8574c74df030"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:05.391Z",
+            "secondsAfterLastDelete": 812,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:234408542929]",
+          "keep": [
+            "1fcf6e64-3f88-4277-986a-1c98dc60b531"
+          ],
+          "identical": [
+            "26dd370b-ddfe-4e30-96da-7b48201b5ab8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1fcf6e64-3f88-4277-986a-1c98dc60b531"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:06.041Z",
+            "secondsAfterLastDelete": 813,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:234604536527]",
+          "keep": [
+            "94b7aec9-191e-4d0b-afa5-af73a98e145c"
+          ],
+          "identical": [
+            "c5d46e56-ecc8-4b7b-ad94-645960012968"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "94b7aec9-191e-4d0b-afa5-af73a98e145c"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:06.671Z",
+            "secondsAfterLastDelete": 814,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "eacb07fc-6bc5-4c68-8527-10fd7830b4d1",
+        "5b7231f6-360e-4d5c-88df-0045f4ec7c60",
+        "26dd370b-ddfe-4e30-96da-7b48201b5ab8",
+        "c5d46e56-ecc8-4b7b-ad94-645960012968"
+      ],
+      "lastSentAt": "2026-09-30T10:05:32.964Z",
+      "deleted": [
+        "eacb07fc-6bc5-4c68-8527-10fd7830b4d1",
+        "5b7231f6-360e-4d5c-88df-0045f4ec7c60",
+        "26dd370b-ddfe-4e30-96da-7b48201b5ab8",
+        "c5d46e56-ecc8-4b7b-ad94-645960012968"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856221766",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:363441953486]",
+          "keep": [
+            "43a4e966-f14e-48db-a011-2eadad5beda8"
+          ],
+          "identical": [
+            "94aa4e1d-37d0-47f6-ae99-a4f42b5ae0f2"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "43a4e966-f14e-48db-a011-2eadad5beda8"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:07.550Z",
+            "secondsAfterLastDelete": 686,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "94aa4e1d-37d0-47f6-ae99-a4f42b5ae0f2"
+      ],
+      "lastSentAt": "2026-09-30T10:07:41.432Z",
+      "deleted": [
+        "94aa4e1d-37d0-47f6-ae99-a4f42b5ae0f2"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856221585",
+      "groups": [
+        {
+          "marker": "[hubspot:meetings:344652484332]",
+          "keep": [
+            "3c860294-da6f-4551-b6f8-06bcedee6d15"
+          ],
+          "identical": [
+            "4c60d38b-74bc-45fc-a3d2-d640cde7ee2a"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "3c860294-da6f-4551-b6f8-06bcedee6d15"
+          ],
+          "lastCheck": {
+            "phase": "batch",
+            "at": "2026-09-30T10:08:40.335Z",
+            "secondsAfterLastDelete": 27,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "3c860294-da6f-4551-b6f8-06bcedee6d15"
+          ],
+          "settled": "lost"
+        }
+      ],
+      "deleting": [
+        "4c60d38b-74bc-45fc-a3d2-d640cde7ee2a"
+      ],
+      "lastSentAt": "2026-09-30T10:08:13.350Z",
+      "deleted": [
+        "4c60d38b-74bc-45fc-a3d2-d640cde7ee2a"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856221586",
+      "groups": [
+        {
+          "marker": "[hubspot:meetings:344652484332]",
+          "keep": [
+            "497372a9-e449-46aa-8250-fbbf5cf0cfbb"
+          ],
+          "identical": [
+            "c2c5fbe0-3f3d-4a1f-b33c-4dbd9f60173d"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "497372a9-e449-46aa-8250-fbbf5cf0cfbb"
+          ],
+          "lastCheck": {
+            "phase": "batch",
+            "at": "2026-09-30T10:08:41.099Z",
+            "secondsAfterLastDelete": 27,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "497372a9-e449-46aa-8250-fbbf5cf0cfbb"
+          ],
+          "settled": "lost"
+        }
+      ],
+      "deleting": [
+        "c2c5fbe0-3f3d-4a1f-b33c-4dbd9f60173d"
+      ],
+      "lastSentAt": "2026-09-30T10:08:14.238Z",
+      "deleted": [
+        "c2c5fbe0-3f3d-4a1f-b33c-4dbd9f60173d"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856223322",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:260691785452]",
+          "keep": [
+            "15ea3889-b81e-41ca-917d-e7f69b730bc4"
+          ],
+          "identical": [
+            "7b0101ab-f67c-4c89-97ff-f1057138909e"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "15ea3889-b81e-41ca-917d-e7f69b730bc4"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:08.217Z",
+            "secondsAfterLastDelete": 659,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:notes:247317417679]",
+          "keep": [
+            "ccf0f209-0a75-4cb5-bc79-56b2c614c5a2"
+          ],
+          "identical": [
+            "e223ddb6-c283-45e9-8f6b-1a29f339ffb1"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "ccf0f209-0a75-4cb5-bc79-56b2c614c5a2"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:08.844Z",
+            "secondsAfterLastDelete": 660,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "7b0101ab-f67c-4c89-97ff-f1057138909e",
+        "e223ddb6-c283-45e9-8f6b-1a29f339ffb1"
+      ],
+      "lastSentAt": "2026-09-30T10:08:09.180Z",
+      "deleted": [
+        "7b0101ab-f67c-4c89-97ff-f1057138909e",
+        "e223ddb6-c283-45e9-8f6b-1a29f339ffb1"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856223369",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402723740360]",
+          "keep": [
+            "9b2580a0-8686-481f-8759-f6855b4e001d"
+          ],
+          "identical": [
+            "c1d84472-657a-4a6a-bf89-1466e4e32059"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "9b2580a0-8686-481f-8759-f6855b4e001d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:14.894Z",
+            "secondsAfterLastDelete": 427,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:402689005257]",
+          "keep": [
+            "044427cb-dd1f-4345-9ef7-c1502bf41636"
+          ],
+          "identical": [
+            "e41fc2b4-a21a-4a19-8919-23d325a05e54"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "044427cb-dd1f-4345-9ef7-c1502bf41636"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:15.688Z",
+            "secondsAfterLastDelete": 428,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:meetings:388733214432]",
+          "keep": [
+            "556eeaa0-6775-41f6-b21b-08e618ec457a"
+          ],
+          "identical": [
+            "7e4952be-2432-4394-aaed-91e7c3891875"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "556eeaa0-6775-41f6-b21b-08e618ec457a"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:16.580Z",
+            "secondsAfterLastDelete": 429,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:meetings:388516405951]",
+          "keep": [
+            "c45909a2-95c7-4e83-a63a-4d9e6dcea26b"
+          ],
+          "identical": [
+            "ef1ff594-24b4-4010-8030-ae9c22aeda04"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "c45909a2-95c7-4e83-a63a-4d9e6dcea26b"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:17.212Z",
+            "secondsAfterLastDelete": 429,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:meetings:382112657082]",
+          "keep": [
+            "73003997-1e9d-468f-a840-f5d30b89a4d7"
+          ],
+          "identical": [
+            "84548f93-159b-46dd-a942-94f2255fca49"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "73003997-1e9d-468f-a840-f5d30b89a4d7"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:17.879Z",
+            "secondsAfterLastDelete": 430,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:351469534925]",
+          "keep": [
+            "00969403-9495-4c89-bbe4-e2ad8bcf1bc3"
+          ],
+          "identical": [
+            "c32bbce2-0c9e-4354-bec8-7493e1225aa8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "00969403-9495-4c89-bbe4-e2ad8bcf1bc3"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:18.775Z",
+            "secondsAfterLastDelete": 431,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:meetings:344652484332]",
+          "keep": [
+            "53185dd4-a1e3-4443-bfce-759e712ba18c"
+          ],
+          "identical": [
+            "fd92d8ce-798d-43b5-a0d8-3df551abd96d"
+          ],
+          "bodyless": []
+        },
+        {
+          "marker": "[hubspot:emails:265577346792]",
+          "keep": [
+            "02c9d986-653b-42b1-b1d7-69fe0316008f"
+          ],
+          "identical": [
+            "e34b702d-b51f-40fc-99c4-55756f595518"
+          ],
+          "bodyless": []
+        },
+        {
+          "marker": "[hubspot:emails:256959159013]",
+          "keep": [
+            "41592ff3-bfc0-4fc8-aa05-e611bd4b34cc"
+          ],
+          "identical": [
+            "781b1a07-b940-4717-9068-a6e90c0aa231"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "41592ff3-bfc0-4fc8-aa05-e611bd4b34cc"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:19.714Z",
+            "secondsAfterLastDelete": 432,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:256594600640]",
+          "keep": [
+            "821f16a7-d40d-468b-835f-c68136435df9"
+          ],
+          "identical": [
+            "92e44930-0d30-446a-a757-49e677bfb975"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "821f16a7-d40d-468b-835f-c68136435df9"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:20.353Z",
+            "secondsAfterLastDelete": 433,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:256469644023]",
+          "keep": [
+            "d6c6a88b-33d5-4b07-9e2c-cf397112cec4"
+          ],
+          "identical": [
+            "e213cfa0-fc11-4e9b-afe3-db5009a82426"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "d6c6a88b-33d5-4b07-9e2c-cf397112cec4"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:20.990Z",
+            "secondsAfterLastDelete": 433,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:256487049916]",
+          "keep": [
+            "ccba08ec-1015-4d89-ade4-c0553b9e24da"
+          ],
+          "identical": [
+            "e4712b9e-0d32-4d5a-acaf-192207999a76"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "ccba08ec-1015-4d89-ade4-c0553b9e24da"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:21.882Z",
+            "secondsAfterLastDelete": 434,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:256333893354]",
+          "keep": [
+            "d4fb6526-6459-4ab4-9e40-36dd2c8a1c35"
+          ],
+          "identical": [
+            "dbed10a5-ac5b-462a-b9d3-b868ec56c4c7"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "d4fb6526-6459-4ab4-9e40-36dd2c8a1c35"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:22.749Z",
+            "secondsAfterLastDelete": 435,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:255668343487]",
+          "keep": [
+            "476077b5-e2de-4adc-ab52-33295fb6f51e"
+          ],
+          "identical": [
+            "db4c541f-aea5-4ef0-8c5e-b4ca6800e7e6"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "476077b5-e2de-4adc-ab52-33295fb6f51e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:23.437Z",
+            "secondsAfterLastDelete": 436,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:255612733142]",
+          "keep": [
+            "1d6649c0-c197-45e2-81c0-266ac4f9175c"
+          ],
+          "identical": [
+            "a0294b52-0db8-4669-ad68-653c5aacb2f8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1d6649c0-c197-45e2-81c0-266ac4f9175c"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:24.044Z",
+            "secondsAfterLastDelete": 436,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:254559221469]",
+          "keep": [
+            "2f1c5396-0b9e-4d64-93be-5dc502f1adeb"
+          ],
+          "identical": [
+            "906f0a4d-94ad-416f-9f5b-908dd95fad62"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2f1c5396-0b9e-4d64-93be-5dc502f1adeb"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:24.648Z",
+            "secondsAfterLastDelete": 437,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:254381597391]",
+          "keep": [
+            "9494bbc1-1cac-4fb3-9be1-910d6aa3ba2d"
+          ],
+          "identical": [
+            "a1052798-bf22-411b-86b5-c7a38f6581db"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "9494bbc1-1cac-4fb3-9be1-910d6aa3ba2d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:25.500Z",
+            "secondsAfterLastDelete": 438,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:254311233251]",
+          "keep": [
+            "0ae02e2b-982a-4895-a6fb-4fab34cc171e"
+          ],
+          "identical": [
+            "d7a22d83-9cb8-4259-b164-84193b4217c8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "0ae02e2b-982a-4895-a6fb-4fab34cc171e"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:26.167Z",
+            "secondsAfterLastDelete": 438,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:254277728963]",
+          "keep": [
+            "b2687f33-68a4-4234-a844-4f61a8f0ad21"
+          ],
+          "identical": [
+            "fb735a2b-0ae2-48e5-a5bf-48924074ba85"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "b2687f33-68a4-4234-a844-4f61a8f0ad21"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:26.794Z",
+            "secondsAfterLastDelete": 439,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:254202589914]",
+          "keep": [
+            "bb26b536-d8f6-4dfb-8142-70cb6da671b9"
+          ],
+          "identical": [
+            "e92ebff6-4cfe-4202-b65d-ad08197a7ac5"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "bb26b536-d8f6-4dfb-8142-70cb6da671b9"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:27.558Z",
+            "secondsAfterLastDelete": 440,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:251699993318]",
+          "keep": [
+            "35699ae5-dc10-4c87-850c-130e1730625b"
+          ],
+          "identical": [
+            "9052358c-15d6-41a2-afad-3dffefb5cf91"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "35699ae5-dc10-4c87-850c-130e1730625b"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:28.228Z",
+            "secondsAfterLastDelete": 441,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:250861761238]",
+          "keep": [
+            "03c25067-249e-48f2-8b95-9e54f2ef1c75"
+          ],
+          "identical": [
+            "21977c5b-6c59-4664-a2bc-1c696bee2c74"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "03c25067-249e-48f2-8b95-9e54f2ef1c75"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:28.881Z",
+            "secondsAfterLastDelete": 441,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:250862024407]",
+          "keep": [
+            "afb855ab-d0f9-4767-8a3f-93777f640f62"
+          ],
+          "identical": [
+            "f94ad609-1271-450a-be68-d8c43db3048f"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "afb855ab-d0f9-4767-8a3f-93777f640f62"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:29.545Z",
+            "secondsAfterLastDelete": 442,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:250917021407]",
+          "keep": [
+            "70950b3b-9ac4-4178-bfcf-2f9c0c668443"
+          ],
+          "identical": [
+            "a1dc3abc-3383-462c-af6c-0210e43cbe07"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "70950b3b-9ac4-4178-bfcf-2f9c0c668443"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:30.443Z",
+            "secondsAfterLastDelete": 443,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "noLongerQualifying": [
+        "fd92d8ce-798d-43b5-a0d8-3df551abd96d",
+        "e34b702d-b51f-40fc-99c4-55756f595518"
+      ],
+      "deleting": [
+        "c1d84472-657a-4a6a-bf89-1466e4e32059",
+        "e41fc2b4-a21a-4a19-8919-23d325a05e54",
+        "7e4952be-2432-4394-aaed-91e7c3891875",
+        "ef1ff594-24b4-4010-8030-ae9c22aeda04",
+        "84548f93-159b-46dd-a942-94f2255fca49",
+        "c32bbce2-0c9e-4354-bec8-7493e1225aa8",
+        "781b1a07-b940-4717-9068-a6e90c0aa231",
+        "92e44930-0d30-446a-a757-49e677bfb975",
+        "e213cfa0-fc11-4e9b-afe3-db5009a82426",
+        "e4712b9e-0d32-4d5a-acaf-192207999a76",
+        "dbed10a5-ac5b-462a-b9d3-b868ec56c4c7",
+        "db4c541f-aea5-4ef0-8c5e-b4ca6800e7e6",
+        "a0294b52-0db8-4669-ad68-653c5aacb2f8",
+        "906f0a4d-94ad-416f-9f5b-908dd95fad62",
+        "a1052798-bf22-411b-86b5-c7a38f6581db",
+        "d7a22d83-9cb8-4259-b164-84193b4217c8",
+        "fb735a2b-0ae2-48e5-a5bf-48924074ba85",
+        "e92ebff6-4cfe-4202-b65d-ad08197a7ac5",
+        "9052358c-15d6-41a2-afad-3dffefb5cf91",
+        "21977c5b-6c59-4664-a2bc-1c696bee2c74",
+        "f94ad609-1271-450a-be68-d8c43db3048f",
+        "a1dc3abc-3383-462c-af6c-0210e43cbe07"
+      ],
+      "lastSentAt": "2026-09-30T10:12:07.720Z",
+      "deleted": [
+        "c1d84472-657a-4a6a-bf89-1466e4e32059",
+        "e41fc2b4-a21a-4a19-8919-23d325a05e54",
+        "7e4952be-2432-4394-aaed-91e7c3891875",
+        "ef1ff594-24b4-4010-8030-ae9c22aeda04",
+        "84548f93-159b-46dd-a942-94f2255fca49",
+        "c32bbce2-0c9e-4354-bec8-7493e1225aa8",
+        "781b1a07-b940-4717-9068-a6e90c0aa231",
+        "92e44930-0d30-446a-a757-49e677bfb975",
+        "e213cfa0-fc11-4e9b-afe3-db5009a82426",
+        "e4712b9e-0d32-4d5a-acaf-192207999a76",
+        "dbed10a5-ac5b-462a-b9d3-b868ec56c4c7",
+        "db4c541f-aea5-4ef0-8c5e-b4ca6800e7e6",
+        "a0294b52-0db8-4669-ad68-653c5aacb2f8",
+        "906f0a4d-94ad-416f-9f5b-908dd95fad62",
+        "a1052798-bf22-411b-86b5-c7a38f6581db",
+        "d7a22d83-9cb8-4259-b164-84193b4217c8",
+        "fb735a2b-0ae2-48e5-a5bf-48924074ba85",
+        "e92ebff6-4cfe-4202-b65d-ad08197a7ac5",
+        "9052358c-15d6-41a2-afad-3dffefb5cf91",
+        "21977c5b-6c59-4664-a2bc-1c696bee2c74",
+        "f94ad609-1271-450a-be68-d8c43db3048f",
+        "a1dc3abc-3383-462c-af6c-0210e43cbe07"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856223447",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:363441991394]",
+          "keep": [
+            "5f37a8ec-1c8d-42da-9aca-81e8bb9c80cc"
+          ],
+          "identical": [
+            "9b877e6e-fbf4-49a4-95b8-206ff457449a"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "5f37a8ec-1c8d-42da-9aca-81e8bb9c80cc"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:09.471Z",
+            "secondsAfterLastDelete": 628,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "9b877e6e-fbf4-49a4-95b8-206ff457449a"
+      ],
+      "lastSentAt": "2026-09-30T10:08:41.788Z",
+      "deleted": [
+        "9b877e6e-fbf4-49a4-95b8-206ff457449a"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856229047",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:402882425557]",
+          "keep": [
+            "246bb85d-c8ef-47fc-aaaa-e31f3ab0f3a5"
+          ],
+          "identical": [
+            "aaba8536-d8b6-49f7-80a7-274ceeb3f836"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "246bb85d-c8ef-47fc-aaaa-e31f3ab0f3a5"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:10.113Z",
+            "secondsAfterLastDelete": 538,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:269619617525]",
+          "keep": [
+            "1792eec8-a52f-446e-906b-67d9f2c2aa46"
+          ],
+          "identical": [
+            "9d2d4b19-19cc-4fc9-8ecd-b7c7f084d7ed"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1792eec8-a52f-446e-906b-67d9f2c2aa46"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:10.781Z",
+            "secondsAfterLastDelete": 538,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:269589213901]",
+          "keep": [
+            "25606d15-0e05-4525-adcb-a1279ed40405"
+          ],
+          "identical": [
+            "bc038212-ed98-4afb-af3e-86a817a02bde"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "25606d15-0e05-4525-adcb-a1279ed40405"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:11.505Z",
+            "secondsAfterLastDelete": 539,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost-late",
+          "lostKeepers": [
+            "25606d15-0e05-4525-adcb-a1279ed40405"
+          ],
+          "settled": "lost"
+        },
+        {
+          "marker": "[hubspot:emails:269568132818]",
+          "keep": [
+            "a53a6076-d0f5-4382-ac65-e0d01f384540"
+          ],
+          "identical": [
+            "e02341af-df9a-47bf-8ab8-7e0136fa50c0"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "a53a6076-d0f5-4382-ac65-e0d01f384540"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:12.497Z",
+            "secondsAfterLastDelete": 540,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:261113961187]",
+          "keep": [
+            "260bfcae-6404-4b4c-ad2e-0de99319397b"
+          ],
+          "identical": [
+            "63948bbf-bcc1-4e55-be3f-414a429d0a6d"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "260bfcae-6404-4b4c-ad2e-0de99319397b"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:13.363Z",
+            "secondsAfterLastDelete": 541,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:247822274253]",
+          "keep": [
+            "2eac829f-3da3-44f2-bf3b-9c988e5fbdda"
+          ],
+          "identical": [
+            "a97721fb-3bc1-491c-8a9b-951c5bddb706"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2eac829f-3da3-44f2-bf3b-9c988e5fbdda"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:14.239Z",
+            "secondsAfterLastDelete": 542,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "aaba8536-d8b6-49f7-80a7-274ceeb3f836",
+        "9d2d4b19-19cc-4fc9-8ecd-b7c7f084d7ed",
+        "bc038212-ed98-4afb-af3e-86a817a02bde",
+        "e02341af-df9a-47bf-8ab8-7e0136fa50c0",
+        "63948bbf-bcc1-4e55-be3f-414a429d0a6d",
+        "a97721fb-3bc1-491c-8a9b-951c5bddb706"
+      ],
+      "lastSentAt": "2026-09-30T10:10:12.376Z",
+      "deleted": [
+        "aaba8536-d8b6-49f7-80a7-274ceeb3f836",
+        "9d2d4b19-19cc-4fc9-8ecd-b7c7f084d7ed",
+        "bc038212-ed98-4afb-af3e-86a817a02bde",
+        "e02341af-df9a-47bf-8ab8-7e0136fa50c0",
+        "63948bbf-bcc1-4e55-be3f-414a429d0a6d",
+        "a97721fb-3bc1-491c-8a9b-951c5bddb706"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253106",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:271264147176]",
+          "keep": [
+            "33545645-cb33-4c17-931f-142ba0a475d6"
+          ],
+          "identical": [
+            "6fa0cacd-befa-4f7e-8146-800cad85f7e1"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "33545645-cb33-4c17-931f-142ba0a475d6"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:38.287Z",
+            "secondsAfterLastDelete": 369,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:269589213901]",
+          "keep": [
+            "a7607d09-6b67-440e-a202-572cab2a79f6"
+          ],
+          "identical": [
+            "c8ea9c3c-4243-4993-8d27-2be5dad43300"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "a7607d09-6b67-440e-a202-572cab2a79f6"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:38.968Z",
+            "secondsAfterLastDelete": 370,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:259475528395]",
+          "keep": [
+            "1838a8cc-8808-458d-823c-81d4924747cf"
+          ],
+          "identical": [
+            "87048666-0275-4108-b680-9272b7a9431a"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "1838a8cc-8808-458d-823c-81d4924747cf"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:39.839Z",
+            "secondsAfterLastDelete": 370,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:259488553686]",
+          "keep": [
+            "8c7a7909-2f65-4a31-880c-24f5d69f9fab"
+          ],
+          "identical": [
+            "e2e15237-5d65-4191-96b4-ad6cb9d3c805"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "8c7a7909-2f65-4a31-880c-24f5d69f9fab"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:40.498Z",
+            "secondsAfterLastDelete": 371,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:258497453816]",
+          "keep": [
+            "07959561-1f93-4c07-b26a-af4a0c6e5463"
+          ],
+          "identical": [
+            "c9244e0d-74df-440a-a25a-e4a1d0e45c99"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "07959561-1f93-4c07-b26a-af4a0c6e5463"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:41.343Z",
+            "secondsAfterLastDelete": 372,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:256180332248]",
+          "keep": [
+            "554ec624-7080-4ccb-a0f8-f4370fee306c"
+          ],
+          "identical": [
+            "6e3c1b25-fd4f-4529-97fd-2d0e9d814811"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "554ec624-7080-4ccb-a0f8-f4370fee306c"
+          ]
+        }
+      ],
+      "deleting": [
+        "6fa0cacd-befa-4f7e-8146-800cad85f7e1",
+        "c8ea9c3c-4243-4993-8d27-2be5dad43300",
+        "87048666-0275-4108-b680-9272b7a9431a",
+        "e2e15237-5d65-4191-96b4-ad6cb9d3c805",
+        "c9244e0d-74df-440a-a25a-e4a1d0e45c99"
+      ],
+      "lastSentAt": "2026-09-30T10:13:29.405Z",
+      "deleted": [
+        "6fa0cacd-befa-4f7e-8146-800cad85f7e1",
+        "c8ea9c3c-4243-4993-8d27-2be5dad43300",
+        "87048666-0275-4108-b680-9272b7a9431a",
+        "e2e15237-5d65-4191-96b4-ad6cb9d3c805"
+      ],
+      "alreadyGone": [
+        "c9244e0d-74df-440a-a25a-e4a1d0e45c99"
+      ],
+      "notApplied": "run stopped: keeper-lost 6 > --max-lost 5",
+      "stoppedDuringDeletes": true
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253107",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:271264147176]",
+          "keep": [
+            "4028b285-06c2-4b4c-abad-e75d6e6ba85c"
+          ],
+          "identical": [
+            "e91cc217-fe16-4dd3-9192-da936c255a50"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "4028b285-06c2-4b4c-abad-e75d6e6ba85c"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:42.252Z",
+            "secondsAfterLastDelete": 372,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:269589213901]",
+          "keep": [
+            "55f8e636-8926-4f7f-bd3c-84bdf58391d3"
+          ],
+          "identical": [
+            "fc643675-faf4-4fb2-b2ab-1a556efa5470"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "55f8e636-8926-4f7f-bd3c-84bdf58391d3"
+          ],
+          "lastCheck": {
+            "phase": "batch",
+            "at": "2026-09-30T10:14:37.270Z",
+            "secondsAfterLastDelete": 67,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "55f8e636-8926-4f7f-bd3c-84bdf58391d3"
+          ],
+          "settled": "lost"
+        },
+        {
+          "marker": "[hubspot:emails:269569113824]",
+          "keep": [
+            "4d00096e-73d0-4295-867c-7325e8f010e5"
+          ],
+          "identical": [
+            "e2680e4c-bed6-4a7b-b44d-3356ffd1e55b"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "4d00096e-73d0-4295-867c-7325e8f010e5"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:42.912Z",
+            "secondsAfterLastDelete": 373,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:269513171653]",
+          "keep": [
+            "16d36549-e3eb-408e-b7dc-c85d92573410"
+          ],
+          "identical": [
+            "7a56d047-e041-4afe-8a58-dd0ec851dbc0"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "16d36549-e3eb-408e-b7dc-c85d92573410"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:43.575Z",
+            "secondsAfterLastDelete": 374,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:259488553686]",
+          "keep": [
+            "32f74f6a-491a-4fa1-b6ca-15043dc919c1"
+          ],
+          "identical": [
+            "e6a3c68f-5daa-4386-9295-d08a0e16f010"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "32f74f6a-491a-4fa1-b6ca-15043dc919c1"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:44.226Z",
+            "secondsAfterLastDelete": 374,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:258497453816]",
+          "keep": [
+            "9491c481-6c9c-4b33-8474-bd629c20b9bb"
+          ],
+          "identical": [
+            "eb94b371-1a63-47c2-9524-84253e3becea"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "9491c481-6c9c-4b33-8474-bd629c20b9bb"
+          ]
+        }
+      ],
+      "deleting": [
+        "e91cc217-fe16-4dd3-9192-da936c255a50",
+        "fc643675-faf4-4fb2-b2ab-1a556efa5470",
+        "e2680e4c-bed6-4a7b-b44d-3356ffd1e55b",
+        "7a56d047-e041-4afe-8a58-dd0ec851dbc0",
+        "e6a3c68f-5daa-4386-9295-d08a0e16f010"
+      ],
+      "lastSentAt": "2026-09-30T10:13:30.027Z",
+      "alreadyGone": [
+        "e91cc217-fe16-4dd3-9192-da936c255a50",
+        "e6a3c68f-5daa-4386-9295-d08a0e16f010"
+      ],
+      "deleted": [
+        "fc643675-faf4-4fb2-b2ab-1a556efa5470",
+        "e2680e4c-bed6-4a7b-b44d-3356ffd1e55b",
+        "7a56d047-e041-4afe-8a58-dd0ec851dbc0"
+      ],
+      "notApplied": "run stopped: keeper-lost 6 > --max-lost 5",
+      "stoppedDuringDeletes": true
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253108",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:269513171653]",
+          "keep": [
+            "15663077-49b3-4739-9966-50cbe0b89633"
+          ],
+          "identical": [
+            "df8dc2eb-ba17-46f0-83b4-e3fe92b5fd1d"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "15663077-49b3-4739-9966-50cbe0b89633"
+          ],
+          "lastCheck": {
+            "phase": "batch",
+            "at": "2026-09-30T10:14:15.029Z",
+            "secondsAfterLastDelete": 60,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "15663077-49b3-4739-9966-50cbe0b89633"
+          ],
+          "settled": "lost"
+        },
+        {
+          "marker": "[hubspot:emails:259488553686]",
+          "keep": [
+            "7e61b828-25c5-469d-9bb7-16bf0d9032b9"
+          ],
+          "identical": [
+            "be9d3e7d-bf2b-4f25-b29e-c3296ad0c873"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "7e61b828-25c5-469d-9bb7-16bf0d9032b9"
+          ],
+          "lastCheck": {
+            "phase": "batch",
+            "at": "2026-09-30T10:14:15.553Z",
+            "secondsAfterLastDelete": 61,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "7e61b828-25c5-469d-9bb7-16bf0d9032b9"
+          ],
+          "settled": "lost"
+        },
+        {
+          "marker": "[hubspot:emails:258497453816]",
+          "keep": [
+            "637fbf72-2e25-44d9-9b77-4c7583f5744d"
+          ],
+          "identical": [
+            "8c2ea6dc-1f4c-42c7-adfc-20ccafb49c4c"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "637fbf72-2e25-44d9-9b77-4c7583f5744d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:31.067Z",
+            "secondsAfterLastDelete": 376,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "df8dc2eb-ba17-46f0-83b4-e3fe92b5fd1d",
+        "be9d3e7d-bf2b-4f25-b29e-c3296ad0c873",
+        "8c2ea6dc-1f4c-42c7-adfc-20ccafb49c4c"
+      ],
+      "lastSentAt": "2026-09-30T10:13:14.732Z",
+      "deleted": [
+        "df8dc2eb-ba17-46f0-83b4-e3fe92b5fd1d",
+        "be9d3e7d-bf2b-4f25-b29e-c3296ad0c873",
+        "8c2ea6dc-1f4c-42c7-adfc-20ccafb49c4c"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253109",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:249001945820]",
+          "keep": [
+            "3c35531d-50b3-4220-a98c-26de8d2222ce"
+          ],
+          "identical": [
+            "c352cb91-7f34-4192-96b7-1e9622a66fbb"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "3c35531d-50b3-4220-a98c-26de8d2222ce"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:31.904Z",
+            "secondsAfterLastDelete": 373,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:248961779423]",
+          "keep": [
+            "066290d1-748a-4dd1-b624-d2bfd19e69c4"
+          ],
+          "identical": [
+            "ea89988b-a98a-4170-80d5-a59141cac7bb"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "066290d1-748a-4dd1-b624-d2bfd19e69c4"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:32.792Z",
+            "secondsAfterLastDelete": 374,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:248094749427]",
+          "keep": [
+            "5609f562-fdd9-4c3b-994d-39250301b006"
+          ],
+          "identical": [
+            "7edbe8d6-327d-4beb-8c8e-404ac4aba068"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "5609f562-fdd9-4c3b-994d-39250301b006"
+          ],
+          "lastCheck": {
+            "phase": "batch",
+            "at": "2026-09-30T10:14:18.493Z",
+            "secondsAfterLastDelete": 60,
+            "state": "lost"
+          },
+          "outcome": "keeper-lost",
+          "lostKeepers": [
+            "5609f562-fdd9-4c3b-994d-39250301b006"
+          ],
+          "settled": "lost"
+        },
+        {
+          "marker": "[hubspot:emails:247945690863]",
+          "keep": [
+            "67e1256f-254e-44ef-a23e-b2a8456b6802"
+          ],
+          "identical": [
+            "966f2cc9-ce0f-4e5f-9f55-0f2aca2e5fdb"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "67e1256f-254e-44ef-a23e-b2a8456b6802"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:33.632Z",
+            "secondsAfterLastDelete": 375,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:248094142146]",
+          "keep": [
+            "3755c917-4971-4004-9559-a4a9e5d57a22"
+          ],
+          "identical": [
+            "cb52142a-2c7c-479b-b2bf-16308cec6630"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "3755c917-4971-4004-9559-a4a9e5d57a22"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:34.265Z",
+            "secondsAfterLastDelete": 376,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "c352cb91-7f34-4192-96b7-1e9622a66fbb",
+        "ea89988b-a98a-4170-80d5-a59141cac7bb",
+        "7edbe8d6-327d-4beb-8c8e-404ac4aba068",
+        "966f2cc9-ce0f-4e5f-9f55-0f2aca2e5fdb",
+        "cb52142a-2c7c-479b-b2bf-16308cec6630"
+      ],
+      "lastSentAt": "2026-09-30T10:13:18.732Z",
+      "deleted": [
+        "c352cb91-7f34-4192-96b7-1e9622a66fbb",
+        "ea89988b-a98a-4170-80d5-a59141cac7bb",
+        "7edbe8d6-327d-4beb-8c8e-404ac4aba068",
+        "966f2cc9-ce0f-4e5f-9f55-0f2aca2e5fdb",
+        "cb52142a-2c7c-479b-b2bf-16308cec6630"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253112",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:248961779423]",
+          "keep": [
+            "8c620d91-2428-45e9-934c-10f663112235"
+          ],
+          "identical": [
+            "d4f043bf-344a-48d1-bd7b-245ceba1933a"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "8c620d91-2428-45e9-934c-10f663112235"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:34.899Z",
+            "secondsAfterLastDelete": 370,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:248094749427]",
+          "keep": [
+            "11d3b190-57b8-4e34-a1d2-e33953fb117d"
+          ],
+          "identical": [
+            "95ca22e7-32ff-46ea-af23-aa465fad7f50"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "11d3b190-57b8-4e34-a1d2-e33953fb117d"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:35.544Z",
+            "secondsAfterLastDelete": 371,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:247945690863]",
+          "keep": [
+            "b74677e4-e615-4967-a11d-ce0795b1ed54"
+          ],
+          "identical": [
+            "c3e3eb5b-f8aa-440d-bed8-1f684bca6528"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "b74677e4-e615-4967-a11d-ce0795b1ed54"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:36.174Z",
+            "secondsAfterLastDelete": 371,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:248499161816]",
+          "keep": [
+            "e5597cf0-3224-4f8d-8cbf-d7817be2477b"
+          ],
+          "identical": [
+            "fab8c27d-a7af-498d-a9e3-b905786a3a21"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "e5597cf0-3224-4f8d-8cbf-d7817be2477b"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:37.045Z",
+            "secondsAfterLastDelete": 372,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        },
+        {
+          "marker": "[hubspot:emails:248094142146]",
+          "keep": [
+            "015a1ee2-6358-4a20-b028-2f5c5cc1cba5"
+          ],
+          "identical": [
+            "2ee710ea-b462-4fe7-8c43-cd05d27f54d8"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "015a1ee2-6358-4a20-b028-2f5c5cc1cba5"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-30T10:19:37.673Z",
+            "secondsAfterLastDelete": 373,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "d4f043bf-344a-48d1-bd7b-245ceba1933a",
+        "95ca22e7-32ff-46ea-af23-aa465fad7f50",
+        "c3e3eb5b-f8aa-440d-bed8-1f684bca6528",
+        "fab8c27d-a7af-498d-a9e3-b905786a3a21",
+        "2ee710ea-b462-4fe7-8c43-cd05d27f54d8"
+      ],
+      "lastSentAt": "2026-09-30T10:13:24.757Z",
+      "alreadyGone": [
+        "d4f043bf-344a-48d1-bd7b-245ceba1933a",
+        "2ee710ea-b462-4fe7-8c43-cd05d27f54d8"
+      ],
+      "deleted": [
+        "95ca22e7-32ff-46ea-af23-aa465fad7f50",
+        "c3e3eb5b-f8aa-440d-bed8-1f684bca6528",
+        "fab8c27d-a7af-498d-a9e3-b905786a3a21"
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856253113",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:249001945820]",
+          "keep": [
+            "0ceea9bc-d207-4b38-a005-1e56ebf8fa16"
+          ],
+          "identical": [
+            "3958175d-504a-497f-9119-7cae0df1a5a5"
+          ],
+          "bodyless": [],
+          "rechosen": [
+            {
+              "ghost": "0ceea9bc-d207-4b38-a005-1e56ebf8fa16",
+              "keeper": "3958175d-504a-497f-9119-7cae0df1a5a5"
+            }
+          ],
+          "keepers": [
+            "3958175d-504a-497f-9119-7cae0df1a5a5"
+          ],
+          "held": [
+            "3958175d-504a-497f-9119-7cae0df1a5a5"
+          ]
+        },
+        {
+          "marker": "[hubspot:emails:248961779423]",
+          "keep": [
+            "5d7ad143-2b06-4ece-abd8-cc36a6108361"
+          ],
+          "identical": [
+            "fdd6c9cf-ce59-4154-8d5c-c02e9e7a13d6"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "5d7ad143-2b06-4ece-abd8-cc36a6108361"
+          ]
+        },
+        {
+          "marker": "[hubspot:emails:248094749427]",
+          "keep": [
+            "7b055773-377c-466d-92cf-cf8fe93c4927"
+          ],
+          "identical": [
+            "cbb1a64b-0e38-458c-bea2-9efccdecf7c0"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "7b055773-377c-466d-92cf-cf8fe93c4927"
+          ]
+        },
+        {
+          "marker": "[hubspot:meetings:248551302880]",
+          "keep": [
+            "2e1f4cd6-9a50-44a4-9c17-c2946d3005eb"
+          ],
+          "identical": [
+            "30f79a70-b80e-4de7-986b-948bb1349fdc"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "2e1f4cd6-9a50-44a4-9c17-c2946d3005eb"
+          ]
+        },
+        {
+          "marker": "[hubspot:emails:247945690863]",
+          "keep": [
+            "7c21355b-fdac-4c7a-abd0-0691efc8a21e"
+          ],
+          "identical": [
+            "e84aa693-29d0-4e0d-ab1d-23e0deabce4b"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "7c21355b-fdac-4c7a-abd0-0691efc8a21e"
+          ]
+        },
+        {
+          "marker": "[hubspot:emails:248499161816]",
+          "keep": [
+            "23759027-d2f7-4f41-9073-33378a29ab21"
+          ],
+          "identical": [
+            "bd591d08-cc7a-4c4f-b142-9171de5fa35a"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "23759027-d2f7-4f41-9073-33378a29ab21"
+          ]
+        },
+        {
+          "marker": "[hubspot:emails:248094142146]",
+          "keep": [
+            "21a24599-919b-4b5c-85e1-f71d410eb470"
+          ],
+          "identical": [
+            "9e4ed625-0b38-43bc-91a5-d718ab01f880"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "21a24599-919b-4b5c-85e1-f71d410eb470"
+          ]
+        }
+      ],
+      "notApplied": "run stopped: keeper-lost 6 > --max-lost 5"
+    }
+  ],
+  "nextStart": 3361,
+  "nextKey": "contacts:2856254854",
+  "alreadyGone": 6,
+  "done": false,
+  "stopReason": "keeper-lost 6 > --max-lost 5",
+  "totalCards": 12195,
+  "start": 0
+}

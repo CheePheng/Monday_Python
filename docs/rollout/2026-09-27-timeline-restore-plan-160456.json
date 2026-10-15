@@ -1,0 +1,100 @@
+{
+ "generatedAt": "2026-09-27T16:04:56.144Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\lost-handoff-census-pair.json",
+ "censusRows": 2,
+ "lostRows": 1,
+ "unknownRows": 1,
+ "invalidLostRows": [],
+ "selected": 1,
+ "filters": {},
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json"
+  ],
+  "previousRestoreReports": [],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "would-create": 1
+ },
+ "done": true,
+ "cards": {
+  "2856208233": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 18,
+   "rowsReturned": 18,
+   "distinctRows": 18,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2856208233",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:249734315755]",
+   "object": "emails",
+   "activityId": "249734315755",
+   "outcome": "would-create",
+   "recordId": "257006942921",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "48df3001-98c8-45cf-8226-5e04ea61abec",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Hello from Theobald",
+    "contentLength": 13658,
+    "contentSha": "aab954b174e14905",
+    "timestamp": "2025-11-05T09:09:39Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "063c7849-a907-438c-aa73-51c1fd4aa9ea",
+     "10e0a25b-cf73-4095-b2bd-3691be8b1918"
+    ],
+    "listing": {
+     "ownEntries": 18,
+     "rowsReturned": 18,
+     "distinctRows": 18,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:05:02.136Z"
+    }
+   }
+  }
+ ]
+}

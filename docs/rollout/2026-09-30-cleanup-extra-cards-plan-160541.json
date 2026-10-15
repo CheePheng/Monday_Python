@@ -1,0 +1,517 @@
+{
+ "script": "cleanup-extra-cards",
+ "apply": false,
+ "canary": false,
+ "groups": [
+  "accounts-dups"
+ ],
+ "limit": null,
+ "startedAt": "2026-09-30T16:05:41.410Z",
+ "planDir": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\cleanup",
+ "planFiles": {
+  "accounts-idless-classified.json": {
+   "sha256": "f4e4bb65ae74a3ce237aeaabefdce8ce02b87d6e5dd090570f88590b678c0527",
+   "generatedAt": "2026-09-30T10:09:40.985Z"
+  },
+  "accounts-dups-plan.json": {
+   "sha256": "2ab8421197b552d0fb849c86cecebc77665e878cb10f6f1802e53e2b789477c3",
+   "generatedAt": "2026-09-30T09:52:11.342Z"
+  },
+  "contacts-plan.json": {
+   "sha256": "dcdf5ed8b98083ade10a1a4803b225da41b40d0fbd87b69910cd0f594db1a3b2",
+   "generatedAt": "2026-09-30"
+  },
+  "deals-plan.json": {
+   "sha256": "021753e89fbb3db57f828227e10b10ed6129441bc7875805a2ba85aec9665ce7",
+   "generatedAt": "2026-09-30"
+  },
+  "reconcile/companies.json": {
+   "sha256": "300f5925e87d4eeb08de3199f910ba1fe019badbe01201600eefb047aa1dfb71"
+  },
+  "reconcile/contacts.json": {
+   "sha256": "df8d0a470c0702bc8945ae887cde799aa0c68979a9b814c535168321c6e53c48"
+  },
+  "reconcile/deals.json": {
+   "sha256": "ea0475495918b7561fd0c97b748dc2252ef065f64e0cfc143ae4ed62cfb35950"
+  }
+ },
+ "baselines": {
+  "contacts": "2026-09-30T00:00:00.000Z",
+  "deals": "2026-09-30T00:00:00.000Z"
+ },
+ "integrationToken": true,
+ "corrections": [
+  "accounts-idless: the 14 TOUCHED-BY-PERSON plus the skeptic's 66 (q-review-candidates.json) go to review; the orphan-contact rule is re-derived live",
+  "accounts-idless: Niimbot 2858872440, Kitronyx 2857200440, Ocusun 2857206485 (only company of a HubSpot deal) and Nuvoton 2857190665 held",
+  "accounts-idless: Subvertron 2858206655 deleted without relinking (its contacts are the stale merged cards of the contacts group)",
+  "accounts-dups: delete, never blank; an extra holding timeline entries the survivor lacks waits until the survivor carries them",
+  "contacts: deleting with the integration token does not stop a restore; merged cards need a live survivor card and the HubSpot merge in place",
+  "deals: id-less only; confirmFirst and create-in-HubSpot cards held; 350443684547 '新的 deal' left alone (it has an ID)"
+ ],
+ "tally": {
+  "accounts-dups": {
+   "already-gone": 1,
+   "would-delete": 18,
+   "held-by-recheck": 2
+  }
+ },
+ "holdReasons": {
+  "accounts-dups": {
+   "timeline-entries-survivor-lacks": 2
+  }
+ },
+ "items": [
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855811089",
+   "name": "n.com",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T16:06:15.157Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855830301",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.158Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855824266",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.158Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855850628",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.159Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856101720",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.160Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856232276",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.160Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856386092",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.161Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856489857",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.161Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856521469",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.162Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856522769",
+   "name": "STMicroelectronics",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.162Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856696010",
+   "name": "St",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37199867738",
+    "survivor": "2855666123",
+    "searchHits": [
+     "2855666123",
+     "2855830301",
+     "2855824266",
+     "2855850628",
+     "2856101720",
+     "2856232276",
+     "2856386092",
+     "2856489857",
+     "2856521469",
+     "2856522769",
+     "2856696010"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.163Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856652671",
+   "name": "M",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37243386543",
+    "survivor": "2855681617",
+    "searchHits": [
+     "2855681617",
+     "2856652671",
+     "2856705329"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.164Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856705329",
+   "name": "M",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "37243386543",
+    "survivor": "2855681617",
+    "searchHits": [
+     "2855681617",
+     "2856652671",
+     "2856705329"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.164Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857008862",
+   "name": "ING Australia",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "312450639552",
+    "survivor": "2855725789",
+    "searchHits": [
+     "2855725789",
+     "2857008862",
+     "2857053237",
+     "2857048068",
+     "2857053361",
+     "2857066000",
+     "2857070099",
+     "2857058153"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.165Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857053237",
+   "name": "ING Australia",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "312450639552",
+    "survivor": "2855725789",
+    "searchHits": [
+     "2855725789",
+     "2857008862",
+     "2857053237",
+     "2857048068",
+     "2857053361",
+     "2857066000",
+     "2857070099",
+     "2857058153"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.165Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857048068",
+   "name": "ING Australia",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "312450639552",
+    "survivor": "2855725789",
+    "searchHits": [
+     "2855725789",
+     "2857008862",
+     "2857053237",
+     "2857048068",
+     "2857053361",
+     "2857066000",
+     "2857070099",
+     "2857058153"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.166Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857053361",
+   "name": "ING Australia",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "312450639552",
+    "survivor": "2855725789",
+    "searchHits": [
+     "2855725789",
+     "2857008862",
+     "2857053237",
+     "2857048068",
+     "2857053361",
+     "2857066000",
+     "2857070099",
+     "2857058153"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.167Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857066000",
+   "name": "ING Australia",
+   "outcome": "held-by-recheck",
+   "reasons": [
+    "timeline-entries-survivor-lacks:calls:368356480736/calls:368220220140"
+   ],
+   "at": "2026-09-30T16:06:15.167Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857070099",
+   "name": "ING Australia",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "312450639552",
+    "survivor": "2855725789",
+    "searchHits": [
+     "2855725789",
+     "2857008862",
+     "2857053237",
+     "2857048068",
+     "2857053361",
+     "2857066000",
+     "2857070099",
+     "2857058153"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.168Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857058153",
+   "name": "ING Australia",
+   "outcome": "held-by-recheck",
+   "reasons": [
+    "timeline-entries-survivor-lacks:calls:368356480736/calls:368220220140"
+   ],
+   "at": "2026-09-30T16:06:15.169Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857007351",
+   "name": "Gs",
+   "outcome": "would-delete",
+   "facts": {
+    "hubspotId": "345760686791",
+    "survivor": "2856857594",
+    "searchHits": [
+     "2856857594",
+     "2857007351"
+    ]
+   },
+   "at": "2026-09-30T16:06:15.169Z"
+  }
+ ],
+ "deleting": [],
+ "deleted": [],
+ "restoreList": [],
+ "failed": [],
+ "creating": [],
+ "created": [],
+ "warnings": [],
+ "savedAt": "2026-09-30T16:06:15.170Z",
+ "stoppedBecause": "done",
+ "finishedAt": "2026-09-30T16:06:15.170Z"
+}

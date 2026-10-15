@@ -1,0 +1,25 @@
+{
+  "mode": "cards",
+  "apply": true,
+  "generatedAt": "2026-10-12T03:59:57.620Z",
+  "objects": {
+    "contacts": {
+      "created": 2386,
+      "excludedWmHold": 0,
+      "carded": 2385,
+      "missing": [
+        "563860620999"
+      ],
+      "applied": {
+        "tally": {
+          "created-monday": 1
+        },
+        "results": {
+          "563860620999": "[webhook] source=contacts id=563860620999 action=created-monday board=5028000495"
+        }
+      }
+    }
+  },
+  "lastSentAt": "2026-10-12T04:01:16.673Z",
+  "done": true
+}

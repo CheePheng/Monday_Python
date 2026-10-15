@@ -1,0 +1,29 @@
+{
+  "object": "companies",
+  "apply": false,
+  "force": false,
+  "startedAt": "2026-09-30T15:41:22.069Z",
+  "total": 13,
+  "lastDoneId": "347053147882",
+  "tally": {
+    "updated-monday": 13
+  },
+  "errors": [],
+  "results": {
+    "22114104884": "[webhook] source=companies id=22114104884 action=updated-monday board=5028000496",
+    "33023633071": "[webhook] source=companies id=33023633071 action=updated-monday board=5028000496",
+    "33061499240": "[webhook] source=companies id=33061499240 action=updated-monday board=5028000496",
+    "35327976827": "[webhook] source=companies id=35327976827 action=updated-monday board=5028000496",
+    "37067158862": "[webhook] source=companies id=37067158862 action=updated-monday board=5028000496",
+    "37159279150": "[webhook] source=companies id=37159279150 action=updated-monday board=5028000496",
+    "37197360276": "[webhook] source=companies id=37197360276 action=updated-monday board=5028000496",
+    "158124987126": "[webhook] source=companies id=158124987126 action=updated-monday board=5028000496",
+    "166916475618": "[webhook] source=companies id=166916475618 action=updated-monday board=5028000496",
+    "281861294835": "[webhook] source=companies id=281861294835 action=updated-monday board=5028000496",
+    "327253698294": "[webhook] source=companies id=327253698294 action=updated-monday board=5028000496",
+    "345940602576": "[webhook] source=companies id=345940602576 action=updated-monday board=5028000496",
+    "347053147882": "[webhook] source=companies id=347053147882 action=updated-monday board=5028000496"
+  },
+  "done": true,
+  "finishedAt": "2026-09-30T15:42:29.092Z"
+}

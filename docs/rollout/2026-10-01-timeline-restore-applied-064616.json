@@ -1,0 +1,188 @@
+{
+ "generatedAt": "2026-10-01T06:46:16.433Z",
+ "mode": "applied",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 2,
+ "filters": {
+  "cards": [
+   "2866357399"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied-222841.json",
+   "2026-09-30-timeline-restore-applied.json",
+   "2026-10-01-timeline-restore-applied-041852.json",
+   "2026-10-01-timeline-restore-applied-044237.json",
+   "2026-10-01-timeline-restore-applied-045725.json",
+   "2026-10-01-timeline-restore-applied-051130.json",
+   "2026-10-01-timeline-restore-applied-052355.json",
+   "2026-10-01-timeline-restore-applied-053051.json",
+   "2026-10-01-timeline-restore-applied-054153.json",
+   "2026-10-01-timeline-restore-applied-055437.json",
+   "2026-10-01-timeline-restore-applied-060139.json",
+   "2026-10-01-timeline-restore-applied-061455.json",
+   "2026-10-01-timeline-restore-applied-062253.json",
+   "2026-10-01-timeline-restore-applied-062819.json",
+   "2026-10-01-timeline-restore-applied-063612.json",
+   "2026-10-01-timeline-restore-applied-064207.json",
+   "2026-10-01-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "created": 1,
+  "skipped-present": 1
+ },
+ "done": true,
+ "cards": {
+  "2866357399": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2866357399",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401855189735]",
+   "object": "emails",
+   "activityId": "401855189735",
+   "outcome": "created",
+   "recordId": "348083534577",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "66b89fdc-def1-4acf-ad83-f1160f1c060a",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "接受:Invitation: Docusign - 沟通 @ Thu Sep 24, 2026 10am - 11am (GMT+8) (jimshen@dkmeco.com)",
+    "contentLength": 154,
+    "contentSha": "01dcd1ac110d4c1e",
+    "timestamp": "2026-09-23T09:26:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:46:21.421Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:46:21.421Z",
+   "newId": "1ca967ee-2ee7-4798-88e8-8e556ff81bda",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-23T09:26:28.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2866357399",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401859507918]",
+   "object": "emails",
+   "activityId": "401859507918",
+   "outcome": "skipped-present",
+   "recordId": "348083534577",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "de535610-f627-4c7e-b552-a577d8c3e550",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Invitation: Docusign - 沟通 @ Thu Sep 24, 2026 10am - 11am (GMT+8) (jimshen@dkmeco.com)",
+    "contentLength": 1825,
+    "contentSha": "bbdef6ea20963cde",
+    "timestamp": "2026-09-23T09:23:20Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:46:21.421Z"
+    }
+   },
+   "reason": "the listing shows the marker in d1ce67b2-0655-4b29-8c3c-230ea8f770a1"
+  }
+ ]
+}

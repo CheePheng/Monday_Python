@@ -1,58 +1,59 @@
-# Graph Report - Monday_Python  (2026-08-07)
+# Graph Report - Monday_Python-crm  (2026-10-11)
 
 ## Corpus Check
-- 219 files · ~233,475 words
+- 672 files · ~6,963,555 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1778 nodes · 3107 edges · 112 communities (105 shown, 7 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.75)
+- 5679 nodes · 11643 edges · 302 communities (277 shown, 19 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 56 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ca5767e5`
+- Built from commit: `9f48441d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- hubspot.ts
+- DealDrawer.tsx
 - owner_router_test.py
 - RecordDrawer.tsx
-- backfill.ts
-- types.ts
-- dependencies
+- Handoff — HubSpot ↔ monday CRM two-way sync (Phase 1: Contacts + Accounts)
+- marketing-email-poller.ts
+- monday-app/package.json
 - monday-client.ts
-- create-idempotency-do.ts
-- KanbanView.tsx
-- DealDrawer.tsx
-- CompaniesView.tsx
-- BoardView.tsx
-- worker-client.ts
-- sync.ts
-- compilerOptions
-- totals.ts
-- worker/package.json
-- filter.ts
-- date-range.ts
-- compilerOptions
-- App.tsx
-- LineItemForm.tsx
-- ContactDrawer.tsx
+- config.ts
+- ask-ada-ui-edits.test.ts
+- LineItemsEditor.tsx
+- stale-forward-world.ts
+- create-window-edits.test.ts
 - useBoard.ts
-- session.ts
-- ensure-card.ts
-- monday_smoke_test.py
-- contact-company-props.ts
-- hubspot_smoke_test.py
 - associations.ts
+- compilerOptions
+- stale-forward-retry-ledger.test.ts
+- worker/package.json
+- ContactDrawer.tsx
+- owner-notice.ts
+- compilerOptions
+- BoardView.tsx
+- hs-rate-limit-retry.test.ts
+- cleanup-extra-cards.mjs
+- create-progress.ts
+- session.ts
+- refresh-forward.mjs
+- monday_smoke_test.py
+- catchup-after-deploy.mjs
+- hubspot_smoke_test.py
+- HubSpot ↔ monday CRM — Phase 1 Implementation Plan (v3)
+- restore-timeline-entries.mjs
 - Component Information
 - Component Information
-- index.ts
+- hubspot.ts
 - PHASE 4 — App UI
 - PHASE 2 — monday "Deal Cockpit" React app
 - Deal Cockpit v3.4 — Standalone + Contextual Contact/Company Creation — Design
 - PHASE 3 — Drawer shell + tabs
-- create-records.ts
+- column-level-reverse.test.ts
 - Editable Companies + Association Fresh-on-Open Implementation Plan
 - HubSpot ↔ monday Two-Way Sync Worker — Design Spec
 - monday "Deal Cockpit" app (Board View) — Design
@@ -65,7 +66,7 @@
 - Design
 - Deal Cockpit — Companies Tab (design)
 - Deal Cockpit — Tab Filters + Fast Tab Switching (design)
-- LineItemsEditor.tsx
+- resync-people-columns.mjs
 - Architecture
 - Deal Cockpit v3.1 — Drawer, editing & instant sync
 - Created Date columns + Company domain gate — Design
@@ -81,7 +82,7 @@
 - HubSpot Associations + Line Items → monday — Design
 - Reverse-sync the Sales Users person → HubSpot `sales_user` — Design
 - Sync All Companies — Phase 2 (company→contact associations) — Design
-- ContactsView.tsx
+- backfill-activities.mjs
 - Deal Cockpit v3.3 — Phase 1: Live Search Freshness & UX Implementation Plan
 - Deal Cockpit v3.4 Phase B — Standalone Creation UI Implementation Plan
 - Created Date columns + Company domain gate — Implementation Plan
@@ -90,7 +91,7 @@
 - Product picker for line items (no new board) — Design
 - Deal Cockpit v3.0 — Sync correctness (Amount / Currency / Close date)
 - Two-Way Line-Item Sync — Design
-- line-item-props.ts
+- backfill-crm.mjs
 - Sync All Companies — Phase 1 Implementation Plan
 - Editable Contacts Tab Implementation Plan
 - monday item Update → HubSpot Note (deal/contact/company activity) — Design
@@ -118,28 +119,212 @@
 - Phone Country Fix + Backfill — Design
 - Phone Country Fix + Backfill Implementation Plan
 - Association Display Cascade + HubSpot Links — Design
-- CompanyDrawer.tsx
+- types.ts
+- coarse-stage-reverse.test.ts
 - register-subitem-webhook.mjs
 - AGENTS.md
 - CLAUDE.md
 - monday-vibe-app-backend-context.md
 - monday-vibe-deal-app-prompt.md
+- lifecycle-backward-clear.test.ts
+- verify-deals-migration.mjs
+- email-repair.test.ts
+- recount-canonical-emails.mjs
+- Phase 0 — monday CRM board schema audit
+- H. Task 5 — EXECUTED 2026-09-07. Both boards: 27 columns, 0 items.
+- fix-restore-races.ts
+- deferred-sync-do.ts
+- main
+- lad-sweep.ts
+- task-poller.ts
+- inventory-email-entries.mjs
+- migrate-people-column.mjs
+- activity-retry.ts
+- classify-twin-accounts.mjs
+- plan-email-cleanup.mjs
+- cleanup-classify.mjs
+- marketing-emails.ts
+- Historical Activity import — completion report
+- How the monday CRM ↔ HubSpot sync works
+- post-disable-baseline.mjs
+- report-idless-corrected.mjs
+- audit-created-companies.mjs
+- canary-relations.mjs
+- inventory-idless-companies.mjs
+- probe-notwin-domains.mjs
+- undo-aborted-deals-import.mjs
+- activity-sync.ts
+- Phase 2 audit — Deals, Line Items, Activities
+- hubspot-crm-webhook-sync — HubSpot project app for the monday CRM sync
+- canary-deals.mjs
+- item-name-fit-engine.test.ts
+- verify-crm-import.mjs
+- Contacts assignment + permissions — complete
+- audit-deals-phase.mjs
+- manifest-v2.mjs
+- measure-assignment-crosstab.mjs
+- resync-crm-records.mjs
+- repair-phantom-status.mjs
+- LineItemForm.tsx
+- canary-preflight.mjs
+- check-dangling-links.mjs
+- measure-assignment-fields.mjs
+- run-until-done.mjs
+- trace-company-origin.mjs
+- Deal stage mapping — the decision that gates the Deals spec
+- cleanup-fake-company.mjs
+- retire-sales-person-columns.mjs
+- activity-owner-reset.test.ts
+- activity-participants.test.ts
+- Contacts ↔ Companies — sign-off report
+- Deals + Line Items — implementation design
+- Phase B rollout — how to exercise the CRM sync given the inert cutover
+- measure-deal-associations.mjs
+- measure-relation-cells.mjs
+- supervise-migration.mjs
+- verify-coarse-stages.mjs
+- hs-rate-limit-burst.test.ts
+- CRM HubSpot runtime app + Worker secrets — prepared, NOT created
+- add-crm-columns.mjs
+- backfill-sales-user-people.mjs
+- stale-forward-fixes.test.ts
+- measure-assoc-truncation.mjs
+- plan-synthetic-cleanup.mjs
+- ui-actor.ts
+- stale-forward-retry-siblings.test.ts
+- complete-sales-user-labels.mjs
+- dedupe-crm-cards.mjs
+- diagnose-accounts-adoption.mjs
+- preview-email-localparts.mjs
+- reconcile-counts.mjs
+- reconcile-orphan-accounts.mjs
+- born-attached.test.ts
+- rename-placeholder-cards.mjs
+- wm-guard-impact.mjs
+- wm-guard-landing.mjs
+- activity-mirrored-copies.test.ts
+- cleanup-apply.mjs
+- confirm.ts
+- item-name-fit-subitem.test.ts
+- activity-doorbell.test.ts
+- deals-import-baseline.mjs
+- find-duplicate-cards.mjs
+- preview-company-names.mjs
+- preview-numeric-names.mjs
+- wm-guard-preflight.mjs
+- HsRecord
+- no-activity-release.test.ts
+- create-idempotency-do.ts
+- PRODUCTION FOLLOW-UP — WM contacts `scopeAlsoLinkedProp` looks dead
+- 2026-09-17-crm-column-audit-table.md
+- add-sidebar-columns.mjs
+- audit-crm-column-types.mjs
+- check-hubspot-properties.mjs
+- check-post-disable.mjs
+- convert-sales-user-dropdown.mjs
+- direction-table.mjs
+- repoint-crm-webhooks.mjs
+- verify-crm-columns.mjs
+- owner-notice-queue.test.ts
+- apply-mapping-sheet.mjs
+- create-crm-columns.mjs
+- dump-crm-columns.mjs
+- preview-contact-names.mjs
+- association-paired-side.test.ts
+- Subscriptions
+- remove-duplicate-crm-columns.mjs
+- update-mapping-tests.mjs
+- verify-spec-columns-exist.mjs
+- retryMarkedEdits
+- check-hubspot-scopes.mjs
+- company-name-to-relation.mjs
+- convert-vendors-dropdown.mjs
+- read-app-scopes.d.mts
+- rename-crm-columns.mjs
+- line-item-account-reverse.test.ts
+- probe-activity-source.mjs
+- retire-sales-person-columns.d.mts
+- .mcp.json
+- read-wrangler.d.mts
+- register-crm-webhooks.d.mts
+- relation-plan.d.mts
+- probe-marketing-events.mjs
+- association-link-order.test.ts
+- ask-ada-ui-push.test.ts
+- lad-scripts.test.ts
+- crm.ts
+- dedupe-timeline.mjs
+- CompaniesView.tsx
+- register-crm-webhooks.mjs
+- line-item-dispatch.test.ts
+- create-marketing-activity-type.mjs
+- check-activity-doorbell.d.mts
+- reverse-enabled-batch.test.ts
+- hubspot-latest-wins.test.ts
+- activity-marker-pagination.test.ts
+- build-deals-schema.mjs
+- card-watch.ts
+- owner-notice.test.ts
+- coarse-stage-webhook.test.ts
+- stale-forward-marks.test.ts
+- ensure-card.ts
+- reverse-sync.test.ts
+- cleanup-release.test.mjs
+- wake-timeline.test.ts
+- card-registry.ts
+- stale-forward-retry-review.test.ts
+- syncMondayItem
+- marketing-cron.test.ts
+- stale-forward-gate-deals.test.ts
+- find-stale-lad.d.mts
+- index.ts
+- no-activity-follow-up.test.ts
+- stale-forward-gate.test.ts
+- reconcile.ts
+- marketing-email-poller.test.ts
+- find-stale-lad.mjs
+- born-attached-provenance.test.ts
+- association-heal.test.ts
+- checkIdlessAccounts
+- read-source.mjs
+- stale-forward-retry-safety.test.ts
+- item-name-fit.test.ts
+- association-deleted-card.test.ts
+- activity-registry.ts
+- hs-retry-entry.test.ts
+- afterIdDelete
+- registry-lookup.ts
+- Env
+- release-no-activity.mjs
+- ownership.ts
+- deal-routing-deployment.test.ts
+- no-activity-monday-update.test.ts
+- owner-notice-webhook.test.ts
+- restore-idless-account.test.ts
+- MondayEdit
+- sync.ts
+- activity-stale-reservation.test.ts
+- deferred-owner-notice.test.ts
+- wm-unbound-namespaces.test.ts
+- task-sweep-e2e.test.ts
+- owner-notice-race.test.ts
+- line-item-create.test.ts
+- no-activity.ts
+- wm-app-routes-live.test.ts
 
 ## God Nodes (most connected - your core abstractions)
-1. `hs()` - 26 edges
-2. `call()` - 23 edges
-3. `api()` - 23 edges
-4. `gql()` - 17 edges
-5. `BoardView()` - 16 edges
-6. `ensureCardForRecord()` - 16 edges
-7. `Editable Companies + Association Fresh-on-Open Implementation Plan` - 16 edges
-8. `HubSpot ↔ monday Two-Way Sync Worker — Design Spec` - 16 edges
-9. `fetch()` - 15 edges
-10. `HubSpot ↔ monday Two-Way Sync Worker — Implementation Plan` - 15 edges
+1. `Env` - 113 edges
+2. `fetch()` - 73 edges
+3. `CRM_CONTACTS` - 63 edges
+4. `hs()` - 59 edges
+5. `ObjectSpec` - 59 edges
+6. `HsRecord` - 50 edges
+7. `MondayItem` - 49 edges
+8. `forwardOnlyGated()` - 48 edges
+9. `RunOpts` - 48 edges
+10. `CreateIdempotency` - 47 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `grouped()` --indirect_call--> `f()`  [INFERRED]
-  monday-app/src/views/RecordForm.tsx → worker/test/mapping.test.ts
 - `test_match_by_email()` --calls--> `match_owner_config()`  [EXTRACTED]
   tests/test_routing.py → owner_router_test.py
 - `test_match_by_name_when_no_id_or_email()` --calls--> `match_owner_config()`  [EXTRACTED]
@@ -148,123 +333,133 @@
   tests/test_routing.py → owner_router_test.py
 - `test_unmapped_owner_returns_none()` --calls--> `match_owner_config()`  [EXTRACTED]
   tests/test_routing.py → owner_router_test.py
+- `test_format_date_truncates_to_day()` --calls--> `format_column_value()`  [EXTRACTED]
+  tests/test_routing.py → owner_router_test.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (112 total, 7 thin omitted)
+## Communities (302 total, 19 thin omitted)
 
-### Community 0 - "hubspot.ts"
-Cohesion: 0.09
-Nodes (38): archiveDeal(), COMPANY_LIST_PROPS, CompanyFilters, CompanyHit, companySearchBody(), CONTACT_LIST_PROPS, ContactHit, contactSearchBody() (+30 more)
+### Community 0 - "DealDrawer.tsx"
+Cohesion: 0.06
+Nodes (57): COMPANY_BOARD, COMPANY_REL_CONTACT, CONTACT_ID_COL, WORKER_BASE, mergeAssoc(), companyClears(), mergeLineItems(), DealErrors (+49 more)
 
 ### Community 1 - "owner_router_test.py"
 Cohesion: 0.06
 Nodes (60): Adds a 'HubSpot ID' numbers column to the Company and Contact boards (dedup…, build_column_values(), build_context(), build_stage_to_group(), configured_owner_ids(), create_item(), deal_properties(), fetch_deals() (+52 more)
 
 ### Community 2 - "RecordDrawer.tsx"
-Cohesion: 0.06
-Nodes (58): ConfirmFn, Ctx, useConfirm(), Assoc, buildCreateAssoc(), isPendingCreate(), mergeAssociatedCompanies(), attemptCreate() (+50 more)
+Cohesion: 0.10
+Nodes (37): ConfirmFn, Ctx, useConfirm(), Assoc, buildCreateAssoc(), isPendingCreate(), mergeAssociatedCompanies(), attemptCreate() (+29 more)
 
-### Community 4 - "types.ts"
-Cohesion: 0.09
-Nodes (40): colText(), indexByHubspotId(), buildColumnValues(), expectedText(), formatValue(), itemName(), phoneDigits(), BACKFILL_OBJECTS (+32 more)
+### Community 3 - "Handoff — HubSpot ↔ monday CRM two-way sync (Phase 1: Contacts + Accounts)"
+Cohesion: 0.04
+Nodes (48): 0. Phase 1 scope — fixed, 10. Controlled rollout, 11. Phase 0 — board schema audit before any sync code, 12. The eight demo rows — explicit decision required, 13. CRM-specific create cutoff — required safeguard, 14. Contact creation / adoption, 15. Company / Account creation / adoption, 16. Two-way update rules (+40 more)
 
-### Community 5 - "dependencies"
+### Community 4 - "marketing-email-poller.ts"
 Cohesion: 0.06
-Nodes (34): dependencies, monday-sdk-js, react, react-dom, react-router-dom, @vibe/core, @vibe/icons, devDependencies (+26 more)
+Nodes (52): advance(), appendLedger(), backfillPhase(), campaignTriesName(), CREATE_RESERVE_MS, CursorResult, DEFAULT_MAX_WRITES, denseSlice() (+44 more)
+
+### Community 5 - "monday-app/package.json"
+Cohesion: 0.06
+Nodes (31): dependencies, monday-sdk-js, react, react-dom, react-router-dom, @vibe/core, @vibe/icons, devDependencies (+23 more)
 
 ### Community 6 - "monday-client.ts"
-Cohesion: 0.12
-Nodes (26): apiErrorDetail(), apiErrorMessage(), linkDisplayName(), api(), createDeal(), createSubitem(), Ctx, deleteItem() (+18 more)
-
-### Community 7 - "create-idempotency-do.ts"
-Cohesion: 0.17
-Nodes (9): CardClaim, CardEntry, CreateIdempotency, Claim, CreateResult, CreateState, CreateSteps, decideClaim() (+1 more)
-
-### Community 8 - "KanbanView.tsx"
-Cohesion: 0.16
-Nodes (17): ColSpec, DEAL_COLS, UNASSIGNED_GROUP, KIND_TO_MONDAY_TYPE, SchemaResult, OK_COLS, OK_GROUPS, validateBoardSchema() (+9 more)
-
-### Community 9 - "DealDrawer.tsx"
-Cohesion: 0.11
-Nodes (22): COMPANY_ID_COL, CONTACT_ID_COL, SUB_COLS, mergeAssoc(), blank(), boardRelationValue(), DealClears, DealForm (+14 more)
-
-### Community 10 - "CompaniesView.tsx"
-Cohesion: 0.29
-Nodes (11): buildDealSeed(), fmtCompanyDate(), fmtNumber(), NewDealSeed, orDash(), getUsers(), AVATAR, avatarFor() (+3 more)
-
-### Community 11 - "BoardView.tsx"
-Cohesion: 0.18
-Nodes (15): hubspotDealUrl(), filterDeals(), AVATAR, avatarFor(), Badge(), BoardView(), CUR_SYMBOL, fmt() (+7 more)
-
-### Community 12 - "worker-client.ts"
 Cohesion: 0.13
-Nodes (29): CompanyDrawer(), ContactDrawer(), addHubspotAssociation(), archiveHubspotDeal(), call(), clearDealFields(), clearRecordFields(), CompanyContact (+21 more)
+Nodes (25): apiErrorDetail(), apiErrorMessage(), linkDisplayName(), api(), createDeal(), Ctx, deleteItem(), findItemByColumn() (+17 more)
 
-### Community 13 - "sync.ts"
+### Community 7 - "config.ts"
+Cohesion: 0.03
+Nodes (82): META, readAppScopes(), SCOPES_FOR, readCode(), adoptionKey(), companyDomainKey(), isHostname(), isPublicEmailDomain() (+74 more)
+
+### Community 8 - "ask-ada-ui-edits.test.ts"
 Cohesion: 0.08
-Nodes (44): ALL_MEMBERS_TEAM_ID, ALL_SPECS, COMPANIES_MYLA, COMPANY_ID_COL, CONTACT_ID_COL, CONTACTS_MYLA, CREATE_CUTOFF_MS, CREATED_AFTER_MS (+36 more)
+Nodes (22): act, actor, API_ROW_0312, base, ectx, EV_0211, EV_0312, fire() (+14 more)
+
+### Community 9 - "LineItemsEditor.tsx"
+Cohesion: 0.10
+Nodes (28): hubspotRecordUrl(), debounceLatest(), SearchResponse, useDebouncedSearch(), clear(), query(), reset(), lineItemsTotal() (+20 more)
+
+### Community 10 - "stale-forward-world.ts"
+Cohesion: 0.04
+Nodes (61): withOptionOrder(), resetCtxCache(), resetUiActorCache(), advance(), apply(), as(), ASK_ADA, at() (+53 more)
+
+### Community 11 - "create-window-edits.test.ts"
+Cohesion: 0.09
+Nodes (35): advance(), alarmAt(), ASK_ADA, assoc, AUTOMATION, budget(), cell(), cellText() (+27 more)
+
+### Community 12 - "useBoard.ts"
+Cohesion: 0.10
+Nodes (31): columnLabels(), KIND_TO_MONDAY_TYPE, SchemaResult, OK_COLS, OK_GROUPS, validateBoardSchema(), confirmSynced(), SavedInfo (+23 more)
+
+### Community 13 - "associations.ts"
+Cohesion: 0.07
+Nodes (66): activeCards(), birthColumns(), BirthLinks, CellEdit, cellEditOf(), clearsFromEmpty(), convergeRelationCell(), DEAL_COMPANY_PRIMARY (+58 more)
 
 ### Community 14 - "compilerOptions"
-Cohesion: 0.10
-Nodes (19): compilerOptions, isolatedModules, jsx, lib, module, moduleResolution, noEmit, noUnusedLocals (+11 more)
+Cohesion: 0.12
+Nodes (15): compilerOptions, isolatedModules, jsx, lib, module, moduleResolution, noEmit, noUnusedLocals (+7 more)
 
-### Community 15 - "totals.ts"
-Cohesion: 0.60
-Nodes (4): lineItemsTotal(), lineTotal(), n(), TotalInput
+### Community 15 - "stale-forward-retry-ledger.test.ts"
+Cohesion: 0.17
+Nodes (33): rep, accountStaleForward(), assoc, boundary(), burst(), companies(), company(), deal() (+25 more)
 
 ### Community 16 - "worker/package.json"
 Cohesion: 0.12
-Nodes (16): @cloudflare/workers-types, devDependencies, @cloudflare/workers-types, typescript, vitest, wrangler, typescript, vitest (+8 more)
+Nodes (16): @cloudflare/workers-types, wrangler, devDependencies, @cloudflare/workers-types, typescript, vitest, wrangler, typescript (+8 more)
 
-### Community 17 - "filter.ts"
+### Community 17 - "ContactDrawer.tsx"
+Cohesion: 0.09
+Nodes (35): ColSpec, COMPANY_COLS, COMPANY_ID_COL, CONTACT_BOARD, CONTACT_COLS, CONTACT_REL_COMPANY, CONTACT_REL_DEAL, DEAL_COLS (+27 more)
+
+### Community 18 - "owner-notice.ts"
 Cohesion: 0.14
-Nodes (11): DealRow, ROWS, computeKpis(), isLost(), isWon(), Kpis, upsertRow(), num() (+3 more)
-
-### Community 18 - "date-range.ts"
-Cohesion: 0.21
-Nodes (11): DATE_PRESETS, DatePreset, dateRange, endOfDay(), startOfDay(), startOfWeek(), NOW, ymd() (+3 more)
+Nodes (26): acquireLock(), NoticeFlag, NoticeNote, releaseLock(), renewLock(), assignedMs(), Cell, changedMs() (+18 more)
 
 ### Community 19 - "compilerOptions"
-Cohesion: 0.12
-Nodes (15): @cloudflare/workers-types, ES2022, src/**/*.ts, test/**/*.ts, vitest/globals, compilerOptions, lib, module (+7 more)
+Cohesion: 0.18
+Nodes (10): compilerOptions, lib, module, moduleResolution, noEmit, skipLibCheck, strict, target (+2 more)
 
-### Community 20 - "App.tsx"
-Cohesion: 0.47
-Nodes (4): App(), monday, ConfirmProvider(), useBoard()
+### Community 20 - "BoardView.tsx"
+Cohesion: 0.06
+Nodes (46): App(), monday, hubspotDealUrl(), UNASSIGNED_GROUP, ConfirmProvider(), DealRow, filterDeals(), ROWS (+38 more)
 
-### Community 21 - "LineItemForm.tsx"
-Cohesion: 0.27
-Nodes (12): computeTotals(), isNumeric(), LI_FIELDS, LiField, LiFieldType, LineItemFormValues, num(), base (+4 more)
+### Community 21 - "hs-rate-limit-retry.test.ts"
+Cohesion: 0.06
+Nodes (25): listSources(), contact, DAILY_BODY, drive(), fetchMock, hsCalls(), live, NET (+17 more)
 
-### Community 22 - "ContactDrawer.tsx"
-Cohesion: 0.13
-Nodes (21): CONTACT_BOARD, CONTACT_COLS, CONTACT_REL_COMPANY, CONTACT_REL_DEAL, DEALS_BOARD, HS_OBJ, HUBSPOT_PORTAL_ID, hubspotRecordUrl() (+13 more)
+### Community 22 - "cleanup-extra-cards.mjs"
+Cohesion: 0.04
+Nodes (45): APPLY, arg(), argv, assocBefore, assocCounts(), B, CANARY, CHECK (+37 more)
 
-### Community 23 - "useBoard.ts"
-Cohesion: 0.17
-Nodes (16): columnLabels(), confirmSynced(), SavedInfo, SyncStatus, AccountUser, BoardMeta, RawItem, BoardState (+8 more)
+### Community 23 - "create-progress.ts"
+Cohesion: 0.18
+Nodes (15): CREATE_STEPS, isComplete(), isFailed(), ProgressStep, progressSteps(), ResultLike, StepKey, StepStatus (+7 more)
 
 ### Community 24 - "session.ts"
 Cohesion: 0.26
 Nodes (8): b64urlToBytes(), bytesToB64url(), claim(), SessionVerdict, timingSafeEq(), verifySessionToken(), b64url(), sign()
 
-### Community 25 - "ensure-card.ts"
-Cohesion: 0.30
-Nodes (13): cardStub(), claimCard(), claimHubspotForItem(), finishCard(), finishHubspotForItem(), forgetCard(), forgetHubspotForItem(), itemStub() (+5 more)
+### Community 25 - "refresh-forward.mjs"
+Cohesion: 0.10
+Nodes (20): APPLY, arg(), argv, BATCH, FATAL, hs(), LONG_WAIT, need() (+12 more)
 
 ### Community 26 - "monday_smoke_test.py"
 Cohesion: 0.60
 Nodes (4): load_optional_columns(), main(), monday_query(), Return monday_columns from config.json if present and configured with a real…
 
-### Community 27 - "contact-company-props.ts"
-Cohesion: 0.44
-Nodes (7): COMPANY_ENUM_PROPS, COMPANY_WRITE_PROPS, CONTACT_ENUM_PROPS, CONTACT_WRITE_PROPS, pick(), pickWritableCompanyProps(), pickWritableContactProps()
+### Community 27 - "catchup-after-deploy.mjs"
+Cohesion: 0.09
+Nodes (26): ACTIVITIES, ALL, APPLY, BATCH, BOARDS, carded(), FatalResponse, hhmmss (+18 more)
 
-### Community 32 - "associations.ts"
-Cohesion: 0.13
-Nodes (34): clearsFromEmpty(), LI_CALCULATED, resolvedAllIds(), reverseAssociations(), reverseLineItems(), sameSet(), shrinksFreshCard(), syncAssociations() (+26 more)
+### Community 30 - "HubSpot ↔ monday CRM — Phase 1 Implementation Plan (v3)"
+Cohesion: 0.05
+Nodes (38): 1. Exclusive runtime routing, 2. `/app/ensure-card` — terminal refusal, and an honest note about the risk, 3. monday webhook registrar — written, NOT run, 4. HubSpot webhook routing, 5. Phase B (`dryRun: false`, `writeHubspot: false`) preserved, 6. Phase-D claim rehearsal is now MANDATORY, All five `ensureCardForRecord` callers, and what a refusal does to each, Approval gates (all closed) (+30 more)
+
+### Community 32 - "restore-timeline-entries.mjs"
+Cohesion: 0.09
+Nodes (50): backfillEntry(), BOARD, bodyAfter(), callSite(), CUTOVER, CUTOVER_ISO, differences(), internalDomains() (+42 more)
 
 ### Community 33 - "Component Information"
 Cohesion: 0.06
@@ -274,9 +469,9 @@ Nodes (31): Account Management, app component, app-event, app-function, app-obje
 Cohesion: 0.06
 Nodes (31): Account Management, app component, app-event, app-function, app-object, Available Actions for Card Components, Available Hooks for Card Components, card (+23 more)
 
-### Community 35 - "index.ts"
-Cohesion: 0.13
-Nodes (35): AssocReq, CLEARABLE_DEAL_PROPS, CLEARABLE_PROPS, ClearDealReq, ClearRecordReq, CreateCompanyReq, CreateContactReq, CreateLineItemReq (+27 more)
+### Community 35 - "hubspot.ts"
+Cohesion: 0.05
+Nodes (74): resolveActor(), createContactOrCompany(), CreateInput, hubspotLink(), HS_RETRY_DEADLINE, hsRateLimitRetryOn(), hsRetry, hsRetryDeadlineOf() (+66 more)
 
 ### Community 36 - "PHASE 4 — App UI"
 Cohesion: 0.08
@@ -294,9 +489,9 @@ Nodes (21): Architecture, Association (Connect Boards / `board_relation`) column
 Cohesion: 0.10
 Nodes (19): Deal Cockpit v3.1 — Drawer, editing & instant sync — Implementation Plan, PHASE 1 — Backend + shared libs, PHASE 2 — Picker rework, PHASE 3 — Drawer shell + tabs, PHASE 4 — Deploy + verify, Self-Review Notes, Task 10: `LineItemsTab` (quotation table), Task 11: `SyncTab` (+11 more)
 
-### Community 40 - "create-records.ts"
-Cohesion: 0.18
-Nodes (15): ActorOwner, OWNER_UNASSIGNED_MESSAGE, NOTE: an Unassigned record has no `sales_user`, and BOTH board specs filter on…, resolveActor(), createContactOrCompany(), CreateInput, hubspotLink(), cardIdOf() (+7 more)
+### Community 40 - "column-level-reverse.test.ts"
+Cohesion: 0.12
+Nodes (12): ALDRIN, assoc, ELAINE, ensure, env, hubspot, LIFECYCLE, live (+4 more)
 
 ### Community 41 - "Editable Companies + Association Fresh-on-Open Implementation Plan"
 Cohesion: 0.12
@@ -346,9 +541,9 @@ Nodes (15): Architecture, Companies list screen (`CompaniesView`), Company detai
 Cohesion: 0.12
 Nodes (15): App, Context, Deal Cockpit — Tab Filters + Fast Tab Switching (design), Decisions (settled), File structure, Goal, New: `GET /app/owners`, Non-goals (v1) (+7 more)
 
-### Community 53 - "LineItemsEditor.tsx"
-Cohesion: 0.22
-Nodes (7): debounceLatest(), SearchResponse, useDebouncedSearch(), mergeLineItems(), LineItem, Props, Hit
+### Community 53 - "resync-people-columns.mjs"
+Cohesion: 0.09
+Nodes (22): DEFAULT_CRM_WORKER_URL, INTEGRATION_USER_ID, requireIntegrationToken(), requireNewBuild(), APPLY, at, BOARDS, cvArg() (+14 more)
 
 ### Community 54 - "Architecture"
 Cohesion: 0.13
@@ -363,8 +558,8 @@ Cohesion: 0.13
 Nodes (14): Behaviour, Board / column state, Cleanup, Column reuse rule, Created Date columns + Company domain gate — Design, Explicitly out of scope, Goal, Part 1 — Created Date (+6 more)
 
 ### Community 57 - "webhooks.ts"
-Cohesion: 0.13
-Nodes (28): reverseSubitemEdit(), LINE_ITEM_SUBITEMS, buildSubitemReversePatch(), DISCOUNT_SIBLING, isReverseSubitemEvent(), liValueEqual(), readSubitemEvent(), subitemFieldByCol() (+20 more)
+Cohesion: 0.05
+Nodes (66): ACTIVITY_BY_TYPEID, activitySyncEnabled(), resetHelperOnReassignment(), reverseSubitemEdit(), createNote(), buildSubitemReversePatch(), DISCOUNT_SIBLING, isReverseSubitemEvent() (+58 more)
 
 ### Community 58 - "Deal Cockpit v3.2 — Friendly Save Flow, Feedback & UI Polish Implementation Plan"
 Cohesion: 0.14
@@ -410,9 +605,9 @@ Nodes (12): 1. Reverse identity maps (in `ctx`), 2. Read the assigned person id,
 Cohesion: 0.15
 Nodes (12): 1. Contact scope = union (a new, general spec flag), 2. Bulk association run (reuses the association pass), 3. Ongoing, 4. Link direction (decision), Constraints (from Phase 1 + the code), Design, Goal, Non-goals (Phase 2) (+4 more)
 
-### Community 69 - "ContactsView.tsx"
-Cohesion: 0.31
-Nodes (8): ContactHit, fmtContactDate(), orDash(), getContext(), AVATAR, avatarFor(), ContactsView(), initials()
+### Community 69 - "backfill-activities.mjs"
+Cohesion: 0.08
+Nodes (35): ACTIVITY_TYPE, allAssociations(), APPLY, BOARD, buildIndex(), contactEmail, CUTOVER, destinationsForPage() (+27 more)
 
 ### Community 70 - "Deal Cockpit v3.3 — Phase 1: Live Search Freshness & UX Implementation Plan"
 Cohesion: 0.17
@@ -446,9 +641,9 @@ Nodes (11): Changes, Context, Controlled backfill (added after review), Deal Coc
 Cohesion: 0.17
 Nodes (11): Architecture — three trigger paths, Component 1 — New subitems-board webhook, Component 2 — Per-field ownership on the 9 subitem columns, Component 3 — App-edit path audit (no expected code change), Decisions (locked with the user), Error handling & idempotency, Goal, Out of scope (+3 more)
 
-### Community 78 - "line-item-props.ts"
-Cohesion: 0.60
-Nodes (4): LINE_ITEM_ENUM_PROPS, LINE_ITEM_WRITE_PROPS, pickWritableLineItemProps(), PRODUCT_COPY_PROPS
+### Community 78 - "backfill-crm.mjs"
+Cohesion: 0.13
+Nodes (34): alreadyCarded(), createBatch(), ctxOf(), flush(), flushDealRelations(), flushRelations(), hsPage(), hsTotal() (+26 more)
 
 ### Community 79 - "Sync All Companies — Phase 1 Implementation Plan"
 Cohesion: 0.18
@@ -558,29 +753,721 @@ Nodes (5): Phone Country Fix + Backfill Implementation Plan, Rollback, Self-Revi
 Cohesion: 0.33
 Nodes (5): Association Display Cascade + HubSpot Links — Design, Feature A — smart display-name cascade, Feature B — open a linked contact/company in HubSpot, Non-goals, Testing
 
-### Community 107 - "CompanyDrawer.tsx"
+### Community 106 - "types.ts"
+Cohesion: 0.04
+Nodes (40): ActorOwner, OWNER_UNASSIGNED_MESSAGE, NOTE: an Unassigned record has no `sales_user`, and BOTH board specs filter on…, AdoptBy, AssocSpec, ColType, GroupBy, LabelDict (+32 more)
+
+### Community 107 - "coarse-stage-reverse.test.ts"
+Cohesion: 0.07
+Nodes (38): cardAt(), cell(), cellOf(), change(), ctx(), DICTS, ectx, hs (+30 more)
+
+### Community 113 - "lifecycle-backward-clear.test.ts"
+Cohesion: 0.07
+Nodes (41): backwardClearPlan, OPTION_ORDER_KEY, optionOrderOf(), assoc, card(), cardAfterRun(), danglingClear(), deliberateClear() (+33 more)
+
+### Community 114 - "verify-deals-migration.mjs"
+Cohesion: 0.09
+Nodes (23): badSamples, BASELINE, cell(), COARSE_OK, dealIds, dealIdSet, dir, dumpBoard() (+15 more)
+
+### Community 115 - "email-repair.test.ts"
+Cohesion: 0.14
+Nodes (15): bodyOf(), EmailSource, fingerprint(), RepairAction, RepairDeps, RepairOptions, repairPair(), RepairResult (+7 more)
+
+### Community 116 - "recount-canonical-emails.mjs"
+Cohesion: 0.09
+Nodes (22): bad, bodyOf(), canonicals, cls, COLS, dupRows, E, facts (+14 more)
+
+### Community 117 - "Phase 0 — monday CRM board schema audit"
+Cohesion: 0.09
+Nodes (22): 10. Correction to the handoff — `createdate` is ALREADY fetched, 11. The blocker, narrowed, 12. HubSpot access path — resolved (2026-09-07), 13. Enum reality: internal values ≠ labels (confirmed, and it matters), 14. `industry` — the taxonomies DO NOT MATCH (F9, decision-grade), 15. Final direction decisions, 16. Remaining decisions for the user (3), 17. Phase 0 status: **COMPLETE** (+14 more)
+
+### Community 118 - "H. Task 5 — EXECUTED 2026-09-07. Both boards: 27 columns, 0 items."
+Cohesion: 0.09
+Nodes (22): A. The finding that shapes every recommendation, Accounts / Companies — board 5028000496, B. Sequencing that makes the whole change set non-destructive, C. Contacts board `5028000495`, Contacts — board 5028000495, D-2 — `employee_count` — SETTLED (rev. 2, 2026-09-07): reuse the native column, one-way, D. Accounts board `5028000496`, E. Change set split by risk (+14 more)
+
+### Community 119 - "fix-restore-races.ts"
+Cohesion: 0.13
+Nodes (13): APPLY, deps, HERE, JOBS, shadow, v, RestoreAction, RestoreDeps (+5 more)
+
+### Community 120 - "deferred-sync-do.ts"
+Cohesion: 0.10
+Nodes (27): deferKey(), DeferredItem, DeferredType, DeferredSync, EnqueueResult, noticeGivenUp(), NoticeStillBusy, withMergedScope() (+19 more)
+
+### Community 121 - "main"
+Cohesion: 0.16
+Nodes (26): main(), batchGate(), cardsFor(), checkCard(), checkGroup(), destinationsFor(), entryById(), finalCheck() (+18 more)
+
+### Community 122 - "lad-sweep.ts"
+Cohesion: 0.05
+Nodes (38): Fail, iso(), LAD_PROP, LAD_SWEEP_OBJECTS, LAD_SWEEP_SEED, LadObjectResult, LadSweepObject, LadSweepOpts (+30 more)
+
+### Community 123 - "task-poller.ts"
+Cohesion: 0.17
+Nodes (13): MAX_PER_POLL, OVERLAP_MS, PollResult, SWEEP_MAX, SWEEP_WINDOW_DAYS, SweepResult, TASK_POLL_SEED, env (+5 more)
+
+### Community 124 - "inventory-email-entries.mjs"
+Cohesion: 0.14
+Nodes (15): BOARDS, cardsTouchedSinceCutover(), continueCard(), CUTOVER, firstPages(), gql(), groups, HERE (+7 more)
+
+### Community 125 - "migrate-people-column.mjs"
+Cohesion: 0.12
+Nodes (17): apply, argv, BATCH, cards, dir, entry, field, flush() (+9 more)
+
+### Community 126 - "activity-retry.ts"
+Cohesion: 0.05
+Nodes (52): ActivityOutcome, activityRetryBound(), afterOutcome(), AlarmStep, DEAD_LETTER_CAP, DEAD_LETTER_NAME, DeadActivity, deadLetterStub() (+44 more)
+
+### Community 127 - "classify-twin-accounts.mjs"
+Cohesion: 0.12
+Nodes (16): byOrphan, cardFacts(), COLS, E, eRows, gql(), HERE, inv (+8 more)
+
+### Community 128 - "plan-email-cleanup.mjs"
+Cohesion: 0.12
+Nodes (15): buckets, cardEntries, cardsNeeded, CUT, dupGroups, fails, gql(), HERE (+7 more)
+
+### Community 129 - "cleanup-classify.mjs"
+Cohesion: 0.15
+Nodes (15): ACC, accById, accDupes, blankDeals, cards(), conById, DEA, deaById (+7 more)
+
+### Community 130 - "marketing-emails.ts"
+Cohesion: 0.09
+Nodes (37): MARKER_RE, MARKETING_MARKER_RE, OUR_TYPE, PORTAL_ID, decidedKey(), resolveContacts(), Run, runSlice() (+29 more)
+
+### Community 131 - "Historical Activity import — completion report"
+Cohesion: 0.12
+Nodes (14): 1. Restore Contacts' Last Activity Date (`date_mm7054jz`), 2. Reminder workflows #03 / #04 / #05 — repoint before enabling, 3. Activities-board cleanup — classifier, not a date filter, 4. Meanwhile, unchanged, Post-import corrections — required before Day 1/3/5, By activity type, Disposition of everything not written, Headline (+6 more)
+
+### Community 132 - "How the monday CRM ↔ HubSpot sync works"
+Cohesion: 0.12
+Nodes (15): 10. Not in scope today, 11. "It hasn't synced" — what to check, 1. In one picture, 2. Where records come from, 3. Which records are eligible, 4. What syncs, and in which direction, 5. When does it update?, 6. Contacts ↔ Companies (+7 more)
+
+### Community 133 - "post-disable-baseline.mjs"
+Cohesion: 0.12
+Nodes (14): all, byCard, byDay, HERE, idless, idlessWithLink, idlessWithSync, newest (+6 more)
+
+### Community 134 - "report-idless-corrected.mjs"
+Cohesion: 0.12
+Nodes (15): allCardBuckets, bucketOf, cardBuckets, cardSum, HERE, ids, inv, man (+7 more)
+
+### Community 135 - "audit-created-companies.mjs"
+Cohesion: 0.15
+Nodes (12): allById, bad, byDomain, cardByHsId, hs(), monday(), ours, out (+4 more)
+
+### Community 136 - "canary-relations.mjs"
+Cohesion: 0.16
+Nodes (13): accounts, allHs, byHsId, cellSize, groups, hs(), monday(), readContactCells() (+5 more)
+
+### Community 137 - "inventory-idless-companies.mjs"
+Cohesion: 0.14
+Nodes (13): all, byDomain, gql(), HERE, idless, manifest, perBucket, rows (+5 more)
+
+### Community 138 - "probe-notwin-domains.mjs"
+Cohesion: 0.13
+Nodes (12): buckets, domains, found, HERE, inv, malformed, noTwin, unavailable (+4 more)
+
+### Community 139 - "undo-aborted-deals-import.mjs"
+Cohesion: 0.13
+Nodes (13): all, APPLY, BASELINE, canary, doomed, env, guidIdx, keep (+5 more)
+
+### Community 140 - "activity-sync.ts"
+Cohesion: 0.07
+Nodes (46): CONTACT_ASSOC_TYPE, eligibleForHubspot(), FollowUpContext, HsActivity, HUBSPOT_OBJECT_FOR_NATIVE, MARKETING_ACTIVITY_TYPE_ID, MONDAY_ACTIVITY_TYPE, OUTBOUND (+38 more)
+
+### Community 141 - "Phase 2 audit — Deals, Line Items, Activities"
+Cohesion: 0.14
+Nodes (13): 0. The three things that change the plan, 1. Volumes, 2.1 Association cardinality, 2.2 Automation dependency map, 2.3 The backfill storm — the hard prerequisite, 2.4 `dealstage` — why Stage must be one-way, and what to build instead, 2.5 Column diff, 2. Deals — board 5028000494 (+5 more)
+
+### Community 142 - "hubspot-crm-webhook-sync — HubSpot project app for the monday CRM sync"
+Cohesion: 0.14
+Nodes (13): 0. Scope change, 2026-09-15 — deals and line items ADDED, reversing §1c, 1. Why this is a separate app, and not a reuse of `hubspot-monday-webhook-sync`, 1a. One app has ONE webhook destination — and it already points at the live WM Worker, 1b. That app is already subscribed to Contacts and Companies, 1c. Its scopes are read-only, and adding ours would widen the live app, 1d. Shared credential, 2. What the investigation confirmed that we can now copy, 3. What differs from the WM app (+5 more)
+
+### Community 143 - "canary-deals.mjs"
+Cohesion: 0.16
+Nodes (13): groups, hs(), monday(), PIPE_LABEL, PREFIX, ROOT, selected, sleep() (+5 more)
+
+### Community 144 - "item-name-fit-engine.test.ts"
+Cohesion: 0.13
+Nodes (18): MONDAY_ITEM_NAME_MAX, assoc, cardFor(), contact(), deal(), DEALS_SPEC, ensure, FIRST (+10 more)
+
+### Community 145 - "verify-crm-import.mjs"
+Cohesion: 0.25
+Nodes (13): creds(), ctxRef, digits(), hsBatch(), hsTotal(), linkish(), loadWorker(), main() (+5 more)
+
+### Community 146 - "Contacts assignment + permissions — complete"
+Cohesion: 0.15
+Nodes (12): 2026-09-15 — Sales Person retired; Sales User is the only assignment field, Contacts assignment + permissions — complete, Migration result, Open, Open, carried forward, Order, and why it is not a preference, Permissions, The engine change, and why it was necessary (+4 more)
+
+### Community 147 - "audit-deals-phase.mjs"
+Cohesion: 0.21
+Nodes (12): args, cardinality(), counts, dealIds, hs(), out, report, ROOT (+4 more)
+
+### Community 148 - "manifest-v2.mjs"
+Cohesion: 0.15
+Nodes (11): byKind, fails, HERE, ID_COL, idOf, old, out, records (+3 more)
+
+### Community 149 - "measure-assignment-crosstab.mjs"
+Cohesion: 0.17
+Nodes (11): blankRows, byEmail, cross, hs(), out, owners, ph, ROOT (+3 more)
+
+### Community 150 - "resync-crm-records.mjs"
 Cohesion: 0.18
-Nodes (15): COMPANY_BOARD, COMPANY_COLS, COMPANY_REL_CONTACT, CLEARABLE, companyClears(), CompanyForm, companyFormToColumnValues(), base (+7 more)
+Nodes (10): APPLY, argv, env, hsPost(), IDS, LIMIT, recordsByIds(), recordsSince() (+2 more)
+
+### Community 151 - "repair-phantom-status.mjs"
+Cohesion: 0.16
+Nodes (16): APPLY, at, candidates(), CASES, cellIndex(), CLEAR_NEVER_SET, histories(), hs() (+8 more)
+
+### Community 152 - "LineItemForm.tsx"
+Cohesion: 0.27
+Nodes (12): computeTotals(), isNumeric(), LI_FIELDS, LiField, LiFieldType, LineItemFormValues, num(), base (+4 more)
+
+### Community 153 - "canary-preflight.mjs"
+Cohesion: 0.17
+Nodes (8): base, blocked, cand, gates, HERE, rec, SENTINEL, v
+
+### Community 154 - "check-dangling-links.mjs"
+Cohesion: 0.17
+Nodes (12): byState, danglingByTarget, fake, monday(), onBoard, out, resolved, ROOT (+4 more)
+
+### Community 155 - "measure-assignment-fields.mjs"
+Cohesion: 0.20
+Nodes (10): byEmail, count(), hs(), out, owners, report, ROOT, sleep() (+2 more)
+
+### Community 156 - "run-until-done.mjs"
+Cohesion: 0.18
+Nodes (9): HERE, log(), logPath, maxFailures, maxPasses, onePass(), OWN_FLAGS, passThrough (+1 more)
+
+### Community 157 - "trace-company-origin.mjs"
+Cohesion: 0.18
+Nodes (10): bigFan, blank, buckets, cardByHsId, created, monday(), ROOT, sleep() (+2 more)
+
+### Community 158 - "Deal stage mapping — the decision that gates the Deals spec"
+Cohesion: 0.18
+Nodes (10): 1. `deal_stage` — the coarse map (HubSpot → monday only), 2. `HubSpot Stage` — the exact map (two-way), 3. What this costs if we get it wrong, 4. Open for the advisor, Deal stage mapping — the decision that gates the Deals spec, HubSpot Shared Selling Pipeline — part of the 227, Sales Pipeline (`default`) — 694 deals, Salesforce pipelines (×3: Sales, Maintenance, 赋能培训) — 4,360 + 3,358 + ~227 deals (+2 more)
+
+### Community 159 - "cleanup-fake-company.mjs"
+Cohesion: 0.22
+Nodes (10): apply, EXPORT, exported, hs(), monday(), ROOT, sampleIds, sleep() (+2 more)
+
+### Community 160 - "retire-sales-person-columns.mjs"
+Cohesion: 0.31
+Nodes (8): assigneeColumnsFromLogs(), countFilled(), gql(), KEEP, main(), TARGETS, token(), REAL_EVENT
+
+### Community 161 - "activity-owner-reset.test.ts"
+Cohesion: 0.17
+Nodes (10): extractOwnerChangeContactIds(), columnWrites, contactProps, createdTimeline, env, hubspot, monday, posted (+2 more)
+
+### Community 162 - "activity-participants.test.ts"
+Cohesion: 0.18
+Nodes (9): associated, CARDS, classified, created, EMAILS, env, hubspot, monday (+1 more)
+
+### Community 163 - "Contacts ↔ Companies — sign-off report"
+Cohesion: 0.20
+Nodes (9): 1. Final state, 2. The relation pass, 3. The safety property, proven on real records, 4. The ceiling held, 5. No write-back, 6. What it took to get here, 7. Sign-off status, Contacts ↔ Companies — sign-off report (+1 more)
+
+### Community 164 - "Deals + Line Items — implementation design"
+Cohesion: 0.20
+Nodes (9): 0. The correction, 1. Measured association cardinality and labels, 2. Association design: link all, select nothing, 3. Stage and pipeline — approved decisions, 4. Column diff — Deals board 5028000494, 5. Line Items — board 5028000489, 6. Validation budget, 7. Blocking prerequisites (+1 more)
+
+### Community 165 - "Phase B rollout — how to exercise the CRM sync given the inert cutover"
+Cohesion: 0.20
+Nodes (9): A verified fact that shapes the answer, Before HubSpot writes / automatic claiming are ever enabled, Option 1 — finite cutover, HubSpot writes still disabled ✅ RECOMMENDED, Option 2 — explicitly `sync_owner=crm` test records, Options, Phase B rollout — how to exercise the CRM sync given the inert cutover, Recommended sequence, The problem, stated exactly (+1 more)
+
+### Community 166 - "measure-deal-associations.mjs"
+Cohesion: 0.24
+Nodes (9): byPipeline, deals, hs(), measure(), out, report, ROOT, sleep() (+1 more)
+
+### Community 167 - "measure-relation-cells.mjs"
+Cohesion: 0.22
+Nodes (9): affected, cardHsId, monday(), near, out, oversized, ROOT, sleep() (+1 more)
+
+### Community 168 - "supervise-migration.mjs"
+Cohesion: 0.24
+Nodes (7): extra, HERE, importerRunning(), log(), logPath, runDriver(), statePath
+
+### Community 169 - "verify-coarse-stages.mjs"
+Cohesion: 0.20
+Nodes (9): ALLOWED, counts, dir, entry, env, out, ROOT, stageIds (+1 more)
+
+### Community 170 - "hs-rate-limit-burst.test.ts"
+Cohesion: 0.09
+Nodes (19): assoc, BASE_ENV, contactRec(), drive(), editedCard(), ensure, fakeHubspot(), Hit (+11 more)
+
+### Community 171 - "CRM HubSpot runtime app + Worker secrets — prepared, NOT created"
+Cohesion: 0.22
+Nodes (8): 1. Correction to my earlier report, 2. Which app to build, 3. Scopes — least privilege, after the `buildCtx` fix, 4. Webhook subscriptions, 5. Worker secrets, 6. monday token — exposure assessment and rotation, 7. What is still yours to do, in order, CRM HubSpot runtime app + Worker secrets — prepared, NOT created
+
+### Community 172 - "add-crm-columns.mjs"
+Cohesion: 0.25
+Nodes (8): CONTACT_STATUS_LABELS, gql(), LIFECYCLE_LABELS, main(), PLANNED, PRIORITY_LABELS, NOTE: titles here MUST track scripts/rename-crm-columns.mjs. They were renamed…, SALES_PERSON_LABELS
+
+### Community 173 - "backfill-sales-user-people.mjs"
+Cohesion: 0.39
+Nodes (8): APPLY, BOARDS, gql(), hsBatchRead(), hsGet(), mondayUsers(), ownerEmails(), run()
+
+### Community 174 - "stale-forward-fixes.test.ts"
+Cohesion: 0.12
+Nodes (20): adoptionWorld(), assoc, born(), bornDeal(), contact(), contactsSpec(), dealsSpec(), diedEdit() (+12 more)
+
+### Community 175 - "measure-assoc-truncation.mjs"
+Cohesion: 0.25
+Nodes (7): big, ids, monday(), ROOT, sleep(), truth, v
+
+### Community 176 - "plan-synthetic-cleanup.mjs"
+Cohesion: 0.28
+Nodes (8): hs(), monday(), out, plan, ROOT, sleep(), TARGETS, v
+
+### Community 177 - "ui-actor.ts"
+Cohesion: 0.08
+Nodes (42): actorLabel(), formatActor(), isAutomationActor(), isIntegrationActor(), userCache, getUserById(), whoAmI(), coarseStageField() (+34 more)
+
+### Community 178 - "stale-forward-retry-siblings.test.ts"
+Cohesion: 0.13
+Nodes (25): assoc, companies(), company(), deal(), Death, DICTS, dies(), ENVC (+17 more)
+
+### Community 179 - "complete-sales-user-labels.mjs"
+Cohesion: 0.43
+Nodes (7): BOARDS, completeLabelSet(), hubspotOwners(), main(), mergeLabels(), monday(), readLabels()
+
+### Community 180 - "dedupe-crm-cards.mjs"
+Cohesion: 0.43
+Nodes (7): creds(), loadSpecs(), main(), monday(), ROOT, run(), sleep()
+
+### Community 181 - "diagnose-accounts-adoption.mjs"
+Cohesion: 0.43
+Nodes (7): bareHost(), hubspot(), loadAdopt(), main(), monday(), ROOT, specCols()
+
+### Community 182 - "preview-email-localparts.mjs"
+Cohesion: 0.25
+Nodes (5): emails, ROOT, sharedFull, sharedLocal, v
+
+### Community 183 - "reconcile-counts.mjs"
+Cohesion: 0.32
+Nodes (5): allHubspotIds(), gql(), hsGet(), mondayCards(), REPORT
+
+### Community 184 - "reconcile-orphan-accounts.mjs"
+Cohesion: 0.43
+Nodes (7): companiesByDomain(), creds(), loadWorker(), main(), monday(), ROOT, sleep()
+
+### Community 185 - "born-attached.test.ts"
+Cohesion: 0.10
+Nodes (14): accountCard(), AUTOMATION, automationEdit, card(), cells, contactCard(), dealCard(), env (+6 more)
+
+### Community 186 - "rename-placeholder-cards.mjs"
+Cohesion: 0.39
+Nodes (7): creds(), loadWorker(), main(), monday(), ROOT, sleep(), throttle
+
+### Community 187 - "wm-guard-impact.mjs"
+Cohesion: 0.36
+Nodes (7): allCards(), BOARDS, monday(), ROOT, sleep(), syncOwners(), v
+
+### Community 188 - "wm-guard-landing.mjs"
+Cohesion: 0.36
+Nodes (7): boardIds(), crmStampedIds(), monday(), PAIRS, ROOT, sleep(), v
+
+### Community 189 - "activity-mirrored-copies.test.ts"
+Cohesion: 0.13
+Nodes (14): add(), base, BOARD_OF, CARD, CONTACT_CARDS, hubspot, logs(), logSpy (+6 more)
+
+### Community 190 - "cleanup-apply.mjs"
+Cohesion: 0.19
+Nodes (10): ACC_COLS, APPLY, COSMETIC_ONLY, del(), gql(), log, MAN, readCard() (+2 more)
+
+### Community 191 - "confirm.ts"
+Cohesion: 0.33
+Nodes (7): ConfirmOptions, ConfirmTone, resolveConfirm(), TONES, ToneStyle, ConfirmDialog(), Props
+
+### Community 192 - "item-name-fit-subitem.test.ts"
+Cohesion: 0.18
+Nodes (11): LINE_ITEM_SUBITEMS, auth, base, hubspotApi, live, mondayApi, OFF, ON (+3 more)
+
+### Community 193 - "activity-doorbell.test.ts"
+Cohesion: 0.13
+Nodes (21): BELL_COL, BELL_WORKFLOW_ID, classifyDoorbell(), CONTACTS_BOARD, DOORBELL_COL, filterCovers(), LAD_COL, main() (+13 more)
+
+### Community 194 - "deals-import-baseline.mjs"
+Cohesion: 0.52
+Nodes (6): arg(), BOARDS, gql(), hubspotIds(), main(), token()
+
+### Community 195 - "find-duplicate-cards.mjs"
+Cohesion: 0.29
+Nodes (4): byId, dupes, env, hours
+
+### Community 196 - "preview-company-names.mjs"
+Cohesion: 0.29
+Nodes (5): domains, labelCount, multiSuffix, ROOT, v
+
+### Community 197 - "preview-numeric-names.mjs"
+Cohesion: 0.29
+Nodes (4): byDomain, emails, ROOT, v
+
+### Community 198 - "wm-guard-preflight.mjs"
+Cohesion: 0.38
+Nodes (6): countBy(), hs(), OBJECTS, propertyState(), ROOT, v
+
+### Community 199 - "HsRecord"
+Cohesion: 0.06
+Nodes (26): HsRecord, ctx, env, hubspot, item, monday, opts, rec (+18 more)
+
+### Community 200 - "no-activity-release.test.ts"
+Cohesion: 0.11
+Nodes (15): assoc, base, card(), ensure, hubspot, hubspotChange(), job, LEAD (+7 more)
+
+### Community 201 - "create-idempotency-do.ts"
+Cohesion: 0.04
+Nodes (48): ALARM_MARGIN_MS, CardWatch, clone(), composePeople(), composeRel(), ConvergeOutcome, EditMark, eventTypeOfObject() (+40 more)
+
+### Community 202 - "PRODUCTION FOLLOW-UP — WM contacts `scopeAlsoLinkedProp` looks dead"
+Cohesion: 0.33
+Nodes (5): Before changing anything, verify, PRODUCTION FOLLOW-UP — WM contacts `scopeAlsoLinkedProp` looks dead, What it claims to do, Why it appears to be inert, Why it is not obviously broken
+
+### Community 203 - "2026-09-17-crm-column-audit-table.md"
+Cohesion: 0.33
+Nodes (5): Accounts (5028000496) — 27 columns, 29,066 items, Activities (5028000492) — 8 columns, 3,427 items, Contacts (5028000495) — 39 columns, 95,305 items, Deals (5028000494) — 28 columns, 8,664 items, Products & Services (5028000489) — 26 columns, 9,970 items
+
+### Community 204 - "add-sidebar-columns.mjs"
+Cohesion: 0.47
+Nodes (5): BOARD_NAMES, gql(), hubspotLabels(), main(), PLANNED
+
+### Community 205 - "audit-crm-column-types.mjs"
+Cohesion: 0.47
+Nodes (5): ACCEPTS, gql(), main(), parseFields(), SPECS
+
+### Community 206 - "check-hubspot-properties.mjs"
+Cohesion: 0.33
+Nodes (5): dir, entry, out, ROOT, v
+
+### Community 207 - "check-post-disable.mjs"
+Cohesion: 0.33
+Nodes (4): base, fresh, HERE, v
+
+### Community 208 - "convert-sales-user-dropdown.mjs"
+Cohesion: 0.53
+Nodes (5): BOARDS, dedupeLabels(), hubspotOptions(), main(), monday()
+
+### Community 209 - "direction-table.mjs"
+Cohesion: 0.53
+Nodes (5): directionOf(), gql(), main(), parseFields(), SPECS
+
+### Community 210 - "repoint-crm-webhooks.mjs"
+Cohesion: 0.40
+Nodes (5): CRM_BOARDS, EVENTS, gql(), main(), WM_BOARDS
+
+### Community 211 - "verify-crm-columns.mjs"
+Cohesion: 0.53
+Nodes (5): BOARDS, columnRefs(), gql(), main(), specBlock()
+
+### Community 212 - "owner-notice-queue.test.ts"
+Cohesion: 0.22
+Nodes (5): lines, noticeLines(), outcomes(), T0, W
+
+### Community 214 - "create-crm-columns.mjs"
+Cohesion: 0.40
+Nodes (3): APPLY, created, WANTED
+
+### Community 215 - "dump-crm-columns.mjs"
+Cohesion: 0.60
+Nodes (4): BOARDS, gql(), labelsOf(), main()
+
+### Community 217 - "association-paired-side.test.ts"
+Cohesion: 0.12
+Nodes (15): captured, cell, ectx, env, hs, HS_OF, itemOf(), L() (+7 more)
+
+### Community 219 - "remove-duplicate-crm-columns.mjs"
+Cohesion: 0.60
+Nodes (4): countFilled(), gql(), main(), TARGETS
+
+### Community 221 - "verify-spec-columns-exist.mjs"
+Cohesion: 0.70
+Nodes (4): loadSpecs(), main(), specColumnRefs(), token()
+
+### Community 222 - "retryMarkedEdits"
+Cohesion: 0.17
+Nodes (22): peekLedger(), mergedVersions(), newerSiblingMark(), newestForeignAt(), pushPropsOf(), siblingKeysOf(), staleForwardRetryOn(), getRecordWithHistory() (+14 more)
+
+### Community 223 - "check-hubspot-scopes.mjs"
+Cohesion: 0.50
+Nodes (3): env, failedObjects, PROBES
+
+### Community 224 - "company-name-to-relation.mjs"
+Cohesion: 0.83
+Nodes (3): gql(), main(), specStillReferences()
+
+### Community 225 - "convert-vendors-dropdown.mjs"
+Cohesion: 0.83
+Nodes (3): hubspotLabels(), main(), monday()
+
+### Community 227 - "rename-crm-columns.mjs"
+Cohesion: 0.67
+Nodes (3): gql(), main(), RENAMES
+
+### Community 228 - "line-item-account-reverse.test.ts"
+Cohesion: 0.12
+Nodes (14): CARD, companiesOfDeal, DEALS_SPEC, dealsOfLi, derived, hs, item, liRec (+6 more)
+
+### Community 237 - "probe-marketing-events.mjs"
+Cohesion: 0.36
+Nodes (8): classes(), env, events(), get(), main(), mask(), readContacts(), tally()
+
+### Community 238 - "association-link-order.test.ts"
+Cohesion: 0.13
+Nodes (10): captured, ectx, env, hs, item, live, monday, push() (+2 more)
+
+### Community 239 - "ask-ada-ui-push.test.ts"
+Cohesion: 0.13
+Nodes (15): assoc, drain(), ectx, EV, fire(), hubspot, label(), LIFECYCLE (+7 more)
+
+### Community 240 - "lad-scripts.test.ts"
+Cohesion: 0.18
+Nodes (19): BATCH, batches(), CONTACTS_BOARD, DEFAULT_SINCE, eligibleNative(), INTEGRATION_USER_ID, itemIdsFromLogs(), main() (+11 more)
+
+### Community 241 - "crm.ts"
+Cohesion: 0.04
+Nodes (41): META, readSubscriptions(), CREATE_CUTOFF_MS, CRM_CREATE_CUTOFF_MS, CRM_DEALS, CRM_LINE_ITEMS, OWN_ACCOUNTS, OWN_CONTACTS (+33 more)
+
+### Community 242 - "dedupe-timeline.mjs"
+Cohesion: 0.17
+Nodes (18): applyRefusal(), cardsByRecord(), DESTINATION_KINDS, destinationsOf(), destinationVerdict(), emptyDestinations(), HOLD_REASONS, keepAllowed() (+10 more)
+
+### Community 243 - "CompaniesView.tsx"
+Cohesion: 0.09
+Nodes (35): buildDealSeed(), fmtCompanyDate(), fmtNumber(), NewDealSeed, orDash(), ContactHit, fmtContactDate(), orDash() (+27 more)
+
+### Community 244 - "register-crm-webhooks.mjs"
+Cohesion: 0.39
+Nodes (7): CRM_BOARDS, CRM_WEBHOOK_EVENTS, DELIVERED_EVENT_ALIASES, existingHooks(), gql(), main(), missingEvents()
+
+### Community 245 - "line-item-dispatch.test.ts"
+Cohesion: 0.20
+Nodes (7): crmEnv, ectx, hubspot, LINE_ITEM_EVENT, sync, waits, wmEnv
+
+### Community 246 - "create-marketing-activity-type.mjs"
+Cohesion: 0.50
+Nodes (4): APPLY, env, gql(), main()
+
+### Community 247 - "check-activity-doorbell.d.mts"
+Cohesion: 0.40
+Nodes (4): ColumnUse, DoorbellRow, DoorbellVerdict, DoorbellVerdictName
+
+### Community 249 - "reverse-enabled-batch.test.ts"
+Cohesion: 0.15
+Nodes (11): CONTACT_CITY, CONTACT_PRIORITY, CONTACT_SOURCE, CONTACT_STATUS, CONTACT_VENDOR, ctx, DEPARTMENT, ENABLED_CONTACTS (+3 more)
+
+### Community 250 - "hubspot-latest-wins.test.ts"
+Cohesion: 0.20
+Nodes (7): assocEvent, crm, ectx, ladEvent, sync, waits, wm
+
+### Community 251 - "activity-marker-pagination.test.ts"
+Cohesion: 0.29
+Nodes (5): env, hubspot, monday, reg, retry
+
+### Community 252 - "build-deals-schema.mjs"
+Cohesion: 0.25
+Nodes (8): apply, out, PLAN, q(), RETITLE, ROOT, sleep(), v
+
+### Community 253 - "card-watch.ts"
+Cohesion: 0.05
+Nodes (87): abandonMark(), AlarmStep, ALL_CELLS, applyVeto(), cellDueAt(), CellFacts, cellFp(), CellVerdict (+79 more)
+
+### Community 254 - "owner-notice.test.ts"
+Cohesion: 0.08
+Nodes (17): cardCells(), cards, ctx, deferred, DESMOND, dry, ELAINE, env (+9 more)
+
+### Community 255 - "coarse-stage-webhook.test.ts"
+Cohesion: 0.13
+Nodes (15): parseJsonc(), readConfig(), readWmConfig(), readWranglerConfig(), actor, base, ectx, fire() (+7 more)
+
+### Community 256 - "stale-forward-marks.test.ts"
+Cohesion: 0.12
+Nodes (11): ENVC, hubspot, JOB, LEAD, LIFE, monday, SALES, salesUsers() (+3 more)
+
+### Community 257 - "ensure-card.ts"
+Cohesion: 0.10
+Nodes (24): scanWriteMode(), forgetCard(), forgetCardOwner(), cardIdOf(), cardNeedsOwnerOn(), EnsureCard, ensureCardForRecord(), isRetryable() (+16 more)
+
+### Community 258 - "reverse-sync.test.ts"
+Cohesion: 0.10
+Nodes (19): assoc, cardFor(), COMPANY_TYPE, companyRec(), contactRec(), ctx, drive(), ensure (+11 more)
+
+### Community 259 - "cleanup-release.test.mjs"
+Cohesion: 0.14
+Nodes (24): canaryReleaseNote(), waiveReleased(), BOM, CANDIDATE_BUCKETS, HELD_BUCKETS, isSetLike(), isTwin(), LIFTABLE_PROTECTION (+16 more)
+
+### Community 260 - "wake-timeline.test.ts"
+Cohesion: 0.29
+Nodes (6): act, crm, ectx(), monday, post(), wm
+
+### Community 261 - "card-registry.ts"
+Cohesion: 0.09
+Nodes (37): beginConverge(), beginRetry(), bounded(), cardStub(), claimCard(), claimHubspotForItem(), clearMarks(), CREATE_CLAIM_STALE_MS (+29 more)
+
+### Community 262 - "stale-forward-retry-review.test.ts"
+Cohesion: 0.10
+Nodes (26): assoc, base(), contact(), contactsSpec(), deadRun(), deal(), DICTS, ENVC (+18 more)
+
+### Community 263 - "syncMondayItem"
+Cohesion: 0.16
+Nodes (25): lookupCard(), SALES_USER_MYLA, getRecord(), propertiesForSpec(), findItemByColumn(), getItem(), actionOf(), createCutoffFor() (+17 more)
+
+### Community 264 - "marketing-cron.test.ts"
+Cohesion: 0.22
+Nodes (5): crm, lad, mkt, tasks, wm
+
+### Community 265 - "stale-forward-gate-deals.test.ts"
+Cohesion: 0.15
+Nodes (12): PIPELINES, assoc, deal(), dealsSpec(), DICTS, ENVD, hubspot, LABELS (+4 more)
+
+### Community 268 - "index.ts"
+Cohesion: 0.06
+Nodes (70): AssocReq, CLEARABLE_DEAL_PROPS, CLEARABLE_PROPS, ClearDealReq, ClearRecordReq, CreateCompanyReq, CreateContactReq, CreateLineItemReq (+62 more)
+
+### Community 269 - "no-activity-follow-up.test.ts"
+Cohesion: 0.25
+Nodes (5): engagement, env, hubspot, monday, reg
+
+### Community 270 - "stale-forward-gate.test.ts"
+Cohesion: 0.13
+Nodes (10): Named, setWorld(), assoc, contact(), contactsSpec(), ENVC, hubspot, monday (+2 more)
+
+### Community 271 - "reconcile.ts"
+Cohesion: 0.04
+Nodes (89): fpOfField(), COARSE_STAGES, CoarseStage, coarseTargetsFor(), STAGE_ENTERED_PROP, applyScale(), buildColumnValues(), clampLongText() (+81 more)
+
+### Community 272 - "marketing-email-poller.test.ts"
+Cohesion: 0.15
+Nodes (11): MARKETING_OBJECTS, at(), ev(), hubspot, monday, NOW, reg, retry (+3 more)
+
+### Community 273 - "find-stale-lad.mjs"
+Cohesion: 0.33
+Nodes (9): cardDay(), classifyStale(), LAD_PROP, localDay(), main(), hsRead(), md(), sleep() (+1 more)
+
+### Community 274 - "born-attached-provenance.test.ts"
+Cohesion: 0.25
+Nodes (7): actor, crm, ectx, fire(), settle(), sync, waits
+
+### Community 275 - "association-heal.test.ts"
+Cohesion: 0.18
+Nodes (8): env, hs, HS_OF, item, live, monday, relationWrites(), rewrittenTo()
+
+### Community 276 - "checkIdlessAccounts"
+Cohesion: 0.26
+Nodes (21): atOrAfter(), bornInWindow(), checkContacts(), checkDeals(), checkDupExtras(), checkIdlessAccounts(), hs(), hsContactDeals() (+13 more)
+
+### Community 277 - "read-source.mjs"
+Cohesion: 0.22
+Nodes (6): readFixture(), readScript(), readSource(), SCRIPTS, SRC, strip()
+
+### Community 278 - "stale-forward-retry-safety.test.ts"
+Cohesion: 0.15
+Nodes (19): adoptionWorld(), assoc, base(), bornDeal(), contact(), contactsSpec(), dealsSpec(), DICTS (+11 more)
+
+### Community 279 - "item-name-fit.test.ts"
+Cohesion: 0.11
+Nodes (14): ABSENT, cardOf(), contactCard(), CTX, dealCard(), FIRST, FIT, LAST (+6 more)
+
+### Community 280 - "association-deleted-card.test.ts"
+Cohesion: 0.14
+Nodes (14): BULK, captured, ectx, env, hs, HS_OF, itemOf(), live (+6 more)
+
+### Community 281 - "activity-registry.ts"
+Cohesion: 0.12
+Nodes (36): ActivityClaim, claim(), claimActivityToHubspot(), claimActivityToMonday(), claimHubspotAsRepresented(), cycleKey(), getWatermark(), h2mKey() (+28 more)
+
+### Community 282 - "hs-retry-entry.test.ts"
+Cohesion: 0.20
+Nodes (5): ectx, hooks, IN_REQUEST, ROUTES, sync
+
+### Community 283 - "afterIdDelete"
+Cohesion: 0.22
+Nodes (16): afterIdDelete(), afterReleasedDelete(), checkCardCreates(), createCard(), deleteCard(), halt(), hitTag(), idSearch() (+8 more)
+
+### Community 284 - "registry-lookup.ts"
+Cohesion: 0.25
+Nodes (6): ALLOWED_BOARDS, handleRegistryLookup(), RegistryLookupResult, secretMatches(), env, registry
+
+### Community 285 - "Env"
+Cohesion: 0.09
+Nodes (11): Env, env, hubspot, monday, reg, retry, env, hsMock (+3 more)
+
+### Community 286 - "release-no-activity.mjs"
+Cohesion: 0.25
+Nodes (8): APPLY, argv, gql(), ids, outAt, record, sleep(), v
+
+### Community 287 - "ownership.ts"
+Cohesion: 0.09
+Nodes (32): reverseLineItems(), ReverseScope, claimOwnership(), OwnershipError, authorizeCreate(), authorizeWrite(), canClaimCrmOwnership(), ClaimBasis (+24 more)
+
+### Community 288 - "deal-routing-deployment.test.ts"
+Cohesion: 0.25
+Nodes (6): crmEnv, hubspot, monday, opts, registry, wmEnv
+
+### Community 289 - "no-activity-monday-update.test.ts"
+Cohesion: 0.25
+Nodes (5): ev, hubspot, monday, on, sync
+
+### Community 290 - "owner-notice-webhook.test.ts"
+Cohesion: 0.17
+Nodes (4): ectx, on, sync, waits
+
+### Community 291 - "restore-idless-account.test.ts"
+Cohesion: 0.29
+Nodes (6): ACCOUNTS, env, opts, orphanEvent, registry, sync
+
+### Community 292 - "MondayEdit"
+Cohesion: 0.40
+Nodes (6): CreateSnapshot, PendingEdit, AlreadyLinked, Round, Takeover, MondayEdit
+
+### Community 293 - "sync.ts"
+Cohesion: 0.07
+Nodes (77): createWindowOf(), finishHubspotForItem(), forgetHubspotForItem(), itemStub(), noteCreateWindowEdit(), cellKey(), HsVersion, staleForwardGateOn() (+69 more)
+
+### Community 294 - "activity-stale-reservation.test.ts"
+Cohesion: 0.33
+Nodes (5): env, hubspot, monday, reg, retry
+
+### Community 295 - "deferred-owner-notice.test.ts"
+Cohesion: 0.18
+Nodes (7): env, fakeCtx(), make(), notice, owners, sync, T0
+
+### Community 297 - "task-sweep-e2e.test.ts"
+Cohesion: 0.25
+Nodes (6): CARD_OF, env, hubspot, monday, reg, retry
+
+### Community 300 - "owner-notice-race.test.ts"
+Cohesion: 0.40
+Nodes (4): doCtx(), IDS, reassignAll(), W
+
+### Community 301 - "line-item-create.test.ts"
+Cohesion: 0.22
+Nodes (5): env, hubspot, monday, opts, registry
+
+### Community 302 - "no-activity.ts"
+Cohesion: 0.17
+Nodes (13): isWorkedLabel(), noActivityReleaseOn(), releaseOnActivity(), releaseOnWorkedChanges(), releaseWorkedCard(), WORK_RECENT_MS, workedColumns(), entries (+5 more)
+
+### Community 303 - "wm-app-routes-live.test.ts"
+Cohesion: 0.29
+Nodes (3): ctx, hubspot, worker()
 
 ## Knowledge Gaps
-- **871 isolated node(s):** `CLEARABLE`, `CLEARABLE`, `Props`, `Props`, `SearchResult` (+866 more)
-  These have ≤1 connection - possible missing edges or undocumented components.
-- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **2510 isolated node(s):** `monday`, `name`, `private`, `type`, `dev` (+2505 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3050 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **19 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `grouped()` connect `RecordDrawer.tsx` to `types.ts`?**
-  _High betweenness centrality (0.085) - this node is a cross-community bridge._
-- **Why does `f()` connect `types.ts` to `associations.ts`, `RecordDrawer.tsx`?**
-  _High betweenness centrality (0.085) - this node is a cross-community bridge._
-- **Why does `buildColumnValues()` connect `types.ts` to `associations.ts`, `ensure-card.ts`, `sync.ts`?**
-  _High betweenness centrality (0.043) - this node is a cross-community bridge._
-- **What connects `CLEARABLE`, `CLEARABLE`, `Props` to the rest of the system?**
-  _871 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `hubspot.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.09407665505226481 - nodes in this community are weakly interconnected._
+- **Why does `Env` connect `Env` to `ensure-card.ts`, `marketing-emails.ts`, `reverse-sync.test.ts`, `marketing-email-poller.ts`, `card-registry.ts`, `wake-timeline.test.ts`, `ask-ada-ui-edits.test.ts`, `marketing-cron.test.ts`, `stale-forward-world.ts`, `create-window-edits.test.ts`, `activity-sync.ts`, `associations.ts`, `index.ts`, `reconcile.ts`, `item-name-fit-engine.test.ts`, `marketing-email-poller.test.ts`, `owner-notice.ts`, `association-heal.test.ts`, `born-attached-provenance.test.ts`, `hs-rate-limit-retry.test.ts`, `read-source.mjs`, `item-name-fit.test.ts`, `association-deleted-card.test.ts`, `activity-registry.ts`, `hs-retry-entry.test.ts`, `registry-lookup.ts`, `ownership.ts`, `deal-routing-deployment.test.ts`, `activity-owner-reset.test.ts`, `activity-participants.test.ts`, `hubspot.ts`, `no-activity-monday-update.test.ts`, `sync.ts`, `activity-stale-reservation.test.ts`, `deferred-owner-notice.test.ts`, `column-level-reverse.test.ts`, `owner-notice-webhook.test.ts`, `hs-rate-limit-burst.test.ts`, `restore-idless-account.test.ts`, `owner-notice-race.test.ts`, `line-item-create.test.ts`, `no-activity.ts`, `task-sweep-e2e.test.ts`, `wm-app-routes-live.test.ts`, `ui-actor.ts`, `webhooks.ts`, `born-attached.test.ts`, `activity-mirrored-copies.test.ts`, `item-name-fit-subitem.test.ts`, `activity-doorbell.test.ts`, `HsRecord`, `no-activity-release.test.ts`, `create-idempotency-do.ts`, `no-activity-follow-up.test.ts`, `wm-unbound-namespaces.test.ts`, `owner-notice-queue.test.ts`, `association-paired-side.test.ts`, `line-item-account-reverse.test.ts`, `types.ts`, `coarse-stage-reverse.test.ts`, `hubspot-latest-wins.test.ts`, `association-link-order.test.ts`, `activity-marker-pagination.test.ts`, `ask-ada-ui-push.test.ts`, `crm.ts`, `lifecycle-backward-clear.test.ts`, `line-item-dispatch.test.ts`, `owner-notice.test.ts`, `deferred-sync-do.ts`, `lad-sweep.ts`, `task-poller.ts`, `activity-retry.ts`, `coarse-stage-webhook.test.ts`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `CreateIdempotency` connect `create-idempotency-do.ts` to `stale-forward-world.ts`, `types.ts`, `index.ts`, `card-watch.ts`, `Env`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `BELL_COL` connect `activity-doorbell.test.ts` to `cleanup-extra-cards.mjs`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **What connects `monday`, `name`, `private` to the rest of the system?**
+  _2510 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `DealDrawer.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.0649452269170579 - nodes in this community are weakly interconnected._
 - **Should `owner_router_test.py` be split into smaller, more focused modules?**
   _Cohesion score 0.06101190476190476 - nodes in this community are weakly interconnected._
 - **Should `RecordDrawer.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.05822784810126582 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10180995475113122 - nodes in this community are weakly interconnected._

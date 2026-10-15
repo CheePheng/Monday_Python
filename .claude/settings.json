@@ -1,4 +1,20 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/refresh-forward.mjs *)",
+      "Bash(node scripts/dedupe-timeline.mjs *)",
+      "Bash(node scripts/restore-timeline-entries.mjs *)",
+      "Bash(node scripts/cleanup-extra-cards.mjs *)",
+      "Bash(node scripts/catchup-after-deploy.mjs *)",
+      "Bash(node scripts/create-marketing-activity-type.mjs *)",
+      "Bash(node scripts/probe-marketing-events.mjs *)",
+      "Bash(npx.cmd wrangler deploy *)",
+      "Bash(npx wrangler deploy *)",
+      "Bash(npx.cmd hs project upload *)",
+      "mcp__claude_ai_monday_com__all_api_write",
+      "mcp__claude_ai_monday_com__update_column"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

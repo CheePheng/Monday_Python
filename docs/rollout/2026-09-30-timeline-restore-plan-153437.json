@@ -1,0 +1,409 @@
+{
+ "generatedAt": "2026-09-30T15:34:37.076Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-dedupe-lost-090727.json",
+ "censusRows": 8,
+ "lostRows": 8,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 8,
+ "filters": {},
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "would-create": 6,
+  "skipped-not-associated": 2
+ },
+ "done": true,
+ "cards": {
+  "2856208828": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 38,
+   "rowsReturned": 38,
+   "distinctRows": 38,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856229047": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 15,
+   "rowsReturned": 15,
+   "distinctRows": 15,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856253107": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 20,
+   "rowsReturned": 20,
+   "distinctRows": 20,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856253108": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 11,
+   "rowsReturned": 11,
+   "distinctRows": 11,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856253109": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 15,
+   "rowsReturned": 15,
+   "distinctRows": 15,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2856208828",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:250599873214]",
+   "object": "emails",
+   "activityId": "250599873214",
+   "outcome": "would-create",
+   "recordId": "273192209083",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "562108f7-dada-4ed2-b9ff-7d17f97db395",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 7972,
+    "contentSha": "710fd79b5657620c",
+    "timestamp": "2025-11-06T01:13:31Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "1f9559a9-c375-412c-8c9d-fd8e1518d187",
+     "69fe1bd0-17ce-4a92-aeb0-44d99a63fa9f"
+    ],
+    "listing": {
+     "ownEntries": 38,
+     "rowsReturned": 38,
+     "distinctRows": 38,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T15:34:43.869Z"
+    }
+   }
+  },
+  {
+   "card": "2856221585",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:344652484332]",
+   "object": "meetings",
+   "activityId": "344652484332",
+   "outcome": "skipped-not-associated",
+   "recordId": "284769403586",
+   "reason": "HubSpot no longer links meetings 344652484332 to contacts 284769403586"
+  },
+  {
+   "card": "2856221586",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:344652484332]",
+   "object": "meetings",
+   "activityId": "344652484332",
+   "outcome": "skipped-not-associated",
+   "recordId": "284803194587",
+   "reason": "HubSpot no longer links meetings 344652484332 to contacts 284803194587"
+  },
+  {
+   "card": "2856229047",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:269589213901]",
+   "object": "emails",
+   "activityId": "269589213901",
+   "outcome": "would-create",
+   "recordId": "309999271617",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a7607d09-6b67-440e-a202-572cab2a79f6",
+    "card": "2856253106",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Contact Form",
+    "contentLength": 18553,
+    "contentSha": "a5e491d6831a6e74",
+    "timestamp": "2025-11-28T15:48:59Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "25606d15-0e05-4525-adcb-a1279ed40405",
+     "bc038212-ed98-4afb-af3e-86a817a02bde"
+    ],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T15:34:51.956Z"
+    }
+   }
+  },
+  {
+   "card": "2856253107",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:269589213901]",
+   "object": "emails",
+   "activityId": "269589213901",
+   "outcome": "would-create",
+   "recordId": "310722999019",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a7607d09-6b67-440e-a202-572cab2a79f6",
+    "card": "2856253106",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Contact Form",
+    "contentLength": 18553,
+    "contentSha": "a5e491d6831a6e74",
+    "timestamp": "2025-11-28T15:48:59Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "55f8e636-8926-4f7f-bd3c-84bdf58391d3",
+     "fc643675-faf4-4fb2-b2ab-1a556efa5470"
+    ],
+    "listing": {
+     "ownEntries": 20,
+     "rowsReturned": 20,
+     "distinctRows": 20,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T15:34:55.157Z"
+    }
+   }
+  },
+  {
+   "card": "2856253108",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:259488553686]",
+   "object": "emails",
+   "activityId": "259488553686",
+   "outcome": "would-create",
+   "recordId": "310783705846",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "158051cf-ebaf-43ab-9dcb-e72a99367bf1",
+    "card": "2855709555",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Contact Form",
+    "contentLength": 14888,
+    "contentSha": "6e87f5a8bb8729f9",
+    "timestamp": "2025-11-15T16:27:01Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "7e61b828-25c5-469d-9bb7-16bf0d9032b9",
+     "be9d3e7d-bf2b-4f25-b29e-c3296ad0c873"
+    ],
+    "listing": {
+     "ownEntries": 11,
+     "rowsReturned": 11,
+     "distinctRows": 11,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T15:35:00.122Z"
+    }
+   }
+  },
+  {
+   "card": "2856253108",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:269513171653]",
+   "object": "emails",
+   "activityId": "269513171653",
+   "outcome": "would-create",
+   "recordId": "310783705846",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "16d36549-e3eb-408e-b7dc-c85d92573410",
+    "card": "2856253107",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Contact Form",
+    "contentLength": 16731,
+    "contentSha": "cf7a77c7ba737e1f",
+    "timestamp": "2025-11-28T15:01:50Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "15663077-49b3-4739-9966-50cbe0b89633",
+     "df8dc2eb-ba17-46f0-83b4-e3fe92b5fd1d"
+    ],
+    "listing": {
+     "ownEntries": 11,
+     "rowsReturned": 11,
+     "distinctRows": 11,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T15:35:00.122Z"
+    }
+   }
+  },
+  {
+   "card": "2856253109",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:248094749427]",
+   "object": "emails",
+   "activityId": "248094749427",
+   "outcome": "would-create",
+   "recordId": "311040661201",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "11d3b190-57b8-4e34-a1d2-e33953fb117d",
+    "card": "2856253112",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald licenses",
+    "contentLength": 4175,
+    "contentSha": "cc71f8a44eee488a",
+    "timestamp": "2025-11-04T11:00:26Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "5609f562-fdd9-4c3b-994d-39250301b006",
+     "7edbe8d6-327d-4beb-8c8e-404ac4aba068"
+    ],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T15:35:02.120Z"
+    }
+   }
+  }
+ ]
+}

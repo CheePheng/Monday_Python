@@ -1,0 +1,28 @@
+{
+  "mode": "activities",
+  "apply": true,
+  "generatedAt": "2026-09-27T00:58:01.260Z",
+  "objects": {
+    "emails": {
+      "retriedFrom": "../docs/rollout/2026-09-26-catchup-activities-retry-235909-applied.json",
+      "inReport": 11,
+      "unsettledBefore": {
+        "error": 1
+      },
+      "target": [
+        "401554496205"
+      ],
+      "applied": {
+        "tally": {
+          "created": 1
+        },
+        "results": {
+          "401554496205": "created"
+        }
+      }
+    }
+  },
+  "retryOf": "../docs/rollout/2026-09-26-catchup-activities-retry-235909-applied.json",
+  "lastSentAt": "2026-09-27T01:10:03.549Z",
+  "done": true
+}

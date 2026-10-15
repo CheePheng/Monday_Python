@@ -1,0 +1,3511 @@
+{
+ "generatedAt": "2026-10-01T06:42:07.862Z",
+ "mode": "applied",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 57,
+ "filters": {
+  "cards": [
+   "2859608833",
+   "2859609106",
+   "2859609134",
+   "2859609373",
+   "2859613903",
+   "2859614415",
+   "2859614896",
+   "2859621676",
+   "2859621679",
+   "2859621897",
+   "2859622068",
+   "2859622129",
+   "2859622226",
+   "2859625958",
+   "2859626142",
+   "2859626178",
+   "2859626827",
+   "2859627297",
+   "2859627308",
+   "2859627346",
+   "2859627364",
+   "2859627367",
+   "2859627457",
+   "2859627741",
+   "2859627788",
+   "2859647771",
+   "2859648300",
+   "2859649777",
+   "2859650164",
+   "2859650449",
+   "2859650728",
+   "2859651949",
+   "2859651958",
+   "2859652178",
+   "2859652182",
+   "2866358377",
+   "2855585347",
+   "2855606191",
+   "2855691128",
+   "2866353999"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied-222841.json",
+   "2026-09-30-timeline-restore-applied.json",
+   "2026-10-01-timeline-restore-applied-041852.json",
+   "2026-10-01-timeline-restore-applied-044237.json",
+   "2026-10-01-timeline-restore-applied-045725.json",
+   "2026-10-01-timeline-restore-applied-051130.json",
+   "2026-10-01-timeline-restore-applied-052355.json",
+   "2026-10-01-timeline-restore-applied-053051.json",
+   "2026-10-01-timeline-restore-applied-054153.json",
+   "2026-10-01-timeline-restore-applied-055437.json",
+   "2026-10-01-timeline-restore-applied-060139.json",
+   "2026-10-01-timeline-restore-applied-061455.json",
+   "2026-10-01-timeline-restore-applied-062253.json",
+   "2026-10-01-timeline-restore-applied-062819.json",
+   "2026-10-01-timeline-restore-applied-063612.json",
+   "2026-10-01-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "held-lossy-listing": 2,
+  "created": 46,
+  "skipped-present": 9
+ },
+ "done": true,
+ "cards": {
+  "2855585347": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 50,
+   "rowsReturned": 52,
+   "distinctRows": 50,
+   "unseenRows": 2,
+   "pages": 2,
+   "pageSizes": [
+    100,
+    40
+   ],
+   "complete": true,
+   "lossy": true,
+   "walks": 1
+  },
+  "2855606191": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 28,
+   "rowsReturned": 28,
+   "distinctRows": 28,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855691128": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 24,
+   "rowsReturned": 24,
+   "distinctRows": 24,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859608833": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 9,
+   "rowsReturned": 9,
+   "distinctRows": 9,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859609106": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859609134": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859609373": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 13,
+   "rowsReturned": 13,
+   "distinctRows": 13,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859613903": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859614415": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859614896": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859621676": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859621679": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859621897": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859622068": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859622129": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859622226": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859625958": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 9,
+   "rowsReturned": 9,
+   "distinctRows": 9,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859626142": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859626178": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859626827": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 13,
+   "rowsReturned": 13,
+   "distinctRows": 13,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627297": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 8,
+   "rowsReturned": 8,
+   "distinctRows": 8,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627308": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627346": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627364": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627367": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627457": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627741": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859627788": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 18,
+   "rowsReturned": 18,
+   "distinctRows": 18,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859647771": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859648300": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859649777": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859650164": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859650449": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859650728": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 4,
+   "rowsReturned": 4,
+   "distinctRows": 4,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859651949": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859651958": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859652178": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859652182": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2866353999": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2866358377": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2855585347",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:62848149092]",
+   "object": "emails",
+   "activityId": "62848149092",
+   "outcome": "held-lossy-listing",
+   "recordId": "22473723490",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9c7ff4d8-2558-407f-aec2-8b8764948ab8",
+    "card": "2855609289",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: W3-Follow up for Incorp Hubspot Onboarding Training",
+    "contentLength": 9528,
+    "contentSha": "54b66d14e98017ba",
+    "timestamp": "2024-10-21T04:13:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 52,
+     "distinctRows": 50,
+     "unseenRows": 2,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-10-01T06:42:18.004Z"
+    }
+   },
+   "reason": "the card's listing returned 52 rows over 2 pages, 50 distinct (2 never returned): a copy there can be invisible to both checks. Look for [hubspot:emails:62848149092] on the card in monday, then run with --allow-lossy --cards 2855585347"
+  },
+  {
+   "card": "2855585347",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:62848167057]",
+   "object": "emails",
+   "activityId": "62848167057",
+   "outcome": "held-lossy-listing",
+   "recordId": "22473723490",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7aab5afc-7f82-4649-8733-0c60b17eccb6",
+    "card": "2855609289",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: W3-Follow up for Incorp Hubspot Onboarding Training",
+    "contentLength": 10413,
+    "contentSha": "0ab074705913c49f",
+    "timestamp": "2024-10-21T06:15:38Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 52,
+     "distinctRows": 50,
+     "unseenRows": 2,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-10-01T06:42:18.004Z"
+    }
+   },
+   "reason": "the card's listing returned 52 rows over 2 pages, 50 distinct (2 never returned): a copy there can be invisible to both checks. Look for [hubspot:emails:62848167057] on the card in monday, then run with --allow-lossy --cards 2855585347"
+  },
+  {
+   "card": "2855606191",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:363441991394]",
+   "object": "notes",
+   "activityId": "363441991394",
+   "outcome": "created",
+   "recordId": "20689943954",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5f37a8ec-1c8d-42da-9aca-81e8bb9c80cc",
+    "card": "2856223447",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "发合同给客户走采购流程。",
+    "contentLength": 67,
+    "contentSha": "2a1d386928d8007c",
+    "timestamp": "2026-04-09T09:29:06.696Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "3b9ab5b8-20a1-4b97-b349-6d48235e2830",
+     "3ef17428-d628-473b-96d1-af13d3067e56"
+    ],
+    "listing": {
+     "ownEntries": 28,
+     "rowsReturned": 28,
+     "distinctRows": 28,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:19.154Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:22.293Z",
+   "newId": "c2a6950c-c9e4-4798-b898-4c8d149d31ca",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-09T09:29:06.696Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855691128",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:387265488626]",
+   "object": "emails",
+   "activityId": "387265488626",
+   "outcome": "created",
+   "recordId": "244258157278",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "46881774-e0d9-4653-bd92-7d9d5ea2dcfd",
+    "card": "2855745927",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Renewal Reminder: Your Theobald License Maintenance Expires on July 31, 2026",
+    "contentLength": 17747,
+    "contentSha": "1022c1aa3970d49a",
+    "timestamp": "2026-07-30T07:45:09Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 24,
+     "rowsReturned": 24,
+     "distinctRows": 24,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:26.550Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:26.550Z",
+   "newId": "d98136b1-ebaa-4c9c-bdae-58688cc4d25e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-07-30T07:45:09.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855691128",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:387277129451]",
+   "object": "emails",
+   "activityId": "387277129451",
+   "outcome": "created",
+   "recordId": "244258157278",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "409a91e2-d74c-4753-a20d-8b0775209eea",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Renewal Reminder: Your Theobald License Maintenance Expires on July 31, 2026",
+    "contentLength": 19914,
+    "contentSha": "50f7d8e490cd2692",
+    "timestamp": "2026-07-30T10:42:45Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 24,
+     "rowsReturned": 24,
+     "distinctRows": 24,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:26.550Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:33.679Z",
+   "newId": "7c2447de-e0ba-4e22-b2da-98ce83944b51",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-07-30T10:42:45.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859608833",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:363249907419]",
+   "object": "emails",
+   "activityId": "363249907419",
+   "outcome": "skipped-present",
+   "recordId": "320041277119",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1311c0b3-beb6-4362-9fe5-b3da146d2d1c",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Tata Starbucks Private Limited (India) | Celebal Tech",
+    "contentLength": 10586,
+    "contentSha": "8fd92cda325f900c",
+    "timestamp": "2026-04-08T04:23:50.068Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 9,
+     "rowsReturned": 9,
+     "distinctRows": 9,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:32.004Z"
+    }
+   },
+   "reason": "the listing shows the marker in b3e8c7f9-1a6c-4c45-830d-2652794c1c74"
+  },
+  {
+   "card": "2859609106",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:371684436722]",
+   "object": "notes",
+   "activityId": "371684436722",
+   "outcome": "created",
+   "recordId": "327709763315",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "49f68c49-a678-4830-b8aa-df366ee370b9",
+    "card": "2855712199",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "已经淘宝付款，走代付流程",
+    "contentLength": 67,
+    "contentSha": "05793beb34fc580b",
+    "timestamp": "2026-05-26T06:43:06.245Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:37.914Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:37.914Z",
+   "newId": "d82f91eb-d32f-4373-a7eb-75608f8495af",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-26T06:43:06.245Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859609134",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:370012727012]",
+   "object": "notes",
+   "activityId": "370012727012",
+   "outcome": "created",
+   "recordId": "328206896835",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3afb17ab-e0fd-4037-a547-53c88f1d95fc",
+    "card": "2855712330",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "杨经理反馈后续采购事宜将会由他们IT庄经理负责； 经和庄经理沟通，对方表示需要先和领导报一下预算。",
+    "contentLength": 104,
+    "contentSha": "9b3a9edd917fbd8a",
+    "timestamp": "2026-05-18T01:46:31.446Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:43.101Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:43.101Z",
+   "newId": "a5f113c0-a090-49c0-acf7-0ec17533f40b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-18T01:46:31.446Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859609373",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:394824169167]",
+   "object": "emails",
+   "activityId": "394824169167",
+   "outcome": "created",
+   "recordId": "347658538698",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "524524e9-d8e6-478f-9976-0ca55de6f83c",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Intercom-Quotation and Framework Agreement -PhotonPay&DKM",
+    "contentLength": 452,
+    "contentSha": "e57950ddb8279a3e",
+    "timestamp": "2026-08-28T10:25:08Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:48.045Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:48.045Z",
+   "newId": "b416707f-ce66-4332-b280-18034a6aed12",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-08-28T10:25:08.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859609373",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:397254534842]",
+   "object": "emails",
+   "activityId": "397254534842",
+   "outcome": "created",
+   "recordId": "347658538698",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "321d1021-1375-441e-8c05-95e352a45737",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：Intercom-Quotation and Framework Agreement -PhotonPay&DKM",
+    "contentLength": 2335,
+    "contentSha": "2a32e9e7f0a256f7",
+    "timestamp": "2026-09-05T08:30:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:48.045Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:54.348Z",
+   "newId": "6ec0ee3d-c99a-4e45-a6c0-4d76d88a5525",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-05T08:30:26.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859609373",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:399066217159]",
+   "object": "emails",
+   "activityId": "399066217159",
+   "outcome": "created",
+   "recordId": "347658538698",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "07064e60-23e9-48a2-89c5-2786a1913450",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：Intercom-Quotation and Framework Agreement -PhotonPay&DKM",
+    "contentLength": 4821,
+    "contentSha": "220b5420b7f99bbd",
+    "timestamp": "2026-09-11T10:36:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:48.045Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:42:59.555Z",
+   "newId": "c9a27b43-26d6-462b-993c-769a19fa5989",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-11T10:36:36.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859609373",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:399075216093]",
+   "object": "emails",
+   "activityId": "399075216093",
+   "outcome": "created",
+   "recordId": "347658538698",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4345c773-31e1-4a27-8c83-56f49792be71",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 回复：Intercom-Quotation and Framework Agreement -PhotonPay&DKM",
+    "contentLength": 3654,
+    "contentSha": "ef39bf4ebf9cf5d1",
+    "timestamp": "2026-09-11T09:16:04Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:48.045Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:06.070Z",
+   "newId": "67296fbd-5b53-4842-8201-ad4137e90fe9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-11T09:16:04.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859609373",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:393642340040]",
+   "object": "meetings",
+   "activityId": "393642340040",
+   "outcome": "created",
+   "recordId": "347658538698",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "285c9566-9b59-4409-917d-66db5a53bada",
+    "card": "2855627269",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "PhotonPay <> Fin & Intercom | Nina & Graham",
+    "contentLength": 429,
+    "contentSha": "9c8db0becf7b2721",
+    "timestamp": "2026-08-25T05:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:48.045Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:12.578Z",
+   "newId": "10aec50b-9db5-428c-bd4c-2eaf741e155b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-08-25T05:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859613903",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:56935177512]",
+   "object": "emails",
+   "activityId": "56935177512",
+   "outcome": "skipped-present",
+   "recordId": "21101521040",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "18ce4bf6-b511-4ae2-af34-009e21818b17",
+    "card": "2855618462",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Product Price for Xtract Universal",
+    "contentLength": 2909,
+    "contentSha": "fd799ed8f9a2051b",
+    "timestamp": "2024-07-25T02:23:34.317Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:52.893Z"
+    }
+   },
+   "reason": "the listing shows the marker in c3e8767f-04d5-4a21-a7f9-20a610c221e9"
+  },
+  {
+   "card": "2859614415",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:77068717686]",
+   "object": "emails",
+   "activityId": "77068717686",
+   "outcome": "skipped-present",
+   "recordId": "35261395001",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0f781571-3764-44d0-b1eb-03c14bec5b81",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Quick Follow-up on Our Recent Meeting",
+    "contentLength": 4135,
+    "contentSha": "e7567f31251ba849",
+    "timestamp": "2025-04-15T07:08:02Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:58.474Z"
+    }
+   },
+   "reason": "the listing shows the marker in 6198525a-c0fd-42b1-857f-627210adb68e"
+  },
+  {
+   "card": "2859614415",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:80329336623]",
+   "object": "emails",
+   "activityId": "80329336623",
+   "outcome": "skipped-present",
+   "recordId": "35261395001",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "bd67f6fe-36e4-4a24-925c-902820546868",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Quick Follow-up on Our Recent Meeting",
+    "contentLength": 7905,
+    "contentSha": "8ef2cc8c03533fcf",
+    "timestamp": "2025-05-29T00:42:20Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:42:58.474Z"
+    }
+   },
+   "reason": "the listing shows the marker in fa0e6897-2d53-4e55-83bc-781cb4e51698"
+  },
+  {
+   "card": "2859614896",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:82756969127]",
+   "object": "notes",
+   "activityId": "82756969127",
+   "outcome": "created",
+   "recordId": "39434951864",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7b96feac-7822-4157-ae96-fd3f0b8a5139",
+    "card": "2855646453",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "已经发送报价，客户看了但是目前客户主要还是再国内。再考虑下",
+    "contentLength": 85,
+    "contentSha": "905bb1fa6994f0a0",
+    "timestamp": "2025-07-07T07:56:10.255Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:05.341Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:05.341Z",
+   "newId": "5ca4fbc3-6c93-40d6-bef4-b31500dc4db7",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-07-07T07:56:10.255Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859621676",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:373334613694]",
+   "object": "notes",
+   "activityId": "373334613694",
+   "outcome": "created",
+   "recordId": "331927524050",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "239c96b8-8a50-48f8-8167-a5e235413d0f",
+    "card": "2855623252",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "6.3 销售反馈已按新配置签新购合同",
+    "contentLength": 74,
+    "contentSha": "f7815e88850b8d94",
+    "timestamp": "2026-06-03T07:35:06.900Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:16.774Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:16.774Z",
+   "newId": "06c07a9e-b261-4764-8420-2cdfcfb23598",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-06-03T07:35:06.900Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859621679",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:371779009222]",
+   "object": "notes",
+   "activityId": "371779009222",
+   "outcome": "created",
+   "recordId": "331956691658",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5aacf47e-67c1-4834-b8f8-614f5ea460b3",
+    "card": "2855587405",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "他们要1500封，走合中，新增1000封",
+    "contentLength": 75,
+    "contentSha": "7d9a1f1fb9ea28c0",
+    "timestamp": "2026-05-27T05:40:35.629Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:22.137Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:22.138Z",
+   "newId": "b141e774-9f87-4411-be1f-96e233765ac1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-27T05:40:35.629Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859621679",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:371792169659]",
+   "object": "notes",
+   "activityId": "371792169659",
+   "outcome": "created",
+   "recordId": "331956691658",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2eb61aaa-d138-49a3-9c42-7a8d9f4cfc92",
+    "card": "2855587405",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "他们的信封要用完了，现在要提前续约，500封不够用了，再增加500封，我们发了IAM Standard5用户及8用户的报价，他们要不限用户的，所以还是增加500",
+    "contentLength": 165,
+    "contentSha": "c90a6adb2bb56679",
+    "timestamp": "2026-05-27T04:13:22.086Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:22.137Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:28.798Z",
+   "newId": "19158826-e6be-4503-89ef-996af9298156",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-27T04:13:22.086Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859621679",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:372547150527]",
+   "object": "notes",
+   "activityId": "372547150527",
+   "outcome": "created",
+   "recordId": "331956691658",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4a6ef80e-aa3b-4f4b-ada9-9ebc48a875cb",
+    "card": "2855587405",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "他们确认是增加500封，维保500封，预计一周合同盖章，一周付款，开始日期还没确认",
+    "contentLength": 96,
+    "contentSha": "35d41d6abdaf159a",
+    "timestamp": "2026-06-01T06:10:52.823Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:22.137Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:35.233Z",
+   "newId": "14693ecc-c493-4f94-9fb9-03b06304eb03",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-06-01T06:10:52.823Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859621897",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:378512296695]",
+   "object": "notes",
+   "activityId": "378512296695",
+   "outcome": "skipped-present",
+   "recordId": "332202995398",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2a144a7a-1bef-4fc3-ad00-a43a514ed05d",
+    "card": "2855703526",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "400来电咨询docusign 对接人帮客户找是商务，试用了30天 他一个人用，一个月大概5封左右一年大概100封左右 主要是发往美国，主要是他们客户的领导在美",
+    "contentLength": 155,
+    "contentSha": "d048fed673963dda",
+    "timestamp": "2026-06-24T03:25:16.468Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:26.946Z"
+    }
+   },
+   "reason": "the listing shows the marker in e4e9f1b0-f270-4302-8512-02079189c72c"
+  },
+  {
+   "card": "2859622068",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:373608155889]",
+   "object": "notes",
+   "activityId": "373608155889",
+   "outcome": "created",
+   "recordId": "328749702872",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6f990fc3-48f0-4e35-9c36-8cb35ba57504",
+    "card": "2855669682",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "两个采购订单已经收到，下单交付后，客户月结付款",
+    "contentLength": 78,
+    "contentSha": "83fd7076bf8320d5",
+    "timestamp": "2026-06-04T09:16:11.240Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:32.995Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:32.995Z",
+   "newId": "4947bd11-9c16-4fe1-862e-ff9f6d43c394",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-06-04T09:16:11.240Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859622129",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:374386608838]",
+   "object": "notes",
+   "activityId": "374386608838",
+   "outcome": "created",
+   "recordId": "330225965786",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "707d2d75-dbd7-436f-ba66-47e19ea0e40a",
+    "card": "2855726660",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "完成合同的签署，等待开票付款",
+    "contentLength": 71,
+    "contentSha": "fce8548154af1566",
+    "timestamp": "2026-06-08T06:33:51.026Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:42.251Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:42.251Z",
+   "newId": "5f9b77d8-1ac0-4555-856e-1a3db7a8a69a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-06-08T06:33:51.026Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859622226",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:382666584787]",
+   "object": "notes",
+   "activityId": "382666584787",
+   "outcome": "created",
+   "recordId": "335180121827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "91823900-1da3-4c96-8088-99ec716de166",
+    "card": "2855716130",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "客户账号超用，原厂要求客户增购，客户确定增购6个用户一年； 已发送合同",
+    "contentLength": 91,
+    "contentSha": "2e6150981e149284",
+    "timestamp": "2026-07-14T03:04:08.491Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:45.680Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:45.680Z",
+   "newId": "74b7e84f-7049-4620-ab74-7e795aff0ff4",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-14T03:04:08.491Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859622226",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:386335733479]",
+   "object": "notes",
+   "activityId": "386335733479",
+   "outcome": "created",
+   "recordId": "335180121827",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0988294a-ab3f-4e57-93c7-c9c9cd1b6eac",
+    "card": "2855716130",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "已收到客户盖章合同",
+    "contentLength": 65,
+    "contentSha": "f5fdc8f19e4de695",
+    "timestamp": "2026-07-27T04:21:30.647Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:45.680Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:51.759Z",
+   "newId": "1df427e9-316f-4d85-b4ae-1d031fe7cd1e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-27T04:21:30.647Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859625958",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:372359268079]",
+   "object": "notes",
+   "activityId": "372359268079",
+   "outcome": "skipped-present",
+   "recordId": "326812028624",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3e6270d3-d507-435b-ad09-3146a7603844",
+    "card": "2855587405",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "目前还是想提前维保500封，原厂Wilson那边直接拒绝，最少客户维保500+500新增，看客户自己的选择",
+    "contentLength": 108,
+    "contentSha": "3606d9c0cae3fffb",
+    "timestamp": "2026-05-29T03:13:55.948Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 9,
+     "rowsReturned": 9,
+     "distinctRows": 9,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:52.830Z"
+    }
+   },
+   "reason": "the listing shows the marker in 5fd41616-5605-4e97-9e0c-f7f3bd318584"
+  },
+  {
+   "card": "2859626142",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:382118884078]",
+   "object": "notes",
+   "activityId": "382118884078",
+   "outcome": "created",
+   "recordId": "331519695546",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7ddc04ab-aa85-4ca6-928e-9915ffa06807",
+    "card": "2855705805",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "完成了交付。",
+    "contentLength": 63,
+    "contentSha": "4865134877d57edc",
+    "timestamp": "2026-07-10T02:26:15.507Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:43:58.655Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:43:58.655Z",
+   "newId": "3b84a027-56d4-4b46-8d46-ae8e27867014",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-10T02:26:15.507Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859626178",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:383227400932]",
+   "object": "notes",
+   "activityId": "383227400932",
+   "outcome": "created",
+   "recordId": "340266640102",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "50a1d02f-4468-488e-8e2e-e6e518bee93d",
+    "card": "2855598863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "7.15减配为6C+4V",
+    "contentLength": 68,
+    "contentSha": "b34c96403fa32bd2",
+    "timestamp": "2026-07-15T08:28:21.959Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:02.040Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:02.040Z",
+   "newId": "d5f3afc8-f7b0-4dcc-8025-3b0379ef27fe",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-15T08:28:21.959Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859626827",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:calls:283545511616]",
+   "object": "calls",
+   "activityId": "283545511616",
+   "outcome": "created",
+   "recordId": "230806789839",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "567195ee-d2d1-40f2-896c-5e3021ba93e9",
+    "card": "2855645042",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "Call with 维昇药业（上海）有限公司",
+    "contentLength": 109,
+    "contentSha": "b1c56512700eee8f",
+    "timestamp": "2025-11-28T08:10:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:08.864Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:08.864Z",
+   "newId": "953e44d3-40d7-4a8c-8a2f-bece2b41404a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-11-28T08:10:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627297",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:352448402148]",
+   "object": "notes",
+   "activityId": "352448402148",
+   "outcome": "created",
+   "recordId": "309993024204",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0776b36e-2d70-47b0-b902-bd72d5ffca52",
+    "card": "2855608242",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "已经签约 安排下单",
+    "contentLength": 66,
+    "contentSha": "4077354975906a43",
+    "timestamp": "2026-03-03T01:39:46.706Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 8,
+     "rowsReturned": 8,
+     "distinctRows": 8,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:12.350Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:12.350Z",
+   "newId": "e6ba737a-5ead-432b-80aa-18b4c7d56b84",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-03T01:39:46.706Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627308",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:354596243182]",
+   "object": "notes",
+   "activityId": "354596243182",
+   "outcome": "created",
+   "recordId": "311682415326",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "749952b4-7c56-41e7-931e-db106ad05318",
+    "card": "2855720424",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "客户数据再国内，网络IP是在美国。需要1C+2V报价，需要云服务器。先给客户报Tableau价格。",
+    "contentLength": 104,
+    "contentSha": "36a693f64443808d",
+    "timestamp": "2026-03-05T09:23:33.271Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:18.445Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:18.445Z",
+   "newId": "268acae7-41ee-48f3-aa2f-fb2a9aea42c1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-05T09:23:33.271Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627346",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:338985908937]",
+   "object": "notes",
+   "activityId": "338985908937",
+   "outcome": "created",
+   "recordId": "315801775832",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4805117f-9ddc-4a1b-a23a-75ee7bff5f06",
+    "card": "2855700458",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "已经付款，让她绑定在我们名下",
+    "contentLength": 69,
+    "contentSha": "29e6284d4283f054",
+    "timestamp": "2026-02-14T01:44:27.021Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:21.548Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:21.549Z",
+   "newId": "6eda012b-1f1e-423f-9684-918d8a9cf2ec",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-02-14T01:44:27.021Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627364",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:390500511459]",
+   "object": "notes",
+   "activityId": "390500511459",
+   "outcome": "created",
+   "recordId": "323525698260",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2ac82a00-73de-4472-b12a-ee93ca22afcc",
+    "card": "2855728852",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "目前老板那边看效果，先不购买产品，用免费的",
+    "contentLength": 77,
+    "contentSha": "0e7d4acb8f7b75a6",
+    "timestamp": "2026-08-13T06:45:26.102Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:28.098Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:28.098Z",
+   "newId": "f9625fe7-9b8b-4176-9f08-5ff366d57e0f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-08-13T06:45:26.102Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627367",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:376866774751]",
+   "object": "notes",
+   "activityId": "376866774751",
+   "outcome": "created",
+   "recordId": "323527141056",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "b1694dd3-d6fa-4a75-85ce-5572a8351399",
+    "card": "2855716130",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "收到第一年款项",
+    "contentLength": 62,
+    "contentSha": "2845bf9f8899242c",
+    "timestamp": "2026-06-18T06:33:20.534Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:31.392Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:31.392Z",
+   "newId": "ad0ce9f3-e6fb-4e8f-a158-5856a914b3d9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-06-18T06:33:20.534Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627457",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:366997421814]",
+   "object": "notes",
+   "activityId": "366997421814",
+   "outcome": "created",
+   "recordId": "326612895457",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0f30dd18-580b-4306-86e3-a750985655b4",
+    "card": "2855721452",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "跨海峡推荐 已经完成了合同签署和付款",
+    "contentLength": 75,
+    "contentSha": "e9b430b9e192512b",
+    "timestamp": "2026-04-29T08:18:46.063Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:37.906Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:37.907Z",
+   "newId": "abcd893c-38b3-4260-b355-72e176448e9b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-04-29T08:18:46.063Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627741",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:384682325736]",
+   "object": "notes",
+   "activityId": "384682325736",
+   "outcome": "created",
+   "recordId": "339240794851",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5fbac48d-59fc-4712-ad19-50e08253cb61",
+    "card": "2855716130",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "客户已确认，客户目前在内部走用印流程",
+    "contentLength": 74,
+    "contentSha": "9f1f55611633ca9f",
+    "timestamp": "2026-07-21T07:23:37.195Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:40.921Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:40.921Z",
+   "newId": "63097605-688e-48ab-b99a-8bcb72f3d5b3",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-21T07:23:37.195Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627788",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:394766883544]",
+   "object": "emails",
+   "activityId": "394766883544",
+   "outcome": "created",
+   "recordId": "345155999479",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "bac9987a-a2af-4b4d-ac85-9e9ebd7929e4",
+    "card": "2856355953",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：Intercom-Product and Compliance Overview-PhotonPay-20260827.pdf",
+    "contentLength": 1076,
+    "contentSha": "b57817871a4cdf46",
+    "timestamp": "2026-08-28T06:51:57Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 18,
+     "rowsReturned": 18,
+     "distinctRows": 18,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:48.797Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:48.797Z",
+   "newId": "0d56a158-d00b-409b-ae0e-1d758d0583ec",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-08-28T06:51:57.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859627788",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:396215151315]",
+   "object": "emails",
+   "activityId": "396215151315",
+   "outcome": "created",
+   "recordId": "345155999479",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "d82a43fe-e15e-45cd-a879-585d34829a50",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：Intercom-Quotation and Framework Agreement -PhotonPay&DKM",
+    "contentLength": 1936,
+    "contentSha": "e1bd935c03c87e57",
+    "timestamp": "2026-09-02T02:49:06Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 18,
+     "rowsReturned": 18,
+     "distinctRows": 18,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:48.797Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:55.754Z",
+   "newId": "c0920202-55b7-4d98-b406-5fd20681ab73",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-02T02:49:06.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859647771",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:255551389395]",
+   "object": "notes",
+   "activityId": "255551389395",
+   "outcome": "created",
+   "recordId": "151931989705",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "468bca2e-918b-4f9a-85bf-d998e4cf3aa3",
+    "card": "2855651023",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "友万那边和客户暂无实质进展",
+    "contentLength": 68,
+    "contentSha": "15d0cfbaa87454a4",
+    "timestamp": "2025-11-11T07:31:16.024Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:49.522Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:49.522Z",
+   "newId": "dca93783-8c77-4b88-87c9-54683a1a271d",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-11-11T07:31:16.024Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859648300",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:calls:297696214743]",
+   "object": "calls",
+   "activityId": "297696214743",
+   "outcome": "created",
+   "recordId": "256648148718",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1a7a5bd4-953d-4194-96ea-7526ff53c685",
+    "card": "2855694230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "Call with 腾讯云计算（北京）有限责任公司",
+    "contentLength": 74,
+    "contentSha": "7913ea9731541e32",
+    "timestamp": "2025-12-15T07:28:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:59.914Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:44:59.914Z",
+   "newId": "a63daee4-3afd-4bbf-8214-af0d3e674061",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-12-15T07:28:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859648300",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:calls:318096981713]",
+   "object": "calls",
+   "activityId": "318096981713",
+   "outcome": "created",
+   "recordId": "256648148718",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "50cb8bff-ce68-406c-b678-08454c5f61f7",
+    "card": "2855694230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "Call with 腾讯云计算（北京）有限责任公司",
+    "contentLength": 203,
+    "contentSha": "bd3ea774a57172e5",
+    "timestamp": "2025-12-18T03:12:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:44:59.914Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:07.120Z",
+   "newId": "a493eb7a-0659-4c06-9125-eb84d2e8ea78",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-12-18T03:12:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859649777",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:288994699996]",
+   "object": "meetings",
+   "activityId": "288994699996",
+   "outcome": "skipped-present",
+   "recordId": "246523018967",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2e5739a3-9ca6-4e99-86d9-f242c4d7ba08",
+    "card": "2855719497",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom trial - 2nd follow up for VoyagerX ",
+    "contentLength": 220,
+    "contentSha": "23b2ceb55a5bbffa",
+    "timestamp": "2025-12-26T07:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:05.262Z"
+    }
+   },
+   "reason": "the listing shows the marker in 3d3c2bce-5707-4903-99ad-27fa4e481534"
+  },
+  {
+   "card": "2859650164",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:205253678838]",
+   "object": "notes",
+   "activityId": "205253678838",
+   "outcome": "created",
+   "recordId": "168229298935",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "29be84db-2b7c-486f-b165-e624dd055acc",
+    "card": "2855677250",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "他们不是客户的单一采购来源，后面是三方比价，先报备给原厂，预计客户10月份走流程",
+    "contentLength": 95,
+    "contentSha": "abecc5ec09573523",
+    "timestamp": "2025-09-23T06:58:20.790Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:10.699Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:10.699Z",
+   "newId": "979aa5e3-c772-434d-b34e-b50d84f9d89e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-09-23T06:58:20.790Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859650164",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:228194937564]",
+   "object": "notes",
+   "activityId": "228194937564",
+   "outcome": "created",
+   "recordId": "168229298935",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0dfd8eb4-5745-473b-b395-39dfe7bafd28",
+    "card": "2855677250",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "原厂报备一直没有回复",
+    "contentLength": 65,
+    "contentSha": "555395b1feade148",
+    "timestamp": "2025-10-17T04:32:00.196Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:10.699Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:17.428Z",
+   "newId": "ae3ce603-219b-4666-b19a-027c60944c09",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-10-17T04:32:00.196Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859650164",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:232746617579]",
+   "object": "notes",
+   "activityId": "232746617579",
+   "outcome": "created",
+   "recordId": "168229298935",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "09e7f3ca-0a51-41f5-86f5-1cf4e3c66c8c",
+    "card": "2855677250",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "客户要报价，先发给他",
+    "contentLength": 65,
+    "contentSha": "9e41dedab12833b3",
+    "timestamp": "2025-10-22T08:50:40.830Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:10.699Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:25.012Z",
+   "newId": "578684df-144c-40aa-b5c2-9b6e26e89064",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-10-22T08:50:40.830Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859650164",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:285413559017]",
+   "object": "notes",
+   "activityId": "285413559017",
+   "outcome": "created",
+   "recordId": "168229298935",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0bc9634c-6627-482d-b5cd-561278a6cffc",
+    "card": "2855677250",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "发信息一直没回",
+    "contentLength": 62,
+    "contentSha": "0fd2a04ea0cb48ea",
+    "timestamp": "2025-12-19T07:31:44.241Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:10.699Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:31.297Z",
+   "newId": "06ebba7b-50c7-4eec-8f0d-343ca27b4fdf",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-12-19T07:31:44.241Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859650164",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:359265728226]",
+   "object": "notes",
+   "activityId": "359265728226",
+   "outcome": "created",
+   "recordId": "168229298935",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5a24a25c-c106-49b9-ab86-0d6bb5161848",
+    "card": "2855677250",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "石的信息一直不回",
+    "contentLength": 63,
+    "contentSha": "dd9ecde17615c82b",
+    "timestamp": "2026-03-17T08:25:25.336Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:10.699Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:38.049Z",
+   "newId": "9f881a33-e7d4-4fcc-97b2-7a3ee7704899",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-17T08:25:25.336Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859650449",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:337403674339]",
+   "object": "notes",
+   "activityId": "337403674339",
+   "outcome": "created",
+   "recordId": "293206408919",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05e95a95-334e-44dd-b85f-c8a0acabe95c",
+    "card": "2855700458",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "1、她是销售，购买了Gws,有电子签的需求，看年后的时间给她看下产品，公司一共5个人",
+    "contentLength": 97,
+    "contentSha": "fef7344b6b135b25",
+    "timestamp": "2026-02-13T08:19:52.181Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:18.273Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:18.273Z",
+   "newId": "5cd606cf-c0e3-43d0-b18f-3b0f35aaed60",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-02-13T08:19:52.181Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859650728",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:387225973492]",
+   "object": "notes",
+   "activityId": "387225973492",
+   "outcome": "skipped-present",
+   "recordId": "339239330504",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "12c8aee7-fd34-4fe4-ba57-c8681d32ea4e",
+    "card": "2855716195",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "电话咨询， 对接人及使用部门：合规部 1 人用 需求：合同签署，业务从26年开始，客户在澳洲，马来西亚，新加坡，目前量不大一年大概500封，客户有国内和国外，签",
+    "contentLength": 394,
+    "contentSha": "3b7e97214ce299ec",
+    "timestamp": "2026-07-30T03:21:48.444Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:29.562Z"
+    }
+   },
+   "reason": "the listing shows the marker in 0399055b-5641-487c-8567-59662fb39249"
+  },
+  {
+   "card": "2859651949",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:378512870103]",
+   "object": "notes",
+   "activityId": "378512870103",
+   "outcome": "created",
+   "recordId": "332203099844",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "164adc94-55dc-4d81-b069-5850af909f69",
+    "card": "2855703526",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "客户已经付款，等下单审批",
+    "contentLength": 67,
+    "contentSha": "89da03c18fb6a59a",
+    "timestamp": "2026-06-24T07:36:53.932Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:35.478Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:35.479Z",
+   "newId": "e16e520d-5f2e-4dd0-8700-e890b18da305",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-06-24T07:36:53.932Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859651958",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:388304331502]",
+   "object": "emails",
+   "activityId": "388304331502",
+   "outcome": "skipped-present",
+   "recordId": "332509091576",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "42ed3fdf-7b08-4035-9dc0-274a6a6a4f07",
+    "card": "2855144625",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "已连接到 HubSpot 的新电子邮件通道",
+    "contentLength": 321,
+    "contentSha": "bd5783e7276092fb",
+    "timestamp": "2026-08-04T01:13:19.269Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:44.964Z"
+    }
+   },
+   "reason": "the listing shows the marker in 626f2a81-a131-433f-9103-3839ccacdec9"
+  },
+  {
+   "card": "2859652178",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:389062434509]",
+   "object": "notes",
+   "activityId": "389062434509",
+   "outcome": "created",
+   "recordId": "342172721860",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "36dd3821-9cf2-4fa1-986d-3a28a1980042",
+    "card": "2855716195",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "他们还是要官网版本，已经付款，开通时间等客户通知",
+    "contentLength": 80,
+    "contentSha": "03d045abd8e32ae2",
+    "timestamp": "2026-08-07T04:07:41.201Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:47.664Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:47.664Z",
+   "newId": "a146410b-706c-4e34-a50a-ce1bcf5ff851",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-08-07T04:07:41.201Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859652182",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:384681471691]",
+   "object": "notes",
+   "activityId": "384681471691",
+   "outcome": "created",
+   "recordId": "342173442776",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "531ea7ee-49b1-4c91-ae28-b362c81c92da",
+    "card": "2855726625",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "报价单盖章发给客户，他们财务流程一般是3-4天，他们盖章付款后给走流程",
+    "contentLength": 91,
+    "contentSha": "e98983162bf428cb",
+    "timestamp": "2026-07-21T03:07:32.485Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:51.037Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:45:51.037Z",
+   "newId": "2c97e5f5-f2c8-47c0-966d-b7999b52095a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-21T03:07:32.485Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2859652182",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:385167121110]",
+   "object": "notes",
+   "activityId": "385167121110",
+   "outcome": "created",
+   "recordId": "342173442776",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "16f6a927-91f7-4ed6-a756-b03dcf5e0cc2",
+    "card": "2855726625",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "报价已经盖章，给客户开票，这两天付款",
+    "contentLength": 74,
+    "contentSha": "0442b49b3d7ed60a",
+    "timestamp": "2026-07-22T03:17:38.046Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:45:51.037Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:46:03.423Z",
+   "newId": "4184b242-d0b5-4a59-acf3-59a5f0e103c0",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-07-22T03:17:38.046Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2866353999",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401774822125]",
+   "object": "emails",
+   "activityId": "401774822125",
+   "outcome": "created",
+   "recordId": "347928537845",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3ed04229-e04c-460e-9b14-186d2f7aaf53",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "【报价单】Q26565_TB_北京梦诚科技有限公司_20260923",
+    "contentLength": 417,
+    "contentSha": "0ca435e714ecda6c",
+    "timestamp": "2026-09-23T08:34:51Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:46:04.229Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:46:04.229Z",
+   "newId": "a4b7674a-4448-4496-8fcb-a56391c60081",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-23T08:34:51.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2866358377",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:calls:399088007925]",
+   "object": "calls",
+   "activityId": "399088007925",
+   "outcome": "created",
+   "recordId": "349500811964",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2a377459-f47c-48e2-bc8c-f615dd130592",
+    "card": "2857217952",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 eric.zhao@velotricbike.cn 的呼叫",
+    "contentLength": 68,
+    "contentSha": "e70f83c8bc96c3d0",
+    "timestamp": "2026-09-11T09:36:14.017Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:46:12.959Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:46:12.959Z",
+   "newId": "83046f58-d9d9-4fe1-a760-1b222dd5767d",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-11T09:36:14.017Z",
+    "createdAtExact": true
+   }
+  }
+ ]
+}

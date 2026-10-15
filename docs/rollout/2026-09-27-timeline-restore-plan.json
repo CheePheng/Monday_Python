@@ -1,0 +1,105 @@
+{
+ "generatedAt": "2026-09-27T09:28:07.779Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\damage-census.json",
+ "censusRows": 2000,
+ "lostRows": 28,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 3,
+ "filters": {
+  "limit": 3
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json"
+  ],
+  "previousRestoreReports": [],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "skipped-not-associated": 2,
+  "would-create": 1
+ },
+ "done": true,
+ "cards": {
+  "2855606710": {
+   "kind": "companies",
+   "board": "5028000496",
+   "entries": 827,
+   "pages": 22,
+   "complete": true,
+   "lossy": true
+  }
+ },
+ "items": [
+  {
+   "card": "2855572066",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:396625646293]",
+   "object": "emails",
+   "activityId": "396625646293",
+   "outcome": "skipped-not-associated",
+   "recordId": "16375730545",
+   "reason": "HubSpot no longer links emails 396625646293 to companies 16375730545"
+  },
+  {
+   "card": "2855606710",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:71889119650]",
+   "object": "emails",
+   "activityId": "71889119650",
+   "outcome": "would-create",
+   "recordId": "22041989156",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0da474b8-2278-436e-8f15-2007de725ad7",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AW: AW: AW: AW: WG: Purchase Order XtractIS - PT Mitra Adiperkasa Tbk Indonesia (Ref. QIN-11780)",
+    "contentLength": 14565,
+    "contentSha": "5928936aeaa72627",
+    "timestamp": "2025-02-19T08:16:34Z"
+   },
+   "check": {
+    "knownIds": 3,
+    "censusKnownIds": 3,
+    "listing": {
+     "entries": 827,
+     "pages": 22,
+     "complete": true,
+     "lossy": true
+    }
+   }
+  },
+  {
+   "card": "2855607470",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:59398594888]",
+   "object": "emails",
+   "activityId": "59398594888",
+   "outcome": "skipped-not-associated",
+   "recordId": "28932864897",
+   "reason": "HubSpot no longer links emails 59398594888 to companies 28932864897"
+  }
+ ]
+}

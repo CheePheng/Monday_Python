@@ -1,0 +1,17 @@
+{
+  "object": "contacts",
+  "apply": true,
+  "force": true,
+  "startedAt": "2026-09-30T16:39:39.697Z",
+  "total": 80,
+  "lastDoneId": "1195551",
+  "tally": {
+    "updated-monday": 1
+  },
+  "errors": [],
+  "results": {
+    "1195551": "[webhook] source=contacts id=1195551 action=updated-monday board=5028000495"
+  },
+  "done": true,
+  "finishedAt": "2026-09-30T16:39:49.882Z"
+}

@@ -1,0 +1,743 @@
+{
+ "generatedAt": "2026-09-30T21:34:22.302Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 17,
+ "filters": {
+  "cards": [
+   "2856209156"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "would-create": 17
+ },
+ "done": true,
+ "cards": {
+  "2856209156": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:228248027877]",
+   "object": "emails",
+   "activityId": "228248027877",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "090757bb-2e06-49c5-8369-eb8ef232e2fa",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 6520,
+    "contentSha": "210b91be4ea40fa7",
+    "timestamp": "2025-10-17T03:32:10.618Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:249726166751]",
+   "object": "emails",
+   "activityId": "249726166751",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "574316de-f9eb-4695-a5fd-ec7f781f5501",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 7780,
+    "contentSha": "6a9bdc711f858328",
+    "timestamp": "2025-11-05T11:49:59Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:373514184440]",
+   "object": "emails",
+   "activityId": "373514184440",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ef19c7e7-16ee-47f8-bb9d-65f01533132c",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 10885,
+    "contentSha": "2929f7780aa29437",
+    "timestamp": "2026-06-03T07:48:37Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:373524318922]",
+   "object": "emails",
+   "activityId": "373524318922",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2d0333b6-7c69-44e1-b33b-046985a69791",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 8544,
+    "contentSha": "a0e1cd90040ba75f",
+    "timestamp": "2026-06-03T07:15:17Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:374433453795]",
+   "object": "emails",
+   "activityId": "374433453795",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "50609a76-0a34-4ba5-b936-781b9afde545",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 12805,
+    "contentSha": "3748d19f79200427",
+    "timestamp": "2026-06-08T07:45:32Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:374632802041]",
+   "object": "emails",
+   "activityId": "374632802041",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a19c2c0c-8c37-498f-817b-0804035f606d",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 13135,
+    "contentSha": "2e86326d84f1e353",
+    "timestamp": "2026-06-08T08:45:58Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:374761589497]",
+   "object": "emails",
+   "activityId": "374761589497",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ea4c0c13-f037-4739-90a3-d191743a3d65",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 12800,
+    "contentSha": "f8e6b2043be3af21",
+    "timestamp": "2026-06-09T09:51:22Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:374833743599]",
+   "object": "emails",
+   "activityId": "374833743599",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9e77c4d7-98da-48c6-bd13-0c2acebb06ff",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 16003,
+    "contentSha": "b640eacb8178798c",
+    "timestamp": "2026-06-09T09:54:44Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:374989472505]",
+   "object": "emails",
+   "activityId": "374989472505",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7bb2d292-9065-40de-826a-d6687598a5fa",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Re: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 17919,
+    "contentSha": "4aa7be82d764ab30",
+    "timestamp": "2026-06-10T10:17:49Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:375183364813]",
+   "object": "emails",
+   "activityId": "375183364813",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3aa56f2c-35ae-466b-8832-f53280602e5f",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 16794,
+    "contentSha": "cff849fe3929f0fb",
+    "timestamp": "2026-06-11T10:21:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383124072163]",
+   "object": "emails",
+   "activityId": "383124072163",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "857900c6-5fe7-4c1f-9bed-6df040c76afd",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 22423,
+    "contentSha": "fd9a98acd14fb340",
+    "timestamp": "2026-07-06T10:48:17Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383149630151]",
+   "object": "emails",
+   "activityId": "383149630151",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "25982062-a68e-409e-9a0c-fec9018688d0",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 18580,
+    "contentSha": "371bbcede21870a4",
+    "timestamp": "2026-07-10T12:50:40Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383199706838]",
+   "object": "emails",
+   "activityId": "383199706838",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "00d18178-d9ae-4440-aaa9-980889faaedc",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 14327,
+    "contentSha": "9db310e3a7740c12",
+    "timestamp": "2026-07-08T10:58:19Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383200844475]",
+   "object": "emails",
+   "activityId": "383200844475",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "00c54799-0cdc-4f4e-a01c-f033dcefcfd5",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 19715,
+    "contentSha": "c8e8ffbcaa8e0989",
+    "timestamp": "2026-07-13T04:51:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383202964202]",
+   "object": "emails",
+   "activityId": "383202964202",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "02b4db52-c558-4718-b31a-89b1b97c37d3",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 16161,
+    "contentSha": "e5583c17efcc57dd",
+    "timestamp": "2026-07-08T11:22:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383216926457]",
+   "object": "emails",
+   "activityId": "383216926457",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "86a3504a-999c-47ef-9e51-0e7e5c7b2562",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 18596,
+    "contentSha": "73ef5bc802cc7608",
+    "timestamp": "2026-07-10T12:51:37Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  },
+  {
+   "card": "2856209156",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383217040061]",
+   "object": "emails",
+   "activityId": "383217040061",
+   "outcome": "would-create",
+   "recordId": "288233370311",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6cd290f6-6ae8-4e48-a1b2-2e8b2f959dce",
+    "card": "2855585307",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL] New contract - Docusign 2025.",
+    "contentLength": 17335,
+    "contentSha": "dc620888981d67a0",
+    "timestamp": "2026-07-13T12:26:58Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T21:34:26.930Z"
+    }
+   }
+  }
+ ]
+}

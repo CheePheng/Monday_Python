@@ -1,0 +1,16 @@
+{
+  "mode": "cards",
+  "apply": false,
+  "generatedAt": "2026-10-12T03:58:36.223Z",
+  "objects": {
+    "contacts": {
+      "created": 2386,
+      "excludedWmHold": 0,
+      "carded": 2385,
+      "missing": [
+        "563860620999"
+      ]
+    }
+  },
+  "done": true
+}

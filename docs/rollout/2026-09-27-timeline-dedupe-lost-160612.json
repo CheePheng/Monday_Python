@@ -1,0 +1,150 @@
+[
+ {
+  "card": "2855650271",
+  "kind": "companies",
+  "marker": "[hubspot:emails:249725616858]",
+  "state": "LOST",
+  "outcome": "keeper-lost-late",
+  "knownIds": [
+   "3fc21557-c18c-42b5-8dc6-ad319d5b2a7f",
+   "7d8441cf-f248-4572-9fef-c9d241f2955d",
+   "fad729af-1b16-407c-b68d-66634d8c8af7"
+  ],
+  "keepers": [
+   "3fc21557-c18c-42b5-8dc6-ad319d5b2a7f"
+  ],
+  "lostKeepers": [
+   "3fc21557-c18c-42b5-8dc6-ad319d5b2a7f"
+  ],
+  "sent": [
+   "7d8441cf-f248-4572-9fef-c9d241f2955d",
+   "fad729af-1b16-407c-b68d-66634d8c8af7"
+  ],
+  "foundBy": "--verify",
+  "note": "checked again by --verify: a copy that run kept no longer resolves",
+  "report": "2026-09-27-timeline-dedupe-retry-applied.json",
+  "at": "2026-09-27T16:06:13.621Z"
+ },
+ {
+  "card": "2855650271",
+  "kind": "companies",
+  "marker": "[hubspot:emails:249734315755]",
+  "state": "LOST",
+  "outcome": "keeper-lost-late",
+  "knownIds": [
+   "02f8f8ce-ce3d-480c-96fa-9856192c9be6",
+   "9921aa37-f72f-4354-88a9-b224351cbc75",
+   "cf3b15ee-0654-402b-9879-c9df1e0697ff"
+  ],
+  "keepers": [
+   "02f8f8ce-ce3d-480c-96fa-9856192c9be6"
+  ],
+  "lostKeepers": [
+   "02f8f8ce-ce3d-480c-96fa-9856192c9be6"
+  ],
+  "sent": [
+   "9921aa37-f72f-4354-88a9-b224351cbc75",
+   "cf3b15ee-0654-402b-9879-c9df1e0697ff"
+  ],
+  "foundBy": "--verify",
+  "note": "checked again by --verify: a copy that run kept no longer resolves",
+  "report": "2026-09-27-timeline-dedupe-retry-applied.json",
+  "at": "2026-09-27T16:06:13.738Z"
+ },
+ {
+  "card": "2855650271",
+  "kind": "companies",
+  "marker": "[hubspot:emails:81048586859]",
+  "state": "LOST",
+  "outcome": "keeper-lost-late",
+  "knownIds": [
+   "12cfb92b-1c84-46d1-a78f-5ce88bc9e204",
+   "ef375a8c-d9f3-4be2-b319-1a9a806a832b"
+  ],
+  "keepers": [
+   "12cfb92b-1c84-46d1-a78f-5ce88bc9e204"
+  ],
+  "lostKeepers": [
+   "12cfb92b-1c84-46d1-a78f-5ce88bc9e204"
+  ],
+  "sent": [
+   "ef375a8c-d9f3-4be2-b319-1a9a806a832b"
+  ],
+  "foundBy": "--verify",
+  "note": "checked again by --verify: a copy that run kept no longer resolves",
+  "report": "2026-09-27-timeline-dedupe-retry-applied.json",
+  "at": "2026-09-27T16:06:18.029Z"
+ },
+ {
+  "card": "2855768833",
+  "kind": "contacts",
+  "marker": "[hubspot:emails:249725616858]",
+  "state": "LOST",
+  "outcome": "keeper-lost-late",
+  "knownIds": [
+   "1a2d340c-cff4-4369-8ef3-5162a791aa9a",
+   "68bf368b-8a76-4a31-b95d-391ced2855da"
+  ],
+  "keepers": [
+   "1a2d340c-cff4-4369-8ef3-5162a791aa9a"
+  ],
+  "lostKeepers": [
+   "1a2d340c-cff4-4369-8ef3-5162a791aa9a"
+  ],
+  "sent": [
+   "68bf368b-8a76-4a31-b95d-391ced2855da"
+  ],
+  "foundBy": "--verify",
+  "note": "checked again by --verify: a copy that run kept no longer resolves",
+  "report": "2026-09-27-timeline-dedupe-retry-applied.json",
+  "at": "2026-09-27T16:06:18.635Z"
+ },
+ {
+  "card": "2855768833",
+  "kind": "contacts",
+  "marker": "[hubspot:emails:81048586859]",
+  "state": "LOST",
+  "outcome": "keeper-lost-late",
+  "knownIds": [
+   "2352f159-1998-4d49-bf4f-e16f738ab96c",
+   "e1c3ffe8-0b9b-4793-b57c-7eef82bada18"
+  ],
+  "keepers": [
+   "2352f159-1998-4d49-bf4f-e16f738ab96c"
+  ],
+  "lostKeepers": [
+   "2352f159-1998-4d49-bf4f-e16f738ab96c"
+  ],
+  "sent": [
+   "e1c3ffe8-0b9b-4793-b57c-7eef82bada18"
+  ],
+  "foundBy": "--verify",
+  "note": "checked again by --verify: a copy that run kept no longer resolves",
+  "report": "2026-09-27-timeline-dedupe-retry-applied.json",
+  "at": "2026-09-27T16:06:19.149Z"
+ },
+ {
+  "card": "2856208233",
+  "kind": "contacts",
+  "marker": "[hubspot:emails:249734315755]",
+  "state": "LOST",
+  "outcome": "keeper-lost-late",
+  "knownIds": [
+   "063c7849-a907-438c-aa73-51c1fd4aa9ea",
+   "10e0a25b-cf73-4095-b2bd-3691be8b1918"
+  ],
+  "keepers": [
+   "063c7849-a907-438c-aa73-51c1fd4aa9ea"
+  ],
+  "lostKeepers": [
+   "063c7849-a907-438c-aa73-51c1fd4aa9ea"
+  ],
+  "sent": [
+   "10e0a25b-cf73-4095-b2bd-3691be8b1918"
+  ],
+  "foundBy": "--verify",
+  "note": "checked again by --verify: a copy that run kept no longer resolves",
+  "report": "2026-09-27-timeline-dedupe-retry-applied.json",
+  "at": "2026-09-27T16:06:20.022Z"
+ }
+]

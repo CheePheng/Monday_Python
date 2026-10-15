@@ -1,0 +1,5508 @@
+{
+ "generatedAt": "2026-10-01T05:54:37.582Z",
+ "mode": "applied",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 94,
+ "filters": {
+  "cards": [
+   "2855783869",
+   "2855784029",
+   "2855784048",
+   "2855784125",
+   "2855784126",
+   "2855784129",
+   "2855784132",
+   "2855784153",
+   "2855784242",
+   "2855784244",
+   "2855784450",
+   "2855784451",
+   "2855784893",
+   "2855785511",
+   "2855785512",
+   "2855785741",
+   "2855785920",
+   "2855785974",
+   "2855786129",
+   "2855786131",
+   "2855828855",
+   "2855830553",
+   "2855838372",
+   "2855846901",
+   "2855990729",
+   "2856010759",
+   "2856146455",
+   "2856150513",
+   "2856162824",
+   "2856174226",
+   "2856196781",
+   "2856196961",
+   "2856203774",
+   "2856203775",
+   "2856203776",
+   "2856203858",
+   "2856205166",
+   "2856205167",
+   "2856205168",
+   "2856205169"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied-222841.json",
+   "2026-09-30-timeline-restore-applied.json",
+   "2026-10-01-timeline-restore-applied-041852.json",
+   "2026-10-01-timeline-restore-applied-044237.json",
+   "2026-10-01-timeline-restore-applied-045725.json",
+   "2026-10-01-timeline-restore-applied-051130.json",
+   "2026-10-01-timeline-restore-applied-052355.json",
+   "2026-10-01-timeline-restore-applied-053051.json",
+   "2026-10-01-timeline-restore-applied-054153.json",
+   "2026-10-01-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "created": 93,
+  "created-body-upgrade": 1
+ },
+ "done": true,
+ "cards": {
+  "2855783869": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784029": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 14,
+   "rowsReturned": 14,
+   "distinctRows": 14,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784048": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784125": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784126": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784129": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784132": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784153": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 19,
+   "rowsReturned": 19,
+   "distinctRows": 19,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784242": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784244": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784450": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784451": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855784893": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855785511": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855785512": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855785741": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 48,
+   "rowsReturned": 48,
+   "distinctRows": 48,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855785920": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 7,
+   "rowsReturned": 7,
+   "distinctRows": 7,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855785974": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 14,
+   "rowsReturned": 14,
+   "distinctRows": 14,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855786129": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855786131": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855828855": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855830553": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855838372": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855846901": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 50,
+   "rowsReturned": 50,
+   "distinctRows": 50,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855990729": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856010759": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856146455": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856150513": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856162824": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856174226": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856196781": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856196961": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856203774": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 4,
+   "rowsReturned": 4,
+   "distinctRows": 4,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856203775": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 7,
+   "rowsReturned": 7,
+   "distinctRows": 7,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856203776": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856203858": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856205166": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856205167": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856205168": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856205169": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2855783869",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:68352559172]",
+   "object": "emails",
+   "activityId": "68352559172",
+   "outcome": "created",
+   "recordId": "89572544161",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4327ec0c-f1ca-4d44-a9a2-9f0b7dde5099",
+    "card": "2855618459",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 紧急：催收通知 Data Knowledge Management Limited 04054299",
+    "contentLength": 1893,
+    "contentSha": "1c952f344c5de480",
+    "timestamp": "2025-01-07T04:56:40.459Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:54:42.707Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:54:42.707Z",
+   "newId": "1e4450cb-3f14-46fa-bebe-266b1a71fda7",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-01-07T04:56:40.459Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784029",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:71403635879]",
+   "object": "emails",
+   "activityId": "71403635879",
+   "outcome": "created",
+   "recordId": "89923825436",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "809bf7c4-27c4-47ed-b377-381e004089c1",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [EXTERNAL]Re: RE: [EXTERNAL]Re: [EXTERNAL]Re: [EXTERNAL]Re: Xtract Universal Licensing-Theobald",
+    "contentLength": 6543,
+    "contentSha": "89a3c496a22e99b1",
+    "timestamp": "2025-02-12T17:18:54Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:54:43.746Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:54:43.746Z",
+   "newId": "ed6f76f1-e2a9-44d5-aa57-1a500f504b4e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-02-12T17:18:54.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784029",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:73716056072]",
+   "object": "emails",
+   "activityId": "73716056072",
+   "outcome": "created",
+   "recordId": "89923825436",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9edae28d-e59a-4cb6-a55a-be4668a4df43",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL]Re: RE: [EXTERNAL]Re: RE: [EXTERNAL]Re: [EXTERNAL]Re: [EXTERNAL]Re: Xtract Universal Licensing-Theobald",
+    "contentLength": 8301,
+    "contentSha": "95d370a119db2fae",
+    "timestamp": "2025-02-26T03:48:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:54:43.746Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:54:51.911Z",
+   "newId": "d972ab66-2112-4678-bb26-c4e5abe78cf5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-02-26T03:48:05.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784029",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:73824763291]",
+   "object": "emails",
+   "activityId": "73824763291",
+   "outcome": "created",
+   "recordId": "89923825436",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "51d76cdc-9628-4fe3-af9a-2687ad105fcb",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: [EXTERNAL]Re: RE: [EXTERNAL]Re: RE: [EXTERNAL]Re: RE: [EXTERNAL]Re: [EXTERNAL]Re: [EXTERNAL]Re: Xtract Universal Licensing-Theobald",
+    "contentLength": 9368,
+    "contentSha": "601b47f675aeed36",
+    "timestamp": "2025-02-27T07:55:54Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:54:43.746Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:54:59.457Z",
+   "newId": "dd3c30b5-b1e7-4faa-95ba-25ab96ea3bb1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-02-27T07:55:54.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784048",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:74774005672]",
+   "object": "emails",
+   "activityId": "74774005672",
+   "outcome": "created",
+   "recordId": "105458235831",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "004c209b-3600-4213-a8f3-4e543a94acc1",
+    "card": "2855627029",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom - The Dime",
+    "contentLength": 911,
+    "contentSha": "c4a1f000d3114211",
+    "timestamp": "2025-03-12T08:02:31.030Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:54:55.338Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:54:55.338Z",
+   "newId": "c3d3f58f-1ade-4e19-9f06-c440a57a90bd",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-12T08:02:31.030Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784048",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:74881009827]",
+   "object": "emails",
+   "activityId": "74881009827",
+   "outcome": "created",
+   "recordId": "105458235831",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "91454073-454e-4413-9d70-a171cc23ae6b",
+    "card": "2855627029",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom - The Dime",
+    "contentLength": 1921,
+    "contentSha": "71e27e2db3198fa6",
+    "timestamp": "2025-03-13T08:45:56Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:54:55.338Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:02.712Z",
+   "newId": "d2c7d873-225c-4b1c-ae41-a479fc2241e5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-13T08:45:56.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784125",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:74355253291]",
+   "object": "emails",
+   "activityId": "74355253291",
+   "outcome": "created",
+   "recordId": "104099243607",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "55387a2f-8da4-4997-9d8e-37643719cbcb",
+    "card": "2855613703",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AI客服 Intercom",
+    "contentLength": 2391,
+    "contentSha": "f3795f8c7339fcbb",
+    "timestamp": "2025-03-06T09:42:48.145Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:09.934Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:09.934Z",
+   "newId": "df1361a6-988c-4f3f-8dc1-6e4c50ac1f96",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-06T09:42:48.145Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784126",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:74348607343]",
+   "object": "emails",
+   "activityId": "74348607343",
+   "outcome": "created",
+   "recordId": "104100104846",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "007f855e-e899-413d-bf48-f4a7ca4431c3",
+    "card": "2855634336",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AI客服 Intercom",
+    "contentLength": 2233,
+    "contentSha": "8562fd327184dd79",
+    "timestamp": "2025-03-06T08:42:15.553Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:10.584Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:10.584Z",
+   "newId": "da68ccef-67ca-4259-8c9b-0878134259bd",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-06T08:42:15.553Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784129",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:74347170599]",
+   "object": "emails",
+   "activityId": "74347170599",
+   "outcome": "created",
+   "recordId": "104116804149",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "60443896-7aef-4355-81bd-00d05b39fbe2",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "YTL Next Steps",
+    "contentLength": 1298,
+    "contentSha": "57fb856524377db5",
+    "timestamp": "2025-03-06T08:10:51.906Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:19.959Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:19.959Z",
+   "newId": "377a34ab-fe2f-4b29-865b-572872c90b82",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-06T08:10:51.906Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784129",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:77068717686]",
+   "object": "emails",
+   "activityId": "77068717686",
+   "outcome": "created",
+   "recordId": "104116804149",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0f781571-3764-44d0-b1eb-03c14bec5b81",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Quick Follow-up on Our Recent Meeting",
+    "contentLength": 4135,
+    "contentSha": "e7567f31251ba849",
+    "timestamp": "2025-04-15T07:08:02Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:19.959Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:28.427Z",
+   "newId": "391ba28f-bc77-4c07-9947-743ddf6b71c3",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-04-15T07:08:02.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784129",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80329336623]",
+   "object": "emails",
+   "activityId": "80329336623",
+   "outcome": "created",
+   "recordId": "104116804149",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "bd67f6fe-36e4-4a24-925c-902820546868",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Quick Follow-up on Our Recent Meeting",
+    "contentLength": 7905,
+    "contentSha": "8ef2cc8c03533fcf",
+    "timestamp": "2025-05-29T00:42:20Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:19.959Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:35.662Z",
+   "newId": "5495571a-6801-4a7c-8968-b76bca370b7d",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-29T00:42:20.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784129",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:74879840103]",
+   "object": "meetings",
+   "activityId": "74879840103",
+   "outcome": "created",
+   "recordId": "104116804149",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7a749516-3a6a-405b-aeae-b46b6df465ef",
+    "card": "2855638396",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "YTL catch up",
+    "contentLength": 57,
+    "contentSha": "bd1fb37db0eb3468",
+    "timestamp": "2025-03-14T02:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:19.959Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:41.944Z",
+   "newId": "32fa2a58-41fa-49f3-8617-1b8073266bd3",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-14T02:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784132",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:74348607343]",
+   "object": "emails",
+   "activityId": "74348607343",
+   "outcome": "created",
+   "recordId": "104117659152",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "007f855e-e899-413d-bf48-f4a7ca4431c3",
+    "card": "2855634336",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AI客服 Intercom",
+    "contentLength": 2233,
+    "contentSha": "8562fd327184dd79",
+    "timestamp": "2025-03-06T08:42:15.553Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:20.588Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:20.588Z",
+   "newId": "7b39e698-0945-4a60-8de2-b629f6a01da2",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-06T08:42:15.553Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:399057126089]",
+   "object": "emails",
+   "activityId": "399057126089",
+   "outcome": "created",
+   "recordId": "100002676809",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4232115a-e8e5-48f7-937e-1433a303ab54",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Offer letter -MuhammadAnhar Guna Putra.pdf",
+    "contentLength": 1448,
+    "contentSha": "d94d457e3ccaec36",
+    "timestamp": "2026-09-11T07:18:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 19,
+     "rowsReturned": 19,
+     "distinctRows": 19,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:31.358Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:31.358Z",
+   "newId": "13392526-7ba8-497a-820b-9b3e6b225d97",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-11T07:18:05.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:71707474840]",
+   "object": "emails",
+   "activityId": "71707474840",
+   "outcome": "created",
+   "recordId": "100002676809",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05bdc019-2a59-429d-9bf5-8412701da7b1",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Setting up a local company in Vietnam.",
+    "contentLength": 639,
+    "contentSha": "5caeff4c435d077b",
+    "timestamp": "2025-02-17T11:29:33.928Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 19,
+     "rowsReturned": 19,
+     "distinctRows": 19,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:31.358Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:38.979Z",
+   "newId": "0f95a771-c74b-4163-98aa-0dff8c512df4",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-02-17T11:29:33.928Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784242",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75046565706]",
+   "object": "emails",
+   "activityId": "75046565706",
+   "outcome": "created",
+   "recordId": "106379615899",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "410a313a-fe0d-4b5e-b1c8-94b9ad1b4ed5",
+    "card": "2855634392",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AI客服 Intercom",
+    "contentLength": 2515,
+    "contentSha": "cbd3663866fb1cac",
+    "timestamp": "2025-03-16T08:51:12.866Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:49.427Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:49.427Z",
+   "newId": "8bbe4363-7211-4ae9-9b87-e2ce52cf3197",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-16T08:51:12.866Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784244",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75046565706]",
+   "object": "emails",
+   "activityId": "75046565706",
+   "outcome": "created",
+   "recordId": "106379742008",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "410a313a-fe0d-4b5e-b1c8-94b9ad1b4ed5",
+    "card": "2855634392",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AI客服 Intercom",
+    "contentLength": 2515,
+    "contentSha": "cbd3663866fb1cac",
+    "timestamp": "2025-03-16T08:51:12.866Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:50.305Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:50.305Z",
+   "newId": "e9cadca6-624d-4a77-b679-f224a1bd2db9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-16T08:51:12.866Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784450",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75119578929]",
+   "object": "emails",
+   "activityId": "75119578929",
+   "outcome": "created",
+   "recordId": "106773072797",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ad830510-183c-4d39-82b3-b14379a09004",
+    "card": "2855627127",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "关于Intercom全球24小时AI客服系统",
+    "contentLength": 1015,
+    "contentSha": "7250f86031ed426f",
+    "timestamp": "2025-03-18T00:27:22.739Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:55:59.581Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:55:59.581Z",
+   "newId": "1462a352-1da7-4a5e-8d41-4625000e71e3",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-03-18T00:27:22.739Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784451",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75146009683]",
+   "object": "emails",
+   "activityId": "75146009683",
+   "outcome": "created",
+   "recordId": "106774562098",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8ba8534f-a7ea-453c-bcd5-98b10263aa54",
+    "card": "2855627127",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "关于Intercom全球24小时AI客服系统",
+    "contentLength": 1015,
+    "contentSha": "3a297f5d83db15b2",
+    "timestamp": "2025-03-18T02:18:01.396Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:00.265Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:00.265Z",
+   "newId": "1eec1dbb-f271-4f4c-8064-8eebf3549dc5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-03-18T02:18:01.396Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855784893",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75763990361]",
+   "object": "emails",
+   "activityId": "75763990361",
+   "outcome": "created",
+   "recordId": "108906868394",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "40825214-80ac-4f52-929a-02c6e17cf11c",
+    "card": "2855607999",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: tableau血缘能力建设需求说明响应",
+    "contentLength": 800,
+    "contentSha": "efd3d295f41b4f33",
+    "timestamp": "2025-03-26T01:42:55Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:09.387Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:09.387Z",
+   "newId": "37e106ca-1714-4401-b8c1-7f4ee1daa73e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-26T01:42:55.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785511",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75846697897]",
+   "object": "emails",
+   "activityId": "75846697897",
+   "outcome": "created",
+   "recordId": "109230097080",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "14987365-528c-4293-8de8-12a4193d8765",
+    "card": "2855632155",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Intercom智能AI客服解决方案",
+    "contentLength": 760,
+    "contentSha": "b3e2efa3cd7a78c6",
+    "timestamp": "2025-03-27T07:14:32.801Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:10.036Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:10.036Z",
+   "newId": "e00bd077-dcf4-4294-b59d-4389b7320223",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-27T07:14:32.801Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785512",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:75846697897]",
+   "object": "emails",
+   "activityId": "75846697897",
+   "outcome": "created",
+   "recordId": "109230948406",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "14987365-528c-4293-8de8-12a4193d8765",
+    "card": "2855632155",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Intercom智能AI客服解决方案",
+    "contentLength": 760,
+    "contentSha": "b3e2efa3cd7a78c6",
+    "timestamp": "2025-03-27T07:14:32.801Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:19.774Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:19.774Z",
+   "newId": "9e2eb012-6b58-4774-a45b-1a196dc8329e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-03-27T07:14:32.801Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:78309243542]",
+   "object": "emails",
+   "activityId": "78309243542",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "56ec6e78-004b-478c-9217-81a55ae8d004",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 7727,
+    "contentSha": "dada986573362e57",
+    "timestamp": "2025-05-02T02:11:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:21.913Z",
+   "newId": "5ff0967b-01cf-4897-8c45-21c49fc89795",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-02T02:11:36.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:78482797672]",
+   "object": "emails",
+   "activityId": "78482797672",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "44dc8cf6-4949-403d-9b3f-da0593c9cbe1",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 15944,
+    "contentSha": "330edfccf573c39a",
+    "timestamp": "2025-05-06T01:19:58.079Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:28.852Z",
+   "newId": "bf582c23-f05d-463f-b4a3-6630f2aa6215",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-06T01:19:58.079Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79104997435]",
+   "object": "emails",
+   "activityId": "79104997435",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4afe6a1a-e0aa-4a80-8682-1ca6b1dabfc7",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 23619,
+    "contentSha": "39350bfa15288d34",
+    "timestamp": "2025-05-15T08:49:19Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:35.325Z",
+   "newId": "f54d530f-ce85-4a40-bdee-b5e722359ddc",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-15T08:49:19.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79187540555]",
+   "object": "emails",
+   "activityId": "79187540555",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "368d8677-ad2c-4eaf-aaf0-4d70b1b8569f",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 26438,
+    "contentSha": "863d677715742197",
+    "timestamp": "2025-05-16T01:50:39Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:41.995Z",
+   "newId": "d9e90a10-8504-4cc9-bca2-303235232dce",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-16T01:50:39.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79196936459]",
+   "object": "emails",
+   "activityId": "79196936459",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4a1846ff-fb13-4e39-9db7-3c62cce119ac",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 25792,
+    "contentSha": "83988482d40a069b",
+    "timestamp": "2025-05-16T03:24:21Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:49.565Z",
+   "newId": "8904de91-f9eb-448f-9d93-52a1208df5c6",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-16T03:24:21.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:83844953986]",
+   "object": "emails",
+   "activityId": "83844953986",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4450676e-949b-4d5f-be32-c93f99b14887",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 33031,
+    "contentSha": "020c3f26c9631218",
+    "timestamp": "2025-07-21T06:57:49Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:56.395Z",
+   "newId": "559676a8-735e-42a7-a93d-b6aead024ed9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-07-21T06:57:49.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785741",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:83849730624]",
+   "object": "emails",
+   "activityId": "83849730624",
+   "outcome": "created",
+   "recordId": "116677366438",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "033dd290-d6e5-4a3c-a7d8-22e054e80124",
+    "card": "2855615145",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 29648,
+    "contentSha": "6dc6ee83ce4733cf",
+    "timestamp": "2025-07-21T06:43:10Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:21.913Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:03.639Z",
+   "newId": "0da1607a-1278-43e2-90f6-d83dffa833ca",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-07-21T06:43:10.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785920",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80205097322]",
+   "object": "emails",
+   "activityId": "80205097322",
+   "outcome": "created",
+   "recordId": "122670208588",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "22e2c65b-efd9-4dd8-a45a-88316ccb7dc7",
+    "card": "2855632264",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: DKM Eco / Twilio",
+    "contentLength": 2448,
+    "contentSha": "860ad8e2a3c98a9c",
+    "timestamp": "2025-05-28T06:03:02Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:31.860Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:31.860Z",
+   "newId": "c300a871-da99-4914-a87b-a4636a20265a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-28T06:03:02.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:77648226999]",
+   "object": "emails",
+   "activityId": "77648226999",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "732a0d3c-43ca-40ea-b8b0-51f95bf1a752",
+    "card": "2855619562",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 1868,
+    "contentSha": "df6edd60e6348132",
+    "timestamp": "2025-04-23T08:07:56.790Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:42.492Z",
+   "newId": "d578cf75-7eba-4cab-b438-04a9870dbfc9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-04-23T08:07:56.790Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:78108741641]",
+   "object": "emails",
+   "activityId": "78108741641",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "122f8a29-8f8e-4d70-a988-ac4db0cb5dae",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 5058,
+    "contentSha": "45521be845f23005",
+    "timestamp": "2025-04-29T10:21:08Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:56:53.133Z",
+   "newId": "44028a0f-2405-45e4-a64e-dc5f9d9e3e62",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-04-29T10:21:08.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:78599048982]",
+   "object": "emails",
+   "activityId": "78599048982",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3eac4585-6062-413f-bbaa-96295dfe4667",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 7119,
+    "contentSha": "8d33f6c51793605d",
+    "timestamp": "2025-05-07T09:00:56Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:00.278Z",
+   "newId": "b4453a7c-ca51-4f0d-b70d-79bbf760c9e4",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-07T09:00:56.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:78612428113]",
+   "object": "emails",
+   "activityId": "78612428113",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5abb17bb-3059-456f-9629-bff36cf6ad57",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 7362,
+    "contentSha": "e572524e4d057a09",
+    "timestamp": "2025-05-07T13:54:24Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:07.168Z",
+   "newId": "21c2b586-a72d-438e-8dc6-5ecfefb0dfdf",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-07T13:54:24.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:78614857311]",
+   "object": "emails",
+   "activityId": "78614857311",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "237c7db4-3109-4858-8b25-17691f93586a",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 7757,
+    "contentSha": "10806d32fb4337b9",
+    "timestamp": "2025-05-07T14:24:33Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:13.165Z",
+   "newId": "16fb3b4e-7ba0-4fbf-ab70-628a533e51f0",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-07T14:24:33.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79343584333]",
+   "object": "emails",
+   "activityId": "79343584333",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "51bd067e-1103-4363-bac8-d04cf1e6d33e",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Theobald trial POC- Server requirements",
+    "contentLength": 9406,
+    "contentSha": "8e4e4df9d280a601",
+    "timestamp": "2025-05-19T07:52:45Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:21.467Z",
+   "newId": "2c271015-5af7-451c-91c1-c2a9617d31ff",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-19T07:52:45.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855785974",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79542997119]",
+   "object": "emails",
+   "activityId": "79542997119",
+   "outcome": "created",
+   "recordId": "116307371900",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "e024e386-33fd-4fd8-bd83-e0dacf2e61d3",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 9783,
+    "contentSha": "ad73d783e4d9eeaf",
+    "timestamp": "2025-05-21T14:02:52Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 14,
+     "rowsReturned": 14,
+     "distinctRows": 14,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:56:42.492Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:28.235Z",
+   "newId": "7be4d870-009d-4ada-891b-5e3a7a0fb2d4",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-21T14:02:52.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855786129",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79399708703]",
+   "object": "emails",
+   "activityId": "79399708703",
+   "outcome": "created",
+   "recordId": "121915474604",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3217dc52-b31a-497a-b925-900b6bdd624a",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald Software - Xtract Universal Destination",
+    "contentLength": 3362,
+    "contentSha": "2633d504281db707",
+    "timestamp": "2025-05-20T01:23:42.418Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:13.789Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:13.789Z",
+   "newId": "0fbe9e8e-4a6d-49c0-bb83-3c387b26207b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-20T01:23:42.418Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855786131",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:79399708703]",
+   "object": "emails",
+   "activityId": "79399708703",
+   "outcome": "created",
+   "recordId": "121922132385",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3217dc52-b31a-497a-b925-900b6bdd624a",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald Software - Xtract Universal Destination",
+    "contentLength": 3362,
+    "contentSha": "2633d504281db707",
+    "timestamp": "2025-05-20T01:23:42.418Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:24.371Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:24.371Z",
+   "newId": "984c1d36-a35a-475f-b379-e06f9204862c",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-05-20T01:23:42.418Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855828855",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:319816268500]",
+   "object": "notes",
+   "activityId": "319816268500",
+   "outcome": "created",
+   "recordId": "143725922395",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "62ea92dd-54ed-471a-9151-b7957709fe82",
+    "card": "2855585656",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "在用暂无需求",
+    "contentLength": 61,
+    "contentSha": "50811e86839c9616",
+    "timestamp": "2026-01-29T10:15:46.460Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:34.407Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:34.407Z",
+   "newId": "05780b76-2c2b-4827-bdca-39db32d995e6",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-01-29T10:15:46.460Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855830553",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:tasks:86486577271]",
+   "object": "tasks",
+   "activityId": "86486577271",
+   "outcome": "created",
+   "recordId": "143724179285",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5930d942-059b-4da8-b0ef-24128e3b4b63",
+    "card": "2855624106",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "21/3/11，无人接听",
+    "contentLength": 157,
+    "contentSha": "949effe214dde621",
+    "timestamp": "2021-03-16T23:08:46Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:37.574Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:37.574Z",
+   "newId": "f6fd4cc1-8b5d-4609-849b-11b100dc1e18",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2021-03-16T23:08:46.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855838372",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394720148168]",
+   "object": "emails",
+   "activityId": "394720148168",
+   "outcome": "created",
+   "recordId": "143727702619",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5620aff1-79b1-48d6-ba87-5253edabccd1",
+    "card": "2855584607",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 数据留存项目-结算单_迪卡侬（上海）体育用品有限公司 _2026年08月账单",
+    "contentLength": 617,
+    "contentSha": "0ac4ba84628b5692",
+    "timestamp": "2026-08-28T02:59:23Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:46.308Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:46.308Z",
+   "newId": "f25df549-108e-4a62-9e2b-1fd19dadb6d4",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-08-28T02:59:23.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855838372",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:396625646293]",
+   "object": "emails",
+   "activityId": "396625646293",
+   "outcome": "created",
+   "recordId": "143727702619",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2c87cfb2-8cc0-45a6-8f48-551975c72ece",
+    "card": "2855584607",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 数据留存项目-结算单_迪卡侬（上海）体育用品有限公司 _2026年08月账单",
+    "contentLength": 807,
+    "contentSha": "81f831a0ade9da40",
+    "timestamp": "2026-09-03T09:50:19Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:46.308Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:55.222Z",
+   "newId": "401b6d64-a155-4699-a312-736e5997371f",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-09-03T09:50:19.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:275996545764]",
+   "object": "emails",
+   "activityId": "275996545764",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8ed9c57b-84d2-40be-a0a4-c1604a4b5552",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：🤝【合作洽谈邀请】HubSpot × LINE × Shopify 出海整合方案｜来自日本 Little Help Agency",
+    "contentLength": 2983,
+    "contentSha": "100c315ad406ca7d",
+    "timestamp": "2025-12-08T03:52:20Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:47.846Z",
+   "newId": "92d3bfd7-389a-40fb-be51-1baa52d7117c",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-12-08T03:52:20.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:288649964223]",
+   "object": "emails",
+   "activityId": "288649964223",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1d702043-b10f-4f45-a4b7-0ed45e47f252",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "monicafan@dkmeco.com is now connected to HubSpot!",
+    "contentLength": 188,
+    "contentSha": "e1464dbe3ea4dd51",
+    "timestamp": "2025-12-25T03:27:55.522Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:57:55.994Z",
+   "newId": "7657f2d9-722b-4e39-8ef1-19f18220f4ac",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-12-25T03:27:55.522Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:288753336028]",
+   "object": "emails",
+   "activityId": "288753336028",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0b9b72e5-49b7-4757-97b9-81683fc053ff",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "DKM Ecosystem introduction for Saishunkan",
+    "contentLength": 492,
+    "contentSha": "bec8e57028a9032d",
+    "timestamp": "2025-12-25T09:07:08.168Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:02.410Z",
+   "newId": "c96c5ce1-76ce-4962-a95d-14974dd367a9",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-12-25T09:07:08.168Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:295694357235]",
+   "object": "emails",
+   "activityId": "295694357235",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "321840a3-7217-4472-b129-4987a0126fd6",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：DKM Ecosystem introduction for Saishunkan",
+    "contentLength": 2629,
+    "contentSha": "0bdf085c1bf82022",
+    "timestamp": "2026-01-05T07:46:27Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:08.786Z",
+   "newId": "1c26615b-a0f2-456f-90f8-625029791aad",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-05T07:46:27.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:297755742951]",
+   "object": "emails",
+   "activityId": "297755742951",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2bffa67d-50f0-4762-8c34-126de18a9bc0",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "【合作探討】DKM x Hububble：為 HubSpot 鑽石級客戶導入 Intercom AI 進階解決方案",
+    "contentLength": 1376,
+    "contentSha": "72bc15509e803bea",
+    "timestamp": "2026-01-08T01:39:24.228Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:17.245Z",
+   "newId": "77f5c891-78cf-4454-a75b-0bc6b21f0439",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-08T01:39:24.228Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:297755813570]",
+   "object": "emails",
+   "activityId": "297755813570",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0f3bfe7d-43b5-4aa3-ae21-17135ffe28de",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "【合作探討】DKM x EAST：以 Intercom AI 強化貴司的 HubSpot 系統整合與自動化方案",
+    "contentLength": 1307,
+    "contentSha": "19a9d3da157a1ab6",
+    "timestamp": "2026-01-08T02:33:25.491Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:23.902Z",
+   "newId": "01d14f23-a49c-4f39-865f-465569e88c8b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-08T02:33:25.491Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:298103744246]",
+   "object": "emails",
+   "activityId": "298103744246",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6d3976f1-089a-4c17-a2bd-964dd8c9650f",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership (DKM x Arbaan)",
+    "contentLength": 2159,
+    "contentSha": "b0f0306a7c6da67a",
+    "timestamp": "2026-01-08T09:31:01.917Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:30.491Z",
+   "newId": "78a0ca3d-3e3b-4e86-9a25-03c408b1ac18",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-08T09:31:01.917Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:300531215069]",
+   "object": "emails",
+   "activityId": "300531215069",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a2a0e7e5-ae96-4a7c-84bc-81094ec2f985",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership Certification",
+    "contentLength": 1458,
+    "contentSha": "f4cae8c2dc7af007",
+    "timestamp": "2026-01-12T04:36:42.014Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:37.183Z",
+   "newId": "194ae750-2c70-470e-a776-d6ad05c9abad",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-12T04:36:42.014Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:301159962343]",
+   "object": "emails",
+   "activityId": "301159962343",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "af3636a7-c5b2-4495-98b1-75db7b9e40f4",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership (DKM x Arbaan)",
+    "contentLength": 6073,
+    "contentSha": "8381a0e599d92860",
+    "timestamp": "2026-01-12T15:06:59.361Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:47.451Z",
+   "newId": "1d1a6692-29d2-4665-969c-c27dbf8b7628",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-12T15:06:59.361Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:319634590425]",
+   "object": "emails",
+   "activityId": "319634590425",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0ad12f40-b9a4-4dbe-8946-85c0d0640c77",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Co-delivering Partnership with Wendt Partners",
+    "contentLength": 10192,
+    "contentSha": "7cb6f76940f8f842",
+    "timestamp": "2026-01-29T00:38:35Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:54.430Z",
+   "newId": "e2ae4a1d-aa0c-4560-85bc-1c69974e8ca7",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-01-29T00:38:35.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:357364613841]",
+   "object": "emails",
+   "activityId": "357364613841",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "270897a9-6930-4040-8fd9-356693868d86",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Fw: Intercom Partnership（CXcourses<>DKM）",
+    "contentLength": 2155,
+    "contentSha": "13156417eded393e",
+    "timestamp": "2026-03-09T04:02:18Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:00.510Z",
+   "newId": "1be82228-05eb-4fcb-8f3b-231b9ea52211",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-09T04:02:18.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:357490757311]",
+   "object": "emails",
+   "activityId": "357490757311",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "02347dcc-bb76-493b-bbc5-5472d8b78336",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership（CXcourses<>DKM）",
+    "contentLength": 1175,
+    "contentSha": "097afc75d6314931",
+    "timestamp": "2026-03-09T03:33:51Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:08.247Z",
+   "newId": "8f326079-3f42-4d04-b8f9-6a80bf4abb9a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-09T03:33:51.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:357496657629]",
+   "object": "emails",
+   "activityId": "357496657629",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "234ba7f8-e894-43b9-8a46-ba96f88a3eb3",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership（CXcourses<>DKM）",
+    "contentLength": 1104,
+    "contentSha": "3c43923a379f2428",
+    "timestamp": "2026-03-09T04:11:50Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:14.802Z",
+   "newId": "7e9a390b-bb74-455e-adb4-b9a781ef4419",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-09T04:11:50.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359081470676]",
+   "object": "emails",
+   "activityId": "359081470676",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6a71628f-9119-41ae-86b1-f381b95bc0f6",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Taiwan Agency Partnership （DKM<>Xiao Lu Guang Co., Ltd.）",
+    "contentLength": 2844,
+    "contentSha": "b99cd2b55b8c74b8",
+    "timestamp": "2026-03-16T01:20:31.924Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:20.978Z",
+   "newId": "99fdb91f-8246-4e77-a69a-baa467880532",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-16T01:20:31.924Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359101874897]",
+   "object": "emails",
+   "activityId": "359101874897",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "54fc8722-bb30-41f2-9818-70be05a1f9c0",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：Intercom Taiwan Agency Partnership （DKM<>Xiao Lu Guang Co., Ltd.）",
+    "contentLength": 4073,
+    "contentSha": "2e1b3c28c923dc11",
+    "timestamp": "2026-03-16T04:19:27Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:28.310Z",
+   "newId": "56462cac-1723-4a69-ae28-1234648b4993",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-16T04:19:27.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:359757746902]",
+   "object": "emails",
+   "activityId": "359757746902",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3d8269c6-5204-43e3-943e-f14a354ef84a",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: DKM <> ElevenLabs Partnership",
+    "contentLength": 1330,
+    "contentSha": "3c7d7162e1d25ed4",
+    "timestamp": "2026-03-20T02:06:48Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:35.374Z",
+   "newId": "a90ae9c1-447d-4923-809d-fbbc35daf5e6",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-20T02:06:48.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360165434073]",
+   "object": "emails",
+   "activityId": "360165434073",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8e6e9470-8948-4355-b162-caf2779c6a3e",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Meeting with Arch at SAP Insider Las Vegas re Looply (SAP and Teams integration)",
+    "contentLength": 3372,
+    "contentSha": "d24fac4eea64c3bd",
+    "timestamp": "2026-03-24T03:06:48Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:42.999Z",
+   "newId": "5ea8e352-99f7-4a43-8a7d-f1b00b028fe1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-24T03:06:48.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:360456208075]",
+   "object": "emails",
+   "activityId": "360456208075",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1dfc212b-fcf2-479a-9e9f-651b4bf4dc71",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: Follow-up from SAPinsider – Quick Demo of Allevo for SAP + Excel Integration",
+    "contentLength": 270,
+    "contentSha": "22272bac44f98efa",
+    "timestamp": "2026-03-25T15:46:47Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:49.426Z",
+   "newId": "8fc20ca7-07da-4b6e-9a07-05cee76fcebf",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-25T15:46:47.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:361597791942]",
+   "object": "emails",
+   "activityId": "361597791942",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2893a3da-502c-48b9-975a-a2a977991670",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership",
+    "contentLength": 1991,
+    "contentSha": "f347e44c1be97d71",
+    "timestamp": "2026-03-31T06:50:06.564Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:56.975Z",
+   "newId": "65c8a57a-f37c-4742-824e-18bbd3be5a8d",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-31T06:50:06.564Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:363229950667]",
+   "object": "emails",
+   "activityId": "363229950667",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0642019d-e356-4118-b250-d27e5a7a7ddc",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership(Six Global<>DKM)",
+    "contentLength": 5594,
+    "contentSha": "763c4e6d3e219ec7",
+    "timestamp": "2026-04-08T00:35:03Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:04.631Z",
+   "newId": "03749857-5fa4-4ffa-bb28-a30e58393c08",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-08T00:35:03.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:363351902917]",
+   "object": "emails",
+   "activityId": "363351902917",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "18608790-c4c3-4b28-a039-be93f3deeef4",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership (Infonix<>DKM)",
+    "contentLength": 4496,
+    "contentSha": "ee29c8b5a473ef29",
+    "timestamp": "2026-04-08T13:35:46Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:12.539Z",
+   "newId": "d434a9ec-730b-4f2b-ad73-db274721adac",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-08T13:35:46.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:363529974512]",
+   "object": "emails",
+   "activityId": "363529974512",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3ae92255-39e2-4223-b901-ff6d0f8f5586",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Fw: Intercom Partnership(Six Global<>DKM)",
+    "contentLength": 8248,
+    "contentSha": "6002a3ecb7b3ac2a",
+    "timestamp": "2026-04-09T13:08:17Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:22.303Z",
+   "newId": "48cfe4a0-03cd-4112-ba5d-1cfe8927957c",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-09T13:08:17.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855846901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:364254551749]",
+   "object": "emails",
+   "activityId": "364254551749",
+   "outcome": "created",
+   "recordId": "143727735336",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "32b5ae80-9ead-4372-8e6e-576bd08e2788",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom Partnership (Infonix<>DKM)",
+    "contentLength": 8820,
+    "contentSha": "fd2c3dfb4a13b731",
+    "timestamp": "2026-04-13T13:21:25Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 50,
+     "rowsReturned": 50,
+     "distinctRows": 50,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:57:47.846Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:31.082Z",
+   "newId": "37ce08e8-064e-4d15-b923-db2f9d744116",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-04-13T13:21:25.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855990729",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:357911291613]",
+   "object": "emails",
+   "activityId": "357911291613",
+   "outcome": "created",
+   "recordId": "143737048087",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "593e5796-4ef3-4500-86e9-f4a26538c96b",
+    "card": "2855584562",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Tableau+",
+    "contentLength": 439,
+    "contentSha": "9ecda278691af56c",
+    "timestamp": "2026-03-10T05:55:22.869Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:58:05.119Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:05.119Z",
+   "newId": "0ff6af50-d9f6-4a1d-b456-842604eb9c10",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-10T05:55:22.869Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855990729",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358074767078]",
+   "object": "emails",
+   "activityId": "358074767078",
+   "outcome": "created",
+   "recordId": "143737048087",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ada64634-908b-44da-8fb2-35cc0b89bc5f",
+    "card": "2855584562",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: Tableau+",
+    "contentLength": 1589,
+    "contentSha": "4a7bcbc0c916dbe1",
+    "timestamp": "2026-03-10T06:11:39Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:58:05.119Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:14.134Z",
+   "newId": "6a6edbed-03b7-4d2b-b859-6f3e2d638349",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-03-10T06:11:39.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855990729",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:358106357480]",
+   "object": "emails",
+   "activityId": "358106357480",
+   "outcome": "created",
+   "recordId": "143737048087",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "b02d224b-fef1-483b-b958-4f84de8387de",
+    "card": "2855584562",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: Tableau+",
+    "contentLength": 2526,
+    "contentSha": "6a816227260eed71",
+    "timestamp": "2026-03-10T06:39:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:58:05.119Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:20.783Z",
+   "newId": "5228dd28-1f21-49f8-992f-7c265e762968",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2026-03-10T06:39:05.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856010759",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:369078037206]",
+   "object": "calls",
+   "activityId": "369078037206",
+   "outcome": "created",
+   "recordId": "143737074261",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3982a532-2aef-410a-a011-effb2fe8f7fb",
+    "card": "2855712330",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 佛保 杨 的呼叫",
+    "contentLength": 163,
+    "contentSha": "23b966db0aea4916",
+    "timestamp": "2026-05-12T07:34:59.099Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:58:30.843Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:30.843Z",
+   "newId": "f321dab4-adec-4cd9-94ec-feb3c98e4573",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-12T07:34:59.099Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856010759",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:369305061088]",
+   "object": "meetings",
+   "activityId": "369305061088",
+   "outcome": "created",
+   "recordId": "143737074261",
+   "buildsAgree": false,
+   "sibling": {
+    "id": "2c469427-a14d-4dc9-bf9f-e051dd1696fa",
+    "card": "2855712330",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "向客户介绍了我司业务以及DKP平台； 客户反馈他们有服务器，目前只考虑购买1C+1V； 给了客户发了报价",
+    "contentLength": 110,
+    "contentSha": "5d66b1ab1e5f7144",
+    "timestamp": "2026-05-13T02:40:29.569Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:58:30.843Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:38.343Z",
+   "newId": "896074ea-2ff8-4f03-ac5f-782d6289854e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-13T02:40:29.569Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856146455",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:400769385156]",
+   "object": "emails",
+   "activityId": "400769385156",
+   "outcome": "created-body-upgrade",
+   "recordId": "143952906932",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "505c8c87-db89-48a6-a7ff-9f04eb9c49fc",
+    "card": "2855573545",
+    "result": "pre-2026-09-23-live-build-without-body"
+   },
+   "writer": "live",
+   "writerBy": "the surviving copy 505c8c87-db89-48a6-a7ff-9f04eb9c49fc on card 2855573545 is the old live build, which sent no email body; restoring the current live build WITH the body, so this is not an exact copy of it",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: 优阅达软件交付 -上海南洋软件系统集成有限公司（安利）",
+    "contentLength": 1849,
+    "contentSha": "420b40baccc0c5e9",
+    "timestamp": "2026-09-18T02:38:56Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:58:50.885Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:58:50.885Z",
+   "newId": "ac8db826-8f06-4e7b-a8dd-c86a613b1308",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-18T02:38:56.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856150513",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:400335741647]",
+   "object": "emails",
+   "activityId": "400335741647",
+   "outcome": "created",
+   "recordId": "143984088601",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "45b6d644-b3e0-4a39-b7df-ca977c072e5a",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "【广州向日葵信息科技有限公司】您的Tableau软件维保将于 2026/12/1 到期",
+    "contentLength": 685,
+    "contentSha": "6e8ee2630be7275c",
+    "timestamp": "2026-09-16T07:27:33Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:01.049Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:01.049Z",
+   "newId": "df975966-4131-4e7d-b30b-58ef2d21e410",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-16T07:27:33.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856162824",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394786022079]",
+   "object": "emails",
+   "activityId": "394786022079",
+   "outcome": "created",
+   "recordId": "143996454006",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "51b24725-3986-47be-9c3c-37ee493f01ca",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: 【上海药明康德新药开发有限公司】您的Tableau软件维保将于 2025/6/12 到期--PR226151",
+    "contentLength": 10896,
+    "contentSha": "e4c768aeba466aa8",
+    "timestamp": "2026-08-28T07:10:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:10.924Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:10.924Z",
+   "newId": "87f1364f-ae40-475e-bd55-0e682f43f80a",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-08-28T07:10:05.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856174226",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:399057074906]",
+   "object": "emails",
+   "activityId": "399057074906",
+   "outcome": "created",
+   "recordId": "144008922128",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "03dd6696-658f-4ed1-92eb-f9836626d63a",
+    "card": "2855606710",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复: 回复: 【上海药明康德新药开发有限公司】您的Tableau软件维保将于 2025/6/12 到期--PR226151",
+    "contentLength": 11387,
+    "contentSha": "30fcf0ffc18fc414",
+    "timestamp": "2026-09-11T07:06:29Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:21.266Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:21.266Z",
+   "newId": "6edd5bd6-7f8d-4c55-988e-22b9460c9944",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-09-11T07:06:29.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856196781",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:tasks:86489675896]",
+   "object": "tasks",
+   "activityId": "86489675896",
+   "outcome": "created",
+   "recordId": "144102566667",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "26385d1f-a403-4a30-8ff0-385ac01e0b18",
+    "card": "2855583589",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 206,
+    "contentSha": "3d52741a14ebff8f",
+    "timestamp": "2025-08-18T06:38:04.039Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:31.519Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:31.519Z",
+   "newId": "b74673ad-f0d4-4987-8ee4-2ef8bd20c7f1",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-08-18T06:38:04.039Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856196781",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:tasks:86495737491]",
+   "object": "tasks",
+   "activityId": "86495737491",
+   "outcome": "created",
+   "recordId": "144102566667",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "991af1d3-a81b-4d22-893f-66487b0e135d",
+    "card": "2855583589",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 201,
+    "contentSha": "c4e6860bfc89fd8b",
+    "timestamp": "2025-08-18T06:38:04.168Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:31.519Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:39.157Z",
+   "newId": "a6326a39-d74e-46d7-a999-c108be1687ba",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-08-18T06:38:04.168Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856196961",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:85540219934]",
+   "object": "emails",
+   "activityId": "85540219934",
+   "outcome": "created",
+   "recordId": "145720343066",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "06f5e9e8-e1bb-42a6-8501-ddcf4e85ddbf",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom <> National Trade Union Introduction",
+    "contentLength": 18769,
+    "contentSha": "cd4c25b97e08c4ea",
+    "timestamp": "2025-08-11T14:18:00.620Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:49.852Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:49.852Z",
+   "newId": "7bc26273-a142-49db-81ea-6cdac0b77c7b",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-08-11T14:18:00.620Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856196961",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:182150650557]",
+   "object": "meetings",
+   "activityId": "182150650557",
+   "outcome": "created",
+   "recordId": "145720343066",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "788316ee-1e3e-4ffb-af96-9a573447839f",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "NTUC <> DKM : Intercom Demo",
+    "contentLength": 251,
+    "contentSha": "c77307c3fd76deb3",
+    "timestamp": "2025-09-04T08:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:49.852Z"
+    }
+   },
+   "createSentAt": "2026-10-01T05:59:57.752Z",
+   "newId": "aafb5405-5e88-46eb-aae9-0d5bede437f7",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-09-04T08:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856196961",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:213167925999]",
+   "object": "meetings",
+   "activityId": "213167925999",
+   "outcome": "created",
+   "recordId": "145720343066",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0b0bf9df-754e-4af0-83b6-320b778b2bd3",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom <> NTUC : Product workshop",
+    "contentLength": 677,
+    "contentSha": "39e782c2de38ea2c",
+    "timestamp": "2025-10-08T05:45:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T05:59:49.852Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:05.375Z",
+   "newId": "e5aa8955-4340-43f9-a2a9-2772be633183",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-10-08T05:45:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203774",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:85540219934]",
+   "object": "emails",
+   "activityId": "85540219934",
+   "outcome": "created",
+   "recordId": "145722805888",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "06f5e9e8-e1bb-42a6-8501-ddcf4e85ddbf",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom <> National Trade Union Introduction",
+    "contentLength": 18769,
+    "contentSha": "cd4c25b97e08c4ea",
+    "timestamp": "2025-08-11T14:18:00.620Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:18.590Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:18.590Z",
+   "newId": "43ccec77-22d9-4910-9c6f-3f7c068e6cad",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-08-11T14:18:00.620Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203774",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:182150650557]",
+   "object": "meetings",
+   "activityId": "182150650557",
+   "outcome": "created",
+   "recordId": "145722805888",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "788316ee-1e3e-4ffb-af96-9a573447839f",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "NTUC <> DKM : Intercom Demo",
+    "contentLength": 251,
+    "contentSha": "c77307c3fd76deb3",
+    "timestamp": "2025-09-04T08:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:18.590Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:26.394Z",
+   "newId": "60222a95-7918-49df-a63c-4e11d38bc640",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-09-04T08:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203775",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:213167925999]",
+   "object": "meetings",
+   "activityId": "213167925999",
+   "outcome": "created",
+   "recordId": "145727909916",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0b0bf9df-754e-4af0-83b6-320b778b2bd3",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom <> NTUC : Product workshop",
+    "contentLength": 677,
+    "contentSha": "39e782c2de38ea2c",
+    "timestamp": "2025-10-08T05:45:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:45.141Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:45.141Z",
+   "newId": "7fdd793e-c6d4-4be5-94c2-01b6e77dae42",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-10-08T05:45:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203776",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:85540219934]",
+   "object": "emails",
+   "activityId": "85540219934",
+   "outcome": "created",
+   "recordId": "145727925380",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "06f5e9e8-e1bb-42a6-8501-ddcf4e85ddbf",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom <> National Trade Union Introduction",
+    "contentLength": 18769,
+    "contentSha": "cd4c25b97e08c4ea",
+    "timestamp": "2025-08-11T14:18:00.620Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:46.062Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:46.062Z",
+   "newId": "017f4fc5-8acb-4445-b1de-dce454bf91d5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-08-11T14:18:00.620Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203776",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:182150650557]",
+   "object": "meetings",
+   "activityId": "182150650557",
+   "outcome": "created",
+   "recordId": "145727925380",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "788316ee-1e3e-4ffb-af96-9a573447839f",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "NTUC <> DKM : Intercom Demo",
+    "contentLength": 251,
+    "contentSha": "c77307c3fd76deb3",
+    "timestamp": "2025-09-04T08:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:46.062Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:54.336Z",
+   "newId": "a7ad2466-4541-486f-ae5c-b5ada4cbcd59",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-09-04T08:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203776",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:204304629437]",
+   "object": "meetings",
+   "activityId": "204304629437",
+   "outcome": "created",
+   "recordId": "145727925380",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "74ac6377-6473-415d-89c8-d0822906ee2d",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "NTUC <> DKM : Clarification for Intercom workshop",
+    "contentLength": 228,
+    "contentSha": "ac9477d2987eeb7b",
+    "timestamp": "2025-09-23T02:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:46.062Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:01.611Z",
+   "newId": "e12011f1-c93f-4a65-bac7-05d6022b24dd",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-09-23T02:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203776",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:213167925999]",
+   "object": "meetings",
+   "activityId": "213167925999",
+   "outcome": "created",
+   "recordId": "145727925380",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0b0bf9df-754e-4af0-83b6-320b778b2bd3",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom <> NTUC : Product workshop",
+    "contentLength": 677,
+    "contentSha": "39e782c2de38ea2c",
+    "timestamp": "2025-10-08T05:45:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:46.062Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:09.739Z",
+   "newId": "0c309469-0233-49a4-aa0c-1af1612f04f0",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-10-08T05:45:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203858",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:85540219934]",
+   "object": "emails",
+   "activityId": "85540219934",
+   "outcome": "created",
+   "recordId": "145729730327",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "06f5e9e8-e1bb-42a6-8501-ddcf4e85ddbf",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Intercom <> National Trade Union Introduction",
+    "contentLength": 18769,
+    "contentSha": "cd4c25b97e08c4ea",
+    "timestamp": "2025-08-11T14:18:00.620Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:57.679Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:00:57.679Z",
+   "newId": "d05c3376-4931-4cab-90b3-df7043ebb46c",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-08-11T14:18:00.620Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203858",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:182150650557]",
+   "object": "meetings",
+   "activityId": "182150650557",
+   "outcome": "created",
+   "recordId": "145729730327",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "788316ee-1e3e-4ffb-af96-9a573447839f",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "NTUC <> DKM : Intercom Demo",
+    "contentLength": 251,
+    "contentSha": "c77307c3fd76deb3",
+    "timestamp": "2025-09-04T08:30:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:57.679Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:05.866Z",
+   "newId": "6dd81bce-dda3-430f-9668-b2a0264d45cf",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-09-04T08:30:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856203858",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:meetings:213167925999]",
+   "object": "meetings",
+   "activityId": "213167925999",
+   "outcome": "created",
+   "recordId": "145729730327",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0b0bf9df-754e-4af0-83b6-320b778b2bd3",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom <> NTUC : Product workshop",
+    "contentLength": 677,
+    "contentSha": "39e782c2de38ea2c",
+    "timestamp": "2025-10-08T05:45:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:00:57.679Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:12.466Z",
+   "newId": "6776d11b-1395-4ca7-99eb-533ce44e62ab",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2025-10-08T05:45:00.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856205166",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:211039123132]",
+   "object": "emails",
+   "activityId": "211039123132",
+   "outcome": "created",
+   "recordId": "267254886100",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05a3f727-a014-4f24-a79d-71b19519bd2f",
+    "card": "2855673408",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Strengthening Our Partnership for 2026 and Beyond",
+    "contentLength": 3894,
+    "contentSha": "1323b736698f3469",
+    "timestamp": "2025-10-01T04:35:36.732Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:01:20.478Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:20.478Z",
+   "newId": "be6a54f0-73fe-4914-bf86-5c333accaf3c",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-10-01T04:35:36.732Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856205167",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:211039123132]",
+   "object": "emails",
+   "activityId": "211039123132",
+   "outcome": "created",
+   "recordId": "267254886101",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05a3f727-a014-4f24-a79d-71b19519bd2f",
+    "card": "2855673408",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Strengthening Our Partnership for 2026 and Beyond",
+    "contentLength": 3894,
+    "contentSha": "1323b736698f3469",
+    "timestamp": "2025-10-01T04:35:36.732Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:01:21.657Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:21.657Z",
+   "newId": "00626f1d-6ede-45e3-856f-8ba15097769d",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-10-01T04:35:36.732Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856205168",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:211039123132]",
+   "object": "emails",
+   "activityId": "211039123132",
+   "outcome": "created",
+   "recordId": "267254886102",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05a3f727-a014-4f24-a79d-71b19519bd2f",
+    "card": "2855673408",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Strengthening Our Partnership for 2026 and Beyond",
+    "contentLength": 3894,
+    "contentSha": "1323b736698f3469",
+    "timestamp": "2025-10-01T04:35:36.732Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:01:31.469Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:31.469Z",
+   "newId": "961e34e9-b653-4f2f-9d0f-e1d1c20737f5",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-10-01T04:35:36.732Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2856205169",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:211039123132]",
+   "object": "emails",
+   "activityId": "211039123132",
+   "outcome": "created",
+   "recordId": "267254886105",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05a3f727-a014-4f24-a79d-71b19519bd2f",
+    "card": "2855673408",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Strengthening Our Partnership for 2026 and Beyond",
+    "contentLength": 3894,
+    "contentSha": "1323b736698f3469",
+    "timestamp": "2025-10-01T04:35:36.732Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-01T06:01:32.299Z"
+    }
+   },
+   "createSentAt": "2026-10-01T06:01:32.299Z",
+   "newId": "3517cfc7-8408-4d8b-a761-4d82008b0a61",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-10-01T04:35:36.732Z",
+    "createdAtExact": true
+   }
+  }
+ ]
+}

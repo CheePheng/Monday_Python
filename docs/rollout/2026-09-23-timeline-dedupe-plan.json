@@ -1,0 +1,1357 @@
+{
+  "generatedAt": "2026-09-23T15:16:20.450Z",
+  "apply": false,
+  "types": [
+    "notes"
+  ],
+  "activities": 4596,
+  "cardsChecked": 40,
+  "cardsWithDuplicates": 32,
+  "entriesToDelete": 158,
+  "deleted": 0,
+  "deleteFailed": 0,
+  "divergentKept": 0,
+  "incompleteTimelines": 0,
+  "byBoard": {
+    "contacts": 158
+  },
+  "cards": [
+    {
+      "kind": "contacts",
+      "card": "2855740956",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:56714542929]",
+          "keep": "29edad77-3a2e-454d-9f1a-8b6f1c3fbfca",
+          "del": [
+            "4afb518b-3544-4b4c-9279-b694f47fb0d4"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855752113",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:79417887512]",
+          "keep": "559b8371-f4a5-4c30-b6e3-c076b8b21815",
+          "del": [
+            "8a10606e-a19a-47ad-ad1d-4983504043c5",
+            "cfadb552-fd7a-4d83-8ca8-7de4e3fa1918"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:79213855561]",
+          "keep": "3f6aafc8-54fc-4837-828c-be21842428cb",
+          "del": [
+            "ee3cbfdd-8f0a-45ef-ae09-0611c49a7dfa"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:77244833572]",
+          "keep": "016ff69e-6a4b-486a-b012-de09e1596f1a",
+          "del": [
+            "bdcfda1e-1cd5-4403-93f5-9e91e4099eb2",
+            "f1d75cea-665c-46f2-b12a-7375e5dbe98c"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:77152862220]",
+          "keep": "c14f62e7-acf3-4b4b-9d97-47fa79016515",
+          "del": [
+            "f060eb61-e49e-4973-8797-bc87cc129ec5"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:77152765108]",
+          "keep": "4f4a7863-3674-4035-b73f-6e7888be58ae",
+          "del": [
+            "a512d08f-c73d-4c2b-9365-c79f828bedd0"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:76852448661]",
+          "keep": "1a1b0957-1f80-46cf-acf2-ea49255176a4",
+          "del": [
+            "6305ed13-f4ef-4fe4-9797-5564fa60c99f",
+            "6853eac9-b56c-48ea-be70-248aca696bf7"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:76716024143]",
+          "keep": "5abb8f52-4882-46dd-865a-3e6c468fed1f",
+          "del": [
+            "7e182e28-d980-4852-bd84-8e2d821bcd9f",
+            "dcebb205-28b8-46e3-b079-a1366ff78e6a"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67621232428]",
+          "keep": "1379b6a3-3048-43b5-803a-f22cbd84edb0",
+          "del": [
+            "3bcedaf8-8bef-48ae-b137-b7a52021e27f"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67166981210]",
+          "keep": "28d35b9f-d5f1-49cb-8d8f-a65ac36068f5",
+          "del": [
+            "7a7b355e-9124-4f6e-bf1b-9bdc92e112fb"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:66687202410]",
+          "keep": "873c0276-9fd7-478c-9c8d-7293c2b4e6e6",
+          "del": [
+            "8b1d7af6-f388-4994-a762-27016715a627"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:66675831337]",
+          "keep": "34302322-0a4d-4fdb-b271-221340b56ef3",
+          "del": [
+            "af7f17cf-3e84-4e43-b149-ddd9be2466e4"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:66668232816]",
+          "keep": "aecb0954-6d7e-44aa-bce5-3509b58a8d3e",
+          "del": [
+            "bbe5df06-2b55-4a2b-b020-913e6a9137b6"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:66668201516]",
+          "keep": "bc4a3b07-323c-40b4-8c3c-af06d343e4e8",
+          "del": [
+            "d7b9de0d-e2c0-40ac-8a1f-8f09e423183e"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:66687202426]",
+          "keep": "6609f9fb-8065-4499-b807-03a8e57e3318",
+          "del": [
+            "845e2a23-8b44-4dd9-a3a4-8450a7754a44"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855783726",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:400990467833]",
+          "keep": "8731f8ba-579c-4f42-94ce-e7eeed763e06",
+          "del": [
+            "de76bf7e-4db4-48ab-942a-be9938067f5a"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:77152859065]",
+          "keep": "c582f25a-c069-4fb7-bf14-07bd67173327",
+          "del": [
+            "c88b269c-53d0-4419-82d1-c8e4389427bf"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:76808962464]",
+          "keep": "3c70a47a-a3d1-4460-8844-0f6bf310d8e9",
+          "del": [
+            "90308f2c-3ee2-4409-b4cf-53b18a4c87ec",
+            "bf5143ca-9f1d-48be-a390-fc2b55f8f016"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:76701614685]",
+          "keep": "79ce7684-4a54-44d4-9f0e-af7fdf36ae8a",
+          "del": [
+            "ca1eb104-54b5-4586-a7f6-82466421a3cf"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67619877456]",
+          "keep": "a579e490-8592-45a5-9496-31868c5f3293",
+          "del": [
+            "c58c5223-2392-489b-a6a9-30029bca2070"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67538201221]",
+          "keep": "2ca6603c-e248-451f-9192-2e89622880e2",
+          "del": [
+            "d78a8d8b-6bea-41c1-9cb4-fed20da288c2"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855783731",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:69241459491]",
+          "keep": "ca11a869-b75c-4393-bddc-fbaa5cd75516",
+          "del": [
+            "e18b2872-7637-4d68-97c0-fbb035872978"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:69236861583]",
+          "keep": "7ce6283d-4f8d-4539-9888-05df59625b08",
+          "del": [
+            "96e7b9d3-4193-4e49-a207-cb17a22c786b"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67880727979]",
+          "keep": "5cbc9f67-0c2b-4e66-90aa-ee304120474f",
+          "del": [
+            "83be9100-0f5f-4407-93b8-176830dffb72"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67174940338]",
+          "keep": "03b7c60f-93d6-41bf-b4c4-fc40f2ae3467",
+          "del": [
+            "64e7d721-0ee4-4bc5-b781-ff29d9002397",
+            "a378a0fa-1eb1-477c-8213-6955b20bb6ae"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855752970",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:73670242457]",
+          "keep": "ac0d8df3-b26b-4d34-89a1-33744f7ee748",
+          "del": [
+            "b3788b97-7957-4584-b5e4-f7d699a19fea"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71989021785]",
+          "keep": "40493749-e51f-4a27-91a9-394436fa017d",
+          "del": [
+            "8ced1d2e-87e0-4eac-ba44-1c1c38512c69"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:68833805602]",
+          "keep": "0f525dac-5869-4fc0-b7bb-fbdd234617b2",
+          "del": [
+            "64f13c01-045e-406a-a592-aa5a512cce07"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:68464727949]",
+          "keep": "1ddfd986-e708-4090-87f0-c7be6ef85dab",
+          "del": [
+            "69104b0a-b077-4bf2-968a-6f44cfeee08e"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67352440693]",
+          "keep": "01953cd9-46f3-42c9-b240-a1162456e5af",
+          "del": [
+            "3a6746d1-ecd6-404e-8011-31169d9541d7"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:67278388837]",
+          "keep": "0503d86d-6067-4791-90cf-0e9aa55ee10f",
+          "del": [
+            "dc3b183d-d2d0-42d1-a2f2-aa86c9929599"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:67280907925]",
+          "keep": "8f35a8d8-1893-442b-9f74-6fd9ea0daf6f",
+          "del": [
+            "c81b69c3-4dbf-45ee-aaec-343ed7405bdc"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855784023",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:73742367340]",
+          "keep": "2718b684-f78a-461b-a1f8-05c1ebdfb3de",
+          "del": [
+            "3807f517-4c50-4f02-8051-db69a9473718"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71979215458]",
+          "keep": "74a8fc1b-a3da-4a69-bab4-44d945cd05a8",
+          "del": [
+            "8fd95ae4-7024-4f5e-a3f0-9c585b4e15ed"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:73653944188]",
+          "keep": "6d1dbdbd-9fd0-407f-917a-1eaf08fec0f5",
+          "del": [
+            "8fb0b380-0b6b-4828-891c-837918deda98"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:68464112707]",
+          "keep": "43ac941b-78c4-4043-98e9-a103767454b1",
+          "del": [
+            "f5e5ae12-2b81-4ae9-bfe5-09a31cb33a70"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855784024",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:69186819164]",
+          "keep": "09a20ff8-6ee3-48b6-8b84-395dd85ae601",
+          "del": [
+            "0ca32c19-5ad6-43ad-aa7e-7fb215cefd02"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:68466771746]",
+          "keep": "2efcda95-9c36-4b38-8a0f-6e4b1ed9717e",
+          "del": [
+            "69d287e8-9d4f-4ef4-bcf2-d019004c3051"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855784025",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:73606068097]",
+          "keep": "0a312f94-937a-401e-9643-14986cd9ada2",
+          "del": [
+            "b06fc3b9-5c24-4d7e-b6b7-ec04addb1561"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71978220562]",
+          "keep": "1ee47cdd-9fc7-4836-9069-d9f85d026bf8",
+          "del": [
+            "7ca61a75-5e57-47b3-ab09-86431d811097"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:73606052489]",
+          "keep": "9d5d068e-9777-424a-9eff-5da38a0a8693",
+          "del": [
+            "ac5f732d-ab30-4b44-8c32-6d2f965f3c17"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855783634",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:317281168084]",
+          "keep": "aa6255c9-d995-4be6-bbf0-db866e20a700",
+          "del": [
+            "dff766bb-3bf9-401b-8062-47651fcb9e8e"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:68815554349]",
+          "keep": "a8cef8ff-a5c3-42fa-9f90-0aff4c55e4f1",
+          "del": [
+            "e8af826c-9bfc-42ef-b4f3-ff68097e8662"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855751294",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:73606138446]",
+          "keep": "ac578abe-a767-4db8-8749-d97fe1e8dc23",
+          "del": [
+            "dac229e4-0d0c-442f-aecd-cca70ad0f678"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71990824019]",
+          "keep": "440bbe37-3bbb-4888-87c9-70ad5e0349cb",
+          "del": [
+            "8e392bdb-d57e-463f-a0ea-c8e78ff938a3"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:69554433543]",
+          "keep": "864ebf38-7663-4178-b776-1bb915015e1d",
+          "del": [
+            "a79db48a-a75b-4354-a3e7-71188f5d44ac"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:69554428760]",
+          "keep": "880898cd-6072-4cc8-9dd8-b5678223667b",
+          "del": [
+            "cd633844-38f9-4165-b3d9-e1f8ecf01071"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855760278",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:71990828856]",
+          "keep": "805c483d-7ddf-4896-9337-b1bc64a5ad1c",
+          "del": [
+            "cc1e9231-97b4-4a40-a9d2-b266d430d78c"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:73672447867]",
+          "keep": "c6c94142-ab70-403c-9634-d5b436b5c1c3",
+          "del": [
+            "d748ee5b-819a-4174-9be3-dda1d0f6f802"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:69824276773]",
+          "keep": "5c6f0ac8-a0ad-4423-a45a-bbe19a4c219a",
+          "del": [
+            "ad5a61c9-a16e-41a9-a3bb-1e6f32c91435"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855749565",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:74696784910]",
+          "keep": "0be9f36c-5dd6-4c9c-9edd-eaeacda5255d",
+          "del": [
+            "fd136280-3883-4f77-82b4-8d1d171c31d4"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71356539515]",
+          "keep": "3e54c76d-28ff-4e91-8010-277b56b3b9ae",
+          "del": [
+            "f90efa39-fa11-4681-9755-4aafe7bfca4b"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:70846200070]",
+          "keep": "6635675c-2ff9-4be6-9764-2524f0bedf7c",
+          "del": [
+            "8331415f-fb1d-4e8f-9164-c15debf8ba36",
+            "d695d18f-d0fa-45f0-b64a-fdb32f7d13de"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:70198205279]",
+          "keep": "6b4e9926-4e7a-4c3f-b494-da5f2b42abab",
+          "del": [
+            "a950a74c-2dda-4c07-bbd3-948e7e3f1430",
+            "dbdd5189-f7c4-4127-8ac1-cd41fea7609c"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855784160",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86486309653]",
+          "keep": "7dff202b-8771-412f-8bb8-5f4ac63fd1fd",
+          "del": [
+            "f3e071ca-637d-4407-b87a-3e109ee06789"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86496465526]",
+          "keep": "400fecbe-2687-4229-ba31-47bb0aa0b0f9",
+          "del": [
+            "af503470-8d97-408c-b376-0e7f426763a5"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:73822948111]",
+          "keep": "6fef68ed-96d2-417b-b28d-1ec306184ed6",
+          "del": [
+            "f84c4ca6-d09f-4376-9de2-68411750a8d0"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74096208442]",
+          "keep": "4f2cee48-679a-49b5-8b49-032cf34a5b2a",
+          "del": [
+            "fbc99a1e-6171-4ac2-95ec-f9c88f458fd6"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:72074648452]",
+          "keep": "30a7b88e-73c6-4d75-a6e2-2b716daa359a",
+          "del": [
+            "d781638b-0bb7-45c0-8eca-b6f84f3dfd1a"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:73666243112]",
+          "keep": "452f56a3-28c8-433c-9f06-512af76a5feb",
+          "del": [
+            "91cba300-3951-44e2-a22a-e027b81ba428"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71994687751]",
+          "keep": "3216d055-fb69-4f0b-89c7-4af4513c84fa",
+          "del": [
+            "443795ec-1320-43f6-9154-2c9218673952",
+            "bd6ffca0-0fa3-40b4-8d91-82f0c055e229",
+            "eb9b20e3-710c-4706-9cc6-ceafee4ba2ef"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:71876598345]",
+          "keep": "091dc008-24c5-4391-9b6b-e171a6077ce5",
+          "del": [
+            "0ba2932f-5fc5-4b10-8f88-54598e88502f",
+            "87213bfe-05e7-44da-9c9b-ec02f70576ae",
+            "f76409e6-610c-4dcb-816d-dd2b554966d2"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71770179747]",
+          "keep": "14ecb7ff-3fd6-4ebd-aede-ad6b37e6bcc6",
+          "del": [
+            "e35d0cb3-2402-49c1-8ace-1636a4e72534"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855783666",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:71988777612]",
+          "keep": "9fd50938-63fe-4e32-a98b-4ceb5b4d74de",
+          "del": [
+            "f878050c-4383-4272-acbd-51dc4c403fab"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:72083366731]",
+          "keep": "7409245a-6ed6-47b4-8c11-c8664af498f5",
+          "del": [
+            "a6faedb4-9b81-4d5d-a18a-376d9d25ab7c"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71980454704]",
+          "keep": "89b0309d-6233-402a-b58d-c9c8d3265e22",
+          "del": [
+            "d896a3db-186d-43ab-b929-a420ddfa3003"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:71770170918]",
+          "keep": "9b03792c-03bc-41a6-8657-e7be20bf3a30",
+          "del": [
+            "e20cd505-051f-477f-bc6d-65bbbf7cb036"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855783996",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:72089746085]",
+          "keep": "58af1ffa-2d96-4545-b2c8-c8b8d3abfedf",
+          "del": [
+            "7e81f93a-b028-4040-9e8b-6b957d472aa0"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71979232906]",
+          "keep": "59fb0ef7-af2d-4fa4-a603-4123befde6c9",
+          "del": [
+            "ac6dc3e5-ed1a-4160-b0ff-5220408a4370"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:71792090969]",
+          "keep": "a79499e0-6d22-4d74-aa2c-14c29b849d02",
+          "del": [
+            "db8d5579-2598-4e88-bcf4-19bd94f1ad68"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:71788730457]",
+          "keep": "5a05161a-92f3-4557-bb6e-f67d3b82d3c8",
+          "del": [
+            "f112d925-c430-4f20-ac2f-56597f1ae324"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855784001",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:71988986372]",
+          "keep": "49517175-e323-4345-825b-05c2731f8047",
+          "del": [
+            "86539bdc-b409-4e5d-939d-aefb98016b39"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:71980461597]",
+          "keep": "e3219a0b-8bd1-4d88-bff0-9af7548b2e24",
+          "del": [
+            "ed37e04e-d3a4-4943-9071-8cb5e826717c"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:71990122120]",
+          "keep": "011705eb-8b68-444b-b5a3-e4d962bd1fe6",
+          "del": [
+            "d6ba002f-874c-4f46-8e33-1b2b06cb7261"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855752801",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:74090566070]",
+          "keep": "8ef1d867-4b86-43e5-bb22-b98cbaaa832e",
+          "del": [
+            "b9b8f75f-57aa-42fa-a631-e40973166ae4"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:73540393829]",
+          "keep": "361315da-d1fd-4339-8549-55651bcd3844",
+          "del": [
+            "425cc068-cefa-487c-88e9-92eea3dd7c27"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74090565154]",
+          "keep": "0b7d5ff6-a139-45bb-807d-183d268a1c1b",
+          "del": [
+            "9e0c1e9d-3ef7-4405-94cb-cd59d81aaada"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71990817107]",
+          "keep": "5922b457-3220-4be2-9888-ec88b01de6b7",
+          "del": [
+            "bc171af6-16cd-4b28-943d-bb07ea7cac4a"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855784006",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032029]",
+          "keep": "036ed426-4f59-4c63-b9c1-81944d199846",
+          "del": [
+            "4db2d3e5-c653-41e0-b0a1-5b1b56f3c77f",
+            "8f012fad-d784-42be-9c4b-5e55043eb495"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86489390100]",
+          "keep": "7fc52960-4d41-445d-b20d-0ba9ff692f07",
+          "del": [
+            "c849ebfb-e181-490b-9c01-425a9749bc46"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495727996]",
+          "keep": "0d279a07-6e89-4c75-835f-26bb707bd72a",
+          "del": [
+            "25e79e92-93a8-408f-b5ca-d37ec4a8c791"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86485011246]",
+          "keep": "4d06186f-1efd-4436-bcb9-321b8de4f0ae",
+          "del": [
+            "a3a574bc-4414-4b0d-a169-79a561a1ea87"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:71994483821]",
+          "keep": "a63062f9-1f06-462e-ab0f-a50bdf2dfd7b",
+          "del": [
+            "f7ef6d57-f2b1-4bef-a648-02b0746cea25"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855752847",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:76097966873]",
+          "keep": "558aaea0-41b2-4806-9310-0278c94821ad",
+          "del": [
+            "a299e72d-b6f8-45d8-86c7-46da6c1a89c6"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74248823065]",
+          "keep": "78221633-cd9b-4e30-91cf-f1a811702a36",
+          "del": [
+            "9ff9cd4f-6b80-422f-8165-a2157a49edc0"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:73668504075]",
+          "keep": "4c675c85-ec50-44e7-8c5b-38c2c57c426b",
+          "del": [
+            "6fc0beda-7b5e-4a2c-8fd3-34b07ac0bc4e"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:73650392084]",
+          "keep": "3ec18bab-6425-41a2-ae74-025f36298f94",
+          "del": [
+            "d0edecbb-78b6-4195-9ae4-077290903ed7"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855754619",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:74090563758]",
+          "keep": "085101d8-9096-40ec-8875-22fca169102f",
+          "del": [
+            "755fe5d6-e7eb-4e59-812f-32a3a8c33972"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:72095999082]",
+          "keep": "016f5178-02cf-4eee-bdb8-43a438810017",
+          "del": [
+            "ef464b44-34a2-4e56-9b22-fadaf8baeea4"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74090487056]",
+          "keep": "2485a9f5-ba24-4e82-8b51-b47d51ff570a",
+          "del": [
+            "35feea12-57f1-46be-8656-87c848cf0dbd"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:72096543576]",
+          "keep": "321e6c95-4cdd-43c8-a2ee-e124bdc3ba48",
+          "del": [
+            "df2d94af-efdc-4731-969b-6d849d5d4191"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855754718",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:75937862920]",
+          "keep": "aef5a049-3487-4519-835b-b787ba9bc3d5",
+          "del": [
+            "bb942dc3-813b-4e96-95a8-d4357812b109"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74928160053]",
+          "keep": "b56ad6ae-60c8-4c21-811e-de89c17963da",
+          "del": [
+            "fa14cd0f-9d4a-41fc-9116-fdd87f82fd05"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74248839326]",
+          "keep": "6bcbee39-b8f8-4085-a89e-878a57ec4962",
+          "del": [
+            "cf8e5def-c480-4128-9764-89f82db82701"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74088275788]",
+          "keep": "164dabbd-662b-4ed6-9ffe-f9567c7ec5ab",
+          "del": [
+            "97cafde5-9c4c-4753-9810-e550365d032e"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855754591",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:74942163088]",
+          "keep": "266c83a6-27cd-43d4-88ec-119cc3f326d7",
+          "del": [
+            "dc001c72-fe0e-4f85-8f03-c56f70d95056"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74086633747]",
+          "keep": "0aee45b9-db76-4967-b22f-cc15eae71da9",
+          "del": [
+            "ed8fe7c7-fa5b-47b5-8ef6-7083b8e4959c"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855783685",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:74928159053]",
+          "keep": "2984bb95-8b8b-4eac-aba7-d5bcf2559d03",
+          "del": [
+            "b1454970-3336-4387-ae10-4aae410699bc"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74151934350]",
+          "keep": "231dc076-ae5b-459b-97b0-35f4569cd308",
+          "del": [
+            "cdca67c7-ad45-42bb-bf63-75e56ce7d123"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855751638",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:74175336455]",
+          "keep": "c585b631-1a75-4caa-b2e5-776a51a5cd57",
+          "del": [
+            "f7cdffc1-d929-4e36-a543-bca659da4289"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74667459109]",
+          "keep": "1a7a10e6-3159-44e8-b154-9226617fdac3",
+          "del": [
+            "b1e9d6f6-854a-4de4-a882-0ab1a85aac2d"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74175336369]",
+          "keep": "561604ab-ac62-41c7-a369-4dffe4fed909",
+          "del": [
+            "fb6f66fc-5ca5-4ee2-8a05-8c626c470ea6"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855749815",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:74246200206]",
+          "keep": "882f5c26-25bb-41c9-a8b4-22d3113cb255",
+          "del": [
+            "f74b7792-0ac6-447a-b4c7-fa5b16592d25"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74244327519]",
+          "keep": "329e324e-e746-4490-84df-b10bcc28f166",
+          "del": [
+            "5bfe215f-0e97-44fc-a8d3-d0363e0954c1"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74246898265]",
+          "keep": "42130203-e8ed-4060-bb64-da48239cf365",
+          "del": [
+            "bbfdc73f-7d88-42a9-ae4b-2951f0524453"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855751935",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:74928158601]",
+          "keep": "85461dcf-3c42-40c4-9d84-b77f88f6fee4",
+          "del": [
+            "9b973498-965e-43a1-81f9-927e438701d7"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74248962161]",
+          "keep": "545c2016-fcb1-49a5-b6be-a6d641da42bd",
+          "del": [
+            "b35a1877-8806-484e-98de-3d8ae711db65"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74245712410]",
+          "keep": "8c8dc827-a013-48e9-89ec-f8c08a0df567",
+          "del": [
+            "9b056b78-ce7c-4daf-865c-3fba316227b4"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855751937",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86486303345]",
+          "keep": "5a61be71-d508-4f9c-9520-6ba47fc6f14e",
+          "del": [
+            "9108df1a-3b90-4c44-be41-7ac9c6c7ec4d"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86486306644]",
+          "keep": "399d1d52-a544-4d97-9c82-b8894b6b56d0",
+          "del": [
+            "48a7d80c-e2d2-48e0-a00a-5a01320a4ac0"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86436627108]",
+          "keep": "32df7f4e-6984-46ad-b8a7-d5cad95388d4",
+          "del": [
+            "8eb6a45a-3c4a-4e9b-ae9e-ddffa4aed32f"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86482032022]",
+          "keep": "2c3ce064-25a8-45d2-adce-f9314ddf677f",
+          "del": [
+            "f336f951-683c-41ce-96cc-5f56a67dfb6c"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495670818]",
+          "keep": "411df47f-67f9-4eca-8f2a-7830a56258cb",
+          "del": [
+            "d401f9e4-14fb-4ed6-9ec3-082fce12a1d7"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86486213912]",
+          "keep": "385afe11-2dd9-458b-b95e-0a6c6af13487",
+          "del": [
+            "718108c8-cbd3-4dff-b963-40a8357828a7"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495721850]",
+          "keep": "73ccec30-4add-464a-8f0c-fc36aae7a015",
+          "del": [
+            "f15cb044-9882-41ce-9f9c-798a8db578f9"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495689575]",
+          "keep": "30c3cfda-0914-487a-b9ba-06fcbba933b1",
+          "del": [
+            "a79988bf-e44b-43bc-addc-85f9741f914a"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495680014]",
+          "keep": "2c2ad2ec-f1fd-4929-bd4f-27e4da0a3d71",
+          "del": [
+            "e089fbe6-1238-4de6-b288-967f99222979"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86486247750]",
+          "keep": "1e5bc8cb-acb7-452e-9780-ff158e515a98",
+          "del": [
+            "4a4d4631-90e2-4e29-91ea-cc3128867a6d"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86496622449]",
+          "keep": "3fccda58-bc17-41a6-8ebc-7c177bad54c3",
+          "del": [
+            "ee32729d-e3cd-4ea6-84d9-9c1ba091e161"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86489659715]",
+          "keep": "2a106e15-6b4e-4721-93b6-7d967aa1be3d",
+          "del": [
+            "bed872d6-4635-4340-9d5f-93606bbfd89e"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495689570]",
+          "keep": "73f1d876-6143-4111-a9c1-bb18e8a0b9d6",
+          "del": [
+            "fddb8e51-9a22-49fc-a76d-efdef766bf3a"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86486260388]",
+          "keep": "274f519f-3f04-4acf-b640-9a3ac7c774c4",
+          "del": [
+            "a092f54e-5685-4d8a-b0ef-f09a9606eeea"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86447639426]",
+          "keep": "74885a37-53ba-4f32-9cf6-06c453e361ae",
+          "del": [
+            "eb489fd2-1e7d-44e7-b2c9-6b8bf1bb2a73"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495636372]",
+          "keep": "1e92c812-0b8a-4739-90cb-e9d4a651f70c",
+          "del": [
+            "d2802f24-ad00-4ce0-9f99-e23772470451"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:tasks:86495734401]",
+          "keep": "5d56c3bf-ae65-4e05-81fa-7d13924b3f7d",
+          "del": [
+            "ba886dda-c796-433f-a7e7-15f35372bc07"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74942161785]",
+          "keep": "0655112b-b728-42a4-8ea5-61176eb8e1d5",
+          "del": [
+            "3db0c33a-295d-45c4-91b5-4ac14a1fed4c"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74249495955]",
+          "keep": "61d3087c-0725-4002-b06e-d069a831ae78",
+          "del": [
+            "a2951148-81d2-4576-9c07-6440d1923e40"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74248785510]",
+          "keep": "def50f3e-da9b-48a1-9b32-5f84a2b2255b",
+          "del": [
+            "f8dbe78c-17cf-42a8-9c75-073b4d9164ea"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855751938",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:74246430752]",
+          "keep": "2d69eb7d-877d-4e3e-bf70-8d714d35f5f3",
+          "del": [
+            "695cb8d5-621d-4070-8302-23cc42b17ebb"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855760350",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:74696733506]",
+          "keep": "09ce75c1-41d3-4a58-b00f-0dbc9208d973",
+          "del": [
+            "1df445d7-37a4-40f8-841b-4299312f5d60",
+            "76af147b-28a4-4ac0-808a-857f3b5c27da"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:75248863831]",
+          "keep": "88b78020-bd01-4f30-bc02-60867751167d",
+          "del": [
+            "aa77341c-5446-4777-8c0d-01d7e3344481"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:75090346306]",
+          "keep": "8eacfd42-fd44-4882-9d1c-e00e55b6735d",
+          "del": [
+            "a192b7bd-4846-440c-842d-6ba8c1513624"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74667463784]",
+          "keep": "15fccacb-087b-4b85-822a-1aa1d6cdd82d",
+          "del": [
+            "472f6a7c-1f7f-4e21-93b9-f3efd95ddf0e",
+            "6ff825f5-b92d-4316-8015-53d269dbcbae"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855747066",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:74349927034]",
+          "keep": "54099729-c567-4a94-80b2-076227b36399",
+          "del": [
+            "955224df-5df7-4bff-ae07-cb5d6afadd10"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74350034520]",
+          "keep": "2f552983-9fa8-4ed6-ae8e-c206338e604d",
+          "del": [
+            "f0c97eaf-e71f-455c-8f04-0f2428c4e9f7"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855751999",
+      "groups": [
+        {
+          "marker": "[hubspot:notes:74408719544]",
+          "keep": "332d8e98-c1df-4298-be8b-1f638ea1d18d",
+          "del": [
+            "53bbd71f-cf76-4b72-a543-9043250167a3"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74351057216]",
+          "keep": "9cd01891-da83-4b70-acd7-f031860eb089",
+          "del": [
+            "e3fa166d-ad01-4f7f-b35e-979e0e071936"
+          ],
+          "divergent": 0
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2855747234",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:74700533277]",
+          "keep": "57beecd9-22dc-4ec5-9364-3acc5854ec8e",
+          "del": [
+            "6e99699c-7acf-41a7-b2cf-29bbf8fce667",
+            "7f6ba988-2aea-4a8b-a179-464ff87f4244"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74701521492]",
+          "keep": "0e640475-3831-4174-9ed9-4d8fd50b4d42",
+          "del": [
+            "69ed8762-d1c2-488d-b44c-e2272a35d982",
+            "fb3f43c5-60ae-41eb-a7a1-0c156be59159"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:notes:74667988059]",
+          "keep": "0ef5a9cc-94c5-4710-9aa1-60e9cd70edf7",
+          "del": [
+            "38b609d4-0346-4cc1-bfa1-1c809d82e9e2"
+          ],
+          "divergent": 0
+        },
+        {
+          "marker": "[hubspot:emails:74593907099]",
+          "keep": "45924bc6-4d2c-48f4-8020-4b2959da186f",
+          "del": [
+            "4ef0d8bb-dd2d-4959-97c8-cbadeab9fd14"
+          ],
+          "divergent": 0
+        }
+      ]
+    }
+  ]
+}

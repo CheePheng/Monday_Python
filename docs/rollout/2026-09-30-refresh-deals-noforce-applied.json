@@ -1,0 +1,17 @@
+{
+  "object": "deals",
+  "apply": true,
+  "force": false,
+  "startedAt": "2026-09-30T15:40:58.581Z",
+  "total": 1,
+  "lastDoneId": "333515265749",
+  "tally": {
+    "updated-monday": 1
+  },
+  "errors": [],
+  "results": {
+    "333515265749": "[webhook] source=deals id=333515265749 action=updated-monday board=5028000494"
+  },
+  "done": true,
+  "finishedAt": "2026-09-30T15:41:14.844Z"
+}

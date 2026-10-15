@@ -1,0 +1,255 @@
+{
+  "generatedAt": "2026-09-27T16:06:12.800Z",
+  "mode": "verify",
+  "verifyOf": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-27-timeline-dedupe-retry-applied.json",
+  "totals": {
+    "groups": 17,
+    "ok": 11,
+    "lost": 6,
+    "unknown": 0,
+    "settled": 17,
+    "unsettled": 0
+  },
+  "lostFile": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-27-timeline-dedupe-lost-160612.json",
+  "checks": [
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:249725616858]",
+      "keepers": [
+        "3fc21557-c18c-42b5-8dc6-ad319d5b2a7f"
+      ],
+      "state": "lost",
+      "lostKeepers": [
+        "3fc21557-c18c-42b5-8dc6-ad319d5b2a7f"
+      ],
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.621Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:249734315755]",
+      "keepers": [
+        "02f8f8ce-ce3d-480c-96fa-9856192c9be6"
+      ],
+      "state": "lost",
+      "lostKeepers": [
+        "02f8f8ce-ce3d-480c-96fa-9856192c9be6"
+      ],
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.738Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:250781462249]",
+      "keepers": [
+        "0b7e5c55-0163-4594-a04c-dcd42dd4cb0f"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31151,
+      "at": "2026-09-27T16:06:14.281Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401456926453]",
+      "keepers": [
+        "aab690e8-6273-4f8e-ab61-900029e38428"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.873Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401487693536]",
+      "keepers": [
+        "3fe81959-500b-46dd-b7a5-429950690057"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.753Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401519536868]",
+      "keepers": [
+        "0f8bf606-6483-49e3-a615-10b2068c1071"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.492Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401522801353]",
+      "keepers": [
+        "bfd956fe-709a-4a0f-abe7-ec05a9b9035b"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31153,
+      "at": "2026-09-27T16:06:16.627Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401528818407]",
+      "keepers": [
+        "5129c360-fbcf-4fbf-87f2-c89468653458"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31151,
+      "at": "2026-09-27T16:06:14.938Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401544774376]",
+      "keepers": [
+        "2f55bfbe-f605-4618-98c2-2de1da78026c"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31154,
+      "at": "2026-09-27T16:06:17.274Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401547310796]",
+      "keepers": [
+        "a84abdf9-849f-46a3-8ab7-7182f7f2b810"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.593Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401554496205]",
+      "keepers": [
+        "1c81554f-7e34-420f-bd84-6523c7feac99"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31152,
+      "at": "2026-09-27T16:06:15.804Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:401555851995]",
+      "keepers": [
+        "74463e5f-897e-4d97-8096-50f1b3c94577"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31150,
+      "at": "2026-09-27T16:06:13.849Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "companies",
+      "card": "2855650271",
+      "marker": "[hubspot:emails:81048586859]",
+      "keepers": [
+        "12cfb92b-1c84-46d1-a78f-5ce88bc9e204"
+      ],
+      "state": "lost",
+      "lostKeepers": [
+        "12cfb92b-1c84-46d1-a78f-5ce88bc9e204"
+      ],
+      "settled": true,
+      "secondsAfterLastDelete": 31154,
+      "at": "2026-09-27T16:06:18.029Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "contacts",
+      "card": "2855768833",
+      "marker": "[hubspot:emails:249725616858]",
+      "keepers": [
+        "1a2d340c-cff4-4369-8ef3-5162a791aa9a"
+      ],
+      "state": "lost",
+      "lostKeepers": [
+        "1a2d340c-cff4-4369-8ef3-5162a791aa9a"
+      ],
+      "settled": true,
+      "secondsAfterLastDelete": 31155,
+      "at": "2026-09-27T16:06:18.635Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "contacts",
+      "card": "2855768833",
+      "marker": "[hubspot:emails:81048586859]",
+      "keepers": [
+        "2352f159-1998-4d49-bf4f-e16f738ab96c"
+      ],
+      "state": "lost",
+      "lostKeepers": [
+        "2352f159-1998-4d49-bf4f-e16f738ab96c"
+      ],
+      "settled": true,
+      "secondsAfterLastDelete": 31156,
+      "at": "2026-09-27T16:06:19.149Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "contacts",
+      "card": "2856208233",
+      "marker": "[hubspot:emails:205077068482]",
+      "keepers": [
+        "5890fe84-00cd-45db-9e3e-504bbab2d150"
+      ],
+      "state": "ok",
+      "settled": true,
+      "secondsAfterLastDelete": 31157,
+      "at": "2026-09-27T16:06:21.085Z"
+    },
+    {
+      "file": "2026-09-27-timeline-dedupe-retry-applied.json",
+      "kind": "contacts",
+      "card": "2856208233",
+      "marker": "[hubspot:emails:249734315755]",
+      "keepers": [
+        "063c7849-a907-438c-aa73-51c1fd4aa9ea"
+      ],
+      "state": "lost",
+      "lostKeepers": [
+        "063c7849-a907-438c-aa73-51c1fd4aa9ea"
+      ],
+      "settled": true,
+      "secondsAfterLastDelete": 31156,
+      "at": "2026-09-27T16:06:20.022Z"
+    }
+  ]
+}

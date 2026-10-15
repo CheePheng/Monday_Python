@@ -1,0 +1,742 @@
+{
+ "generatedAt": "2026-09-27T10:43:34.347Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\damage-census.json",
+ "censusRows": 7500,
+ "lostRows": 74,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 20,
+ "filters": {
+  "limit": 20
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json"
+  ],
+  "previousRestoreReports": [],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "skipped-not-associated": 7,
+  "held-lossy-listing": 2,
+  "skipped-present": 9,
+  "would-create": 2
+ },
+ "done": true,
+ "cards": {
+  "2855606710": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 841,
+   "rowsReturned": 1085,
+   "distinctRows": 841,
+   "unseenRows": 244,
+   "pages": 22,
+   "pageSizes": [
+    100,
+    40
+   ],
+   "complete": true,
+   "lossy": true,
+   "walks": 1
+  },
+  "2855609602": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 60,
+   "rowsReturned": 72,
+   "distinctRows": 60,
+   "unseenRows": 12,
+   "pages": 2,
+   "pageSizes": [
+    100,
+    40
+   ],
+   "complete": true,
+   "lossy": true,
+   "walks": 1
+  },
+  "2855613785": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 20,
+   "rowsReturned": 20,
+   "distinctRows": 20,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855614131": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 7,
+   "rowsReturned": 7,
+   "distinctRows": 7,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855615145": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 55,
+   "rowsReturned": 67,
+   "distinctRows": 55,
+   "unseenRows": 12,
+   "pages": 2,
+   "pageSizes": [
+    100,
+    40
+   ],
+   "complete": true,
+   "lossy": true,
+   "walks": 1
+  },
+  "2855617703": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 48,
+   "rowsReturned": 48,
+   "distinctRows": 48,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2855572066",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:396625646293]",
+   "object": "emails",
+   "activityId": "396625646293",
+   "outcome": "skipped-not-associated",
+   "recordId": "16375730545",
+   "reason": "HubSpot no longer links emails 396625646293 to companies 16375730545"
+  },
+  {
+   "card": "2855606710",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:71889119650]",
+   "object": "emails",
+   "activityId": "71889119650",
+   "outcome": "held-lossy-listing",
+   "recordId": "22041989156",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0da474b8-2278-436e-8f15-2007de725ad7",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AW: AW: AW: AW: WG: Purchase Order XtractIS - PT Mitra Adiperkasa Tbk Indonesia (Ref. QIN-11780)",
+    "contentLength": 14565,
+    "contentSha": "5928936aeaa72627",
+    "timestamp": "2025-02-19T08:16:34Z"
+   },
+   "check": {
+    "knownIds": 3,
+    "censusKnownIds": 3,
+    "listing": {
+     "ownEntries": 841,
+     "rowsReturned": 1085,
+     "distinctRows": 841,
+     "unseenRows": 244,
+     "pages": 22,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-09-27T10:47:39.339Z"
+    }
+   },
+   "reason": "the card's listing returned 1085 rows over 22 pages, 841 distinct (244 never returned): a copy there can be invisible to both checks. Look for [hubspot:emails:71889119650] on the card in monday, then run with --allow-lossy --cards 2855606710"
+  },
+  {
+   "card": "2855607470",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:59398594888]",
+   "object": "emails",
+   "activityId": "59398594888",
+   "outcome": "skipped-not-associated",
+   "recordId": "28932864897",
+   "reason": "HubSpot no longer links emails 59398594888 to companies 28932864897"
+  },
+  {
+   "card": "2855607470",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:59429176338]",
+   "object": "emails",
+   "activityId": "59429176338",
+   "outcome": "skipped-not-associated",
+   "recordId": "28932864897",
+   "reason": "HubSpot no longer links emails 59429176338 to companies 28932864897"
+  },
+  {
+   "card": "2855607470",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:59429222270]",
+   "object": "emails",
+   "activityId": "59429222270",
+   "outcome": "skipped-not-associated",
+   "recordId": "28932864897",
+   "reason": "HubSpot no longer links emails 59429222270 to companies 28932864897"
+  },
+  {
+   "card": "2855609602",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:66362647206]",
+   "object": "emails",
+   "activityId": "66362647206",
+   "outcome": "held-lossy-listing",
+   "recordId": "26348100136",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1507aed7-5fd7-456c-8c26-232d751d172a",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: FW: Hello from Theobald APAC Partner -DKM ECO {25587}",
+    "contentLength": 10214,
+    "contentSha": "7ff9f498268e6fea",
+    "timestamp": "2024-12-10T10:07:25Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 60,
+     "rowsReturned": 72,
+     "distinctRows": 60,
+     "unseenRows": 12,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-09-27T10:44:09.827Z"
+    }
+   },
+   "reason": "the card's listing returned 72 rows over 2 pages, 60 distinct (12 never returned): a copy there can be invisible to both checks. Look for [hubspot:emails:66362647206] on the card in monday, then run with --allow-lossy --cards 2855609602"
+  },
+  {
+   "card": "2855613785",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:67030742627]",
+   "object": "emails",
+   "activityId": "67030742627",
+   "outcome": "skipped-present",
+   "recordId": "27333221041",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0bc9d966-e4fd-4227-bbd5-3f6e46bfbc87",
+    "card": "2855783736",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: AW: Theobald license for Dev Environment",
+    "contentLength": 7627,
+    "contentSha": "882dfa4a470839fe",
+    "timestamp": "2024-12-17T10:53:10.395Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 20,
+     "rowsReturned": 20,
+     "distinctRows": 20,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:44:54.649Z"
+    }
+   },
+   "reason": "the listing shows the marker in a50eeb10-9f83-4d7e-b2f3-e3b52bc136bf"
+  },
+  {
+   "card": "2855614130",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:71876598345]",
+   "object": "notes",
+   "activityId": "71876598345",
+   "outcome": "skipped-not-associated",
+   "recordId": "30093469009",
+   "reason": "HubSpot no longer links notes 71876598345 to companies 30093469009"
+  },
+  {
+   "card": "2855614130",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:tasks:71994687751]",
+   "object": "tasks",
+   "activityId": "71994687751",
+   "outcome": "skipped-not-associated",
+   "recordId": "30093469009",
+   "reason": "HubSpot no longer links tasks 71994687751 to companies 30093469009"
+  },
+  {
+   "card": "2855614131",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:71876598345]",
+   "object": "notes",
+   "activityId": "71876598345",
+   "outcome": "would-create",
+   "recordId": "30096134062",
+   "buildsAgree": true,
+   "sibling": {
+    "result": "none-found",
+    "candidates": 9,
+    "looked": 8
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "在线沟通了客户需求：1、他们的是想通过私域给客户发送一些公司的宣传 2、他们有Googel Ins 等，关注客户的发邮件EDM 2，关注社媒对接，在线给客户看了",
+    "contentLength": 169,
+    "contentSha": "dd59eb1144598050",
+    "timestamp": "2025-02-19T03:17:03.563Z"
+   },
+   "unproven": {
+    "writtenNoEarlierThan": "2026-09-16T11:16:48.000Z",
+    "lastModified": "2025-03-18T01:52:01.102Z",
+    "changed": [],
+    "by": "hs_lastmodifieddate is not later"
+   },
+   "check": {
+    "knownIds": 4,
+    "censusKnownIds": 4,
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:46:00.408Z"
+    }
+   }
+  },
+  {
+   "card": "2855614131",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:tasks:71994687751]",
+   "object": "tasks",
+   "activityId": "71994687751",
+   "outcome": "would-create",
+   "recordId": "30096134062",
+   "buildsAgree": true,
+   "sibling": {
+    "result": "none-found",
+    "candidates": 7,
+    "looked": 7
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "确认Hubspot的情况",
+    "contentLength": 176,
+    "contentSha": "7902a197918ba52e",
+    "timestamp": "2025-02-27T02:06:26.835Z"
+   },
+   "unproven": {
+    "writtenNoEarlierThan": "2026-09-16T11:16:48.000Z",
+    "lastModified": "2025-08-05T03:53:17.481Z",
+    "changed": [],
+    "by": "hs_lastmodifieddate is not later"
+   },
+   "check": {
+    "knownIds": 4,
+    "censusKnownIds": 4,
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:46:00.408Z"
+    }
+   }
+  },
+  {
+   "card": "2855614396",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:385357903554]",
+   "object": "notes",
+   "activityId": "385357903554",
+   "outcome": "skipped-not-associated",
+   "recordId": "30757629756",
+   "reason": "HubSpot no longer links notes 385357903554 to companies 30757629756"
+  },
+  {
+   "card": "2855615145",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:78667191616]",
+   "object": "emails",
+   "activityId": "78667191616",
+   "outcome": "skipped-present",
+   "recordId": "32459043743",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "71f353dc-ce1f-4029-b413-ba6af7dd2d58",
+    "card": "2855785741",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 17793,
+    "contentSha": "bd87817fc6341ad1",
+    "timestamp": "2025-05-08T06:06:33Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 55,
+     "rowsReturned": 67,
+     "distinctRows": 55,
+     "unseenRows": 12,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-09-27T10:47:44.073Z"
+    }
+   },
+   "reason": "the listing shows the marker in 51b03def-e3ec-4663-8adc-8d909d38bb08"
+  },
+  {
+   "card": "2855615145",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:78753891231]",
+   "object": "emails",
+   "activityId": "78753891231",
+   "outcome": "skipped-present",
+   "recordId": "32459043743",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "b510912e-dfea-41e8-ae0c-494807bd9397",
+    "card": "2855785741",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 21587,
+    "contentSha": "09ec121bf18feff5",
+    "timestamp": "2025-05-09T01:48:00Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 55,
+     "rowsReturned": 67,
+     "distinctRows": 55,
+     "unseenRows": 12,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-09-27T10:47:44.073Z"
+    }
+   },
+   "reason": "the listing shows the marker in dbf8d7b1-94be-4eec-9a38-8f3637af46af"
+  },
+  {
+   "card": "2855615145",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:79033394816]",
+   "object": "emails",
+   "activityId": "79033394816",
+   "outcome": "skipped-present",
+   "recordId": "32459043743",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4dcf919e-e81a-45cd-bc06-69d065ffb2ac",
+    "card": "2855785741",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 22544,
+    "contentSha": "8ea25fa54686f6c7",
+    "timestamp": "2025-05-14T01:43:52Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 55,
+     "rowsReturned": 67,
+     "distinctRows": 55,
+     "unseenRows": 12,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-09-27T10:47:44.073Z"
+    }
+   },
+   "reason": "the listing shows the marker in ef97a33d-426a-479e-898d-96756494eeb8"
+  },
+  {
+   "card": "2855615145",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:79034213049]",
+   "object": "emails",
+   "activityId": "79034213049",
+   "outcome": "skipped-present",
+   "recordId": "32459043743",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6755587e-4a86-4772-a391-744589ddffff",
+    "card": "2855766557",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: HAESL <> Linksoft <> Theobald [LIN-37919]",
+    "contentLength": 23599,
+    "contentSha": "951cb862fc50977a",
+    "timestamp": "2025-05-14T03:24:08Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 55,
+     "rowsReturned": 67,
+     "distinctRows": 55,
+     "unseenRows": 12,
+     "pages": 2,
+     "complete": true,
+     "lossy": true,
+     "walkedAt": "2026-09-27T10:47:44.073Z"
+    }
+   },
+   "reason": "the listing shows the marker in 3cd08d0a-d5b8-4fca-8687-ed47d5847640"
+  },
+  {
+   "card": "2855617703",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:71977754033]",
+   "object": "emails",
+   "activityId": "71977754033",
+   "outcome": "skipped-present",
+   "recordId": "21757729716",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6e0df8df-c5af-47be-b60f-8f95cb11a0d3",
+    "card": "2855750489",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: NTT-Maxis | Theobald Xtract IS Ultimate Maintenance Renewal 2025",
+    "contentLength": 12129,
+    "contentSha": "7f38491d4ea4e543",
+    "timestamp": "2025-02-20T03:47:49Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:47:49.672Z"
+    }
+   },
+   "reason": "the listing shows the marker in c5129a7d-12f8-4268-9a89-80f6688a8a24"
+  },
+  {
+   "card": "2855617703",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:71993829670]",
+   "object": "emails",
+   "activityId": "71993829670",
+   "outcome": "skipped-present",
+   "recordId": "21757729716",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "16d9481d-4e35-4066-b329-ceec16b4b3da",
+    "card": "2855750488",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Re: NTT-Maxis | Theobald Xtract IS Ultimate Maintenance Renewal 2025",
+    "contentLength": 13823,
+    "contentSha": "1407ee5a0c780d30",
+    "timestamp": "2025-02-20T09:08:54Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:47:49.672Z"
+    }
+   },
+   "reason": "the listing shows the marker in c413eb34-da1b-4426-b562-0da271c05468"
+  },
+  {
+   "card": "2855617703",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:73500809909]",
+   "object": "emails",
+   "activityId": "73500809909",
+   "outcome": "skipped-present",
+   "recordId": "21757729716",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "25f323d4-7702-4940-b872-6030024f077c",
+    "card": "2855750488",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: NTT-Maxis | Theobald Xtract IS Ultimate Maintenance Renewal 2025",
+    "contentLength": 15279,
+    "contentSha": "281f4256193a270a",
+    "timestamp": "2025-02-24T01:36:57Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:47:49.672Z"
+    }
+   },
+   "reason": "the listing shows the marker in 32c4db6b-2228-49fc-a005-8d9830473cdd"
+  },
+  {
+   "card": "2855617703",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:73504765728]",
+   "object": "emails",
+   "activityId": "73504765728",
+   "outcome": "skipped-present",
+   "recordId": "21757729716",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9183f82e-c1f8-4c94-a791-bdfd1a570688",
+    "card": "2855750489",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: RE: NTT-Maxis | Theobald Xtract IS Ultimate Maintenance Renewal 2025",
+    "contentLength": 16890,
+    "contentSha": "ac444917c60b2a16",
+    "timestamp": "2025-02-24T02:30:57Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": 2,
+    "listing": {
+     "ownEntries": 48,
+     "rowsReturned": 48,
+     "distinctRows": 48,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T10:47:49.672Z"
+    }
+   },
+   "reason": "the listing shows the marker in 1653fced-6875-464c-8b4e-bdaf18719e7a"
+  }
+ ]
+}

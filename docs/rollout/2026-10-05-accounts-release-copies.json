@@ -1,0 +1,52 @@
+{
+ "decidedBy": "Woody (user), Claude Code session 2026-10-05",
+ "decidedAt": "2026-10-05T04:45:00Z",
+ "decision": "New ones to HubSpot, copies go: delete the id-less copies of companies HubSpot already has (answer: \"New ones to HubSpot, copies go (Recommended)\")",
+ "cards": [
+  {
+   "card": "2857200440",
+   "bucket": "A",
+   "note": "copy: HubSpot company created 2026-10-05 for its domain has its own monday card; contact linked there (fix9-applied.json)"
+  },
+  {
+   "card": "2858872440",
+   "bucket": "A",
+   "note": "copy: HubSpot company created 2026-10-05 for its domain has its own monday card; contact linked there (fix9-applied.json)"
+  },
+  {
+   "card": "2857206485",
+   "bucket": "A",
+   "note": "copy: HubSpot company created 2026-10-05 for its domain has its own monday card; contact linked there (fix9-applied.json)"
+  },
+  {
+   "card": "2862637701",
+   "bucket": "B",
+   "note": "copy of a real Account card; contact made a primary contact of the real company 2026-10-05 (fix9-applied.json)"
+  },
+  {
+   "card": "2857171550",
+   "bucket": "B",
+   "note": "copy of a real Account card; contact made a primary contact of the real company 2026-10-05 (fix9-applied.json)"
+  },
+  {
+   "card": "2860564073",
+   "bucket": "B",
+   "note": "copy of a real Account card; contact made a primary contact of the real company 2026-10-05 (fix9-applied.json)"
+  },
+  {
+   "card": "2857180817",
+   "bucket": "B",
+   "note": "copy of a real Account card; contact made a primary contact of the real company 2026-10-05 (fix9-applied.json)"
+  },
+  {
+   "card": "2860583401",
+   "bucket": "B",
+   "note": "copy of a real Account card; contact made a primary contact of the real company 2026-10-05 (fix9-applied.json)"
+  },
+  {
+   "card": "2862564014",
+   "bucket": "B",
+   "note": "copy of a real Account card; contact made a primary contact of the real company 2026-10-05 (fix9-applied.json)"
+  }
+ ]
+}

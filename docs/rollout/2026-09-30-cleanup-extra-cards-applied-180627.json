@@ -1,0 +1,158 @@
+{
+ "script": "cleanup-extra-cards",
+ "apply": true,
+ "canary": false,
+ "groups": [
+  "deals"
+ ],
+ "limit": null,
+ "startedAt": "2026-09-30T18:06:27.936Z",
+ "planDir": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\cleanup",
+ "planFiles": {
+  "accounts-idless-classified.json": {
+   "sha256": "f4e4bb65ae74a3ce237aeaabefdce8ce02b87d6e5dd090570f88590b678c0527",
+   "generatedAt": "2026-09-30T10:09:40.985Z"
+  },
+  "accounts-dups-plan.json": {
+   "sha256": "2ab8421197b552d0fb849c86cecebc77665e878cb10f6f1802e53e2b789477c3",
+   "generatedAt": "2026-09-30T09:52:11.342Z"
+  },
+  "contacts-plan.json": {
+   "sha256": "dcdf5ed8b98083ade10a1a4803b225da41b40d0fbd87b69910cd0f594db1a3b2",
+   "generatedAt": "2026-09-30"
+  },
+  "deals-plan.json": {
+   "sha256": "021753e89fbb3db57f828227e10b10ed6129441bc7875805a2ba85aec9665ce7",
+   "generatedAt": "2026-09-30"
+  },
+  "reconcile/companies.json": {
+   "sha256": "300f5925e87d4eeb08de3199f910ba1fe019badbe01201600eefb047aa1dfb71"
+  },
+  "reconcile/contacts.json": {
+   "sha256": "df8d0a470c0702bc8945ae887cde799aa0c68979a9b814c535168321c6e53c48"
+  },
+  "reconcile/deals.json": {
+   "sha256": "ea0475495918b7561fd0c97b748dc2252ef065f64e0cfc143ae4ed62cfb35950"
+  }
+ },
+ "baselines": {
+  "contacts": "2026-09-30T00:00:00.000Z",
+  "deals": "2026-09-30T00:00:00.000Z"
+ },
+ "integrationToken": true,
+ "corrections": [
+  "accounts-idless: the 14 TOUCHED-BY-PERSON plus the skeptic's 66 (q-review-candidates.json) go to review; the orphan-contact rule is re-derived live",
+  "accounts-idless: Niimbot 2858872440, Kitronyx 2857200440, Ocusun 2857206485 (only company of a HubSpot deal) and Nuvoton 2857190665 held",
+  "accounts-idless: Subvertron 2858206655 deleted without relinking (its contacts are the stale merged cards of the contacts group)",
+  "accounts-dups: delete, never blank; an extra holding timeline entries the survivor lacks waits until the survivor carries them",
+  "contacts: deleting with the integration token does not stop a restore; merged cards need a live survivor card and the HubSpot merge in place",
+  "deals: id-less only; confirmFirst and create-in-HubSpot cards held; 350443684547 '新的 deal' left alone (it has an ID)"
+ ],
+ "tally": {
+  "deals": {
+   "held-by-plan": 3,
+   "already-gone": 5
+  }
+ },
+ "holdReasons": {
+  "deals": {
+   "needs confirmation from hiffer": 1,
+   "needs a person": 2
+  }
+ },
+ "items": [
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2771847395",
+   "name": "test-deal-0917",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "needs confirmation from hiffer"
+   ],
+   "at": "2026-09-30T18:06:28.689Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2862519149",
+   "name": "xtopup",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "needs a person: create in HubSpot, then delete this old card"
+   ],
+   "at": "2026-09-30T18:06:28.690Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2866139810",
+   "name": "广汽汇理-Tableau框架2027",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "needs a person: create in HubSpot, then delete this old card"
+   ],
+   "at": "2026-09-30T18:06:28.691Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2673961653",
+   "name": "Google deal",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T18:06:30.817Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2673962135",
+   "name": "Apple deal",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T18:06:30.818Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2673961654",
+   "name": "Amazon deal",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T18:06:30.818Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2828641429",
+   "name": "Test0812",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T18:06:30.819Z"
+  },
+  {
+   "group": "deals",
+   "kind": "idless-deal",
+   "id": "2862614691",
+   "name": "test-op0918",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T18:06:30.819Z"
+  }
+ ],
+ "deleting": [],
+ "deleted": [],
+ "restoreList": [],
+ "failed": [],
+ "creating": [],
+ "created": [],
+ "warnings": [],
+ "savedAt": "2026-09-30T18:06:30.820Z",
+ "stoppedBecause": "done",
+ "finishedAt": "2026-09-30T18:06:30.820Z"
+}

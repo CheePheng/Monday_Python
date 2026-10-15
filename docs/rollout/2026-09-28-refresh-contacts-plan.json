@@ -1,0 +1,38 @@
+{
+  "object": "contacts",
+  "apply": false,
+  "startedAt": "2026-09-28T04:19:45.261Z",
+  "total": 23,
+  "lastDoneId": "520863718132",
+  "tally": {
+    "updated-monday": 23
+  },
+  "errors": [],
+  "results": {
+    "310173127385": "[webhook] source=contacts id=310173127385 action=updated-monday board=5028000495",
+    "310231503603": "[webhook] source=contacts id=310231503603 action=updated-monday board=5028000495",
+    "336593157835": "[webhook] source=contacts id=336593157835 action=updated-monday board=5028000495",
+    "336593392328": "[webhook] source=contacts id=336593392328 action=updated-monday board=5028000495",
+    "336684958442": "[webhook] source=contacts id=336684958442 action=updated-monday board=5028000495",
+    "108354142807": "[webhook] source=contacts id=108354142807 action=updated-monday board=5028000495",
+    "108366838586": "[webhook] source=contacts id=108366838586 action=updated-monday board=5028000495",
+    "126748679864": "[webhook] source=contacts id=126748679864 action=updated-monday board=5028000495",
+    "143723925826": "[webhook] source=contacts id=143723925826 action=updated-monday board=5028000495",
+    "143737741200": "[webhook] source=contacts id=143737741200 action=updated-monday board=5028000495",
+    "143738471817": "[webhook] source=contacts id=143738471817 action=updated-monday board=5028000495",
+    "304234246867": "[webhook] source=contacts id=304234246867 action=updated-monday board=5028000495",
+    "304239933133": "[webhook] source=contacts id=304239933133 action=updated-monday board=5028000495",
+    "304342349545": "[webhook] source=contacts id=304342349545 action=updated-monday board=5028000495",
+    "310170431190": "[webhook] source=contacts id=310170431190 action=updated-monday board=5028000495",
+    "520796719806": "[webhook] source=contacts id=520796719806 action=updated-monday board=5028000495",
+    "520860671701": "[webhook] source=contacts id=520860671701 action=updated-monday board=5028000495",
+    "520863718132": "[webhook] source=contacts id=520863718132 action=updated-monday board=5028000495",
+    "411640386247": "[webhook] source=contacts id=411640386247 action=updated-monday board=5028000495",
+    "412144639693": "[webhook] source=contacts id=412144639693 action=updated-monday board=5028000495",
+    "453237224182": "[webhook] source=contacts id=453237224182 action=updated-monday board=5028000495",
+    "453246513892": "[webhook] source=contacts id=453246513892 action=updated-monday board=5028000495",
+    "453250112243": "[webhook] source=contacts id=453250112243 action=updated-monday board=5028000495"
+  },
+  "done": true,
+  "finishedAt": "2026-09-28T04:20:44.267Z"
+}

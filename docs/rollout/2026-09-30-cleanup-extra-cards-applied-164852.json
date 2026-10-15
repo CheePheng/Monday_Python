@@ -1,0 +1,614 @@
+{
+ "script": "cleanup-extra-cards",
+ "apply": true,
+ "canary": false,
+ "groups": [
+  "accounts-dups"
+ ],
+ "limit": null,
+ "startedAt": "2026-09-30T16:48:52.017Z",
+ "planDir": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\cleanup",
+ "planFiles": {
+  "accounts-idless-classified.json": {
+   "sha256": "f4e4bb65ae74a3ce237aeaabefdce8ce02b87d6e5dd090570f88590b678c0527",
+   "generatedAt": "2026-09-30T10:09:40.985Z"
+  },
+  "accounts-dups-plan.json": {
+   "sha256": "2ab8421197b552d0fb849c86cecebc77665e878cb10f6f1802e53e2b789477c3",
+   "generatedAt": "2026-09-30T09:52:11.342Z"
+  },
+  "contacts-plan.json": {
+   "sha256": "dcdf5ed8b98083ade10a1a4803b225da41b40d0fbd87b69910cd0f594db1a3b2",
+   "generatedAt": "2026-09-30"
+  },
+  "deals-plan.json": {
+   "sha256": "021753e89fbb3db57f828227e10b10ed6129441bc7875805a2ba85aec9665ce7",
+   "generatedAt": "2026-09-30"
+  },
+  "reconcile/companies.json": {
+   "sha256": "300f5925e87d4eeb08de3199f910ba1fe019badbe01201600eefb047aa1dfb71"
+  },
+  "reconcile/contacts.json": {
+   "sha256": "df8d0a470c0702bc8945ae887cde799aa0c68979a9b814c535168321c6e53c48"
+  },
+  "reconcile/deals.json": {
+   "sha256": "ea0475495918b7561fd0c97b748dc2252ef065f64e0cfc143ae4ed62cfb35950"
+  }
+ },
+ "baselines": {
+  "contacts": "2026-09-30T00:00:00.000Z",
+  "deals": "2026-09-30T00:00:00.000Z"
+ },
+ "integrationToken": true,
+ "corrections": [
+  "accounts-idless: the 14 TOUCHED-BY-PERSON plus the skeptic's 66 (q-review-candidates.json) go to review; the orphan-contact rule is re-derived live",
+  "accounts-idless: Niimbot 2858872440, Kitronyx 2857200440, Ocusun 2857206485 (only company of a HubSpot deal) and Nuvoton 2857190665 held",
+  "accounts-idless: Subvertron 2858206655 deleted without relinking (its contacts are the stale merged cards of the contacts group)",
+  "accounts-dups: delete, never blank; an extra holding timeline entries the survivor lacks waits until the survivor carries them",
+  "contacts: deleting with the integration token does not stop a restore; merged cards need a live survivor card and the HubSpot merge in place",
+  "deals: id-less only; confirmFirst and create-in-HubSpot cards held; 350443684547 '新的 deal' left alone (it has an ID)"
+ ],
+ "tally": {
+  "accounts-dups": {
+   "already-gone": 1,
+   "deleted": 18,
+   "held-by-recheck": 2
+  }
+ },
+ "holdReasons": {
+  "accounts-dups": {
+   "timeline-entries-survivor-lacks": 2
+  }
+ },
+ "items": [
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855811089",
+   "name": "n.com",
+   "outcome": "already-gone",
+   "state": "deleted",
+   "facts": {},
+   "at": "2026-09-30T16:49:39.993Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855830301",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:50:11.103Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855824266",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:50:42.729Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2855850628",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:51:15.334Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856101720",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:51:47.132Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856232276",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:52:19.177Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856386092",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:52:50.929Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856489857",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:53:22.737Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856521469",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:53:56.147Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856522769",
+   "name": "STMicroelectronics",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:54:28.553Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856696010",
+   "name": "St",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:55:01.029Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856652671",
+   "name": "M",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:55:35.228Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2856705329",
+   "name": "M",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:56:08.804Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857008862",
+   "name": "ING Australia",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:56:43.405Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857053237",
+   "name": "ING Australia",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:57:16.018Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857048068",
+   "name": "ING Australia",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:57:48.538Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857053361",
+   "name": "ING Australia",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:58:21.708Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857066000",
+   "name": "ING Australia",
+   "outcome": "held-by-recheck",
+   "reasons": [
+    "timeline-entries-survivor-lacks:calls:368356480736/calls:368220220140"
+   ],
+   "at": "2026-09-30T16:58:23.713Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857070099",
+   "name": "ING Australia",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:58:54.487Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857058153",
+   "name": "ING Australia",
+   "outcome": "held-by-recheck",
+   "reasons": [
+    "timeline-entries-survivor-lacks:calls:368356480736/calls:368220220140"
+   ],
+   "at": "2026-09-30T16:58:56.501Z"
+  },
+  {
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "id": "2857007351",
+   "name": "Gs",
+   "outcome": "deleted",
+   "postChecks": "ok",
+   "at": "2026-09-30T16:59:27.697Z"
+  }
+ ],
+ "deleting": [
+  {
+   "id": "2855830301",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:49:46.696Z"
+  },
+  {
+   "id": "2855824266",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:50:18.559Z"
+  },
+  {
+   "id": "2855850628",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:50:50.729Z"
+  },
+  {
+   "id": "2856101720",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:51:22.859Z"
+  },
+  {
+   "id": "2856232276",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:51:54.511Z"
+  },
+  {
+   "id": "2856386092",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:52:26.237Z"
+  },
+  {
+   "id": "2856489857",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:52:58.237Z"
+  },
+  {
+   "id": "2856521469",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:53:31.210Z"
+  },
+  {
+   "id": "2856522769",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:54:03.496Z"
+  },
+  {
+   "id": "2856696010",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "St",
+   "hubspotId": "37199867738",
+   "sentAt": "2026-09-30T16:54:36.064Z"
+  },
+  {
+   "id": "2856652671",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "M",
+   "hubspotId": "37243386543",
+   "sentAt": "2026-09-30T16:55:10.264Z"
+  },
+  {
+   "id": "2856705329",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "M",
+   "hubspotId": "37243386543",
+   "sentAt": "2026-09-30T16:55:43.211Z"
+  },
+  {
+   "id": "2857008862",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "sentAt": "2026-09-30T16:56:17.591Z"
+  },
+  {
+   "id": "2857053237",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "sentAt": "2026-09-30T16:56:50.885Z"
+  },
+  {
+   "id": "2857048068",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "sentAt": "2026-09-30T16:57:23.202Z"
+  },
+  {
+   "id": "2857053361",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "sentAt": "2026-09-30T16:57:55.974Z"
+  },
+  {
+   "id": "2857070099",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "sentAt": "2026-09-30T16:58:29.187Z"
+  },
+  {
+   "id": "2857007351",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "Gs",
+   "hubspotId": "345760686791",
+   "sentAt": "2026-09-30T16:59:03.067Z"
+  }
+ ],
+ "deleted": [
+  {
+   "id": "2855830301",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:49:49.058Z"
+  },
+  {
+   "id": "2855824266",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:50:20.496Z"
+  },
+  {
+   "id": "2855850628",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:50:53.036Z"
+  },
+  {
+   "id": "2856101720",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:51:24.942Z"
+  },
+  {
+   "id": "2856232276",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:51:56.866Z"
+  },
+  {
+   "id": "2856386092",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:52:28.419Z"
+  },
+  {
+   "id": "2856489857",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:53:00.553Z"
+  },
+  {
+   "id": "2856521469",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:53:34.062Z"
+  },
+  {
+   "id": "2856522769",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "STMicroelectronics",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:54:06.238Z"
+  },
+  {
+   "id": "2856696010",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "St",
+   "hubspotId": "37199867738",
+   "at": "2026-09-30T16:54:38.751Z"
+  },
+  {
+   "id": "2856652671",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "M",
+   "hubspotId": "37243386543",
+   "at": "2026-09-30T16:55:12.855Z"
+  },
+  {
+   "id": "2856705329",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "M",
+   "hubspotId": "37243386543",
+   "at": "2026-09-30T16:55:46.459Z"
+  },
+  {
+   "id": "2857008862",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "at": "2026-09-30T16:56:20.894Z"
+  },
+  {
+   "id": "2857053237",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "at": "2026-09-30T16:56:53.536Z"
+  },
+  {
+   "id": "2857048068",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "at": "2026-09-30T16:57:26.086Z"
+  },
+  {
+   "id": "2857053361",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "at": "2026-09-30T16:57:58.943Z"
+  },
+  {
+   "id": "2857070099",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "ING Australia",
+   "hubspotId": "312450639552",
+   "at": "2026-09-30T16:58:31.998Z"
+  },
+  {
+   "id": "2857007351",
+   "board": "5028000496",
+   "group": "accounts-dups",
+   "kind": "dup-extra",
+   "name": "Gs",
+   "hubspotId": "345760686791",
+   "at": "2026-09-30T16:59:05.517Z"
+  }
+ ],
+ "restoreList": [
+  "2855830301",
+  "2855824266",
+  "2855850628",
+  "2856101720",
+  "2856232276",
+  "2856386092",
+  "2856489857",
+  "2856521469",
+  "2856522769",
+  "2856696010",
+  "2856652671",
+  "2856705329",
+  "2857008862",
+  "2857053237",
+  "2857048068",
+  "2857053361",
+  "2857070099",
+  "2857007351"
+ ],
+ "failed": [],
+ "creating": [],
+ "created": [],
+ "warnings": [],
+ "savedAt": "2026-09-30T16:59:29.713Z",
+ "stoppedBecause": "done",
+ "finishedAt": "2026-09-30T16:59:29.713Z"
+}

@@ -1,0 +1,20 @@
+{
+  "object": "contacts",
+  "apply": true,
+  "force": true,
+  "startedAt": "2026-09-30T17:52:51.358Z",
+  "total": 80,
+  "after": "97583458961",
+  "lastDoneId": "136358481223",
+  "tally": {
+    "updated-monday": 3
+  },
+  "errors": [],
+  "results": {
+    "106880384513": "[webhook] source=contacts id=106880384513 action=updated-monday board=5028000495",
+    "106881115513": "[webhook] source=contacts id=106881115513 action=updated-monday board=5028000495",
+    "136358481223": "[webhook] source=contacts id=136358481223 action=updated-monday board=5028000495"
+  },
+  "done": true,
+  "finishedAt": "2026-09-30T17:53:17.562Z"
+}

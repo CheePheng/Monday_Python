@@ -1,0 +1,5629 @@
+{
+ "takenAt": "2026-09-20T13:23:45.896Z",
+ "E": {
+  "E0_absent": 6,
+  "E1_one_bodyless": 369,
+  "E2_one_with_body": 1,
+  "E3_dup_all_bodyless": 27,
+  "E4_dup_with_body": 0,
+  "E5_ambiguous": 0
+ },
+ "rows": [
+  {
+   "orphan": "2860466573",
+   "canonical": "2862587803",
+   "hubspotCompanyId": "347077025501",
+   "email": "400734189258",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "82f49623-1c9d-49d1-970d-4867dd245791"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862596605",
+   "canonical": "2862626147",
+   "hubspotCompanyId": "346930173678",
+   "email": "400795367128",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c29f575e-eaf2-43e1-8155-354aa7a1283f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861901026",
+   "canonical": "2861908277",
+   "hubspotCompanyId": "347017485014",
+   "email": "400579583705",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e95e1f7b-9d4b-4ddc-8f85-d6693b7c5750"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862590310",
+   "canonical": "2862620753",
+   "hubspotCompanyId": "347064324803",
+   "email": "400751954673",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "837d997c-932c-4722-89a8-466e27cbfadd"
+   ],
+   "bodyPresent": 1,
+   "bodyless": 0,
+   "state": "E2_one_with_body"
+  },
+  {
+   "orphan": "2862589896",
+   "canonical": "2862594935",
+   "hubspotCompanyId": "347082421997",
+   "email": "400756025023",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "10d1d717-e4fa-4032-8d3e-640a0470fa76"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862600342",
+   "canonical": "2862600204",
+   "hubspotCompanyId": "347051364027",
+   "email": "400804228827",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "39e410b6-25ea-4125-9006-63c538c5b746"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862594597",
+   "canonical": "2862600258",
+   "hubspotCompanyId": "346890520253",
+   "email": "400803753661",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "dad3a2bc-34b0-46ee-8526-91e7c2969b73"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862600199",
+   "canonical": "2862610882",
+   "hubspotCompanyId": "346912557778",
+   "email": "400815782596",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "79accc87-676e-49cd-a8e4-a43f7587d434"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862610581",
+   "canonical": "2862594744",
+   "hubspotCompanyId": "346786675399",
+   "email": "400815779554",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0a0886d5-75df-4cc9-9f38-8607d96853ee"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862600265",
+   "canonical": "2862600197",
+   "hubspotCompanyId": "346966131447",
+   "email": "400791771889",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f88542ea-90ad-41ef-96a3-7b019526f829"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862620551",
+   "canonical": "2862594668",
+   "hubspotCompanyId": "347017485029",
+   "email": "400803751632",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1bd54ebc-08f8-4df2-b6b5-c7a6e64112c1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860502437",
+   "canonical": "2860495087",
+   "hubspotCompanyId": "346928378556",
+   "email": "400804129467",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "08d65b45-ff1e-47df-83dc-e8fa6905520b",
+    "3a85c6a0-b0c9-4038-93c1-4c20bfe3d1cc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2862610568",
+   "canonical": "2862594619",
+   "hubspotCompanyId": "347058887387",
+   "email": "400804287183",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "54bcfcdc-783b-4e01-9e67-7eacbb4c8cab"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862594706",
+   "canonical": "2862626095",
+   "hubspotCompanyId": "347077025490",
+   "email": "400815884987",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "be71c1b3-bd17-4c15-85f0-35c0d1006085"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862600178",
+   "canonical": "2862589287",
+   "hubspotCompanyId": "347082422978",
+   "email": "400756019947",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1acac7a2-8500-4814-82cb-32b97521533a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2857196502",
+   "canonical": "2862626199",
+   "hubspotCompanyId": "347080628934",
+   "email": "400815774439",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "49bac41b-a031-4027-a02f-0206ca3765b4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862589511",
+   "canonical": "2862589233",
+   "hubspotCompanyId": "347058844407",
+   "email": "400803746552",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b3c11a16-4dbc-4be2-93af-10ad17c10a23"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862626156",
+   "canonical": "2862600044",
+   "hubspotCompanyId": "347055246056",
+   "email": "400791766740",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0aefe8c1-cd63-4091-8b39-7161d1db3f86"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862589339",
+   "canonical": "2862597070",
+   "hubspotCompanyId": "347000883920",
+   "email": "400804124388",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cf859ebe-e5a4-4414-8557-350aef56e5aa"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862589501",
+   "canonical": "2862620492",
+   "hubspotCompanyId": "347091892954",
+   "email": "400803744457",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a1232a28-4786-4e61-bac0-d2ccef611a27"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862579352",
+   "canonical": "2862588841",
+   "hubspotCompanyId": "346966131437",
+   "email": "400815877880",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a1d135ee-617a-4333-a7b6-fe42e921768b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862610533",
+   "canonical": "2862579353",
+   "hubspotCompanyId": "347060731590",
+   "email": "400751940310",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fa9fb15a-9844-4c0b-958d-701e56e62547"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862588769",
+   "canonical": "2862626068",
+   "hubspotCompanyId": "347080628943",
+   "email": "400803662561",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5df22c0f-c9f4-4747-a4ab-0f4d764e22ef"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862620402",
+   "canonical": "2862594403",
+   "hubspotCompanyId": "347093704397",
+   "email": "400795366098",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e90ac098-3c5c-45c7-9d9e-a0e548fafe38"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862589073",
+   "canonical": "2862596476",
+   "hubspotCompanyId": "347082422002",
+   "email": "400804272878",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "51cecc3c-4001-4fd4-9e89-9739c5642c9d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862595871",
+   "canonical": "2862595873",
+   "hubspotCompanyId": "347075237584",
+   "email": "400791754479",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2240f11f-ead1-4dbc-8237-0fe49095d37d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862588564",
+   "canonical": "2862588713",
+   "hubspotCompanyId": "346821335753",
+   "email": "400803735252",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "118f4356-6b40-4cc6-af52-9f4ce024805e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862588230",
+   "canonical": "2862596305",
+   "hubspotCompanyId": "347058887388",
+   "email": "400751930069",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c1e77519-3ef7-45a8-8044-40ba95d387bf"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862620217",
+   "canonical": "2862619467",
+   "hubspotCompanyId": "346928378563",
+   "email": "400803734232",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "23697e60-81b3-4e53-9daf-d5b8d4f91726"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862596445",
+   "canonical": "2862587880",
+   "hubspotCompanyId": "346917879509",
+   "email": "400815566561",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6f539df3-6c67-480c-bd4e-c38d46530219"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862578884",
+   "canonical": "2862588305",
+   "hubspotCompanyId": "346967912134",
+   "email": "400795357901",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "92f1496e-cfe0-40c5-ae0a-a5725a32d9cc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862596285",
+   "canonical": "2862588104",
+   "hubspotCompanyId": "347082421996",
+   "email": "400791752406",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "61aea0ae-78b0-454c-9e94-b0a402640c9e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862618830",
+   "canonical": "2862588369",
+   "hubspotCompanyId": "347064323830",
+   "email": "400815866597",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0336e6fe-fcd2-4a6f-bf9f-1b141782bac9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862578336",
+   "canonical": "2862588125",
+   "hubspotCompanyId": "347064323829",
+   "email": "400815865578",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5e6de762-8a8c-4497-9856-6ffdf31166f2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862619412",
+   "canonical": "2862588174",
+   "hubspotCompanyId": "346797774582",
+   "email": "400756003529",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d2fcc6f3-fd57-4427-a27f-4a9a35ddde29"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862578334",
+   "canonical": "2862619166",
+   "hubspotCompanyId": "347093704402",
+   "email": "400815865575",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0a303967-6a62-4361-a382-6bf55dd28d5f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862619278",
+   "canonical": "2862618938",
+   "hubspotCompanyId": "346868832978",
+   "email": "400803730161",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "505e2145-1998-43a8-894e-cfd5589c3381"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860460242",
+   "canonical": "2861922194",
+   "hubspotCompanyId": "347055246042",
+   "email": "400804206314",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "0bf62d02-803d-45eb-b6bd-26deb1d413bb",
+    "59085b3b-a32a-4167-9522-5558760feb02"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2860460242",
+   "canonical": "2861922194",
+   "hubspotCompanyId": "347055246042",
+   "email": "400586554093",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "38aa5811-d230-4235-84c3-235318e49b43"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862619265",
+   "canonical": "2862619213",
+   "hubspotCompanyId": "347071657714",
+   "email": "400815863516",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3b9b61c3-3c79-4261-9904-191ababb7fcb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862595747",
+   "canonical": "2862578364",
+   "hubspotCompanyId": "347091892950",
+   "email": "400815760094",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d8feda85-e855-456e-b1a7-c260e3f3b4f9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862582772",
+   "canonical": "2862585110",
+   "hubspotCompanyId": "346823102178",
+   "email": "400734186222",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "b40ab341-873d-48ed-b918-1835777b78d5",
+    "407c18d4-a18d-4c0a-ac21-d87aa87d124a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2862582772",
+   "canonical": "2862585110",
+   "hubspotCompanyId": "346823102178",
+   "email": "400803636929",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "be41d5b3-3fda-4b73-aca5-be74073bdfa5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862585416",
+   "canonical": "2862618853",
+   "hubspotCompanyId": "346872222413",
+   "email": "400791745260",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "99ce2071-9c2a-4a40-9691-536bf5c0c964"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862585244",
+   "canonical": "2862578015",
+   "hubspotCompanyId": "347012118248",
+   "email": "400755997401",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6583e682-b491-4012-99e9-fb4191a307b2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862577243",
+   "canonical": "2862578007",
+   "hubspotCompanyId": "347058813629",
+   "email": "400795347647",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a55947a6-3907-4a22-b3d0-92a0f47df1c8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862577302",
+   "canonical": "2862585301",
+   "hubspotCompanyId": "346821335764",
+   "email": "400795345627",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "82f62faa-1c48-40b4-9dbe-f49013126e4a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862577941",
+   "canonical": "2862577297",
+   "hubspotCompanyId": "346966131438",
+   "email": "400804103894",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5be22d01-7154-46a8-9502-0ee45fca3919"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862585320",
+   "canonical": "2862577973",
+   "hubspotCompanyId": "347017485009",
+   "email": "400815857359",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2306de1d-d400-4fc4-bd8b-7f14a93f0980"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862598219",
+   "canonical": "2862618220",
+   "hubspotCompanyId": "347060731592",
+   "email": "400804256500",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6a2c7ad2-6d5e-4bd0-868f-e8fb3c60f829"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862582883",
+   "canonical": "2862597983",
+   "hubspotCompanyId": "346966131444",
+   "email": "400803640002",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d64ac80e-f381-4f06-bda6-7042a98f9140"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862585011",
+   "canonical": "2862585145",
+   "hubspotCompanyId": "347058844403",
+   "email": "400815553242",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "16027d5e-2c06-4811-994b-c08619cf25f2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862582969",
+   "canonical": "2862585174",
+   "hubspotCompanyId": "346917879515",
+   "email": "400803637946",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6f3a7a67-83a8-4be4-9b8b-016c04779f6f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862587373",
+   "canonical": "2862618021",
+   "hubspotCompanyId": "347058887404",
+   "email": "400815550161",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "52c5e5c4-ec53-44b2-854c-a73588248579"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860464376",
+   "canonical": "2862597787",
+   "hubspotCompanyId": "346912557773",
+   "email": "400734174906",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "90f1d7c6-dd80-47f2-855b-fff85a46a7d7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862582650",
+   "canonical": "2862577533",
+   "hubspotCompanyId": "346797774572",
+   "email": "400803713762",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e4a99be7-5d64-432a-b6da-a32b9091f92c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862597719",
+   "canonical": "2862584736",
+   "hubspotCompanyId": "346797775559",
+   "email": "400803632862",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "560f57c6-400e-4c5c-a620-96f70c58057a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862584818",
+   "canonical": "2862597614",
+   "hubspotCompanyId": "346930174654",
+   "email": "400804248296",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5f8455f6-eede-42b4-b823-5d20a5127a99"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862617242",
+   "canonical": "2862617548",
+   "hubspotCompanyId": "346868832974",
+   "email": "400795331273",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "12aa692a-905e-4dcd-bca9-df8614512988"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862582366",
+   "canonical": "2862567337",
+   "hubspotCompanyId": "347093704412",
+   "email": "400804246254",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0a1af835-8770-49bf-8748-c6597a067754"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862587391",
+   "canonical": "2862582302",
+   "hubspotCompanyId": "346797775551",
+   "email": "400791730902",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e569a8cb-f1cc-4117-b950-300a97828c37"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862587444",
+   "canonical": "2862577432",
+   "hubspotCompanyId": "346967912156",
+   "email": "400803710704",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b4762367-f4f3-4a69-9981-c4cc1a1dfbca"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862576846",
+   "canonical": "2862617215",
+   "hubspotCompanyId": "347091913423",
+   "email": "400815544005",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8c56104b-65a9-4e9d-a1d8-c0837e7b8fd2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862597607",
+   "canonical": "2862582345",
+   "hubspotCompanyId": "347058844380",
+   "email": "400804244208",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "14ea3391-c8fb-44f5-aa72-8b3de1393ad7",
+    "baeb6380-5a46-4fb7-a546-66a15d69c6a0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2862567165",
+   "canonical": "2862617185",
+   "hubspotCompanyId": "346930173686",
+   "email": "400804178655",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "398eeb9a-40a7-4888-a82c-7e69ce3ec169"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862584222",
+   "canonical": "2862617252",
+   "hubspotCompanyId": "346797774579",
+   "email": "400791722741",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8ebd8107-1a34-4d1f-bf7b-4a5ba5bd550c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862587324",
+   "canonical": "2862567161",
+   "hubspotCompanyId": "347053147894",
+   "email": "400815838943",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e85fcb4d-b3a5-47c3-aa2d-adaf053ad7f0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862581702",
+   "canonical": "2862567106",
+   "hubspotCompanyId": "346874115826",
+   "email": "400815538928",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "66c6faa5-47ea-49de-958a-4cd2b891b02e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862584018",
+   "canonical": "2862582207",
+   "hubspotCompanyId": "347064324811",
+   "email": "400804078320",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a58d535b-a0a0-4e7b-a38d-1c889b77e28d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862617308",
+   "canonical": "2862584243",
+   "hubspotCompanyId": "347058887408",
+   "email": "400813174482",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d80463c1-2a07-4085-a686-d08fbb197680"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862584015",
+   "canonical": "2862581450",
+   "hubspotCompanyId": "347017485013",
+   "email": "400803701453",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9b099300-1e53-4f8c-8b83-00a4101f90f8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862576525",
+   "canonical": "2862565180",
+   "hubspotCompanyId": "347068055279",
+   "email": "400815833831",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b7047f06-a0e2-4298-815e-cafd448c9a84"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862582131",
+   "canonical": "2862586916",
+   "hubspotCompanyId": "346868832981",
+   "email": "400815833789",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "086912b3-8e86-43b0-a56b-74f60071c13d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862575423",
+   "canonical": "2862586017",
+   "hubspotCompanyId": "347058812662",
+   "email": "400755970758",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5f0f0ed2-6534-4237-8b6c-204a5b6960ab"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862583599",
+   "canonical": "2862565122",
+   "hubspotCompanyId": "347075237593",
+   "email": "400734157516",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b205db91-426c-49e1-b649-0d1ff49c30e4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860464392",
+   "canonical": "2861857937",
+   "hubspotCompanyId": "347060730617",
+   "email": "400734155482",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "6c1bf6ee-60d1-4ad9-9313-88182cd6ecdd",
+    "3d69cae4-fcb4-4a83-8e95-ac73eb436a5f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2860464392",
+   "canonical": "2861857937",
+   "hubspotCompanyId": "347060730617",
+   "email": "400618751734",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "dad33a73-8106-4f49-a1e5-860070b99460"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862616838",
+   "canonical": "2862566345",
+   "hubspotCompanyId": "346720047812",
+   "email": "400815830743",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1256f8d9-17ab-4ed2-8949-c1aa98dc35e3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862573377",
+   "canonical": "2862616290",
+   "hubspotCompanyId": "347068056255",
+   "email": "400795311815",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a205d22f-357c-48c2-9e28-e04cb9bd0000"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862570052",
+   "canonical": "2862575129",
+   "hubspotCompanyId": "347058844382",
+   "email": "400755965630",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a6debc74-5d09-4683-937b-406911e8170f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862616601",
+   "canonical": "2862569671",
+   "hubspotCompanyId": "347036942070",
+   "email": "400791709426",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bb266e5e-3870-493a-950c-5cdbad0a1d2a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862573033",
+   "canonical": "2862570735",
+   "hubspotCompanyId": "346868832979",
+   "email": "400795307726",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d7188945-76df-4b7f-8477-311eb34cbf5d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860603955",
+   "canonical": "2860595053",
+   "hubspotCompanyId": "346912557767",
+   "email": "400803690214",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "d3e82d96-c870-413e-8dbd-945c1e118280",
+    "2d7e132b-d811-4073-92e3-d1210d7c5689"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2862565889",
+   "canonical": "2862575107",
+   "hubspotCompanyId": "347071657703",
+   "email": "400795305691",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3aa49ccb-fd68-4baf-ad40-dc5eeb7096da"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862565875",
+   "canonical": "2862574719",
+   "hubspotCompanyId": "347058887386",
+   "email": "400755959487",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d1b11f9b-e775-4b2c-a5ee-8ffe7fa47c06"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862570672",
+   "canonical": "2862564502",
+   "hubspotCompanyId": "347053147883",
+   "email": "400751877836",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ed5857d8-0343-4387-884d-c9ebf62477b3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862566217",
+   "canonical": "2862571168",
+   "hubspotCompanyId": "346967912160",
+   "email": "400791702238",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "07c08b6e-dd8b-4d1a-800f-54fb341fba41"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862564426",
+   "canonical": "2862575226",
+   "hubspotCompanyId": "347093704394",
+   "email": "400795301566",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1f884929-75dc-46cd-9a5f-c5465d78d680"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862564297",
+   "canonical": "2862574741",
+   "hubspotCompanyId": "346967912133",
+   "email": "400803685073",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e7437ff0-4aed-4871-a646-d8c7e8f7619e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862565461",
+   "canonical": "2862565767",
+   "hubspotCompanyId": "346720046835",
+   "email": "400734140149",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d46a2ee4-0fed-45b3-ba4c-e3f568199bc2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862565438",
+   "canonical": "2862575157",
+   "hubspotCompanyId": "346874115803",
+   "email": "400734139092",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9b433f86-a486-43d2-bec0-7acb66800d28"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862572639",
+   "canonical": "2862553050",
+   "hubspotCompanyId": "347068055282",
+   "email": "400802993912",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b8426147-1203-428c-a574-02c723a059fc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862570629",
+   "canonical": "2862565808",
+   "hubspotCompanyId": "346857256667",
+   "email": "400813149916",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c1c69714-4966-485a-b28e-6f5e7ce5d458"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862572724",
+   "canonical": "2862572615",
+   "hubspotCompanyId": "347080628941",
+   "email": "400803676886",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c78f15df-9cc8-4e18-aa7b-491e8438400a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862574273",
+   "canonical": "2862574129",
+   "hubspotCompanyId": "347082422000",
+   "email": "400803588819",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "34772b4d-127f-41c7-92d5-578c093f3651"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862559372",
+   "canonical": "2862559373",
+   "hubspotCompanyId": "347080628936",
+   "email": "400791687904",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6b1cf5dd-fb33-4f27-91af-fc889ef629a7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862615429",
+   "canonical": "2862559061",
+   "hubspotCompanyId": "347082422008",
+   "email": "400799230692",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fa1d43c7-aa81-4bd9-8a26-d68cb3cfb534"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862563796",
+   "canonical": "2862559078",
+   "hubspotCompanyId": "347036942069",
+   "email": "400791686876",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "94f7a881-aa9d-41c3-959f-420b814c7a8c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862552269",
+   "canonical": "2862558627",
+   "hubspotCompanyId": "347060731604",
+   "email": "400799229679",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "85e59bf6-45fc-4b1a-886f-d5c8e22366e1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862559277",
+   "canonical": "2862615162",
+   "hubspotCompanyId": "347053147895",
+   "email": "400755949287",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a2907e4b-7d06-4402-a531-1952ad30d8ff"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862552467",
+   "canonical": "2862572383",
+   "hubspotCompanyId": "346868832983",
+   "email": "400799229628",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "70b1ea22-48f1-4c21-adec-341d39559204"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862558747",
+   "canonical": "2862615469",
+   "hubspotCompanyId": "347040760566",
+   "email": "400813145832",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f34aa9e3-bde1-4625-897f-f8efbefc6806"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862559273",
+   "canonical": "2862551870",
+   "hubspotCompanyId": "347058844400",
+   "email": "400802987741",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fe9edcf4-1280-45fb-8003-d16b95d33be1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862552683",
+   "canonical": "2862558739",
+   "hubspotCompanyId": "347062516472",
+   "email": "400755946233",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "58ea5d5d-55af-4f28-9179-712defd892cd"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862615050",
+   "canonical": "2862552379",
+   "hubspotCompanyId": "346890520255",
+   "email": "400791559870",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "859ff274-994e-484b-a3a0-c07823c6cac4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862615224",
+   "canonical": "2862552320",
+   "hubspotCompanyId": "346917879517",
+   "email": "400791558850",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cc6054c5-a25f-46f2-9cf7-9d33431c9486"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862563520",
+   "canonical": "2862552319",
+   "hubspotCompanyId": "347062516468",
+   "email": "400799225556",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ae8bce57-3281-4892-9917-54f4e04c5155"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862615032",
+   "canonical": "2862572165",
+   "hubspotCompanyId": "346874115810",
+   "email": "400734127834",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "4021a2f1-2ab5-4de6-ada8-faec04b2d42b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862615193",
+   "canonical": "2862557327",
+   "hubspotCompanyId": "346872222419",
+   "email": "400734126820",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f1f2ceaa-49b7-4335-8e52-8bcf2f0f6545"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862572537",
+   "canonical": "2862571915",
+   "hubspotCompanyId": "346868832975",
+   "email": "400791677677",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7a97798c-dc93-48b0-8b87-43edf13094a9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862613694",
+   "canonical": "2862613992",
+   "hubspotCompanyId": "347040760561",
+   "email": "400813136622",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f8e8d434-4253-4c5e-8d07-1104b7eeae1a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862614937",
+   "canonical": "2862613991",
+   "hubspotCompanyId": "347058887398",
+   "email": "400751858387",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8973f98e-b1b5-41c3-8fb7-7871f81540fc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862564014",
+   "canonical": "2862551948",
+   "hubspotCompanyId": "346966131445",
+   "email": "400802981592",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "11fc5d81-b6ff-46b1-b60a-db2fcdf3195f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862574049",
+   "canonical": "2862558898",
+   "hubspotCompanyId": "346890520251",
+   "email": "400791676612",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "35d19e49-1891-4e62-a88c-e7f2c5e81a88"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862614153",
+   "canonical": "2862613952",
+   "hubspotCompanyId": "347051364037",
+   "email": "400734123746",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2a5c7b22-c452-4c00-bb30-01e8c82fad69"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862563549",
+   "canonical": "2862614283",
+   "hubspotCompanyId": "347040760554",
+   "email": "400802977489",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ff65f889-a44d-4361-b56d-d002d3b861a8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862614658",
+   "canonical": "2862614659",
+   "hubspotCompanyId": "347082422971",
+   "email": "400813132477",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "855b8fab-dc82-410e-8317-f6f5ef1bd8ce"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862545277",
+   "canonical": "2862573603",
+   "hubspotCompanyId": "347053147875",
+   "email": "400802974404",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "14a414ca-f70c-4db0-80b1-1a056ad8af00"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862613574",
+   "canonical": "2862551991",
+   "hubspotCompanyId": "347071657720",
+   "email": "400812824250",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "71576edf-3940-46c9-ab05-0ae1ef21a594"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862557208",
+   "canonical": "2862557216",
+   "hubspotCompanyId": "346786675401",
+   "email": "400799215293",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b493f10b-0b50-44c3-9f11-d2e5da7cedc4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862613659",
+   "canonical": "2862614847",
+   "hubspotCompanyId": "346797775548",
+   "email": "400791667425",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d616b668-6177-488a-8936-727b078f2ac7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861702410",
+   "canonical": "2861688459",
+   "hubspotCompanyId": "347060730616",
+   "email": "400751850181",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "07731d42-783a-4c7f-988c-1d1d91159106",
+    "094ee49c-8256-4f33-8ca3-e559a49ce735"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2862551625",
+   "canonical": "2862557896",
+   "hubspotCompanyId": "347058887397",
+   "email": "400789161689",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8fecfa77-dd72-4c63-9488-d59ec1e77cd9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862571719",
+   "canonical": "2862560132",
+   "hubspotCompanyId": "347082422009",
+   "email": "400751848167",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "839ac293-15d8-4c57-aa83-41cea83382e5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862557997",
+   "canonical": "2862562702",
+   "hubspotCompanyId": "346983959237",
+   "email": "400751848135",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "12f23b54-52b6-4e0f-8d9c-ee2ab12ea86c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862571656",
+   "canonical": "2862563093",
+   "hubspotCompanyId": "347071657700",
+   "email": "400795269844",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "083238d3-54c1-458c-93cd-5a7840402fea"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862556634",
+   "canonical": "2862573667",
+   "hubspotCompanyId": "347077025498",
+   "email": "400802967255",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2adda9b4-d983-4cba-aa5f-6f3c1ae4ef7c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862547176",
+   "canonical": "2862561375",
+   "hubspotCompanyId": "347058844396",
+   "email": "400812818113",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "4457692f-59d6-4cff-81b0-923ec89a5b6b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862544448",
+   "canonical": "2862561213",
+   "hubspotCompanyId": "346982390462",
+   "email": "400795268808",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3a741096-ec93-4408-abe0-b828ca42f02f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862560556",
+   "canonical": "2862561141",
+   "hubspotCompanyId": "347077025502",
+   "email": "400791536352",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ec03148d-4700-4aee-b779-04a9edf197d5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862560555",
+   "canonical": "2862557821",
+   "hubspotCompanyId": "346821335754",
+   "email": "400789152493",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "106d2be2-c332-406a-b039-890ce1ead3c8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862547222",
+   "canonical": "2862534904",
+   "hubspotCompanyId": "346720046839",
+   "email": "400791657187",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "efc950ff-abb7-4e04-be80-a71a88944a74"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862544075",
+   "canonical": "2862549031",
+   "hubspotCompanyId": "347080628939",
+   "email": "400795263701",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6f619546-9d0e-4481-9c73-7867a2ad5b2f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862554433",
+   "canonical": "2862555474",
+   "hubspotCompanyId": "346720046837",
+   "email": "400802960101",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7d75fa20-bc77-46a4-8c53-55ef40072e45"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862554308",
+   "canonical": "2862548719",
+   "hubspotCompanyId": "347075237587",
+   "email": "400791534292",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "38c8b859-4dfc-4ac8-9c16-6a11db977431"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862571525",
+   "canonical": "2862544187",
+   "hubspotCompanyId": "347055246055",
+   "email": "400791654118",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "100f7e57-acfd-4c6c-a0aa-f2951ee033a3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862556208",
+   "canonical": "2862534893",
+   "hubspotCompanyId": "347082421993",
+   "email": "400791652064",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c3985cd3-9597-4a0e-bf4d-0015c1cde40a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862543208",
+   "canonical": "2862543105",
+   "hubspotCompanyId": "346872222417",
+   "email": "400802958013",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1fda0ff7-dd7d-4548-99e9-4f209c8257e3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862543089",
+   "canonical": "2862543205",
+   "hubspotCompanyId": "347064324796",
+   "email": "400791531231",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bf7d1564-a9e7-4060-850d-7780ef07dcfb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862547065",
+   "canonical": "2862543766",
+   "hubspotCompanyId": "347053147897",
+   "email": "400791531233",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "836482c7-c6b1-40b2-86c1-9c65dc5d1a09"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862544144",
+   "canonical": "2862544201",
+   "hubspotCompanyId": "346874115824",
+   "email": "400791650039",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cbe50bb1-a0ff-4660-a53c-397ff525cdb1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862548634",
+   "canonical": "2862544105",
+   "hubspotCompanyId": "347055246039",
+   "email": "400791529154",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5688b5b0-1295-4c3e-b013-f2dcec94efe0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862543045",
+   "canonical": "2862543885",
+   "hubspotCompanyId": "346872222418",
+   "email": "400812806868",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "30b46111-fd8a-47f6-a7db-6a9c808b7f44"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862568577",
+   "canonical": "2862568608",
+   "hubspotCompanyId": "346890520256",
+   "email": "400755908336",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3eeab6de-e53c-4f38-8bf6-aeb82ca7538f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862546524",
+   "canonical": "2862543236",
+   "hubspotCompanyId": "346928378583",
+   "email": "400734100197",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "70ab0911-b156-47e1-98ad-986d056da121"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862543651",
+   "canonical": "2862543196",
+   "hubspotCompanyId": "346966131446",
+   "email": "400799194862",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "12256439-44ba-4a19-8366-6374ea157121"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862554084",
+   "canonical": "2862562264",
+   "hubspotCompanyId": "346890520260",
+   "email": "400802951866",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "61c574c9-3149-4d81-843c-8b49bff44989"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862560897",
+   "canonical": "2862560816",
+   "hubspotCompanyId": "346868832991",
+   "email": "400789321462",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b309a32e-65a6-4d3e-b3cb-cb95a3662f60"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862550168",
+   "canonical": "2862546817",
+   "hubspotCompanyId": "347062516467",
+   "email": "400791646910",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "034c13b1-b752-4345-a951-47b5169bfe09"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862542855",
+   "canonical": "2862548399",
+   "hubspotCompanyId": "347080628925",
+   "email": "400791643888",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "233bc6f9-af6d-42b8-b13f-5f86a6ae634e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862553735",
+   "canonical": "2862548617",
+   "hubspotCompanyId": "347075237579",
+   "email": "400813106901",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "66fb841d-c606-4d41-8fcd-2e466113a58d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862534182",
+   "canonical": "2862546712",
+   "hubspotCompanyId": "347068055285",
+   "email": "400802942705",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bcd38c4a-0acb-4553-9b28-745e1ca556f2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860564073",
+   "canonical": "2860564132",
+   "hubspotCompanyId": "346857256651",
+   "email": "400768803518",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "fa8195ac-d7ce-4f17-ac03-baf0110901d8",
+    "683d86ce-0089-4712-bd9a-1bb93fa5f73e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861851280",
+   "canonical": "2861833924",
+   "hubspotCompanyId": "346720046828",
+   "email": "400651054827",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "41aa09b3-4d6f-47f6-aace-90327bec7279"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862290268",
+   "canonical": "2862300958",
+   "hubspotCompanyId": "347075237588",
+   "email": "400733447921",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8ce75b36-65cf-464d-a401-026385458094"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862288589",
+   "canonical": "2862280326",
+   "hubspotCompanyId": "346868832961",
+   "email": "400774412014",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a1f0a4ff-c7df-4108-97c9-780c31be7ea3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862294406",
+   "canonical": "2862279185",
+   "hubspotCompanyId": "347068056260",
+   "email": "400768559827",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "83123e2d-5a2c-4edd-b891-ad0f6f335fc8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862288564",
+   "canonical": "2862294154",
+   "hubspotCompanyId": "346868832987",
+   "email": "400768804557",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8555fba8-7c2b-4471-b737-31feefff6e4d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862285165",
+   "canonical": "2862279748",
+   "hubspotCompanyId": "347080628927",
+   "email": "400775820993",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8c8c9450-3d47-421f-8f27-0306bd0358d9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2862288257",
+   "canonical": "2862285213",
+   "hubspotCompanyId": "347082421995",
+   "email": "400773019369",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a2ad9646-17a6-4d7c-b2b8-21c306ed1fc0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860466339",
+   "canonical": "2860466544",
+   "hubspotCompanyId": "347055246040",
+   "email": "400773019370",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "68db6995-5f1f-4652-9a4b-6004d5980d43",
+    "fe619b4d-94d2-4fe2-8581-633babf75e5e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2862300802",
+   "canonical": "2862284546",
+   "hubspotCompanyId": "346982390466",
+   "email": "400768552643",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2ab17dfa-4f38-4160-8c43-9b6fbddb13c7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861957909",
+   "canonical": "2861950812",
+   "hubspotCompanyId": "347058887402",
+   "email": "400579692232",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "30e99646-7a17-4c75-a885-2c90d408d907"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861938817",
+   "canonical": "2861938659",
+   "hubspotCompanyId": "347036943035",
+   "email": "400618927828",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "994e7042-c665-492f-9993-3d6cfc16a5e1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861957934",
+   "canonical": "2861950609",
+   "hubspotCompanyId": "347071657704",
+   "email": "400596156122",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "714939b2-dcd2-4f19-b661-3b42a36229a5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861957894",
+   "canonical": "2861957846",
+   "hubspotCompanyId": "347082422005",
+   "email": "400633644762",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3da09e6d-e203-4692-a845-5815263c926b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861955622",
+   "canonical": "2861938599",
+   "hubspotCompanyId": "346928378586",
+   "email": "400645167810",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6085fdd2-0030-4fce-942a-a5703abc5efb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861938596",
+   "canonical": "2861938607",
+   "hubspotCompanyId": "347091913435",
+   "email": "400645166808",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bd5b112c-7ae6-4742-9527-7eb55616cb88"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861938647",
+   "canonical": "2861953150",
+   "hubspotCompanyId": "346967912140",
+   "email": "400647045819",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "28348f7f-625e-4a7d-a4ee-6cd2660fbdb7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861957820",
+   "canonical": "2861957828",
+   "hubspotCompanyId": "347071657716",
+   "email": "400645165796",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bd8a79bf-6173-4cdc-89d3-f847d640ba4c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861958027",
+   "canonical": "2861945424",
+   "hubspotCompanyId": "347000883914",
+   "email": "400586582717",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "29e5211b-ea50-4113-9350-2f10b7bc0536"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861958774",
+   "canonical": "2861953075",
+   "hubspotCompanyId": "346982390458",
+   "email": "400596151018",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "65bf48f2-81ca-4ccb-82ab-8e2fc838cd93"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861957697",
+   "canonical": "2861938375",
+   "hubspotCompanyId": "346797774585",
+   "email": "400579685057",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c2279272-df87-4b42-908b-3f2c4c7f6e84"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861947244",
+   "canonical": "2861933155",
+   "hubspotCompanyId": "346982389491",
+   "email": "400629648081",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "03ebf37a-c059-4fd3-adcb-f8b376640127"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861952911",
+   "canonical": "2861957670",
+   "hubspotCompanyId": "346720047803",
+   "email": "400633636555",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f646e667-662a-47cc-bfda-a6a50a03a53b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861945405",
+   "canonical": "2861952830",
+   "hubspotCompanyId": "346967912130",
+   "email": "400596146883",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d54f70ea-34aa-4951-8c5d-0858741ae9ee"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861937820",
+   "canonical": "2861950216",
+   "hubspotCompanyId": "346966131441",
+   "email": "400596146882",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "743b3dd6-3d87-409e-bad0-ebb27f7b495f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861945460",
+   "canonical": "2861927086",
+   "hubspotCompanyId": "347078823655",
+   "email": "400586573501",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "332eb6c5-b7ab-4545-969f-260291fe7ca3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861922731",
+   "canonical": "2861945334",
+   "hubspotCompanyId": "347000883918",
+   "email": "400586572489",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "736ccb24-f0f5-468c-8e51-21690f7f2a3e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861950266",
+   "canonical": "2861950180",
+   "hubspotCompanyId": "346983959239",
+   "email": "400603323112",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "67c6c232-d0d8-4150-abb5-2e02916b7ed6"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861945309",
+   "canonical": "2861945305",
+   "hubspotCompanyId": "346890519285",
+   "email": "400633631448",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bd94c902-4fa4-448b-a169-be5e07bbcbeb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861952879",
+   "canonical": "2861945308",
+   "hubspotCompanyId": "346983959241",
+   "email": "400603323104",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1dd23e3b-8af6-4d42-bdfd-674d34dec1e1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861949908",
+   "canonical": "2861949909",
+   "hubspotCompanyId": "346797775547",
+   "email": "400633629424",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "56189b2f-b21f-43d3-80f5-535519033470"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861938136",
+   "canonical": "2861945991",
+   "hubspotCompanyId": "347051364032",
+   "email": "400589044422",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a1628a2d-9e55-4a5e-b8ee-1e9ca018b32b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861922485",
+   "canonical": "2861950109",
+   "hubspotCompanyId": "347051364031",
+   "email": "400603322102",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0801bdfa-22a9-40ae-8f41-4cbed760fa1d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861950247",
+   "canonical": "2861945297",
+   "hubspotCompanyId": "347093704403",
+   "email": "400596142784",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "0474f8c7-59f8-4551-afdb-c6e3a0519c45",
+    "3951b4a3-4a2c-4c9e-a0ed-d9b4bccf9423"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861928460",
+   "canonical": "2861938039",
+   "hubspotCompanyId": "346982390460",
+   "email": "400651912905",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d2e05783-f2b6-45ed-9b02-36314c9e4c91"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861945205",
+   "canonical": "2861926913",
+   "hubspotCompanyId": "347062516461",
+   "email": "400645154511",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c9d436ff-65ec-4727-9f47-dee108ecf1df"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861938484",
+   "canonical": "2861932404",
+   "hubspotCompanyId": "346823102185",
+   "email": "400651910871",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f5ef95f9-a562-4b55-bd23-600370aa77d1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861932345",
+   "canonical": "2861932346",
+   "hubspotCompanyId": "347071657707",
+   "email": "400596140751",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "213aaeb2-6793-4ad1-9318-f875825344bc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934987",
+   "canonical": "2861950175",
+   "hubspotCompanyId": "347036943034",
+   "email": "400629634791",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a24ad383-2ed4-4f8d-812d-83728121b4bb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861928418",
+   "canonical": "2861946937",
+   "hubspotCompanyId": "347055246051",
+   "email": "400586565362",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d29f6ea3-d6ad-4c6d-a6b9-7df4b800df0a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861952780",
+   "canonical": "2861926855",
+   "hubspotCompanyId": "347058813641",
+   "email": "400589040346",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bab865cf-fa4e-421a-84b2-3fdc5ffdd81f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861950167",
+   "canonical": "2861937955",
+   "hubspotCompanyId": "347058844404",
+   "email": "400618908390",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "55c99e65-bf31-4a9f-ba73-8f2e43d62101"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861932926",
+   "canonical": "2861928407",
+   "hubspotCompanyId": "346890520257",
+   "email": "400596138725",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "40eb22ab-2f56-4b96-94c7-f26d27799bc5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861946927",
+   "canonical": "2861946394",
+   "hubspotCompanyId": "347000883921",
+   "email": "400618908351",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8686e70b-9e61-4a7d-87bb-d5158795e3c8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861932092",
+   "canonical": "2861934659",
+   "hubspotCompanyId": "346982390468",
+   "email": "400651908827",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a9139d10-3fc3-4f0a-be87-8d98f9019578"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861945053",
+   "canonical": "2861933229",
+   "hubspotCompanyId": "347060731597",
+   "email": "400594329318",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f54a6249-cd0c-49f2-a319-7c6372b757ed"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934975",
+   "canonical": "2861937780",
+   "hubspotCompanyId": "346917879511",
+   "email": "400586563283",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3c33bb77-6774-45c6-8801-4ab74b909ebe"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861922598",
+   "canonical": "2861932426",
+   "hubspotCompanyId": "347051364034",
+   "email": "400618907327",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0cd4a9b3-13c8-42f5-949d-f36c417cf2d0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926834",
+   "canonical": "2861937943",
+   "hubspotCompanyId": "346967912155",
+   "email": "400579668670",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "eff64df3-6e7b-4aae-af36-ea0e619c7483"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926809",
+   "canonical": "2861952503",
+   "hubspotCompanyId": "346720046836",
+   "email": "400596134587",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "dd4f9208-2f16-425d-af1b-c6cbed69114d",
+    "a283eb31-a8c8-4620-af00-51339ac30947"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861926797",
+   "canonical": "2861932063",
+   "hubspotCompanyId": "346868832976",
+   "email": "400633620198",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "aac7e72c-961c-4d9b-8b1c-fb03cf139a7e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861928081",
+   "canonical": "2861928083",
+   "hubspotCompanyId": "347060731579",
+   "email": "400579667661",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a12c8a1b-71e9-47a2-abfb-a14872f7843e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861927836",
+   "canonical": "2861922090",
+   "hubspotCompanyId": "346890519288",
+   "email": "400603311824",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "18b5ebc4-276a-4c5d-80d3-54ed46075920",
+    "8f1ce252-bcc0-432f-ba00-91c0ef33a4bc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861927836",
+   "canonical": "2861922090",
+   "hubspotCompanyId": "346890519288",
+   "email": "400596125372",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b8707448-386c-464b-af9e-73cbb6a3053e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926755",
+   "canonical": "2861931930",
+   "hubspotCompanyId": "346912557783",
+   "email": "400633618132",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "08fd36da-1b81-44c4-9538-7f9dcb58b3f4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861937667",
+   "canonical": "2861922258",
+   "hubspotCompanyId": "347093704413",
+   "email": "400589032172",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a52b8f07-ad95-456d-b29f-68fa57041d78"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861931892",
+   "canonical": "2861926671",
+   "hubspotCompanyId": "347051363053",
+   "email": "400629626605",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8078c59d-cf20-49fa-941b-1f8bbf07ba86"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934736",
+   "canonical": "2861949847",
+   "hubspotCompanyId": "347053147882",
+   "email": "400594321123",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "43c1f12d-a6be-40ea-a090-dc9fa006306b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861928072",
+   "canonical": "2861930152",
+   "hubspotCompanyId": "346967912136",
+   "email": "400589031104",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6ad47608-d3ae-402d-ae7a-bc9b3740cef0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861912190",
+   "canonical": "2861914788",
+   "hubspotCompanyId": "346797774578",
+   "email": "400596128450",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "5fdbb103-034b-4f3f-afc2-799315962bf5",
+    "931b8bd1-4d66-4c49-b127-f66512e081bb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861912190",
+   "canonical": "2861914788",
+   "hubspotCompanyId": "346797774578",
+   "email": "400588979932",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ba02e84e-623f-4a7c-bd86-0112f32c9cb1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926476",
+   "canonical": "2861926881",
+   "hubspotCompanyId": "346857256668",
+   "email": "400589030137",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2c24be11-7e8d-4836-aa76-eda9d4c5afe7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861935559",
+   "canonical": "2861927591",
+   "hubspotCompanyId": "347058887392",
+   "email": "400586556112",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "dd947894-2614-49f5-9a5e-73775cddd2ea"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934177",
+   "canonical": "2861926643",
+   "hubspotCompanyId": "347055246058",
+   "email": "400618896068",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8ef2c0ba-1447-40e5-a20e-3b8f68f1a779"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934175",
+   "canonical": "2861927830",
+   "hubspotCompanyId": "347000883915",
+   "email": "400594314991",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cc7922f7-0dfa-43aa-b994-26b35b7dc695"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934592",
+   "canonical": "2861926367",
+   "hubspotCompanyId": "346982390467",
+   "email": "400618895034",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cc0c7297-833d-49cf-976b-306793e3f7a0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861921965",
+   "canonical": "2861934230",
+   "hubspotCompanyId": "347058887396",
+   "email": "400579658453",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "adc80b9c-6e4f-4edf-8bed-354e10eb6349"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861934223",
+   "canonical": "2861931692",
+   "hubspotCompanyId": "346930174652",
+   "email": "400618894015",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cd070ea7-66e2-4acd-a396-13d3cc19a155"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861929355",
+   "canonical": "2861929877",
+   "hubspotCompanyId": "347091913432",
+   "email": "400594312891",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ff848df8-0e28-44e0-b284-0f5d5a399b33"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861921946",
+   "canonical": "2861929584",
+   "hubspotCompanyId": "346912557758",
+   "email": "400645135091",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "adc8f901-ab83-423d-9f8f-893a7b1b1946"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861927612",
+   "canonical": "2861931626",
+   "hubspotCompanyId": "346857256659",
+   "email": "400647013085",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "295d8721-d7a6-40c0-ba20-efbf3aea687c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926325",
+   "canonical": "2861921886",
+   "hubspotCompanyId": "346821335757",
+   "email": "400596119277",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "74d890eb-d781-4ea1-85d7-3b8fc90f8c46"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860578553",
+   "canonical": "2860584293",
+   "hubspotCompanyId": "347078823651",
+   "email": "400645135035",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "9005944c-6b32-4e71-932e-7c7c88dde756",
+    "be69e073-24e2-413c-8743-7c07cbeded23"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861927667",
+   "canonical": "2861929692",
+   "hubspotCompanyId": "347058844398",
+   "email": "400651557608",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "105dd34a-fc3a-4964-b16b-6e5af9175a34"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926167",
+   "canonical": "2861926168",
+   "hubspotCompanyId": "346928378576",
+   "email": "400594309821",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8a74d6d6-9e30-4c0a-9419-e6962cef2bb8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861926017",
+   "canonical": "2861926570",
+   "hubspotCompanyId": "347080628928",
+   "email": "400651554549",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8b1b06a0-11c2-4ab3-9e3d-a536bf6d41bd"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861933642",
+   "canonical": "2861919057",
+   "hubspotCompanyId": "346928378582",
+   "email": "400579648190",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8ed244ef-ba8d-4b51-8688-47c416a58a12"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861919056",
+   "canonical": "2861933672",
+   "hubspotCompanyId": "347091892949",
+   "email": "400596116164",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6262092c-e4c7-4089-88ef-365eef27bc3a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861933657",
+   "canonical": "2861925945",
+   "hubspotCompanyId": "347078823653",
+   "email": "400586543839",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9ee7e690-1c6f-4ad9-9d78-f621d94dfda5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861933739",
+   "canonical": "2861919141",
+   "hubspotCompanyId": "347068055275",
+   "email": "400618886877",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "38bda94b-0f4a-477d-af4d-f457d294654a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861919109",
+   "canonical": "2861919110",
+   "hubspotCompanyId": "347017485031",
+   "email": "400579646178",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7083ea40-7557-4c60-b0fa-eaac099a65c2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861929792",
+   "canonical": "2861926213",
+   "hubspotCompanyId": "347064324795",
+   "email": "400645128950",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a21676d8-8801-4066-bfe9-005e98cfbd73"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861925982",
+   "canonical": "2861926144",
+   "hubspotCompanyId": "347058813640",
+   "email": "400589011646",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "af6a75ba-3b8f-4305-b7e2-f89d3e0b6cff"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861933576",
+   "canonical": "2861933714",
+   "hubspotCompanyId": "347058887399",
+   "email": "400651543252",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "65804695-69e7-40ce-97b1-368c9e0baf2e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861933545",
+   "canonical": "2861933499",
+   "hubspotCompanyId": "346966131433",
+   "email": "400579636953",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "df65ce51-cdab-4b57-a17a-8cb7d0184630"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861916963",
+   "canonical": "2861925763",
+   "hubspotCompanyId": "346872222414",
+   "email": "400594296558",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a1ba6869-6ebc-47e2-853f-8c327300878b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861925230",
+   "canonical": "2861925722",
+   "hubspotCompanyId": "347091913438",
+   "email": "400596105946",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "915c66f4-5bcf-4394-b1f8-94b3aa1c8a3b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861921135",
+   "canonical": "2861916962",
+   "hubspotCompanyId": "347078823661",
+   "email": "400579634890",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e31d4069-3c5d-466c-87e6-a0972c76dd07"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860608088",
+   "canonical": "2860607928",
+   "hubspotCompanyId": "346912557765",
+   "email": "400594295542",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "78ef81a9-a842-4709-a55f-6711e9ac41ce",
+    "c0c47508-a77c-4283-a695-3c2919d137ff"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861916544",
+   "canonical": "2861925517",
+   "hubspotCompanyId": "347055246053",
+   "email": "400629600998",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1907ef0b-3841-44b1-ab42-7e28cd491029"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861921443",
+   "canonical": "2861916756",
+   "hubspotCompanyId": "347082422973",
+   "email": "400633588465",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "62ea2427-822a-4865-9473-25d9e6da1a03"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861921206",
+   "canonical": "2861925469",
+   "hubspotCompanyId": "346857256669",
+   "email": "400646989555",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f4733087-c30d-47c5-a79f-50b4923fa8ac"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861912783",
+   "canonical": "2861925480",
+   "hubspotCompanyId": "347093704404",
+   "email": "400618871521",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b682031e-3744-46a1-9d4d-8b12775d7a78"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861925476",
+   "canonical": "2861916421",
+   "hubspotCompanyId": "347091892955",
+   "email": "400618871501",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7fe5126b-ac37-4a00-afb5-8fdbebcf95aa"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861924861",
+   "canonical": "2861916833",
+   "hubspotCompanyId": "346857256666",
+   "email": "400633579232",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "85e41f13-8039-4862-94a5-4ac4ebc6fdd9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861915240",
+   "canonical": "2861916870",
+   "hubspotCompanyId": "347051364033",
+   "email": "400651528907",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9a145ec9-c618-49b5-9a27-903843995f3d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861925400",
+   "canonical": "2861915217",
+   "hubspotCompanyId": "346967912123",
+   "email": "400618862266",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7fbb946b-be8e-4870-9512-ecd49212eb25"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2857182299",
+   "canonical": "2861924158",
+   "hubspotCompanyId": "346966131428",
+   "email": "400633577146",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cd68251a-fc76-4b6c-9eb1-ed4fea65cb14"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917875",
+   "canonical": "2861924015",
+   "hubspotCompanyId": "347077025489",
+   "email": "400645105390",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6cf88592-34bb-4044-8cb8-e8515ac5eccc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917767",
+   "canonical": "2861918048",
+   "hubspotCompanyId": "347075237576",
+   "email": "400588992193",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "66c03d11-4e97-4f6c-a869-59c730c808a3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861918658",
+   "canonical": "2861919732",
+   "hubspotCompanyId": "346874115800",
+   "email": "400579615439",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2892bf3a-da75-4c37-909a-4bc6e9ae90e6"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861912574",
+   "canonical": "2861923880",
+   "hubspotCompanyId": "346966131434",
+   "email": "400651522767",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a211c000-487a-4f52-9054-b98c8e2d05b8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861916087",
+   "canonical": "2861923927",
+   "hubspotCompanyId": "347058813639",
+   "email": "400646972128",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ca456ace-9586-4b6c-9652-76d612395b0a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861923961",
+   "canonical": "2861916086",
+   "hubspotCompanyId": "346982389495",
+   "email": "400633568954",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ce6b1366-8260-4021-b04c-5578b4edff74"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917652",
+   "canonical": "2861912276",
+   "hubspotCompanyId": "347071657699",
+   "email": "400629581522",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3b33b220-4b2f-41ad-9204-05a10ea45a22"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917628",
+   "canonical": "2861915492",
+   "hubspotCompanyId": "347080628949",
+   "email": "400594276032",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c03ed1d6-5786-43bf-95bd-4c02fa6ebba2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861914981",
+   "canonical": "2861912314",
+   "hubspotCompanyId": "347064323826",
+   "email": "400596085451",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "77508f06-4de2-492d-96dc-46ad407e83ed"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861912053",
+   "canonical": "2861914702",
+   "hubspotCompanyId": "346928378560",
+   "email": "400618852032",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "318a83fe-1e93-4c1a-90e3-960023d27492"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861915688",
+   "canonical": "2861917585",
+   "hubspotCompanyId": "347078823656",
+   "email": "400651677414",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "7f35e9d5-f95b-4b04-8671-fa4a13690536",
+    "02d89866-e61e-4dba-bac4-969490409a7e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861915688",
+   "canonical": "2861917585",
+   "hubspotCompanyId": "347078823656",
+   "email": "400596083447",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "422425cc-d2b9-47b1-9e26-4ab98bc2bd27",
+    "53332b9c-04df-4826-92af-5aa649bd7012"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861923712",
+   "canonical": "2861923503",
+   "hubspotCompanyId": "346797774576",
+   "email": "400618848971",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7df1740a-bd8d-47af-8072-674702281079"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917435",
+   "canonical": "2861912195",
+   "hubspotCompanyId": "347078823666",
+   "email": "400594271962",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "865abea0-5bf6-4a47-be28-48162263a8ed"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861915882",
+   "canonical": "2861912249",
+   "hubspotCompanyId": "347058887394",
+   "email": "400645096130",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "59009255-1e96-435b-9634-0decbd2c9017"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861837240",
+   "canonical": "2861845710",
+   "hubspotCompanyId": "347051363055",
+   "email": "400603254519",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "04aeabc3-8c1a-43af-a5e8-8dc2941f4aca",
+    "a3a17dbd-0267-4b48-bc6b-ba5556444542"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861837240",
+   "canonical": "2861845710",
+   "hubspotCompanyId": "347051363055",
+   "email": "400588879591",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c219babe-24bd-40b2-89dc-261f9d90ebb1"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861919394",
+   "canonical": "2861919324",
+   "hubspotCompanyId": "347058813633",
+   "email": "400651515579",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9b0cc804-622b-4bef-b16b-05b3e8016aac"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861914553",
+   "canonical": "2861917386",
+   "hubspotCompanyId": "346966131435",
+   "email": "400588978919",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a050b3b2-de4c-427d-8ffa-99b213a12d24"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861907206",
+   "canonical": "2861914599",
+   "hubspotCompanyId": "347000883919",
+   "email": "400645093081",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fd18907d-0d01-4b5b-ba54-71c72084f610"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861923663",
+   "canonical": "2861914503",
+   "hubspotCompanyId": "347053147896",
+   "email": "400586505938",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "71fa0b02-808e-4a8e-a2d9-181c97205231"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917354",
+   "canonical": "2861919372",
+   "hubspotCompanyId": "346928378585",
+   "email": "400629572315",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "41950b3d-764b-40d0-ade1-9fe35b9915a3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861917314",
+   "canonical": "2861912080",
+   "hubspotCompanyId": "346967912139",
+   "email": "400586504918",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3d95848d-3a28-4216-9667-a4e7dfe32e39"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861914539",
+   "canonical": "2861914340",
+   "hubspotCompanyId": "346982390471",
+   "email": "400586503879",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fa7face8-6e47-4ec6-9d68-6b67b472c9ca"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861911902",
+   "canonical": "2861905160",
+   "hubspotCompanyId": "347064324810",
+   "email": "400596074187",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0e30b666-c57b-414e-b6e4-02142290fc32"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861905124",
+   "canonical": "2861904989",
+   "hubspotCompanyId": "347060731581",
+   "email": "400603248333",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "85b893db-42d5-42d0-9ce9-69dd3ebecaca"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861911186",
+   "canonical": "2861909202",
+   "hubspotCompanyId": "346797775546",
+   "email": "400594263798",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f9e404b2-c5ce-4b23-ac96-a401ea8e7837"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861923332",
+   "canonical": "2861923333",
+   "hubspotCompanyId": "347093704408",
+   "email": "400586498802",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8703dc2a-cb89-40b6-8b7f-a234139d537a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860592636",
+   "canonical": "2860600171",
+   "hubspotCompanyId": "347068055283",
+   "email": "400651505390",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "67e90175-7891-474d-9082-9a985c599e26",
+    "0d91bece-e762-4ae8-a108-277a24d18d93"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861909144",
+   "canonical": "2861904749",
+   "hubspotCompanyId": "347000883922",
+   "email": "400629563085",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c8c625e4-ca9b-4519-8e96-1b19cd75d6ef"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861909162",
+   "canonical": "2861911154",
+   "hubspotCompanyId": "347082421991",
+   "email": "400629561049",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9c93ac5b-c225-4387-b968-2b2f86ab29d2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861911110",
+   "canonical": "2861911015",
+   "hubspotCompanyId": "347093704400",
+   "email": "400651502312",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "88660cf4-ca77-4034-9e82-68988def1afe",
+    "5e409c8d-a3d7-41b0-85eb-fc986b6b514c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2860474519",
+   "canonical": "2861911462",
+   "hubspotCompanyId": "346857256655",
+   "email": "400586495689",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "294bc79e-71e9-47c0-94dd-d1ae0ce6291b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861906713",
+   "canonical": "2861913790",
+   "hubspotCompanyId": "347062516470",
+   "email": "400579589873",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d178e793-b53c-4e1c-99ea-0a38d5d4778b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861904818",
+   "canonical": "2861911423",
+   "hubspotCompanyId": "346720046830",
+   "email": "400651342571",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1ece2531-696d-443b-9eba-27c07ac49547"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861914040",
+   "canonical": "2861904689",
+   "hubspotCompanyId": "346930173689",
+   "email": "400594254584",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8eefe1ea-9488-428e-b398-19df8a5b0582"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861904167",
+   "canonical": "2861904182",
+   "hubspotCompanyId": "346928378557",
+   "email": "400651340521",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f3657aa7-83a5-43d9-8e98-5db3440f738c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861911444",
+   "canonical": "2861904620",
+   "hubspotCompanyId": "347062516457",
+   "email": "400588960491",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fe9e51c2-5f15-43d9-8cbf-8ba975a268d8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861913292",
+   "canonical": "2861908755",
+   "hubspotCompanyId": "346890519271",
+   "email": "400596054718",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8d80fda8-7bfc-436f-8ffb-f6c8dd9dd848"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861904514",
+   "canonical": "2861904185",
+   "hubspotCompanyId": "346912557763",
+   "email": "400586489579",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "233b02f9-3aac-4ad5-a367-331061a6c7d8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861910435",
+   "canonical": "2861910294",
+   "hubspotCompanyId": "346967912143",
+   "email": "400603233989",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "4fbc93d5-8be8-4608-a818-79faf3247e2f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861910433",
+   "canonical": "2861910608",
+   "hubspotCompanyId": "346912557791",
+   "email": "400586486517",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "46bb06ed-9fe0-43a9-ab93-aed176715bce"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861913740",
+   "canonical": "2861908745",
+   "hubspotCompanyId": "346928378580",
+   "email": "400594250428",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "16cb82f1-33a3-4b91-bacc-973f0fc16857"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861904337",
+   "canonical": "2861907789",
+   "hubspotCompanyId": "346912557766",
+   "email": "400596048595",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "29f722dd-94cc-4bec-a889-1cbc7e0e26bf"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860464560",
+   "canonical": "2860531841",
+   "hubspotCompanyId": "346868832965",
+   "email": "400651331312",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "34e09684-15a4-4aa2-8c0e-b0f943e33aa2",
+    "99bd202e-534e-4234-a134-0f53ad863ac6"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861904318",
+   "canonical": "2861910131",
+   "hubspotCompanyId": "346823102171",
+   "email": "400618820325",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "297345d7-4219-4c43-b0e3-0663e2f8d92a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861905863",
+   "canonical": "2861910199",
+   "hubspotCompanyId": "347078823665",
+   "email": "400596046556",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d8a6ec91-8b68-4688-bfe0-928df6990960"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861908397",
+   "canonical": "2861903921",
+   "hubspotCompanyId": "346857256674",
+   "email": "400646939346",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "584e79cb-3b3b-4baa-be96-e30ebf719f98"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861905645",
+   "canonical": "2861902617",
+   "hubspotCompanyId": "346982390470",
+   "email": "400588952254",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9fd8540b-4065-4334-a9d4-7d506a2795fc"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861902855",
+   "canonical": "2861905644",
+   "hubspotCompanyId": "346928378571",
+   "email": "400596045544",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "3aafbd6a-92ae-48c9-ad2a-cff2d64162bb",
+    "8bcf9685-1f79-4999-8702-554eb75f9761"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861902699",
+   "canonical": "2861909925",
+   "hubspotCompanyId": "346821335763",
+   "email": "400579574514",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ef33dffb-65ab-4132-b5f1-e5c6836fa0ca"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861905611",
+   "canonical": "2861900592",
+   "hubspotCompanyId": "347058844395",
+   "email": "400651328217",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9c0aba69-08a8-4f3f-9a6d-072d015a9a5c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861900553",
+   "canonical": "2861894600",
+   "hubspotCompanyId": "347080628930",
+   "email": "400586478309",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "badda004-c20e-4131-98f4-cad493a9df0b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861894970",
+   "canonical": "2861909659",
+   "hubspotCompanyId": "346983959229",
+   "email": "400645064438",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7561d486-a919-4d65-af8a-53fe1fc2ac60"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861905567",
+   "canonical": "2861907329",
+   "hubspotCompanyId": "347093704401",
+   "email": "400618815219",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "dad286b2-eb99-4d91-be2f-161e3f020311"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861895096",
+   "canonical": "2861893012",
+   "hubspotCompanyId": "347058813642",
+   "email": "400629535452",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1eea07ed-0f5c-4147-b072-33e27080acc9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861900425",
+   "canonical": "2861907702",
+   "hubspotCompanyId": "346917879508",
+   "email": "400651324096",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "00394c30-278a-47e9-bcd5-3c1f86dde31f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861892154",
+   "canonical": "2861900415",
+   "hubspotCompanyId": "347051364029",
+   "email": "400586475227",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9bb1a6fc-0f73-4cc4-b64c-a9df1dc72e63"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861907692",
+   "canonical": "2861892153",
+   "hubspotCompanyId": "347077025486",
+   "email": "400592155339",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "2c0c86bc-3212-47dc-8dc5-7112d413714f",
+    "574490b9-c26f-4827-ba71-be29e13832d3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861907692",
+   "canonical": "2861892153",
+   "hubspotCompanyId": "347077025486",
+   "email": "400629532395",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "efa17981-26ef-415e-ac01-0eeeb432f102"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861894287",
+   "canonical": "2861892149",
+   "hubspotCompanyId": "347077025499",
+   "email": "400645059287",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fe81d252-4a92-477c-9f45-e0c506bf1dc4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861894782",
+   "canonical": "2861894837",
+   "hubspotCompanyId": "347093704395",
+   "email": "400594231020",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1eea611b-fc61-40ff-b547-6f5c7acfcf60"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861903226",
+   "canonical": "2861899024",
+   "hubspotCompanyId": "347053147884",
+   "email": "400586471152",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cdaa28ce-353a-4de7-9d59-7c46614ac815"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861899839",
+   "canonical": "2861901564",
+   "hubspotCompanyId": "347058844384",
+   "email": "400645054142",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "09c7eecf-a57c-4ba1-b64e-9fc056b96afa"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861907231",
+   "canonical": "2861894076",
+   "hubspotCompanyId": "346982390465",
+   "email": "400588939968",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "4ed87ed8-9271-4a94-ba19-fa34d1103fb4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861898482",
+   "canonical": "2861893876",
+   "hubspotCompanyId": "346982389493",
+   "email": "400645053125",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "117f370f-f043-4f8d-88f1-0b16ffea3d36"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861901401",
+   "canonical": "2861902168",
+   "hubspotCompanyId": "347058844385",
+   "email": "400588938965",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5ed41309-6da9-427e-9163-6765052dc354"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861899718",
+   "canonical": "2861901565",
+   "hubspotCompanyId": "347058812658",
+   "email": "400579561179",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9ed50a73-995e-48e5-9c5a-72b5557e5609"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861898773",
+   "canonical": "2861892090",
+   "hubspotCompanyId": "346720046840",
+   "email": "400579560124",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cb8c58d3-6046-45af-932f-e1cd682ae1d2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861897733",
+   "canonical": "2861890774",
+   "hubspotCompanyId": "347071657697",
+   "email": "400618799823",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d04526b9-24c4-4cb7-ad5e-637210fb8594"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861898226",
+   "canonical": "2861891164",
+   "hubspotCompanyId": "347053147889",
+   "email": "400651101918",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e0d24fc9-f56d-4c3b-8355-6dd7c92f4ac4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861897714",
+   "canonical": "2861891150",
+   "hubspotCompanyId": "346890519282",
+   "email": "400651100897",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "54107fbf-3b5a-4373-af6a-710ae565eb89"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861890371",
+   "canonical": "2861888683",
+   "hubspotCompanyId": "347055246047",
+   "email": "400651100896",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6f0fe06d-1b7a-4649-89ec-b969bc748cdb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861898181",
+   "canonical": "2861889811",
+   "hubspotCompanyId": "347058812659",
+   "email": "400618796780",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8768d4a1-b5e7-4680-9a2c-458f648b16e8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861888250",
+   "canonical": "2861897602",
+   "hubspotCompanyId": "347060731583",
+   "email": "400579555009",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8b8bece3-4990-45d7-8716-f5bdae9a746b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860460404",
+   "canonical": "2861886680",
+   "hubspotCompanyId": "347058812660",
+   "email": "400618795747",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b133ddc5-aa98-4f03-991a-1df97d56a011"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861880955",
+   "canonical": "2861887612",
+   "hubspotCompanyId": "346786675400",
+   "email": "400586453696",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "75ab7427-9660-4864-afdd-f81ffa43f198"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861875931",
+   "canonical": "2861884038",
+   "hubspotCompanyId": "346912557787",
+   "email": "400651302596",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "58c5a324-b233-43a8-81c1-a7e1f0531f51"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861882141",
+   "canonical": "2861880615",
+   "hubspotCompanyId": "347068056261",
+   "email": "400651302586",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e32e4460-8558-4f64-be08-a79203a63b37"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861883853",
+   "canonical": "2861880608",
+   "hubspotCompanyId": "346874115817",
+   "email": "400579549928",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "dbbc3e91-61bd-46dd-babb-38c8a862becf"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861884147",
+   "canonical": "2861886001",
+   "hubspotCompanyId": "346874115823",
+   "email": "400629509879",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7493c00c-45ff-494e-bcce-61edf0422d9f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861885986",
+   "canonical": "2861875894",
+   "hubspotCompanyId": "347040761530",
+   "email": "400596014799",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7c57a9c8-294e-4ad8-85fe-13b8110d990d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861875495",
+   "canonical": "2861880261",
+   "hubspotCompanyId": "347051364028",
+   "email": "400629508796",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "81d8bb30-97a9-444c-9195-5f0c93b68f8a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861875491",
+   "canonical": "2861878848",
+   "hubspotCompanyId": "347082422970",
+   "email": "400596013777",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "1dce150d-8930-4350-afa7-ac1a61e19574"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861885388",
+   "canonical": "2861883690",
+   "hubspotCompanyId": "347078823652",
+   "email": "400651086578",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "e1aad074-5d45-483c-90eb-31efdbf00323"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861883865",
+   "canonical": "2861880111",
+   "hubspotCompanyId": "347058844379",
+   "email": "400588919527",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "bc96013c-dfad-4fab-8d67-5f5c420398db"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861880170",
+   "canonical": "2861885935",
+   "hubspotCompanyId": "347058812655",
+   "email": "400596009659",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c8c8cb9a-f30a-47aa-ba49-00f403edfa66"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861885815",
+   "canonical": "2861875111",
+   "hubspotCompanyId": "346797774584",
+   "email": "400579544802",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0044475e-c472-43af-9b7a-f67d9f7f271e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861878486",
+   "canonical": "2861875196",
+   "hubspotCompanyId": "346890519273",
+   "email": "400651085504",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "17582f59-e1f4-4ace-9443-08c5f4a80603"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861875585",
+   "canonical": "2861880032",
+   "hubspotCompanyId": "346912557762",
+   "email": "400651010746",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "835c08bb-bf88-4b3e-bf17-72fc03b90d39"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861878946",
+   "canonical": "2861881606",
+   "hubspotCompanyId": "347053147881",
+   "email": "400596008651",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7c4110a4-b00e-41d3-9e86-9fcfd0322e42"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861880485",
+   "canonical": "2861879953",
+   "hubspotCompanyId": "346857256662",
+   "email": "400618785514",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5cb6e69f-d0ee-400c-b95f-48046af674a2"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861878364",
+   "canonical": "2861885476",
+   "hubspotCompanyId": "347064323823",
+   "email": "400594201277",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9a19b1ea-b32b-4d06-bc19-77271a96d0cb"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861860452",
+   "canonical": "2861878633",
+   "hubspotCompanyId": "347058813628",
+   "email": "400646899404",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9821ff23-331e-4ed0-a7bc-5200c441189f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861864730",
+   "canonical": "2861883584",
+   "hubspotCompanyId": "347075237581",
+   "email": "400629499615",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8d28441d-ebcb-42d7-b612-db380aac15d7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861860972",
+   "canonical": "2861873039",
+   "hubspotCompanyId": "346857256677",
+   "email": "400645022406",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "763d1138-f56f-4f0f-a25f-32efbeb22653"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861880028",
+   "canonical": "2861885223",
+   "hubspotCompanyId": "347017485022",
+   "email": "400603192007",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c73eb02c-bca5-492f-a5c4-06360ecd12f9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861883539",
+   "canonical": "2861881298",
+   "hubspotCompanyId": "346930173683",
+   "email": "400646897353",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a2a35c6a-cb1c-42fb-8aaa-2f8d3fd1bb06"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861879939",
+   "canonical": "2861860906",
+   "hubspotCompanyId": "346890519280",
+   "email": "400651002585",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3cc28ddc-b6ec-4e8e-b431-40d216f0ce40"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861875315",
+   "canonical": "2861874853",
+   "hubspotCompanyId": "346857256679",
+   "email": "400595999433",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c85fbbfd-f434-4fbd-b95b-5bd712df9ce4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861879774",
+   "canonical": "2861864722",
+   "hubspotCompanyId": "347077025500",
+   "email": "400646894318",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "fbba128c-c7f1-4d95-948e-43b5adc05c6c"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861864005",
+   "canonical": "2861874633",
+   "hubspotCompanyId": "346967912145",
+   "email": "400646892259",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "d725de02-6e9e-4fea-b221-5313cc94042e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861870683",
+   "canonical": "2861864006",
+   "hubspotCompanyId": "347000883924",
+   "email": "400579532503",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f7c01815-5706-425d-80e1-a1de8ba7ebab"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861874530",
+   "canonical": "2861860143",
+   "hubspotCompanyId": "346890519286",
+   "email": "400618771175",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ce1553bb-85b8-48c1-ba26-1013e5f8d315"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860467190",
+   "canonical": "2860514724",
+   "hubspotCompanyId": "346930173681",
+   "email": "400579531465",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "d30ca796-a29e-4cf1-a7c2-24da2f20bbe1",
+    "e9188886-26db-4d30-b4c1-626c1c096139"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861877259",
+   "canonical": "2861859816",
+   "hubspotCompanyId": "346868832989",
+   "email": "400650998485",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "aea81c44-d8ca-4488-81c4-1925fb7a22e6"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861860102",
+   "canonical": "2861874206",
+   "hubspotCompanyId": "347053147891",
+   "email": "400646888136",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "01e3d4ac-16f8-4011-bd98-c945db3cce59"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861872472",
+   "canonical": "2861872353",
+   "hubspotCompanyId": "347058813627",
+   "email": "400579529428",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a0e5f401-706f-4348-b382-8c63a8ff0ce3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861863579",
+   "canonical": "2861859676",
+   "hubspotCompanyId": "347091913437",
+   "email": "400579528417",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "9f7e582a-48a1-41a7-a9a8-b7a619b781e4"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861863968",
+   "canonical": "2861877203",
+   "hubspotCompanyId": "346821335760",
+   "email": "400650995420",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "931e1622-25da-436c-8674-235aff417921"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861864111",
+   "canonical": "2861872543",
+   "hubspotCompanyId": "346966131442",
+   "email": "400629482216",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3b0f4fa3-a132-42f6-916c-d7763d6cb475"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861863956",
+   "canonical": "2861874595",
+   "hubspotCompanyId": "347080628924",
+   "email": "400603177717",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "322c52ac-eef7-44af-8843-d1915cb28402"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861873989",
+   "canonical": "2861872050",
+   "hubspotCompanyId": "347091892948",
+   "email": "400629481191",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3450c5b3-de0c-4926-b41a-d46b47ed5953"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861877661",
+   "canonical": "2861863759",
+   "hubspotCompanyId": "346912557761",
+   "email": "400603176640",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7d84d8b5-934e-4a92-bb68-0b6af7d692b8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861848532",
+   "canonical": "2861848750",
+   "hubspotCompanyId": "346890519276",
+   "email": "400594184952",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ddb3acfc-15f0-4ca6-b4e2-fd5c5696026e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861871686",
+   "canonical": "2861870197",
+   "hubspotCompanyId": "346967912135",
+   "email": "400594184953",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "31bbfdfe-1861-4fd8-a18a-87fa15af1b4b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861870032",
+   "canonical": "2861850684",
+   "hubspotCompanyId": "347000883911",
+   "email": "400646883033",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "c6fda16a-e5ff-4595-817f-89ba439aed72",
+    "aa740e9d-607c-4581-b3ff-d39a452ca0d3"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861866588",
+   "canonical": "2861871089",
+   "hubspotCompanyId": "347058812664",
+   "email": "400588893923",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5cb43c7a-0bb6-4134-b6d9-45ccee005030"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861856839",
+   "canonical": "2861856422",
+   "hubspotCompanyId": "346857256658",
+   "email": "400579522271",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "11d532d1-9407-4457-8e00-4564bf210883"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860513550",
+   "canonical": "2860527092",
+   "hubspotCompanyId": "346786675390",
+   "email": "400651064037",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "12b99809-f25d-4974-88ef-daa11c59afe9",
+    "b251907b-98f0-4e3a-bfdb-42b02f25b90e"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861834811",
+   "canonical": "2861855248",
+   "hubspotCompanyId": "347058844394",
+   "email": "400618759918",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c4c8ec9f-1db3-4336-9e2f-759841f8a33d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861849291",
+   "canonical": "2861855247",
+   "hubspotCompanyId": "346872222409",
+   "email": "400645005032",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "0aacb31d-314a-490d-b69e-42e402fdfeda"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861847476",
+   "canonical": "2861855323",
+   "hubspotCompanyId": "347075237582",
+   "email": "400603171546",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "4f6d6261-1b03-4830-9418-41a596c89dea"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861844553",
+   "canonical": "2861844999",
+   "hubspotCompanyId": "347058813626",
+   "email": "400594177731",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f6451194-afce-4921-8d72-3b6c3e4b12a5"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861838754",
+   "canonical": "2861849228",
+   "hubspotCompanyId": "346786675395",
+   "email": "400646877899",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "98e9acaa-b147-49ff-8ec8-97c171f5a8d8"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861834191",
+   "canonical": "2861838602",
+   "hubspotCompanyId": "346912557788",
+   "email": "400579518146",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c38e1c8b-55eb-41e3-b6d1-3804e339d8cf"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861843782",
+   "canonical": "2861843785",
+   "hubspotCompanyId": "346874115797",
+   "email": "400645000904",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "3acd582f-fda6-4c34-89c4-eb91f87e1e23"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861857811",
+   "canonical": "2861857812",
+   "hubspotCompanyId": "346967912127",
+   "email": "400603166433",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "f0606356-def0-4542-be4b-00fdf9084902"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861833889",
+   "canonical": "2861857799",
+   "hubspotCompanyId": "346857256671",
+   "email": "400603163344",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a1c6cdaa-67ce-423c-b180-575a7dd69594"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861854148",
+   "canonical": "2861833338",
+   "hubspotCompanyId": "347091892957",
+   "email": "400650980027",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b9048b6f-a177-4a0d-84f0-55745dbb8038"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861820811",
+   "canonical": "2861845015",
+   "hubspotCompanyId": "346966131443",
+   "email": "400579510987",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b7df3b7e-a8cb-4013-93d0-e8c587b5bbdf"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861840670",
+   "canonical": "2861828720",
+   "hubspotCompanyId": "346868832986",
+   "email": "400646870742",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2dd5b525-b086-4c92-a641-6f76f6c2f8f0"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861840003",
+   "canonical": "2861853331",
+   "hubspotCompanyId": "346967912159",
+   "email": "400586400452",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5f71a390-bac3-4b73-9f11-1a89b55f79fd"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861828227",
+   "canonical": "2861853522",
+   "hubspotCompanyId": "347091913430",
+   "email": "400588878549",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "6f1c431a-6ab2-44f2-a4d6-af0baab8879d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861828309",
+   "canonical": "2861831670",
+   "hubspotCompanyId": "346917879504",
+   "email": "400629459652",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "4552533b-24d3-4dd8-b0d8-a82942cc9538"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861827301",
+   "canonical": "2861839946",
+   "hubspotCompanyId": "346930173685",
+   "email": "400595967678",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "b1a80814-8aad-46a6-9641-2fc05d162c9b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861853500",
+   "canonical": "2861819180",
+   "hubspotCompanyId": "347017485018",
+   "email": "400595967677",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "cb6045f6-8c0e-4458-96fe-1b8456fac29a"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861708723",
+   "canonical": "2861708015",
+   "hubspotCompanyId": "346868832957",
+   "email": "400595965688",
+   "canonicalCopies": 2,
+   "canonicalTimelineIds": [
+    "27751568-dfa6-4dfa-9480-431521bc1b6b",
+    "ec3f521c-716a-4f84-942d-4519013bc87b"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 2,
+   "state": "E3_dup_all_bodyless"
+  },
+  {
+   "orphan": "2861846739",
+   "canonical": "2861815906",
+   "hubspotCompanyId": "347082421992",
+   "email": "400618737372",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a0e0da4b-1c7c-4d73-9ec5-7a4b5ce5ee8d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861846884",
+   "canonical": "2861841673",
+   "hubspotCompanyId": "346928378566",
+   "email": "400646864592",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "5f305a33-0875-40f4-b608-68f8ba61d26f"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861827782",
+   "canonical": "2861826805",
+   "hubspotCompanyId": "347000883928",
+   "email": "400588869329",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "a7869257-d6ef-41ca-89dd-d1bf3ee2265d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861816770",
+   "canonical": "2861825390",
+   "hubspotCompanyId": "347082422006",
+   "email": "400579498717",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "c043ae31-d4f3-462a-8ba8-cdeb10245cc7"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861831481",
+   "canonical": "2861818887",
+   "hubspotCompanyId": "347036942062",
+   "email": "400646861553",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "2b04f5c7-7dce-44a8-963e-e0d63472a777"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861825171",
+   "canonical": "2861831450",
+   "hubspotCompanyId": "347040761532",
+   "email": "400579497686",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "ecea6958-379e-452b-b61c-57e0cef26d96"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861815620",
+   "canonical": "2861816345",
+   "hubspotCompanyId": "347017485023",
+   "email": "400603150060",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "7918d0c0-dfcb-41bc-9d8f-6bc72519ea5d"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2860460440",
+   "canonical": "2861816005",
+   "hubspotCompanyId": "347082422977",
+   "email": "400618733247",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "870d5e02-6307-4bb0-baf1-e590909458e9"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861815291",
+   "canonical": "2861841889",
+   "hubspotCompanyId": "346720047807",
+   "email": "400618731246",
+   "canonicalCopies": 1,
+   "canonicalTimelineIds": [
+    "8c68f94f-9ab1-4748-b694-da1af97bdd43"
+   ],
+   "bodyPresent": 0,
+   "bodyless": 1,
+   "state": "E1_one_bodyless"
+  },
+  {
+   "orphan": "2861478660",
+   "canonical": "2861478731",
+   "hubspotCompanyId": "347064323825",
+   "email": "400617910973",
+   "canonicalCopies": 0,
+   "canonicalTimelineIds": [],
+   "bodyPresent": 0,
+   "bodyless": 0,
+   "state": "E0_absent"
+  },
+  {
+   "orphan": "2861422251",
+   "canonical": "2861422362",
+   "hubspotCompanyId": "346868832972",
+   "email": "400542959300",
+   "canonicalCopies": 0,
+   "canonicalTimelineIds": [],
+   "bodyPresent": 0,
+   "bodyless": 0,
+   "state": "E0_absent"
+  },
+  {
+   "orphan": "2861479203",
+   "canonical": "2861422609",
+   "hubspotCompanyId": "347082421986",
+   "email": "400542959299",
+   "canonicalCopies": 0,
+   "canonicalTimelineIds": [],
+   "bodyPresent": 0,
+   "bodyless": 0,
+   "state": "E0_absent"
+  },
+  {
+   "orphan": "2861478635",
+   "canonical": "2861421342",
+   "hubspotCompanyId": "346890520259",
+   "email": "400580303574",
+   "canonicalCopies": 0,
+   "canonicalTimelineIds": [],
+   "bodyPresent": 0,
+   "bodyless": 0,
+   "state": "E0_absent"
+  },
+  {
+   "orphan": "2861478401",
+   "canonical": "2861418350",
+   "hubspotCompanyId": "346928378573",
+   "email": "400578662103",
+   "canonicalCopies": 0,
+   "canonicalTimelineIds": [],
+   "bodyPresent": 0,
+   "bodyless": 0,
+   "state": "E0_absent"
+  },
+  {
+   "orphan": "2861421006",
+   "canonical": "2861450452",
+   "hubspotCompanyId": "347017485025",
+   "email": "400617907911",
+   "canonicalCopies": 0,
+   "canonicalTimelineIds": [],
+   "bodyPresent": 0,
+   "bodyless": 0,
+   "state": "E0_absent"
+  }
+ ],
+ "safeCandidates": [
+  {
+   "orphan": "2855140556",
+   "orphanName": "Vml",
+   "canonical": "2858208517",
+   "canonicalName": "Vml.com",
+   "hubspotCompanyId": "346420839123",
+   "domain": "vml.com",
+   "canonicalEntries": 1
+  },
+  {
+   "orphan": "2857186946",
+   "orphanName": "Mylighthouse",
+   "canonical": "2860466681",
+   "canonicalName": "Lighthouse",
+   "hubspotCompanyId": "347077025505",
+   "domain": "mylighthouse.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2857171550",
+   "orphanName": "I",
+   "canonical": "2857173247",
+   "canonicalName": "Kona I Co",
+   "hubspotCompanyId": "345773676253",
+   "domain": "i.co",
+   "canonicalEntries": 0
+  },
+  {
+   "orphan": "2857197083",
+   "orphanName": "Dconstruct",
+   "canonical": "2862617730",
+   "canonicalName": "dConstruct Robotics",
+   "hubspotCompanyId": "346874115818",
+   "domain": "dconstruct.ai",
+   "canonicalEntries": 1
+  },
+  {
+   "orphan": "2857189200",
+   "orphanName": "Verzdesign",
+   "canonical": "2860467426",
+   "canonicalName": "Verz Design",
+   "hubspotCompanyId": "347058812665",
+   "domain": "verzdesign.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2858206655",
+   "orphanName": "Subvertron",
+   "canonical": "2858359113",
+   "canonicalName": "上海蕴万企业管理（集团）有限公司（玄涅）Subvertron",
+   "hubspotCompanyId": "346277317360",
+   "domain": "subvertron.com",
+   "canonicalEntries": 7
+  },
+  {
+   "orphan": "2859247768",
+   "orphanName": "Theuwa",
+   "canonical": "2859255751",
+   "canonicalName": "世界超高清视频产业联盟World Ultra High Definition Video Industry Alliance",
+   "hubspotCompanyId": "346888821448",
+   "domain": "theuwa.com",
+   "canonicalEntries": 10
+  },
+  {
+   "orphan": "2860452702",
+   "orphanName": "Embeddedllm",
+   "canonical": "2862596183",
+   "canonicalName": "Embedded LLM",
+   "hubspotCompanyId": "347077025491",
+   "domain": "embeddedllm.com",
+   "canonicalEntries": 1
+  },
+  {
+   "orphan": "2860464488",
+   "orphanName": "Refinitiv",
+   "canonical": "2860543706",
+   "canonicalName": "LSEG Risk Intelligence",
+   "hubspotCompanyId": "347051363047",
+   "domain": "refinitiv.com",
+   "canonicalEntries": 5
+  },
+  {
+   "orphan": "2860466179",
+   "orphanName": "Temus",
+   "canonical": "2860507036",
+   "canonicalName": "Temus",
+   "hubspotCompanyId": "347082421990",
+   "domain": "temus.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860466234",
+   "orphanName": "Manulifefa",
+   "canonical": "2860521608",
+   "canonicalName": "Manulife Financial Advisers Pte Ltd",
+   "hubspotCompanyId": "347051363050",
+   "domain": "manulifefa.com.sg",
+   "canonicalEntries": 22
+  },
+  {
+   "orphan": "2860452774",
+   "orphanName": "Evercloud",
+   "canonical": "2860473731",
+   "canonicalName": "Everstone Group",
+   "hubspotCompanyId": "347036942061",
+   "domain": "evercloud.in",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860452965",
+   "orphanName": "Spartacommodities",
+   "canonical": "2860467261",
+   "canonicalName": "Sparta",
+   "hubspotCompanyId": "347051363059",
+   "domain": "spartacommodities.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860466478",
+   "orphanName": "Smartkarma",
+   "canonical": "2860467348",
+   "canonicalName": "Smartkarma",
+   "hubspotCompanyId": "347093704405",
+   "domain": "smartkarma.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860460526",
+   "orphanName": "Accredify",
+   "canonical": "2860460546",
+   "canonicalName": "Accredify",
+   "hubspotCompanyId": "347058844387",
+   "domain": "accredify.io",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860482612",
+   "orphanName": "Trustfinance",
+   "canonical": "2860482581",
+   "canonicalName": "TrustFinance",
+   "hubspotCompanyId": "346967911161",
+   "domain": "trustfinance.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860468595",
+   "orphanName": "Omnibridgeway",
+   "canonical": "2860482605",
+   "canonicalName": "Omni Bridgeway",
+   "hubspotCompanyId": "346874115795",
+   "domain": "omnibridgeway.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860484015",
+   "orphanName": "Proinvest",
+   "canonical": "2860484238",
+   "canonicalName": "Professional Investment Advisory Services Pte Ltd",
+   "hubspotCompanyId": "347082421984",
+   "domain": "proinvest.com.sg",
+   "canonicalEntries": 3
+  },
+  {
+   "orphan": "2860480274",
+   "orphanName": "Sugarcrm",
+   "canonical": "2860473041",
+   "canonicalName": "SugarCRM",
+   "hubspotCompanyId": "347053147892",
+   "domain": "sugarcrm.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860480073",
+   "orphanName": "Startups",
+   "canonical": "2860473119",
+   "canonicalName": "London Startup Network",
+   "hubspotCompanyId": "346823102179",
+   "domain": "startups.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860485226",
+   "orphanName": "Harwin",
+   "canonical": "2860496769",
+   "canonicalName": "Harwin",
+   "hubspotCompanyId": "346930174663",
+   "domain": "harwin.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860484074",
+   "orphanName": "Akunacapital",
+   "canonical": "2860505353",
+   "canonicalName": "Akuna Capital",
+   "hubspotCompanyId": "346930173676",
+   "domain": "akunacapital.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860480152",
+   "orphanName": "Insuretechconnect",
+   "canonical": "2860488928",
+   "canonicalName": "InsureTech Connect",
+   "hubspotCompanyId": "346857256670",
+   "domain": "insuretechconnect.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860486482",
+   "orphanName": "Cinchtech",
+   "canonical": "2860488643",
+   "canonicalName": "Cinch",
+   "hubspotCompanyId": "347040760557",
+   "domain": "cinchtech.ai",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860491723",
+   "orphanName": "Specserve",
+   "canonical": "2860484932",
+   "canonicalName": "Specialist Services",
+   "hubspotCompanyId": "347053147885",
+   "domain": "specserve.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860491047",
+   "orphanName": "Maplecroft",
+   "canonical": "2860491736",
+   "canonicalName": "Verisk Maplecroft",
+   "hubspotCompanyId": "347077025495",
+   "domain": "maplecroft.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860487009",
+   "orphanName": "Folks",
+   "canonical": "2860498400",
+   "canonicalName": "Folks Finance",
+   "hubspotCompanyId": "347080628922",
+   "domain": "folks.finance",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860486237",
+   "orphanName": "Squarepoint-capital",
+   "canonical": "2860486238",
+   "canonicalName": "Squarepoint",
+   "hubspotCompanyId": "346797774571",
+   "domain": "squarepoint-capital.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860512745",
+   "orphanName": "Wegrow-app",
+   "canonical": "2860494167",
+   "canonicalName": "Wegrow",
+   "hubspotCompanyId": "347064324805",
+   "domain": "wegrow-app.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860489952",
+   "orphanName": "Mobilewalla",
+   "canonical": "2860499741",
+   "canonicalName": "Mobilewalla",
+   "hubspotCompanyId": "347080628929",
+   "domain": "mobilewalla.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860491874",
+   "orphanName": "Skyhighsecurity",
+   "canonical": "2860494288",
+   "canonicalName": "Skyhigh Security",
+   "hubspotCompanyId": "347051363054",
+   "domain": "skyhighsecurity.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860492035",
+   "orphanName": "Mercyrelief",
+   "canonical": "2860492036",
+   "canonicalName": "Mercy Relief",
+   "hubspotCompanyId": "346868832977",
+   "domain": "mercyrelief.org",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860490078",
+   "orphanName": "Longbridge",
+   "canonical": "2860491519",
+   "canonicalName": "Longbridge Singapore",
+   "hubspotCompanyId": "347080627958",
+   "domain": "longbridge.com",
+   "canonicalEntries": 4
+  },
+  {
+   "orphan": "2860501327",
+   "orphanName": "Veson",
+   "canonical": "2860488152",
+   "canonicalName": "Veson Nautical",
+   "hubspotCompanyId": "347012118247",
+   "domain": "veson.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860497554",
+   "orphanName": "Arize",
+   "canonical": "2860488779",
+   "canonicalName": "Arize AI",
+   "hubspotCompanyId": "347071657702",
+   "domain": "arize.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860497321",
+   "orphanName": "Energycouncil",
+   "canonical": "2860500053",
+   "canonicalName": "Energy Council",
+   "hubspotCompanyId": "346967912147",
+   "domain": "energycouncil.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860494314",
+   "orphanName": "Mission",
+   "canonical": "2860501548",
+   "canonicalName": "MISSION+",
+   "hubspotCompanyId": "347000883913",
+   "domain": "mission.plus",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860502027",
+   "orphanName": "Liminal",
+   "canonical": "2860491846",
+   "canonicalName": "Liminal",
+   "hubspotCompanyId": "346890520258",
+   "domain": "liminal.build",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860491572",
+   "orphanName": "Regtank",
+   "canonical": "2860493744",
+   "canonicalName": "Regtank Technology",
+   "hubspotCompanyId": "346983959240",
+   "domain": "regtank.com",
+   "canonicalEntries": 2
+  },
+  {
+   "orphan": "2860501502",
+   "orphanName": "Lisam",
+   "canonical": "2860494743",
+   "canonicalName": "Lisam",
+   "hubspotCompanyId": "346872222427",
+   "domain": "lisam.com",
+   "canonicalEntries": 2
+  }
+ ]
+}

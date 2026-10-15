@@ -1,0 +1,143 @@
+{
+ "generatedAt": "2026-09-28T02:18:02.748Z",
+ "mode": "applied",
+ "canary": true,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-28-timeline-restore-canary-census.json",
+ "censusRows": 3,
+ "lostRows": 3,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 3,
+ "filters": {
+  "cards": [
+   "2855768833"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "created": 1,
+  "not-reached": 2
+ },
+ "done": true,
+ "cards": {
+  "2855768833": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 19,
+   "rowsReturned": 19,
+   "distinctRows": 19,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2855768833",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:249725616858]",
+   "object": "emails",
+   "activityId": "249725616858",
+   "outcome": "created",
+   "recordId": "128152020812",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "18d57c23-7652-4965-91f3-b177b84e0c76",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:Hello from Theobald",
+    "contentLength": 13603,
+    "contentSha": "da6b9fb435b3845a",
+    "timestamp": "2025-11-05T10:26:43Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "1a2d340c-cff4-4369-8ef3-5162a791aa9a",
+     "68bf368b-8a76-4a31-b95d-391ced2855da"
+    ],
+    "listing": {
+     "ownEntries": 19,
+     "rowsReturned": 19,
+     "distinctRows": 19,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-28T02:18:09.845Z"
+    }
+   },
+   "createSentAt": "2026-09-28T02:18:10.955Z",
+   "newId": "1fe66e19-425c-4354-a785-0dc09cc6d273",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": false,
+    "createdAt": "2025-11-05T10:26:43.000Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855768833",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:249734315755]",
+   "object": "emails",
+   "activityId": "249734315755",
+   "outcome": "not-reached",
+   "reason": "canary: its one create was sent"
+  },
+  {
+   "card": "2855768833",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81048586859]",
+   "object": "emails",
+   "activityId": "81048586859",
+   "outcome": "not-reached",
+   "reason": "canary: its one create was sent"
+  }
+ ],
+ "stopReason": "canary: its one create was sent"
+}
