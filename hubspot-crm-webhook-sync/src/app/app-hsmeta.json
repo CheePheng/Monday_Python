@@ -1,0 +1,45 @@
+{
+  "uid": "hubspot_monday_crm_sync_app",
+  "type": "app",
+  "config": {
+    "description": "Emits Contact and Company creation, property-change, deletion and association webhooks to the monday CRM Cloudflare Worker. SEPARATE from hubspot-monday-webhook-sync, which serves the Work Management sync and must keep its own webhook destination.",
+    "name": "HubSpot to monday CRM Sync",
+    "distribution": "private",
+    "auth": {
+      "type": "static",
+      "requiredScopes": [
+        "oauth",
+        "crm.objects.contacts.read",
+        "crm.objects.contacts.write",
+        "crm.objects.companies.read",
+        "crm.objects.companies.write",
+        "crm.schemas.contacts.read",
+        "crm.schemas.companies.read",
+        "crm.objects.owners.read",
+        "crm.objects.deals.read",
+        "crm.schemas.deals.read",
+        "crm.objects.line_items.read",
+        "crm.schemas.line_items.read",
+        "sales-email-read",
+        "crm.objects.deals.write",
+        "crm.objects.line_items.write",
+        "content"
+      ],
+      "optionalScopes": [],
+      "conditionallyRequiredScopes": []
+    },
+    "permittedUrls": {
+      "fetch": [
+        "https://api.hubapi.com"
+      ],
+      "iframe": [],
+      "img": []
+    },
+    "support": {
+      "supportEmail": "support@example.com",
+      "documentationUrl": "https://example.com/docs",
+      "supportUrl": "https://example.com/support",
+      "supportPhone": "+18005555555"
+    }
+  }
+}

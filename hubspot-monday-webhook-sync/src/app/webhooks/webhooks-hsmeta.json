@@ -17,6 +17,9 @@
         { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "dealtype", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "hs_priority", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "vendorschang_shang_lai_yuan", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "amount", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "deal_currency_code", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "deal", "propertyName": "closedate", "active": true },
 
         { "subscriptionType": "object.creation", "objectType": "contact", "active": true },
         { "subscriptionType": "object.propertyChange", "objectType": "contact", "propertyName": "sales_user", "active": true },
@@ -46,7 +49,19 @@
 
         { "subscriptionType": "object.deletion", "objectType": "deal", "active": true },
         { "subscriptionType": "object.deletion", "objectType": "contact", "active": true },
-        { "subscriptionType": "object.deletion", "objectType": "company", "active": true }
+        { "subscriptionType": "object.deletion", "objectType": "company", "active": true },
+
+        { "subscriptionType": "object.associationChange", "objectType": "deal", "active": true },
+        { "subscriptionType": "object.associationChange", "objectType": "contact", "active": true },
+        { "subscriptionType": "object.associationChange", "objectType": "company", "active": true },
+
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "price", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "quantity", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "amount", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "hs_pre_discount_amount", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "discount", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "hs_line_item_currency_code", "active": true },
+        { "subscriptionType": "object.propertyChange", "objectType": "line_item", "propertyName": "hs_recurring_billing_period", "active": true }
       ]
     }
   }

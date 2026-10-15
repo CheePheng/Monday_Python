@@ -1,8 +1,109 @@
 {
-  "name": "hubspot-monday-sync",
+  // CRM sync Worker — SEPARATE deployment from the live `hubspot-monday-sync`.
+  // This worktree inherited production config verbatim; renaming it is what stops an accidental
+  // `wrangler deploy` here from overwriting the live Work Management Worker.
+  "name": "hubspot-monday-crm-sync",
+  // COMPANY Cloudflare account — pinned deliberately as a second guard. Wrangler auth is
+  // machine-global, so switching accounts for an unrelated project silently retargets this one
+  // (that is exactly what happened on 2026-09-07). With the account pinned, a mismatched profile
+  // ERRORS instead of quietly deploying to a personal account.
+  // Verified from wrangler logs: every hubspot-monday-sync deploy used this account.
+  "account_id": "5f4d31a75fd669df8527210deb973591",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
-  "triggers": { "crons": ["*/10 * * * *", "0 3 * * *"] },
-  "vars": { "DRY_RUN": "false", "MAX_WRITES": "100" },
-  "observability": { "enabled": true }
+
+  // TWO CRONS, and only these. */15 drives the HubSpot marketing email poller, which does nothing until
+  // ENABLE_MARKETING_EMAIL_SYNC is "true" (and ENABLE_ACTIVITY_SYNC, and the monday activity type exists), and
+  // beside it the bounded Last Activity backstop sweep, which does nothing until ENABLE_LAD_SWEEP is "true"
+  // (lad-sweep.ts). */5 is the 02.2 follow-up reminder (follow-up-reminder.ts FOLLOW_UP_CRON), a no-op unless
+  // FOLLOW_UP_REMINDER is "true": on this (ENABLE_CRM) Worker index.ts runs the reminder on it, NEVER the Task
+  // poller, which */5 starts only on a Worker without ENABLE_CRM. A plain step expression: a minute list
+  // ("1,6,11,...") deployed but never fired on 2026-10-12. Every other expression index.ts knows is deliberately
+  // ABSENT: */10 and 0 3 the CRM incremental and full sweeps (off permanently for CRM since the 09-07 decision --
+  // handoff §5, §19), 0 4 the Task sweep. deploy-config.test.ts pins exactly this list.
+  "triggers": { "crons": ["*/15 * * * *", "*/5 * * * *"] },
+
+  // DRY_RUN starts TRUE: Phase A writes nothing at all. Phase B flips this to "false" while the
+  // code path keeps writeHubspot=false, giving real HubSpot -> monday CRM writes with every
+  // HubSpot mutation still blocked (handoff §10).
+  // ENABLE_CRM IS LOAD-BEARING AND WAS MISSING. specsFor() is EXCLUSIVE: without this var the
+  // deployed CRM Worker resolves the WORK MANAGEMENT specs and becomes a second processor for the
+  // live WM boards — writing them twice, with a token that can also write HubSpot. Exactly the
+  // failure the exclusive gate exists to prevent. Only the literal string "true" enables CRM mode.
+  // PS_ACCOUNT_REVERSE ships "false": the Products & Services "Accounts/Companies" cell is derived
+  // (line item -> deal -> company) and every edit of it snaps back. "true" lets a person's edit FILL
+  // an empty company on the line item's single deal, and nothing more. See fillDealCompany.
+  "vars": { "DRY_RUN": "true", "WRITE_HUBSPOT": "false", "MAX_WRITES": "25", "ENABLE_CRM": "true",
+            "PS_ACCOUNT_REVERSE": "false",
+            // Deals native coarse Stage (deal_stage): "true" lets a PERSON's edit of it set the deal's stage
+            // within its current pipeline (coarseStageEdit, reconcile.ts); automations and our own echoes
+            // never push. Ships OFF: the column stays one-way and its events are ignored until passed.
+            "STAGE_COARSE_REVERSE": "false",
+            // Marketing email poller (marketing-email-poller.ts). Ships OFF with no cursors: the deploy
+            // passes the real values as --var, like every live setting here.
+            "ENABLE_MARKETING_EMAIL_SYNC": "false", "MARKETING_CUTOVER_AT": "", "MARKETING_BACKFILL_FROM": "",
+            "MARKETING_MAX_WRITES_PER_POLL": "60",
+            // Last Activity backstop (lad-sweep.ts): at most 10 non-forced syncs per object per */15 tick
+            // for records whose notes_last_updated moved. Ships OFF; the deploy passes "true" as --var.
+            "ENABLE_LAD_SWEEP": "false",
+            // KILL SWITCHES for two create-path features, flippable from the dashboard without a deploy.
+            // BORN_ATTACHED_LINKS: a person's monday-created record gets the card's relation links pushed
+            // to HubSpot after the create (sync.ts bornAttached). CREATE_WINDOW_REPLAY: an edit made while
+            // the record is being created is queued and replayed instead of lost (sync.ts
+            // createWindowReplayOn). Both ship OFF -- a bare deploy is the old create path -- and the
+            // deploy passes "true" as --var. Only the literal "true" arms either.
+            "BORN_ATTACHED_LINKS": "false", "CREATE_WINDOW_REPLAY": "false",
+            // monday copies a Contact's timeline entry onto its linked Accounts/Deals; "true" stops the
+            // Worker writing a second copy there when a bounded read finds monday's (activity-sync.ts,
+            // skipMirroredCopies). Ships OFF: deploying the code changes nothing until it is passed.
+            "ACTIVITY_SKIP_MIRRORED_COPIES": "false",
+            // People log into monday as the token user ("ask ada", 104118038), whose every event reads as
+            // our own echo. "true" reads monday's activity log for such an event on a two-way column (or a
+            // create) and treats it as a PERSON's when the row proves a UI action (ui-actor.ts). Ships OFF:
+            // off, no query is made and every event of ours is an echo, exactly as before.
+            "ASK_ADA_UI_EDITS": "false",
+            // "true": HubSpot retries on top of today's, never fewer (<=5 own tries/8 s a call, none 20 s past a webhook's start; hs-retry.ts).
+            "HS_RATE_LIMIT_RETRY": "false",
+            // "true": item names are fitted to monday's 255-char limit and compared fitted (mapping.ts fitItemName).
+            "ITEM_NAME_FIT": "false",
+            // "true": buildCtx reads its label dictionaries with one batch read per object, not one GET per property (sync.ts batchedDicts).
+            "PROPERTY_BATCH_READ": "false",
+            // "true": the 02.2 follow-up reminder flags 跟进提醒 for workflow #07 (follow-up-reminder.ts).
+            "FOLLOW_UP_REMINDER": "false",
+            // The 2026-10-09 Contacts rules, each its own switch, all OFF until the deploy passes "true":
+            // NO_ACTIVITY_RELEASE: a worked card leaves "No Activity - 未跟进" (no-activity.ts).
+            // OWNER_NOTICE: a new assignment sets 通知状态 to 待通知 once; monday workflow #06 (5031811440) emails (Outlook) and records 上次通知Owner (owner-notice.ts).
+            // CONTACT_CARD_NEEDS_OWNER: no Contacts card until HubSpot sets an owner (ensure-card.ts).
+            // CONTACT_OWNER_HUBSPOT_ONLY: a monday edit of Contact owner is put back (config.ts withContactOwnerRule).
+            "NO_ACTIVITY_RELEASE": "false", "OWNER_NOTICE": "false",
+            "CONTACT_CARD_NEEDS_OWNER": "false", "CONTACT_OWNER_HUBSPOT_ONLY": "false",
+            // STALE_FORWARD_GATE: a HubSpot-side forward pass judges each differing two-way cell by itself (monday's
+            // changed_at vs HubSpot's history of that property) and never writes over a person's edit still on its way;
+            // every hold ends within STALE_FORWARD_HOLD_S (default 180) and the card's watch converges it (card-watch.ts).
+            // STALE_FORWARD_RETRY: a person's edit whose run died is re-sent, and one monday's log proves is rescued --
+            // both WRITE HubSpot outside a webhook. Both ship OFF (a bare deploy is today's engine); only "true" arms one.
+            "STALE_FORWARD_GATE": "false", "STALE_FORWARD_RETRY": "false" },
+
+  "observability": { "enabled": true },
+
+  // A new Worker script gets its OWN Durable Object namespace, so CRM idempotency state can never
+  // collide with production's. The v1 migration is required to create the class on a fresh script.
+  "durable_objects": {
+    "bindings": [
+      { "name": "CREATE_IDEMPOTENCY", "class_name": "CreateIdempotency" },
+      // Durable activity retry. One instance per stuck activity + one dead-letter index; the alarm
+      // is the retry clock. Deliberately NOT Cloudflare Queues — see activity-retry.ts.
+      { "name": "ACTIVITY_RETRY", "class_name": "ActivityRetry" },
+      // Durable overflow queue for oversized webhook batches. ONE instance, drained in small waves —
+      // its serialization is the rate control. Needed because this Worker has no cron, so the
+      // "backup catches overflow" the batch limit assumed never existed here.
+      { "name": "DEFERRED_SYNC", "class_name": "DeferredSync" }
+    ]
+  },
+  // v2 is ADDITIVE: it creates a new class and leaves CreateIdempotency's stored state untouched.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CreateIdempotency"] },
+    { "tag": "v2", "new_sqlite_classes": ["ActivityRetry"] },
+    { "tag": "v3", "new_sqlite_classes": ["DeferredSync"] }
+  ]
 }

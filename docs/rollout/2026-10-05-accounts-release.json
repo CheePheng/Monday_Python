@@ -1,0 +1,407 @@
+{
+ "decidedBy": "Woody (user), Claude Code session 2026-10-05",
+ "decidedAt": "2026-10-05T03:05:00Z",
+ "decision": "Fix then delete all 80 held id-less Accounts cards (answer: \"Fix then delete all 80 (Recommended)\")",
+ "cards": [
+  {
+   "card": "2857200440",
+   "bucket": "A",
+   "note": "only company of a HubSpot deal; FIXED FIRST 2026-10-05: company created in HubSpot and made primary on the deal and contact (fix9-applied.json)"
+  },
+  {
+   "card": "2858872440",
+   "bucket": "A",
+   "note": "only company of a HubSpot deal; FIXED FIRST 2026-10-05: company created in HubSpot and made primary on the deal and contact (fix9-applied.json)"
+  },
+  {
+   "card": "2857206485",
+   "bucket": "A",
+   "note": "only company of a HubSpot deal; FIXED FIRST 2026-10-05: company created in HubSpot and made primary on the deal and contact (fix9-applied.json)"
+  },
+  {
+   "card": "2862637701",
+   "bucket": "B",
+   "note": "duplicate of a real Account card; FIXED FIRST 2026-10-05: contact made a primary contact of the real company (fix9-applied.json)"
+  },
+  {
+   "card": "2857171550",
+   "bucket": "B",
+   "note": "duplicate of a real Account card; FIXED FIRST 2026-10-05: contact made a primary contact of the real company (fix9-applied.json)"
+  },
+  {
+   "card": "2860564073",
+   "bucket": "B",
+   "note": "duplicate of a real Account card; FIXED FIRST 2026-10-05: contact made a primary contact of the real company (fix9-applied.json)"
+  },
+  {
+   "card": "2857180817",
+   "bucket": "B",
+   "note": "duplicate of a real Account card; FIXED FIRST 2026-10-05: contact made a primary contact of the real company (fix9-applied.json)"
+  },
+  {
+   "card": "2860583401",
+   "bucket": "B",
+   "note": "duplicate of a real Account card; FIXED FIRST 2026-10-05: contact made a primary contact of the real company (fix9-applied.json)"
+  },
+  {
+   "card": "2862564014",
+   "bucket": "B",
+   "note": "duplicate of a real Account card; FIXED FIRST 2026-10-05: contact made a primary contact of the real company (fix9-applied.json)"
+  },
+  {
+   "card": "2857184159",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857187718",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857181518",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857216784",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2863101996",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857220023",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857211690",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857199814",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857187721",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2858323669",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857190665",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857198186",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213725",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857187787",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857178226",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857489455",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857181855",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857208083",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857181655",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857172081",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2855240915",
+   "bucket": "C",
+   "note": "a rep works the contact; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857216048",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213374",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857179434",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213832",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857175536",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2861494037",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857211812",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213603",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857175025",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857169140",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857207955",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213743",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213780",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860214985",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2862682308",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857177609",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213210",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857211196",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857191988",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857219424",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857207885",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857207753",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2855300666",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857216828",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857181903",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860411547",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857196285",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857197242",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857229077",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857177280",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857184502",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857199809",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857228485",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2854902122",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857213667",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860159591",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857216786",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860537405",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857210971",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857198689",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860410987",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860634875",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857216982",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857220113",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857217127",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857167174",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2854825212",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2860523173",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857220055",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  },
+  {
+   "card": "2857211350",
+   "bucket": "D",
+   "note": "the contact has only HubSpot activity; user accepts the contact losing this id-less Account link"
+  }
+ ]
+}

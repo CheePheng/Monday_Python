@@ -1,0 +1,225 @@
+{
+ "takenAt": "2026-09-20T12:40:51.884Z",
+ "note": "monday CRM Item association 'Automatically associate' switched OFF by hand just before this run",
+ "totals": {
+  "all": 29907,
+  "withId": 28606,
+  "idless": 1301,
+  "idlessWithSync": 5,
+  "idlessWithLink": 0
+ },
+ "newestIdless": [
+  {
+   "card": "2863101996",
+   "name": "Chinastars",
+   "created": "2026-09-20T01:12:24Z",
+   "hsId": "",
+   "domain": "chinastars.com.cn - https://chinastars.com.cn",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862682308",
+   "name": "Grey8",
+   "created": "2026-09-18T13:36:45Z",
+   "hsId": "",
+   "domain": "grey8.io - https://grey8.io",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862612000",
+   "name": "Coriniumgroup",
+   "created": "2026-09-18T10:36:24Z",
+   "hsId": "",
+   "domain": "coriniumgroup.com - https://coriniumgroup.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862637594",
+   "name": "Lvmlawchambers",
+   "created": "2026-09-18T10:36:21Z",
+   "hsId": "",
+   "domain": "lvmlawchambers.com - https://lvmlawchambers.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862634574",
+   "name": "Efcorps",
+   "created": "2026-09-18T10:35:20Z",
+   "hsId": "",
+   "domain": "efcorps.com - https://efcorps.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862608923",
+   "name": "Democrance",
+   "created": "2026-09-18T10:35:16Z",
+   "hsId": "",
+   "domain": "democrance.com - https://democrance.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862628308",
+   "name": "Riff",
+   "created": "2026-09-18T10:33:25Z",
+   "hsId": "",
+   "domain": "riff.ai - https://riff.ai",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862629619",
+   "name": "Ecvinternational",
+   "created": "2026-09-18T10:32:20Z",
+   "hsId": "",
+   "domain": "ecvinternational.com - https://ecvinternational.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862603427",
+   "name": "Oneidentity",
+   "created": "2026-09-18T10:32:17Z",
+   "hsId": "",
+   "domain": "oneidentity.com - https://oneidentity.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862628379",
+   "name": "Openfabric",
+   "created": "2026-09-18T10:30:26Z",
+   "hsId": "",
+   "domain": "openfabric.co - https://openfabric.co",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862637742",
+   "name": "Icsevents",
+   "created": "2026-09-18T10:30:23Z",
+   "hsId": "",
+   "domain": "icsevents.com - https://icsevents.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862623042",
+   "name": "Sui",
+   "created": "2026-09-18T10:30:21Z",
+   "hsId": "",
+   "domain": "sui.io - https://sui.io",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862622815",
+   "name": "Endplasticwaste",
+   "created": "2026-09-18T10:29:22Z",
+   "hsId": "",
+   "domain": "endplasticwaste.org - https://endplasticwaste.org",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862611538",
+   "name": "Tanglinclub",
+   "created": "2026-09-18T10:28:27Z",
+   "hsId": "",
+   "domain": "tanglinclub.org - https://tanglinclub.org",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862637704",
+   "name": "Zetaris",
+   "created": "2026-09-18T10:28:21Z",
+   "hsId": "",
+   "domain": "zetaris.com - https://zetaris.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862637701",
+   "name": "Gradion",
+   "created": "2026-09-18T10:27:25Z",
+   "hsId": "",
+   "domain": "gradion.com - https://gradion.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862623143",
+   "name": "Workable",
+   "created": "2026-09-18T10:27:22Z",
+   "hsId": "",
+   "domain": "workable.com - https://workable.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862634097",
+   "name": "Infinitelambda",
+   "created": "2026-09-18T10:26:22Z",
+   "hsId": "",
+   "domain": "infinitelambda.com - https://infinitelambda.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862628317",
+   "name": "Thesmartlocal",
+   "created": "2026-09-18T10:24:15Z",
+   "hsId": "",
+   "domain": "thesmartlocal.com - https://thesmartlocal.com",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  },
+  {
+   "card": "2862634441",
+   "name": "Edmcouncil",
+   "created": "2026-09-18T10:23:27Z",
+   "hsId": "",
+   "domain": "edmcouncil.org - https://edmcouncil.org",
+   "sync": "",
+   "link": "",
+   "rel": ""
+  }
+ ],
+ "byDay": {
+  "2026-09-08": 2,
+  "2026-09-09": 3,
+  "2026-09-11": 485,
+  "2026-09-12": 2,
+  "2026-09-14": 5,
+  "2026-09-15": 1,
+  "2026-09-16": 298,
+  "2026-09-17": 261,
+  "2026-09-18": 243,
+  "2026-09-20": 1
+ }
+}

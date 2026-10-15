@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { COMPANIES_MYLA, CONTACTS_MYLA, DEALS_MYLA, SALES_USER_MYLA } from "../src/config";
+import { COMPANIES_MYLA, CONTACTS_MYLA, DEALS, SALES_USER_MYLA } from "../src/config";
 
 // ---------------------------------------------------------------------------
 // In-memory fakes for the monday + HubSpot API layers so we can drive the REAL
@@ -23,7 +23,8 @@ const H = vi.hoisted(() => {
     if (Array.isArray(v.labels)) return v.labels.join(", "); // dropdown
     if (v.label !== undefined) return String(v.label);        // status
     if (v.date !== undefined) return String(v.date);          // date
-    if (v.personsAndTeams || v.phone !== undefined) return ""; // people/phone: not diffable
+    if (v.phone !== undefined) return String(v.phone);        // phone IS diffable now (digits compare)
+    if (v.personsAndTeams) return "";                          // people: matched by owner id, not text
     if (v.url !== undefined) return String(v.text ?? "");     // link column
     return "";
   };
@@ -99,6 +100,9 @@ vi.mock("../src/hubspot", () => ({
     return { id, modified };
   },
   patchRecord: async (_e: any, spec: any, id: string, props: any) => {
+    // Deterministic failure hook: any record id starting with "9E" rejects, so a test can prove that a
+    // failed HubSpot write doesn't abort the rest of the record's sync.
+    if (id.startsWith("9E")) { H.counts.patchRecord++; throw new Error("HubSpot 400: property validation failed"); }
     H.counts.patchRecord++;
     const d = H.deals.get(id);
     Object.assign(d.properties, props);
@@ -112,9 +116,9 @@ vi.mock("../src/hubspot", () => ({
 import { deleteHubspotObject, syncHubspotDeal, syncHubspotObject, syncMondayItem } from "../src/sync";
 import { extractDealIds } from "../src/webhooks";
 
-const BOARD = DEALS_MYLA.boardId;      // 5029480547
-const ID_COL = DEALS_MYLA.idCol;       // numeric_mm4nz332
-const SYNC_COL = DEALS_MYLA.syncStateCol;
+const BOARD = DEALS.boardId;      // 5029480547
+const ID_COL = DEALS.idCol;       // numeric_mm4nz332
+const SYNC_COL = DEALS.syncStateCol;
 const GROUP = "group_mm4nf6fw";        // appointmentscheduled group on Myla's Deals board
 const RECENT = "2026-08-01T00:00:00.000Z";
 const env: any = { DRY_RUN: "false", MONDAY_API_TOKEN: "x", HUBSPOT_ACCESS_TOKEN: "x", TRIGGER_SECRET: "x" };
@@ -262,12 +266,19 @@ describe("contacts & companies sync via webhook the same way as deals", () => {
     expect(H.counts.createItem).toBe(1);
   });
 
-  it("a contact not owned by Myla is skipped (out of scope, keyed on HubSpot Record ID)", async () => {
-    putRecord("70099", { firstname: "Not", lastname: "Myla", sales_user: "999",
+  it("a contact with NO sales_user is skipped (out of scope; all-sales-users filter needs a sales_user)", async () => {
+    putRecord("70099", { firstname: "No", lastname: "SalesUser", sales_user: "",
       createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
     const r = await syncHubspotObject(env, "contact", "70099", opts, budget());
     expect(H.counts.createItem).toBe(0);
     expect(r).toContain("out of scope");
+  });
+
+  it("a contact owned by ANY sales user (not just Myla) is now in scope and creates a card", async () => {
+    putRecord("70098", { firstname: "Other", lastname: "Rep", sales_user: "431181649",
+      createdate: RECENT, lastmodifieddate: RECENT, hs_lead_status: "OPEN" });
+    await syncHubspotObject(env, "contact", "70098", opts, budget());
+    expect(H.counts.createItem).toBe(1);
   });
 
   it("HubSpot company.creation creates a monday company item (linked by HubSpot id)", async () => {
@@ -340,5 +351,74 @@ describe("HubSpot deletion -> monday card deletion (HubSpot is source of truth; 
     const r = await deleteHubspotObject(env, "deal", "99999999", opts, budget());
     expect(r).toContain("skipped");
     expect(H.counts.deleteItem).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Contact phone backfill — the direction-INDEPENDENT write path (sync.ts).
+// These cover the three review findings that pure fieldDiffs tests cannot reach:
+//   (a) a fill happens even when the record resolves toMonday, and stamps the POST-patch timestamp;
+//   (b) a rejected fill never aborts the record's forward sync;
+//   (c) DEALS are deliberately excluded from the independent path.
+// ---------------------------------------------------------------------------
+describe("contact phone backfill (independent of the direction decision)", () => {
+  const C = CONTACTS_MYLA;
+  const PHONE_COL = C.fields.find(f => f.hs === "phone")!.col;
+  const FUTURE = "2099-01-01T00:00:00.000Z";   // HubSpot newer than syncState -> dir === "toMonday"
+
+  const putContact = (hsId: string, props: Record<string, string> = {}) =>
+    H.deals.set(hsId, { id: hsId, properties: {
+      firstname: "Jo", sales_user: SALES_USER_MYLA, createdate: RECENT,
+      lastmodifieddate: FUTURE, hs_lead_status: "OPEN", ...props } });
+  const putCard = (key: string, hsId: string, phone: string) =>
+    H.items.set(key, { id: key, name: "Jo", boardId: C.boardId, created_at: RECENT, updated_at: RECENT,
+      group: { id: "topics" },
+      column_values: [{ id: C.idCol, text: hsId }, { id: C.syncStateCol, text: RECENT },
+        { id: PHONE_COL, text: phone }] });
+
+  it("fills an EMPTY HubSpot phone from monday even when the record resolves toMonday", async () => {
+    putContact("70501", { phone: "" });
+    putCard("c1", "70501", "+1 234-567-8900");
+    await syncHubspotObject(env, "contact", "70501", opts, budget());
+    expect(H.counts.patchRecord).toBe(1);
+    expect(H.deals.get("70501").properties.phone).toBe("+12345678900"); // canonical, not raw monday text
+  });
+
+  it("stamps the POST-patch timestamp, so a later monday edit is not reverted as 'HubSpot is newer'", async () => {
+    putContact("70502", { phone: "" });
+    putCard("c2", "70502", "+1 234-567-8900");
+    await syncHubspotObject(env, "contact", "70502", opts, budget());
+    const stamped = H.colText(H.items.get("c2"), C.syncStateCol);
+    expect(stamped).toBe(H.deals.get("70502").properties.lastmodifieddate); // not the stale pre-patch value
+    expect(stamped).not.toBe(FUTURE);
+  });
+
+  it("never overwrites a real-but-digitless HubSpot phone ('N/A' is NOT empty)", async () => {
+    putContact("70503", { phone: "N/A" });
+    putCard("c3", "70503", "+1 234-567-8900");
+    await syncHubspotObject(env, "contact", "70503", opts, budget());
+    expect(H.counts.patchRecord).toBe(0);
+    expect(H.deals.get("70503").properties.phone).toBe("N/A");
+  });
+
+  it("a rejected backfill does NOT abort the record's forward sync", async () => {
+    // "9E..." makes the fake patchRecord throw (see the mock) — the real-world case is a HubSpot property
+    // validation rule rejecting the monday value. Before the try/catch this threw out of reconcileRecord
+    // and the card stopped receiving HubSpot updates entirely.
+    putContact("9E001", { phone: "", firstname: "Renamed In HubSpot" });
+    putCard("c4", "9E001", "+1 234-567-8900");
+    await syncHubspotObject(env, "contact", "9E001", opts, budget());
+    expect(H.counts.patchRecord).toBe(1);                       // the fill was attempted...
+    expect(H.items.get("c4").name).toBe("Renamed In HubSpot");  // ...and the forward write still landed
+  });
+
+  it("DEALS are excluded from the independent path (their backfill stays toHubspot-only)", async () => {
+    // amount carries backfill:true on DEALS; HubSpot amount empty, monday has one, HubSpot is NEWER.
+    putDeal("9501", { amount: "", hs_lastmodifieddate: FUTURE, dealname: "Deal" });
+    putItem("d1", [{ id: ID_COL, text: "9501" }, { id: SYNC_COL, text: RECENT },
+      { id: DEALS.fields.find(f => f.hs === "amount")!.col, text: "5000" }]);
+    await syncHubspotDeal(env, "9501", opts, budget());
+    expect(H.counts.patchRecord).toBe(0);           // no independent write for deals
+    expect(H.deals.get("9501").properties.amount).toBe("");
   });
 });

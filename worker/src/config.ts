@@ -1,4 +1,6 @@
-import type { ObjectSpec } from "./types";
+import { CRM_SPECS } from "./config/crm";
+import { cutoverFromEnv } from "./ownership";
+import type { ObjectSpec, OwnershipSpec, SubitemSpec } from "./types";
 
 // ---- Discovered constants (worker_discovery.py / add_id_columns.py, 2026-07-03) ----
 // sales_user values are raw HubSpot owner ids (the property has no labeled options).
@@ -11,6 +13,11 @@ export const PORTAL_ID = 39939588;
 // Contacts/companies: only NEW records sync (boss decision 2026-07-03).
 export const CREATED_AFTER_MS = Date.parse("2026-07-01T00:00:00Z");
 
+// monday "All Members" team id, stamped onto the Shared column of Unassigned deals so everyone can view
+// them under "restricted to assigned people" board permissions. "" = disabled until the team is created.
+export const ALL_MEMBERS_TEAM_ID = "49243"; // monday "All Members" team
+const DEAL_SHARED_COL = "multiple_person_mm54sj70"; // "Shared" people column on the deal board 5029480547
+
 // monday cards created BEFORE this are never pushed to HubSpot (protects the 14 pre-existing
 // orphan Unassigned cards + any legacy rows). Only cards a salesperson adds after go-live create.
 export const CREATE_CUTOFF_MS = Date.parse("2026-07-03T00:00:00Z");
@@ -18,7 +25,7 @@ export const CREATE_CUTOFF_MS = Date.parse("2026-07-03T00:00:00Z");
 // Records created from monday get stamped as Myla's and (for deals) into the Sales Pipeline.
 const MYLA_DEFAULTS = { sales_user: SALES_USER_MYLA, hubspot_owner_id: SALES_USER_MYLA };
 
-// HubSpot stage id -> monday group id (Myla's Deals board 5029480547)
+// HubSpot stage id -> monday group id (shared Deals board 5029480547)
 const STAGE_GROUPS: Record<string, string> = {
   appointmentscheduled: "group_mm4nf6fw",
   qualifiedtobuy: "group_title",
@@ -29,6 +36,8 @@ const STAGE_GROUPS: Record<string, string> = {
   closedlost: "group_mm4pw6e2",
   "2831885024": "group_mm4pdres",
 };
+// Deals with no sales_user land here (the "Unassigned Deals" group on the shared board 5029480547).
+const UNASSIGNED_GROUP = "group_mm53yk6d";
 
 // hs_lead_status internal value -> monday group id (Contact board 5029639630)
 const LEAD_STATUS_GROUPS: Record<string, string> = {
@@ -42,14 +51,67 @@ const LEAD_STATUS_GROUPS: Record<string, string> = {
   BAD_TIMING: "group_mm4w55z2",
 };
 
-export const DEALS_MYLA: ObjectSpec = {
+// ---- Association columns (created 2026-07-09) ----
+// Connect Boards (board_relation) link columns, created 2026-07-10 via the monday API (v2025-10).
+// These LINK the actual cards (not text names). Old text columns kept below for post-verify deletion.
+const DEAL_REL_COMPANY = "board_relation_mm54rrj3";    // Deal -> Company card link
+const DEAL_REL_CONTACT = "board_relation_mm5417sy";    // Deal -> Contact card link
+const COMPANY_REL_CONTACT = "board_relation_mm54e96";  // Company -> Contact card link
+const CONTACT_REL_COMPANY = "board_relation_mm54dbxk"; // Contact -> Company card link
+const CONTACT_REL_DEAL = "board_relation_mm54zahf";    // Contact -> Deal card link
+// Retired text association columns (delete after verification): Deal text_mm53a30h / text_mm53k97q,
+// Contact text_mm53m5g0 / text_mm53yyc3, Company text_mm5367qf.
+
+// Deal line items -> subitems on board 5029480548. Line-item property names for Net Price / Service Date /
+// Unit Discount are CONFIRMED in the plan's Task 7 (needs crm.objects.line_items.read on the private app).
+export const LINE_ITEM_SUBITEMS: SubitemSpec = {
+  boardId: "5029480548",
+  idCol: "text_mm53ds6w",           // "HubSpot Line Item ID"
+  statusCol: "status",              // removed line items -> subitem Status = "Removed"
+  productIdCol: "text_mm54hbvj",    // "HubSpot Product ID" (vibe app sets this) -> reverse sets hs_product_id
+  fields: [
+    { hs: "price", col: "numeric_mm53rsfd", type: "numbers", reverse: true },                    // Unit Price
+    { hs: "quantity", col: "numeric_mm531345", type: "numbers", reverse: true },                 // Quantity
+    { hs: "amount", col: "numeric_mm538yj9", type: "numbers" },                                  // Net Price — calc, forward-only
+    { hs: "service_date", col: "date_mm53chbv", type: "date", reverse: true },                   // Service Date
+    { hs: "discount", col: "numeric_mm53pkyf", type: "numbers", reverse: true },                 // Unit Discount (amount)
+    { hs: "hs_discount_percentage", col: "numeric_mm5ax22v", type: "numbers", reverse: true },   // Discount %
+    { hs: "hs_line_item_currency_code", col: "text_mm538b8k", type: "text" },                    // Currency — deal-owned, forward-only
+    { hs: "description", col: "long_text_mm53a511", type: "long_text", reverse: true },          // Description
+  ],
+};
+
+/**
+ * WORK MANAGEMENT OWNS ITS RECORDS, AND MUST REFUSE THE OTHER SIDE'S — the symmetric half of the
+ * ownership model, added 2026-09-22.
+ *
+ * `authorizeWrite` has implemented the whole rule since 2026-09-07; the WM specs simply never declared
+ * `ownership`, so it returned "allowed" for them unconditionally and the guard existed on one side only.
+ * That is not a theoretical asymmetry: 15 live deals in the `default` pipeline sit in BOTH Workers'
+ * write scope, and once CRM claims one, WM would have carried on patching it.
+ *
+ * What declaring this changes, and nothing else:
+ *   - a record stamped `crm` or `hold` is now REFUSED to WM (the fix);
+ *   - a record stamped `wm` is allowed, as before;
+ *   - an UNSTAMPED record is allowed when `createdate < cutoverAtMs`. With no CRM_CUTOVER_AT var the
+ *     cutover is Infinity, so every unstamped record stays writable and WM behaves byte-for-byte as it
+ *     does today. Closing the remaining blank-post-cutover window needs the SAME finite timestamp on
+ *     both Workers — which is why it is deployment config and not a constant here.
+ *
+ * HubSpot -> monday mirroring is untouched: a refusal falls through to the forward write (sync.ts:243),
+ * so a WM card keeps updating from HubSpot even for a record WM may not write back to.
+ */
+const OWN_WM: OwnershipSpec = {
+  prop: "sync_owner", createdProp: "createdate", owner: "wm",
+  cutoverAtMs: Number.POSITIVE_INFINITY,   // overridden per-deployment by specsFor()
+};
+
+export const DEALS: ObjectSpec = {
   object: "deals",
   objectTypeId: "0-3",
+  // One shared board for ALL sales users: every Sales-Pipeline deal, any/no sales_user, all dates.
   searchFilters: [
     { propertyName: "pipeline", operator: "EQ", value: "default" },
-    { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
-    // No createdate filter: Myla's FULL Sales-Pipeline history syncs (old deals backfilled 2026-07-05).
-    // (Unassigned + companies/contacts stay new-only via their own createdate filters.)
   ],
   modifiedProp: "hs_lastmodifieddate",
   nameProps: ["dealname"],
@@ -58,45 +120,41 @@ export const DEALS_MYLA: ObjectSpec = {
   idCol: "numeric_mm4nz332",
   syncStateCol: "text_mm4xxyzx",
   linkCol: "link_mm4ns4nn",
-  groupBy: { prop: "dealstage", map: STAGE_GROUPS, reverse: true },
+  // Group by stage; deals with no sales_user go to the "Unassigned Deals" group instead.
+  groupBy: { prop: "dealstage", map: STAGE_GROUPS, reverse: true, noSalesUserGroup: UNASSIGNED_GROUP },
+  ownership: OWN_WM,
   createFromMonday: true,
-  createDefaults: { pipeline: "default", ...MYLA_DEFAULTS },
-  fields: [
-    { hs: "hubspot_owner_id", col: "person", type: "people" },
-    { hs: "sales_user", col: "dropdown_mm4wjkk9", type: "dropdown", labels: "salesUser" },
-    { hs: "dealstage", col: "dropdown_mm4wrmx7", type: "dropdown", labels: "stage" },
-    { hs: "pipeline", col: "color_mm4ws6k", type: "status", labels: "pipeline" },
-    { hs: "createdate", col: "date4", type: "date" },
-    { hs: "dealtype", col: "dropdown_mm4nxhje", type: "dropdown", labels: "dealtype", reverse: true },
-    { hs: "hs_priority", col: "dropdown_mm4nmmax", type: "dropdown", labels: "priority", reverse: true },
-    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true },
+  // A card added by a salesperson creates a Sales-Pipeline deal; owner/sales_user get set in HubSpot
+  // afterward — until then it sits in the Unassigned group.
+  createDefaults: { pipeline: "default" },
+  associations: [
+    { toObject: "companies", nameProps: ["name"], relationCol: DEAL_REL_COMPANY },
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: DEAL_REL_CONTACT },
+    { toObject: "line_items", nameProps: ["name"], subitems: LINE_ITEM_SUBITEMS },
   ],
-};
-
-export const DEALS_UNASSIGNED: ObjectSpec = {
-  object: "deals",
-  objectTypeId: "0-3",
-  searchFilters: [
-    { propertyName: "pipeline", operator: "EQ", value: "default" },
-    { propertyName: "sales_user", operator: "NOT_HAS_PROPERTY" },
-    { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS }, // new deals only
-  ],
-  modifiedProp: "hs_lastmodifieddate",
-  nameProps: ["dealname"],
-  boardId: "5029479220",
-  idCol: "numeric_mm4wp9y2",
-  syncStateCol: "text_mm4xsfh3",
-  linkCol: "link_mm4n9cce",
-  groupBy: { singleGroup: "topics" },
-  createFromMonday: false, // system-populated bucket; never create HubSpot deals from here
+  // Unassigned deals (no sales_user) -> stamp the all-members team on the Shared column so everyone can
+  // see them under restricted board permissions. Active once ALL_MEMBERS_TEAM_ID is filled in.
+  unassignedShared: { col: DEAL_SHARED_COL, teamId: ALL_MEMBERS_TEAM_ID },
   fields: [
-    { hs: "hubspot_owner_id", col: "person", type: "people" },
-    { hs: "pipeline", col: "status", type: "status", labels: "pipeline" },
-    { hs: "dealstage", col: "dropdown_mm4nkk6y", type: "dropdown", labels: "stage" },
-    { hs: "createdate", col: "date4", type: "date" },
-    { hs: "dealtype", col: "dropdown_mm4nkmg5", type: "dropdown", labels: "dealtype" },
-    { hs: "hs_priority", col: "dropdown_mm4n2mrd", type: "dropdown", labels: "priority" },
-    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4nys6v", type: "dropdown", labels: "vendor" },
+    { hs: "hubspot_owner_id", col: "person", type: "people", reverse: true },                     // Deal Owner (reverse to HubSpot; Unassigned stays sales_user-driven per routing.ts)
+    { hs: "sales_user", col: "multiple_person_mm532m82", type: "people", reverse: true },           // Sales Users (assign in monday -> HubSpot sales_user)
+    { hs: "amount", col: "numeric_mm531t6e", type: "numbers", reverse: true, backfill: true },     // Amounts (reverse + allowlisted backfill)
+    // `unvalidatedEnum` PRESERVES THIS FIELD'S EXISTING BEHAVIOUR, it does not add a capability. The
+    // no-dictionary status/dropdown path used to pass monday's text through raw; as of 2026-09-09 that
+    // path refuses unless a field opts in, and this is the only field that does. See FieldSpec.
+    { hs: "deal_currency_code", col: "color_mm53vk99", type: "status", reverse: true, backfill: true, unvalidatedEnum: true },  // Currency
+    { hs: "closedate", col: "date_mm53ecz3", type: "date", reverse: true, backfill: true },        // Close Date (reverse + allowlisted backfill)
+    { hs: "dealstage", col: "color_mm53fh1r", type: "status", labels: "stage" },                   // Deal Stage
+    { hs: "pipeline", col: "color_mm4ws6k", type: "status", labels: "pipeline" },                  // Deal Pipeline
+    // backfill:true on the reverse status/dropdown fields = a rep setting them FILLS an empty HubSpot
+    // value (deliberate edit), not just changes an existing one. Still never clears HubSpot from empty
+    // monday. Approved 2026-07-18 ("every reverse field") — extends the amount/closedate allowlist.
+    { hs: "dealtype", col: "color_mm53cky8", type: "status", labels: "dealtype", reverse: true, backfill: true },  // Deal Type
+    { hs: "hs_priority", col: "color_mm532rej", type: "status", labels: "priority", reverse: true, backfill: true },  // Priority
+    { hs: "vendorschang_shang_lai_yuan", col: "dropdown_mm4n4f7r", type: "dropdown", labels: "vendor", reverse: true, backfill: true }, // Vendors
+    // One-way HubSpot -> monday (see the matching note on COMPANIES_MYLA). NO `reverse`, NO `backfill`.
+    // Column "Created date" on board 5029480547; value is the UTC calendar date.
+    { hs: "createdate", col: "date_mm5hsbzv", type: "date", oneWay: true },
   ],
 };
 
@@ -104,7 +162,8 @@ export const COMPANIES_MYLA: ObjectSpec = {
   object: "companies",
   objectTypeId: "0-2",
   searchFilters: [
-    { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
+    // All sales users (not just Myla): any record with a sales_user assigned.
+    { propertyName: "sales_user", operator: "HAS_PROPERTY" },
     { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS },
   ],
   modifiedProp: "hs_lastmodifieddate",
@@ -117,13 +176,26 @@ export const COMPANIES_MYLA: ObjectSpec = {
   syncStateCol: "text_mm4xrhjt",
   linkCol: "link_mm4pvn78",
   groupBy: { singleGroup: "group_mm4s3z7e" },
+  // Sync ALL HubSpot companies (not just sales_user-owned/recent). Too large for the search-based full
+  // sweep (25k > search's 10k cap), so it's excluded from that and served by the incremental + webhooks +
+  // a one-time list-API import. Contacts/deals are unaffected (they set neither flag).
+  includeAll: true,
+  skipFullReconcile: true,
+  associations: [
+    { toObject: "contacts", nameProps: ["firstname", "lastname"], relationCol: COMPANY_REL_CONTACT },
+  ],
+  ownership: OWN_WM,
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
     { hs: "name", col: "text_mm4scke9", type: "text", reverse: true },
-    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
-    { hs: "industry", col: "dropdown_mm4wj6nv", type: "dropdown", labels: "industry", reverse: true },
-    { hs: "type", col: "dropdown_mm4wa6ak", type: "dropdown", labels: "companyType", reverse: true },
+    // Owner is app-save-only (appReverse): editable in the drawer, but a passive reconcile must never let
+    // a stale monday people column reassign the record. See the FieldSpec.appReverse note.
+    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", appReverse: true },  // Owner
+    { hs: "sales_user", col: "multiple_person_mm54phd7", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
+    { hs: "industry", col: "dropdown_mm54zrp2", type: "dropdown", labels: "industry", reverse: true }, // single-select dropdown (limit_select): 200 options, one pick
+    { hs: "type", col: "color_mm545z1t", type: "status", labels: "companyType", reverse: true },
+    { hs: "partner_with", col: "color_mm54xzax", type: "status", labels: "partnerWith" },  // "Partner With"
     { hs: "city", col: "text_mm4p2bvb", type: "text", reverse: true },
     { hs: "state", col: "text_mm4sznkw", type: "text", reverse: true },
     { hs: "numberofemployees", col: "numeric_mm4ww8gs", type: "numbers", reverse: true },
@@ -131,6 +203,11 @@ export const COMPANIES_MYLA: ObjectSpec = {
     { hs: "timezone", col: "text_mm4wp480", type: "text" },
     { hs: "description", col: "text_mm4wwtd0", type: "text", reverse: true },
     { hs: "linkedin_company_page", col: "text_mm4w6rzg", type: "text", reverse: true },
+    // One-way HubSpot -> monday. Deliberately NO `reverse` and NO `backfill`: createdate is HubSpot-owned
+    // and read-only, so it must never enter a reverse patch. The value is the UTC calendar date
+    // (formatValue's v.slice(0,10)) — same derivation as every other date column, so a record created
+    // 00:00-08:00 Malaysia time reads as the previous day. Column "Created date" on board 5029639440.
+    { hs: "createdate", col: "date_mm5hmk5v", type: "date", oneWay: true },
   ],
 };
 
@@ -138,7 +215,8 @@ export const CONTACTS_MYLA: ObjectSpec = {
   object: "contacts",
   objectTypeId: "0-1",
   searchFilters: [
-    { propertyName: "sales_user", operator: "EQ", value: SALES_USER_MYLA },
+    // All sales users (not just Myla): any record with a sales_user assigned.
+    { propertyName: "sales_user", operator: "HAS_PROPERTY" },
     { propertyName: "createdate", operator: "GTE", value: CREATED_AFTER_MS },
   ],
   modifiedProp: "lastmodifieddate",
@@ -151,7 +229,19 @@ export const CONTACTS_MYLA: ObjectSpec = {
   syncStateCol: "text_mm4xpe1g",
   linkCol: "link_mm4pvn78",
   // Contacts with no/unknown lead status land in the "New" group (topics) instead of being skipped.
-  groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: true, fallbackGroup: "topics" },
+  // reverse:false -> the group FOLLOWS HubSpot (forward-only). Lead status is edited via the "Lead
+  // Status" column (the reversible field below); the group then moves to match on the next sync. If the
+  // group also reverse-wrote hs_lead_status it would fight the column edit and oscillate ("Open" -> "New").
+  groupBy: { prop: "hs_lead_status", map: LEAD_STATUS_GROUPS, reverse: false, fallbackGroup: "topics" },
+  // Union scope: keep sales_user-owned contacts AND include company-linked ones (Phase 2 associations).
+  // Too large for the search-based full sweep, so served by the incremental + webhooks + the association run.
+  scopeAlsoLinkedProp: "associatedcompanyid",
+  skipFullReconcile: true,
+  associations: [
+    { toObject: "companies", nameProps: ["name"], relationCol: CONTACT_REL_COMPANY },
+    { toObject: "deals", nameProps: ["dealname"], relationCol: CONTACT_REL_DEAL },
+  ],
+  ownership: OWN_WM,
   createFromMonday: true,
   createDefaults: { ...MYLA_DEFAULTS },
   fields: [
@@ -159,22 +249,139 @@ export const CONTACTS_MYLA: ObjectSpec = {
     { hs: "email", col: "text_mm4p2bvb", type: "text", reverse: true },
     { hs: "jobtitle", col: "text_mm4sznkw", type: "text", reverse: true },
     { hs: "company", col: "text_mm4sbj9b", type: "text" },
-    { hs: "phone", col: "phone_mm4s31p3", type: "phone" },
-    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people" },
-    { hs: "sales_user", col: "dropdown_mm4thdr", type: "dropdown", labels: "salesUser" },
-    { hs: "createdate", col: "date_mm4s2bjd", type: "date" },
+    // Phone is the ONLY contact field with `backfill` (approved 2026-08-04, deliberately narrow). Every
+    // monday edit reconciles all fields, so flagging several at once would fill many empty HubSpot
+    // properties in a single operation; phone alone keeps the change auditable via `[backfill]` logs and
+    // trivially revertible. `email` is deliberately excluded — it is the contact dedup/adoption key.
+    // Compared as DIGITS on both sides (see phoneDigits), so monday's country formatting can't loop.
+    { hs: "phone", col: "phone_mm4s31p3", type: "phone", reverse: true, backfill: true },
+    // Owner: app-save-only. A plain `reverse` here reassigned contact owners unattended (2026-08-28).
+    { hs: "hubspot_owner_id", col: "multiple_person_mm4p8xe2", type: "people", appReverse: true },
+    { hs: "sales_user", col: "multiple_person_mm542gng", type: "people", reverse: true },  // "Sales Users" (reverse to HubSpot)
+    { hs: "createdate", col: "date_mm4s2bjd", type: "date", oneWay: true },
     { hs: "notes_last_updated", col: "date4", type: "date" },
-    { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus" },
-    { hs: "leadsource", col: "dropdown_mm4sj3kw", type: "dropdown", labels: "contactSource" },
-    { hs: "manufacturer__c", col: "dropdown_mm4t8gjf", type: "dropdown", labels: "contactVendor" },
+    { hs: "hs_lead_status", col: "status", type: "status", labels: "leadStatus", reverse: true }, // edit here -> writes back to HubSpot
+    { hs: "leadsource", col: "dropdown_mm4sj3kw", type: "dropdown", labels: "contactSource", reverse: true },
+    { hs: "manufacturer__c", col: "dropdown_mm4t8gjf", type: "dropdown", labels: "contactVendor", reverse: true },
   ],
 };
 
-export const ALL_SPECS: ObjectSpec[] = [DEALS_MYLA, DEALS_UNASSIGNED, COMPANIES_MYLA, CONTACTS_MYLA];
+export const ALL_SPECS: ObjectSpec[] = [DEALS, COMPANIES_MYLA, CONTACTS_MYLA];
 
-// Deal specs a HubSpot deal webhook can route to (owner-mapped board or the shared Unassigned board).
-export const DEAL_SPECS: ObjectSpec[] = [DEALS_MYLA, DEALS_UNASSIGNED];
+// Deal boards a HubSpot deal webhook can route to (now just the one shared board).
+export const DEAL_SPECS: ObjectSpec[] = [DEALS];
 
 // boardId -> spec, so a monday webhook can find the spec for the board that fired it.
 export const SPEC_BY_BOARD: Record<string, ObjectSpec> =
   Object.fromEntries(ALL_SPECS.map(s => [s.boardId, s]));
+
+// object name -> spec, so a Connect-Boards association can resolve the target board + its HubSpot-id
+// column (to turn associated HubSpot ids into the monday cards to link). line_items has no board.
+export const SPEC_BY_OBJECT: Record<string, ObjectSpec> = {
+  deals: DEALS, companies: COMPANIES_MYLA, contacts: CONTACTS_MYLA,
+};
+
+// ---------------------------------------------------------------------------------------------------
+// RUNTIME SPEC ROUTING — EXCLUSIVE, never a union.
+//
+// `ALL_SPECS`/`SPEC_BY_BOARD` above are module-level constants shared with the deployed production
+// Worker, so adding the CRM specs to them would make a production deploy start syncing the CRM boards.
+// Hence the env gate. But the gate must also be EXCLUSIVE: if the CRM deployment resolved WM specs too,
+// both Workers would reconcile the same WM records, write monday twice and race each other. Ownership
+// only guards HUBSPOT writes — it would not save us from two Workers writing the same monday board.
+//
+//   The old Worker owns WM. The new one owns CRM. Each deployment resolves ONLY its own boards.
+// ---------------------------------------------------------------------------------------------------
+
+/** The specs THIS deployment is allowed to process. Exclusive by design — see the note above.
+ *
+ * The CRM ownership cutover is DEPLOYMENT CONFIGURATION, not a committed constant: `CRM_CUTOVER_AT`
+ * is read from the environment through the range-bounded `cutoverFromEnv`, which fails closed to
+ * Infinity for a missing, malformed or implausible value. That keeps a temporary Phase-A/B test
+ * timestamp out of git entirely — setting it is a Worker var, and resetting it is deleting that var.
+ *
+ * When the var is absent (every test, and the checked-in config) the ORIGINAL spec objects are
+ * returned unchanged, so object identity is preserved for callers that compare by reference. */
+export function specsFor(env: CrmEnv): ObjectSpec[] {
+  // THE SAME TIMESTAMP MUST REACH BOTH DEPLOYMENTS, or each side disagrees about who owns an unstamped
+  // record — the split-brain the model exists to prevent. WM reads it here exactly as CRM does below;
+  // absent, it stays Infinity and WM keeps writing every unstamped record, which is today's behaviour.
+  if (env.ENABLE_CRM !== "true") return withCutover(ALL_SPECS, env.CRM_CUTOVER_AT);
+  return withCutover(withContactOwnerRule(withCreateCutoff(CRM_SPECS, env), env), env.CRM_CUTOVER_AT);
+}
+
+/**
+ * CONTACT OWNER IS CHANGED IN HUBSPOT ONLY, while CONTACT_OWNER_HUBSPOT_ONLY is the literal "true" (the
+ * 2026-10-09 meeting: assignment and reassignment happen in HubSpot, the monday CRM only follows).
+ *
+ * The CRM Contacts owner field loses `appReverse` and becomes `hubspotOnly` + `writeOnCreate`: a person's
+ * monday edit of the cell -- board or drawer -- is refused and put back to HubSpot's owner, while a contact
+ * created from the monday form is still born with the owner it was given. Only that one field of that one
+ * spec changes; the Accounts and Deals owners, and every WM spec, are untouched.
+ *
+ * Identity is preserved when the switch is off, as for the cutovers above: callers compare by reference.
+ */
+function withContactOwnerRule(specs: ObjectSpec[], env: CrmEnv): ObjectSpec[] {
+  if (env.CONTACT_OWNER_HUBSPOT_ONLY !== "true") return specs;
+  return specs.map(s => s.object !== "contacts" ? s : {
+    ...s,
+    fields: s.fields.map(f => f.hs !== "hubspot_owner_id" ? f
+      : { hs: f.hs, col: f.col, type: f.type, writeOnCreate: true, hubspotOnly: true }),
+  });
+}
+
+/**
+ * Apply the deployment's ownership cutover to whichever specs declare ownership.
+ *
+ * Shared by both branches on purpose. It used to live inline in the CRM branch only, which is exactly
+ * how the WM side ended up with no cutover to honour even after it was given an ownership spec.
+ *
+ * Identity is preserved when there is nothing to apply — absent or implausible input returns the
+ * ORIGINAL spec objects, because callers compare by reference.
+ */
+function withCutover(specs: ObjectSpec[], raw: string | undefined): ObjectSpec[] {
+  if (raw === undefined) return specs;
+  const cutoverAtMs = cutoverFromEnv(raw);
+  if (cutoverAtMs === Number.POSITIVE_INFINITY) return specs;       // fail-closed: no override
+  return specs.map(s => s.ownership ? { ...s, ownership: { ...s.ownership, cutoverAtMs } } : s);
+}
+
+export type CrmEnv = { ENABLE_CRM?: string; CRM_CUTOVER_AT?: string; CRM_CREATE_CUTOFF_AT?: string;
+  CONTACT_OWNER_HUBSPOT_ONLY?: string };
+
+/**
+ * WHEN MAY A MONDAY CARD CREATE A HUBSPOT RECORD? Never, unless a go-live timestamp says so.
+ *
+ * `CRM_CREATE_CUTOFF_MS` has sat in config/crm.ts as POSITIVE_INFINITY since Phase 1, read by nothing,
+ * while the create path used the Work-Management constant (2026-07-03) for CRM cards too. Harmless only
+ * because createFromMonday was false almost everywhere; now that all four CRM boards create from their
+ * 创建/Create form, that stale constant would have admitted every pre-existing card on those boards —
+ * including the ~1,301 id-less Accounts cards monday's Item Association manufactured in September.
+ *
+ * Read from the environment through the same range-bounded, FAIL-CLOSED parser as the ownership
+ * cutover, so a missing or malformed value means "create nothing" rather than "create everything".
+ */
+function withCreateCutoff(specs: ObjectSpec[], env: CrmEnv): ObjectSpec[] {
+  // Identity is load-bearing: when the var is absent — every test, and the checked-in config — the
+  // ORIGINAL spec objects must come back, because callers compare by reference. The shipped specs
+  // already carry the inert CRM_CREATE_CUTOFF_MS, so there is nothing to override.
+  if (env.CRM_CREATE_CUTOFF_AT === undefined) return specs;
+  const createCutoffMs = cutoverFromEnv(env.CRM_CREATE_CUTOFF_AT);
+  if (createCutoffMs === Number.POSITIVE_INFINITY) return specs;    // fail-closed: no override
+  return specs.map(s => (s.createFromMonday ? { ...s, createCutoffMs } : s));
+}
+
+/** boardId -> spec for THIS deployment. Undefined for a board this deployment does not own, which is
+ *  what makes a cross-deployment webhook a no-op instead of a double write. */
+export function specByBoard(env: CrmEnv, boardId: string): ObjectSpec | undefined {
+  return specsFor(env).find(s => s.boardId === boardId);
+}
+
+/** HubSpot object -> spec for THIS deployment. Deals exist only in the WM deployment. */
+export function specByObject(env: CrmEnv, object: string): ObjectSpec | undefined {
+  return specsFor(env).find(s => s.object === object);
+}
+
+/** Every spec that exists anywhere, for DIAGNOSTICS AND TESTS ONLY. Never use it to route: routing on
+ *  the union is exactly the double-processing bug the exclusive gate exists to prevent. */
+export const ALL_KNOWN_SPECS: ObjectSpec[] = [...ALL_SPECS, ...CRM_SPECS];

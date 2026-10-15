@@ -1,0 +1,35 @@
+{
+  "object": "deals",
+  "apply": false,
+  "startedAt": "2026-09-27T08:43:57.331Z",
+  "total": 8683,
+  "lastDoneId": "14056931910",
+  "tally": {
+    "updated-monday": 20
+  },
+  "errors": [],
+  "results": {
+    "14056629518": "[webhook] source=deals id=14056629518 action=updated-monday board=5028000494",
+    "14056654092": "[webhook] source=deals id=14056654092 action=updated-monday board=5028000494",
+    "14056856655": "[webhook] source=deals id=14056856655 action=updated-monday board=5028000494",
+    "14056914827": "[webhook] source=deals id=14056914827 action=updated-monday board=5028000494",
+    "14056931910": "[webhook] source=deals id=14056931910 action=updated-monday board=5028000494",
+    "14056012454": "[webhook] source=deals id=14056012454 action=updated-monday board=5028000494",
+    "14056093846": "[webhook] source=deals id=14056093846 action=updated-monday board=5028000494",
+    "14056121261": "[webhook] source=deals id=14056121261 action=updated-monday board=5028000494",
+    "14056123810": "[webhook] source=deals id=14056123810 action=updated-monday board=5028000494",
+    "14056186288": "[webhook] source=deals id=14056186288 action=updated-monday board=5028000494",
+    "14056208939": "[webhook] source=deals id=14056208939 action=updated-monday board=5028000494",
+    "14056225035": "[webhook] source=deals id=14056225035 action=updated-monday board=5028000494",
+    "14056277776": "[webhook] source=deals id=14056277776 action=updated-monday board=5028000494",
+    "14056394127": "[webhook] source=deals id=14056394127 action=updated-monday board=5028000494",
+    "14056403474": "[webhook] source=deals id=14056403474 action=updated-monday board=5028000494",
+    "14054129559": "[webhook] source=deals id=14054129559 action=updated-monday board=5028000494",
+    "14055804849": "[webhook] source=deals id=14055804849 action=updated-monday board=5028000494",
+    "14055903072": "[webhook] source=deals id=14055903072 action=updated-monday board=5028000494",
+    "14055923090": "[webhook] source=deals id=14055923090 action=updated-monday board=5028000494",
+    "14055940621": "[webhook] source=deals id=14055940621 action=updated-monday board=5028000494"
+  },
+  "done": true,
+  "finishedAt": "2026-09-27T08:44:47.895Z"
+}

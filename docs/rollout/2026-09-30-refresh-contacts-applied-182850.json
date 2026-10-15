@@ -1,0 +1,22 @@
+{
+  "object": "contacts",
+  "apply": true,
+  "force": true,
+  "startedAt": "2026-09-30T18:28:50.916Z",
+  "total": 6,
+  "lastDoneId": "551719076554",
+  "tally": {
+    "updated-monday": 6
+  },
+  "errors": [],
+  "results": {
+    "539816397527": "[webhook] source=contacts id=539816397527 action=updated-monday board=5028000495",
+    "541899825877": "[webhook] source=contacts id=541899825877 action=updated-monday board=5028000495",
+    "544894437055": "[webhook] source=contacts id=544894437055 action=updated-monday board=5028000495",
+    "549325837012": "[webhook] source=contacts id=549325837012 action=updated-monday board=5028000495",
+    "551685065421": "[webhook] source=contacts id=551685065421 action=updated-monday board=5028000495",
+    "551719076554": "[webhook] source=contacts id=551719076554 action=updated-monday board=5028000495"
+  },
+  "done": true,
+  "finishedAt": "2026-09-30T18:29:35.529Z"
+}

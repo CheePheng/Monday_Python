@@ -1,0 +1,845 @@
+{
+ "generatedAt": "2026-09-30T21:29:48.682Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 30,
+ "filters": {
+  "cards": [
+   "2855573545"
+  ],
+  "markersFile": "C:/Users/PC/AppData/Local/Temp/claude/c--Users-PC-Downloads-DKM-Project-Monday-Python/85678929-2bad-44c8-ae70-3715f1ac1066/scratchpad/fullcensus/test-live-sample.txt"
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "skipped-writer-excludes": 30
+ },
+ "done": true,
+ "cards": {},
+ "items": [
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:400651352778]",
+   "object": "emails",
+   "activityId": "400651352778",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "460d17f4-5901-4f96-a16f-273bb5b8e661",
+    "card": "2861914190",
+    "result": "pre-2026-09-23-live-build-without-body"
+   },
+   "writer": "live",
+   "writerBy": "the surviving copy 460d17f4-5901-4f96-a16f-273bb5b8e661 on card 2861914190 is the old live build, which sent no email body; restoring the current live build WITH the body, so this is not an exact copy of it",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "🍽️ You’re Invited: Singapore Executive Dinner – AI Transformation",
+    "contentLength": 1142,
+    "contentSha": "03925146f4e9fd8d",
+    "timestamp": "2026-09-17T09:26:59.534Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:400751884013]",
+   "object": "emails",
+   "activityId": "400751884013",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c9d4578f-dad0-4bbb-ab32-5004bc76eacd",
+    "card": "2861860115",
+    "result": "pre-2026-09-23-live-build-without-body"
+   },
+   "writer": "live",
+   "writerBy": "the surviving copy c9d4578f-dad0-4bbb-ab32-5004bc76eacd on card 2861860115 is the old live build, which sent no email body; restoring the current live build WITH the body, so this is not an exact copy of it",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "🍽️ You’re Invited: Singapore Executive Dinner – AI Transformation",
+    "contentLength": 1135,
+    "contentSha": "8f2eca04e9794650",
+    "timestamp": "2026-09-18T08:51:00.888Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401327220427]",
+   "object": "emails",
+   "activityId": "401327220427",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "76576bca-7251-4b17-a152-05a9ba30c0ab",
+    "card": "2855660005",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "🍽️ You’re Invited: Singapore Executive Dinner – AI Transformation",
+    "contentLength": 1138,
+    "contentSha": "8864bbb7ab47a1cb",
+    "timestamp": "2026-09-21T03:31:59.950Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401485373168]",
+   "object": "emails",
+   "activityId": "401485373168",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "02bdfa78-cb66-47df-bfdc-826c0aef02be",
+    "card": "2855700297",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1213,
+    "contentSha": "ae051a3178e397ab",
+    "timestamp": "2026-09-22T03:29:59.814Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401554521796]",
+   "object": "emails",
+   "activityId": "401554521796",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "15883e41-eddf-4764-9a58-ff1aba4a06eb",
+    "card": "2855619070",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Request for Intercom Trial Extension - Sosleek",
+    "contentLength": 817,
+    "contentSha": "9a749266da79df11",
+    "timestamp": "2026-05-25T04:54:35Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401554764498]",
+   "object": "emails",
+   "activityId": "401554764498",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8a84c58e-6f02-46f1-b170-901397bb8a8e",
+    "card": "2855627819",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1208,
+    "contentSha": "01f50c31853c3c52",
+    "timestamp": "2026-09-22T06:23:00.697Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401848219381]",
+   "object": "emails",
+   "activityId": "401848219381",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "32b7ac86-364d-4b66-9660-be19a670897d",
+    "card": "2861919110",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1210,
+    "contentSha": "f1f45e13f24ba9eb",
+    "timestamp": "2026-09-23T04:14:59.233Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401849117405]",
+   "object": "emails",
+   "activityId": "401849117405",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "15b18e5f-0865-4bf6-971c-adcca1614068",
+    "card": "2861912314",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1208,
+    "contentSha": "f2ee0f5ef35e1483",
+    "timestamp": "2026-09-23T04:09:00.114Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401849671355]",
+   "object": "emails",
+   "activityId": "401849671355",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "14ad6066-84bf-4bb8-9e9e-4887d4f5cb91",
+    "card": "2855632774",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1210,
+    "contentSha": "0cd5d2e546de1197",
+    "timestamp": "2026-09-23T06:11:59.752Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401852347107]",
+   "object": "emails",
+   "activityId": "401852347107",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "91da834d-a2a5-4f56-9d0a-6bcaf9b47625",
+    "card": "2861891748",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1207,
+    "contentSha": "a18767b03084fece",
+    "timestamp": "2026-09-23T06:45:00.137Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401871850202]",
+   "object": "emails",
+   "activityId": "401871850202",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0aa6f5e1-e0d0-46ec-8f83-7969da0aaf4f",
+    "card": "2855627146",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1223,
+    "contentSha": "2da1bc4eea934d64",
+    "timestamp": "2026-09-23T03:42:59.516Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401887728338]",
+   "object": "emails",
+   "activityId": "401887728338",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "b6c8c22d-5f54-467d-a577-422639447523",
+    "card": "2860464398",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1202,
+    "contentSha": "09d883431dbbce88",
+    "timestamp": "2026-09-23T06:04:59.941Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401887735531]",
+   "object": "emails",
+   "activityId": "401887735531",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ce89f86b-e737-4379-8cc3-ddb16fcd13f1",
+    "card": "2861878633",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1218,
+    "contentSha": "f71dad349f41a415",
+    "timestamp": "2026-09-23T07:32:00.271Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:401950907081]",
+   "object": "emails",
+   "activityId": "401950907081",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "167d1bae-7bba-4a4b-ab94-506e7a391539",
+    "card": "2855720733",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1207,
+    "contentSha": "bb64601ef1216020",
+    "timestamp": "2026-09-24T03:54:00.133Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402042205942]",
+   "object": "emails",
+   "activityId": "402042205942",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "29ef4316-c8f5-46b4-a53f-00c0873dd2bc",
+    "card": "2860595947",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1202,
+    "contentSha": "753babe7defd6a55",
+    "timestamp": "2026-09-24T03:49:00.245Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402055367364]",
+   "object": "emails",
+   "activityId": "402055367364",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2e3f6b22-a23d-485b-8328-59762de03070",
+    "card": "2855584913",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "接受:Invitation: Docusign - 商务沟通 @ Thu Sep 24, 2026 1:45pm - 2pm (GMT+8) (jimshen@dkmeco.com)",
+    "contentLength": 154,
+    "contentSha": "c15879b88dcb685e",
+    "timestamp": "2026-09-24T03:04:35Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402163172036]",
+   "object": "emails",
+   "activityId": "402163172036",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "bef20537-b01b-4db8-8375-fa61ff45377a",
+    "card": "2861872817",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1205,
+    "contentSha": "da0e6270f3e70195",
+    "timestamp": "2026-09-24T03:05:01.009Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402241672952]",
+   "object": "emails",
+   "activityId": "402241672952",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6390ce01-29ce-4d44-a363-632bddfd7160",
+    "card": "2860592907",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1216,
+    "contentSha": "664b28c07b75ca1d",
+    "timestamp": "2026-09-24T03:51:00.317Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402247348925]",
+   "object": "emails",
+   "activityId": "402247348925",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1f53186d-18e5-4a4f-92df-d68c37750d16",
+    "card": "2860599048",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1198,
+    "contentSha": "bc1c0515def9bca8",
+    "timestamp": "2026-09-24T03:41:00.371Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402247479030]",
+   "object": "emails",
+   "activityId": "402247479030",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "760d469c-fe0e-4476-a3f0-7ff3437cc980",
+    "card": "2860594965",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1216,
+    "contentSha": "c227006eb8445d1a",
+    "timestamp": "2026-09-24T03:31:00.023Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402257686246]",
+   "object": "emails",
+   "activityId": "402257686246",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "297becdf-a7d3-4f3f-bf01-2ffb7d65390e",
+    "card": "2855622232",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1218,
+    "contentSha": "958dd18dc615cc1f",
+    "timestamp": "2026-09-24T06:06:00.622Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402258656968]",
+   "object": "emails",
+   "activityId": "402258656968",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "72898c0c-f32a-421c-935a-fcd5a5d1c59b",
+    "card": "2860531103",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1202,
+    "contentSha": "602eec8c91f3d774",
+    "timestamp": "2026-09-24T06:22:00.348Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402265143028]",
+   "object": "emails",
+   "activityId": "402265143028",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1e09e0f7-7955-4d2f-a83e-947f7e09c42b",
+    "card": "2855636550",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1197,
+    "contentSha": "0bb98bb946d80638",
+    "timestamp": "2026-09-24T09:41:59.849Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402271608552]",
+   "object": "emails",
+   "activityId": "402271608552",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "54ac23a8-ff4d-453e-b40f-69e49d8f43a6",
+    "card": "2855724657",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1207,
+    "contentSha": "cbf09e189fd91f40",
+    "timestamp": "2026-09-24T04:09:00.314Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402275334851]",
+   "object": "emails",
+   "activityId": "402275334851",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "71efc626-bbb0-43ed-9fa2-3ee21675293a",
+    "card": "2860518946",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1196,
+    "contentSha": "adafe479bc10c6ce",
+    "timestamp": "2026-09-24T04:34:59.338Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402277353192]",
+   "object": "emails",
+   "activityId": "402277353192",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1ca3a79b-d83f-49eb-9459-73787be19f2f",
+    "card": "2860584713",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1212,
+    "contentSha": "7a134320c1b70528",
+    "timestamp": "2026-09-24T04:12:00.249Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402277596917]",
+   "object": "emails",
+   "activityId": "402277596917",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "038a7859-7d2c-45d1-9933-4f9c1a41fd5b",
+    "card": "2860538716",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1208,
+    "contentSha": "4bf494ec57d33f56",
+    "timestamp": "2026-09-24T06:25:00.070Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402277789427]",
+   "object": "emails",
+   "activityId": "402277789427",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "74408b08-4a56-4ace-ab08-6c839bb4d7c9",
+    "card": "2860503552",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1209,
+    "contentSha": "60becfd6c2c7670e",
+    "timestamp": "2026-09-24T06:59:59.883Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402287201989]",
+   "object": "emails",
+   "activityId": "402287201989",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "27f0a2da-b343-4b76-8571-6c623e2bba03",
+    "card": "2855694960",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1204,
+    "contentSha": "d8243a387302bbbd",
+    "timestamp": "2026-09-24T09:24:00.133Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  },
+  {
+   "card": "2855573545",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:402287764205]",
+   "object": "emails",
+   "activityId": "402287764205",
+   "outcome": "skipped-writer-excludes",
+   "recordId": "16824787545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "04744c45-e810-4bbb-80a6-8cded8931b1c",
+    "card": "2860492328",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "📩 Your Seat Is Waiting: Singapore Executive Dinner on AI Transformation",
+    "contentLength": 1217,
+    "contentSha": "ffc7b884d8dc48a6",
+    "timestamp": "2026-09-24T07:06:01.238Z"
+   },
+   "reason": "company 16824787545 is the business itself (dkmeco.com); the live sync no longer files there (activity-sync.ts:243)"
+  }
+ ]
+}

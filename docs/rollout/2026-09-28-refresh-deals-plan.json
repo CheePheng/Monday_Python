@@ -1,0 +1,18 @@
+{
+  "object": "deals",
+  "apply": false,
+  "startedAt": "2026-09-28T09:11:31.839Z",
+  "total": 8683,
+  "lastDoneId": "14055903072",
+  "tally": {
+    "skipped-in-sync": 3
+  },
+  "errors": [],
+  "results": {
+    "14054129559": "[webhook] source=deals id=14054129559 action=skipped-in-sync board=5028000494",
+    "14055804849": "[webhook] source=deals id=14055804849 action=skipped-in-sync board=5028000494",
+    "14055903072": "[webhook] source=deals id=14055903072 action=skipped-in-sync board=5028000494"
+  },
+  "done": true,
+  "finishedAt": "2026-09-28T09:12:06.092Z"
+}

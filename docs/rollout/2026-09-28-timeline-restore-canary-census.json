@@ -1,0 +1,5 @@
+[
+ {"card":"2855768833","kind":"contacts","marker":"[hubspot:emails:249725616858]","state":"LOST","knownIds":["1a2d340c-cff4-4369-8ef3-5162a791aa9a","68bf368b-8a76-4a31-b95d-391ced2855da"],"maxCopies":2,"seenBy":["2026-09-27-timeline-dedupe-retry-applied.json"],"deletedBy":["2026-09-27-timeline-dedupe-retry-applied.json"],"deletedCount":1},
+ {"card":"2855768833","kind":"contacts","marker":"[hubspot:emails:249734315755]","state":"LOST","knownIds":["9dc82957-e1f9-4031-a49c-971e1a1e1bbd","c215a71a-c940-46d9-b5a5-64e89b4422c6"],"maxCopies":2,"seenBy":["2026-09-27-timeline-dedupe-retry-applied.json"],"deletedBy":["2026-09-27-timeline-dedupe-retry-applied.json"],"deletedCount":1},
+ {"card":"2855768833","kind":"contacts","marker":"[hubspot:emails:81048586859]","state":"LOST","knownIds":["2352f159-1998-4d49-bf4f-e16f738ab96c","e1c3ffe8-0b9b-4793-b57c-7eef82bada18"],"maxCopies":2,"seenBy":["2026-09-27-timeline-dedupe-retry-applied.json"],"deletedBy":["2026-09-27-timeline-dedupe-retry-applied.json"],"deletedCount":1}
+]

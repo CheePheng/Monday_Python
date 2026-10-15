@@ -1,0 +1,159 @@
+{
+ "generatedAt": "2026-10-05T03:12:54.459Z",
+ "mode": "applied",
+ "canary": true,
+ "census": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\recon-1005\\ing-census.json",
+ "censusRows": 6,
+ "lostRows": 2,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 2,
+ "filters": {
+  "cards": [
+   "2855725789"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied-222841.json",
+   "2026-09-30-timeline-restore-applied.json",
+   "2026-10-01-timeline-restore-applied-041852.json",
+   "2026-10-01-timeline-restore-applied-044237.json",
+   "2026-10-01-timeline-restore-applied-045725.json",
+   "2026-10-01-timeline-restore-applied-051130.json",
+   "2026-10-01-timeline-restore-applied-052355.json",
+   "2026-10-01-timeline-restore-applied-053051.json",
+   "2026-10-01-timeline-restore-applied-054153.json",
+   "2026-10-01-timeline-restore-applied-055437.json",
+   "2026-10-01-timeline-restore-applied-060139.json",
+   "2026-10-01-timeline-restore-applied-061455.json",
+   "2026-10-01-timeline-restore-applied-062253.json",
+   "2026-10-01-timeline-restore-applied-062819.json",
+   "2026-10-01-timeline-restore-applied-063612.json",
+   "2026-10-01-timeline-restore-applied-064207.json",
+   "2026-10-01-timeline-restore-applied-064616.json",
+   "2026-10-01-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "created": 1,
+  "not-reached": 1
+ },
+ "done": true,
+ "cards": {
+  "2855725789": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 7,
+   "rowsReturned": 7,
+   "distinctRows": 7,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2855725789",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:calls:368220220140]",
+   "object": "calls",
+   "activityId": "368220220140",
+   "outcome": "created",
+   "recordId": "312450639552",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "37e3f13c-8e92-4653-9658-f720dc363fff",
+    "card": "2857066000",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 Khalil 的呼叫",
+    "contentLength": 147,
+    "contentSha": "e691894f109af934",
+    "timestamp": "2026-05-07T07:09:35.298Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-05T03:12:57.836Z"
+    }
+   },
+   "createSentAt": "2026-10-05T03:12:57.836Z",
+   "newId": "1bf6db32-a1ed-4c92-8c7b-b82962ca2a2e",
+   "verifiedBy": "timeline_item",
+   "stored": {
+    "onCard": true,
+    "markerKept": true,
+    "titleAsShown": true,
+    "contentAsShown": true,
+    "contentRawEqual": true,
+    "createdAt": "2026-05-07T07:09:35.298Z",
+    "createdAtExact": true
+   }
+  },
+  {
+   "card": "2855725789",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:calls:368356480736]",
+   "object": "calls",
+   "activityId": "368356480736",
+   "outcome": "not-reached",
+   "reason": "canary: its one create was sent"
+  }
+ ],
+ "stopReason": "canary: its one create was sent"
+}

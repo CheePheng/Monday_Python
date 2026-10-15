@@ -1,0 +1,344 @@
+{
+ "generatedAt": "2026-09-27T16:06:38.748Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-27-timeline-dedupe-lost-160612.json",
+ "censusRows": 6,
+ "lostRows": 6,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 6,
+ "filters": {},
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "would-create": 6
+ },
+ "done": true,
+ "cards": {
+  "2855650271": {
+   "kind": "companies",
+   "board": "5028000496",
+   "ownEntries": 30,
+   "rowsReturned": 30,
+   "distinctRows": 30,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2855768833": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 19,
+   "rowsReturned": 19,
+   "distinctRows": 19,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856208233": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 18,
+   "rowsReturned": 18,
+   "distinctRows": 18,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2855650271",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:249725616858]",
+   "object": "emails",
+   "activityId": "249725616858",
+   "outcome": "would-create",
+   "recordId": "34824295432",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "18d57c23-7652-4965-91f3-b177b84e0c76",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:Hello from Theobald",
+    "contentLength": 13603,
+    "contentSha": "da6b9fb435b3845a",
+    "timestamp": "2025-11-05T10:26:43Z"
+   },
+   "check": {
+    "knownIds": 3,
+    "censusKnownIds": [
+     "3fc21557-c18c-42b5-8dc6-ad319d5b2a7f",
+     "7d8441cf-f248-4572-9fef-c9d241f2955d",
+     "fad729af-1b16-407c-b68d-66634d8c8af7"
+    ],
+    "listing": {
+     "ownEntries": 30,
+     "rowsReturned": 30,
+     "distinctRows": 30,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:06:48.831Z"
+    }
+   }
+  },
+  {
+   "card": "2855650271",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:249734315755]",
+   "object": "emails",
+   "activityId": "249734315755",
+   "outcome": "would-create",
+   "recordId": "34824295432",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "48df3001-98c8-45cf-8226-5e04ea61abec",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Hello from Theobald",
+    "contentLength": 13658,
+    "contentSha": "aab954b174e14905",
+    "timestamp": "2025-11-05T09:09:39Z"
+   },
+   "check": {
+    "knownIds": 3,
+    "censusKnownIds": [
+     "02f8f8ce-ce3d-480c-96fa-9856192c9be6",
+     "9921aa37-f72f-4354-88a9-b224351cbc75",
+     "cf3b15ee-0654-402b-9879-c9df1e0697ff"
+    ],
+    "listing": {
+     "ownEntries": 30,
+     "rowsReturned": 30,
+     "distinctRows": 30,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:06:48.831Z"
+    }
+   }
+  },
+  {
+   "card": "2855650271",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:81048586859]",
+   "object": "emails",
+   "activityId": "81048586859",
+   "outcome": "would-create",
+   "recordId": "34824295432",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "13750ded-0cad-4a29-bfb9-db8919d2c251",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from Theobald",
+    "contentLength": 1374,
+    "contentSha": "9d3f9adbc6283739",
+    "timestamp": "2025-06-09T05:08:36.475Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "12cfb92b-1c84-46d1-a78f-5ce88bc9e204",
+     "ef375a8c-d9f3-4be2-b319-1a9a806a832b"
+    ],
+    "listing": {
+     "ownEntries": 30,
+     "rowsReturned": 30,
+     "distinctRows": 30,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:06:48.831Z"
+    }
+   }
+  },
+  {
+   "card": "2855768833",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:249725616858]",
+   "object": "emails",
+   "activityId": "249725616858",
+   "outcome": "would-create",
+   "recordId": "128152020812",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "18d57c23-7652-4965-91f3-b177b84e0c76",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re:Hello from Theobald",
+    "contentLength": 13603,
+    "contentSha": "da6b9fb435b3845a",
+    "timestamp": "2025-11-05T10:26:43Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "1a2d340c-cff4-4369-8ef3-5162a791aa9a",
+     "68bf368b-8a76-4a31-b95d-391ced2855da"
+    ],
+    "listing": {
+     "ownEntries": 19,
+     "rowsReturned": 19,
+     "distinctRows": 19,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:06:51.036Z"
+    }
+   }
+  },
+  {
+   "card": "2855768833",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81048586859]",
+   "object": "emails",
+   "activityId": "81048586859",
+   "outcome": "would-create",
+   "recordId": "128152020812",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "13750ded-0cad-4a29-bfb9-db8919d2c251",
+    "card": "2855624478",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from Theobald",
+    "contentLength": 1374,
+    "contentSha": "9d3f9adbc6283739",
+    "timestamp": "2025-06-09T05:08:36.475Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "2352f159-1998-4d49-bf4f-e16f738ab96c",
+     "e1c3ffe8-0b9b-4793-b57c-7eef82bada18"
+    ],
+    "listing": {
+     "ownEntries": 19,
+     "rowsReturned": 19,
+     "distinctRows": 19,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:06:51.036Z"
+    }
+   }
+  },
+  {
+   "card": "2856208233",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:249734315755]",
+   "object": "emails",
+   "activityId": "249734315755",
+   "outcome": "would-create",
+   "recordId": "257006942921",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "48df3001-98c8-45cf-8226-5e04ea61abec",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Hello from Theobald",
+    "contentLength": 13658,
+    "contentSha": "aab954b174e14905",
+    "timestamp": "2025-11-05T09:09:39Z"
+   },
+   "check": {
+    "knownIds": 2,
+    "censusKnownIds": [
+     "063c7849-a907-438c-aa73-51c1fd4aa9ea",
+     "10e0a25b-cf73-4095-b2bd-3691be8b1918"
+    ],
+    "listing": {
+     "ownEntries": 18,
+     "rowsReturned": 18,
+     "distinctRows": 18,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-27T16:07:05.096Z"
+    }
+   }
+  }
+ ]
+}

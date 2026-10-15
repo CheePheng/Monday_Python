@@ -1,0 +1,45 @@
+{
+  "mode": "cards",
+  "apply": true,
+  "generatedAt": "2026-10-12T03:55:58.894Z",
+  "objects": {
+    "contacts": {
+      "created": 22,
+      "excludedWmHold": 0,
+      "carded": 11,
+      "missing": [
+        "567187633905",
+        "567279108827",
+        "567379687161",
+        "567397430990",
+        "567664090852",
+        "567701477101",
+        "567807822549",
+        "567882514165",
+        "567885853372",
+        "567898946265",
+        "567898159831"
+      ],
+      "applied": {
+        "tally": {
+          "created-monday": 11
+        },
+        "results": {
+          "567187633905": "[webhook] source=contacts id=567187633905 action=created-monday board=5028000495",
+          "567279108827": "[webhook] source=contacts id=567279108827 action=created-monday board=5028000495",
+          "567379687161": "[webhook] source=contacts id=567379687161 action=created-monday board=5028000495",
+          "567397430990": "[webhook] source=contacts id=567397430990 action=created-monday board=5028000495",
+          "567664090852": "[webhook] source=contacts id=567664090852 action=created-monday board=5028000495",
+          "567701477101": "[webhook] source=contacts id=567701477101 action=created-monday board=5028000495",
+          "567807822549": "[webhook] source=contacts id=567807822549 action=created-monday board=5028000495",
+          "567882514165": "[webhook] source=contacts id=567882514165 action=created-monday board=5028000495",
+          "567885853372": "[webhook] source=contacts id=567885853372 action=created-monday board=5028000495",
+          "567898946265": "[webhook] source=contacts id=567898946265 action=created-monday board=5028000495",
+          "567898159831": "[webhook] source=contacts id=567898159831 action=created-monday board=5028000495"
+        }
+      }
+    }
+  },
+  "lastSentAt": "2026-10-12T03:57:45.694Z",
+  "done": true
+}

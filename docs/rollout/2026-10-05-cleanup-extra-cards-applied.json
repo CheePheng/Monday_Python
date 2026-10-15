@@ -1,0 +1,993 @@
+{
+ "script": "cleanup-extra-cards",
+ "apply": true,
+ "canary": true,
+ "groups": [
+  "accounts-idless"
+ ],
+ "limit": null,
+ "startedAt": "2026-10-05T03:26:15.854Z",
+ "planDir": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\cleanup",
+ "planFiles": {
+  "accounts-idless-classified.json": {
+   "sha256": "f4e4bb65ae74a3ce237aeaabefdce8ce02b87d6e5dd090570f88590b678c0527",
+   "generatedAt": "2026-09-30T10:09:40.985Z"
+  },
+  "accounts-dups-plan.json": {
+   "sha256": "2ab8421197b552d0fb849c86cecebc77665e878cb10f6f1802e53e2b789477c3",
+   "generatedAt": "2026-09-30T09:52:11.342Z"
+  },
+  "contacts-plan.json": {
+   "sha256": "dcdf5ed8b98083ade10a1a4803b225da41b40d0fbd87b69910cd0f594db1a3b2",
+   "generatedAt": "2026-09-30"
+  },
+  "deals-plan.json": {
+   "sha256": "021753e89fbb3db57f828227e10b10ed6129441bc7875805a2ba85aec9665ce7",
+   "generatedAt": "2026-09-30"
+  },
+  "skeptic-idless/q-review-candidates.json": {
+   "sha256": "b70128f88b37f916670a39af949cddafa7b61acbf9f6d68ee43f198e6fc0b1ec",
+   "generatedAt": null
+  },
+  "reconcile/companies.json": {
+   "sha256": "300f5925e87d4eeb08de3199f910ba1fe019badbe01201600eefb047aa1dfb71"
+  },
+  "reconcile/contacts.json": {
+   "sha256": "df8d0a470c0702bc8945ae887cde799aa0c68979a9b814c535168321c6e53c48"
+  },
+  "reconcile/deals.json": {
+   "sha256": "ea0475495918b7561fd0c97b748dc2252ef065f64e0cfc143ae4ed62cfb35950"
+  }
+ },
+ "baselines": {
+  "contacts": "2026-09-30T00:00:00.000Z",
+  "deals": "2026-09-30T00:00:00.000Z"
+ },
+ "integrationToken": true,
+ "corrections": [
+  "accounts-idless: the 14 TOUCHED-BY-PERSON plus the skeptic's 66 (q-review-candidates.json) go to review; the orphan-contact rule is re-derived live",
+  "accounts-idless: Niimbot 2858872440, Kitronyx 2857200440, Ocusun 2857206485 (only company of a HubSpot deal) and Nuvoton 2857190665 held",
+  "accounts-idless: Subvertron 2858206655 deleted without relinking (its contacts are the stale merged cards of the contacts group)",
+  "accounts-dups: delete, never blank; an extra holding timeline entries the survivor lacks waits until the survivor carries them",
+  "contacts: deleting with the integration token does not stop a restore; merged cards need a live survivor card and the HubSpot merge in place",
+  "deals: id-less only; confirmFirst and create-in-HubSpot cards held; 350443684547 '新的 deal' left alone (it has an ID)"
+ ],
+ "release": null,
+ "tally": {
+  "accounts-idless": {
+   "held-by-plan": 80,
+   "deleted": 1
+  }
+ },
+ "holdReasons": {
+  "accounts-idless": {
+   "skeptic review": 62,
+   "plan": 14,
+   "skeptic": 4
+  }
+ },
+ "waivedReasons": {},
+ "items": [
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2854825212",
+   "name": "Ukmarketreport",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-08"
+   ],
+   "at": "2026-10-05T03:26:16.866Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2854902122",
+   "name": "Qk",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.868Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2855240915",
+   "name": "Zkqcip",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.869Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2855300666",
+   "name": "Kiriminaja",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-09"
+   ],
+   "at": "2026-10-05T03:26:16.870Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857167174",
+   "name": "U",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-25"
+   ],
+   "at": "2026-10-05T03:26:16.871Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857169140",
+   "name": "Deapad",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-25"
+   ],
+   "at": "2026-10-05T03:26:16.873Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857171550",
+   "name": "I",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.874Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857172081",
+   "name": "Zioneer",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.875Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857175025",
+   "name": "Counsilio",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-25"
+   ],
+   "at": "2026-10-05T03:26:16.876Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857175536",
+   "name": "Buildproject6",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-25"
+   ],
+   "at": "2026-10-05T03:26:16.877Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857177280",
+   "name": "Panthertrade",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-28"
+   ],
+   "at": "2026-10-05T03:26:16.878Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857177609",
+   "name": "Group-itg",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.879Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857178226",
+   "name": "Snowfun",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.879Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857179434",
+   "name": "Areteup",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-24"
+   ],
+   "at": "2026-10-05T03:26:16.880Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857180817",
+   "name": "Open",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897 HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.881Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857181518",
+   "name": "Alumni",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.881Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857181655",
+   "name": "Xiaochuankeji",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.882Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857181855",
+   "name": "Thind-g",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.883Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857181903",
+   "name": "Ltcmc",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-24"
+   ],
+   "at": "2026-10-05T03:26:16.883Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857184159",
+   "name": "70mai",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.884Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857184502",
+   "name": "Pendo",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.885Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857187718",
+   "name": "Alfacloud",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102502018"
+   ],
+   "at": "2026-10-05T03:26:16.886Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857187721",
+   "name": "Mfan",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897/104231431 HSACT:2026-09-30"
+   ],
+   "at": "2026-10-05T03:26:16.887Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857187787",
+   "name": "Prelyn",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.888Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857190665",
+   "name": "Nuvoton",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic: its contact was edited by a person on 2026-09-30 and has HubSpot activity (Nuvoton)"
+   ],
+   "at": "2026-10-05T03:26:16.891Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857191988",
+   "name": "Hodolist",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-23"
+   ],
+   "at": "2026-10-05T03:26:16.892Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857196285",
+   "name": "Make",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.893Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857197242",
+   "name": "Mxbc",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-28"
+   ],
+   "at": "2026-10-05T03:26:16.894Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857198186",
+   "name": "Orisonchain",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.895Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857198689",
+   "name": "Shop",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-01"
+   ],
+   "at": "2026-10-05T03:26:16.895Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857199809",
+   "name": "Piperai",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-04"
+   ],
+   "at": "2026-10-05T03:26:16.897Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857199814",
+   "name": "Inhand",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.898Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857200440",
+   "name": "Kitronyx",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic: only company record of HubSpot deal 342654281437 (Kitronyx)"
+   ],
+   "at": "2026-10-05T03:26:16.899Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857206485",
+   "name": "Ocusun",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic: only company record of HubSpot deal 343822208698 (Ocusun / 润尔眼科, Closed Won)"
+   ],
+   "at": "2026-10-05T03:26:16.900Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857207753",
+   "name": "Jiesoft",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-04"
+   ],
+   "at": "2026-10-05T03:26:16.901Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857207885",
+   "name": "Javisys-globalsolutions",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-04"
+   ],
+   "at": "2026-10-05T03:26:16.902Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857207955",
+   "name": "Dqlbq",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-07"
+   ],
+   "at": "2026-10-05T03:26:16.902Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857208083",
+   "name": "Xentore",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897 HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.904Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857210971",
+   "name": "Shokz",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-30"
+   ],
+   "at": "2026-10-05T03:26:16.905Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857211196",
+   "name": "Helpling",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-22"
+   ],
+   "at": "2026-10-05T03:26:16.906Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857211350",
+   "name": "Yihuzhija",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-01"
+   ],
+   "at": "2026-10-05T03:26:16.907Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857211690",
+   "name": "Hackclub",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897 HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.908Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857211812",
+   "name": "Cnxydy",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-06"
+   ],
+   "at": "2026-10-05T03:26:16.909Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213210",
+   "name": "Hcasia",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-01"
+   ],
+   "at": "2026-10-05T03:26:16.910Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213374",
+   "name": "Amlpartners",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-12"
+   ],
+   "at": "2026-10-05T03:26:16.911Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213603",
+   "name": "Codecoin",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-02"
+   ],
+   "at": "2026-10-05T03:26:16.912Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213667",
+   "name": "S-storesconstruction",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-09"
+   ],
+   "at": "2026-10-05T03:26:16.913Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213725",
+   "name": "Ph",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897 HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.913Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213743",
+   "name": "Fengqiucrane",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-05"
+   ],
+   "at": "2026-10-05T03:26:16.914Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213780",
+   "name": "Gmile",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-03"
+   ],
+   "at": "2026-10-05T03:26:16.915Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857213832",
+   "name": "Bschealthy",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-20"
+   ],
+   "at": "2026-10-05T03:26:16.916Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857216048",
+   "name": "Abiosciences",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-01"
+   ],
+   "at": "2026-10-05T03:26:16.917Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857216784",
+   "name": "Asage",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897 HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.918Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857216786",
+   "name": "Serviceoneasia",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-07"
+   ],
+   "at": "2026-10-05T03:26:16.919Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857216828",
+   "name": "Lejurobot",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-10"
+   ],
+   "at": "2026-10-05T03:26:16.920Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857216982",
+   "name": "Sz-gkts",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-08"
+   ],
+   "at": "2026-10-05T03:26:16.921Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857217127",
+   "name": "Tinaresearch",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-06"
+   ],
+   "at": "2026-10-05T03:26:16.921Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857219424",
+   "name": "Icici",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-30"
+   ],
+   "at": "2026-10-05T03:26:16.922Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857220023",
+   "name": "Forth",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: EDIT:102444897 HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.924Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857220055",
+   "name": "Usako",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-03"
+   ],
+   "at": "2026-10-05T03:26:16.925Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857220113",
+   "name": "Tcym",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-07"
+   ],
+   "at": "2026-10-05T03:26:16.926Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857228485",
+   "name": "Qingteng",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-02"
+   ],
+   "at": "2026-10-05T03:26:16.926Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857229077",
+   "name": "Open-semi",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-11"
+   ],
+   "at": "2026-10-05T03:26:16.927Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2857489455",
+   "name": "Spe",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.928Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2858323669",
+   "name": "Nexus-apac",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.929Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2858872440",
+   "name": "Niimbot",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic: only company record of HubSpot deal 348349665993 (Niimbot / 武汉精臣)"
+   ],
+   "at": "2026-10-05T03:26:16.930Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860159591",
+   "name": "Sdshgk",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.931Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860214985",
+   "name": "Gokeagri",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.932Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860410987",
+   "name": "Soldinfla",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.934Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860411547",
+   "name": "Lyjl",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-16"
+   ],
+   "at": "2026-10-05T03:26:16.935Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860523173",
+   "name": "Unitechsvc",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-17"
+   ],
+   "at": "2026-10-05T03:26:16.936Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860537405",
+   "name": "Sgebiz",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-28"
+   ],
+   "at": "2026-10-05T03:26:16.937Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860564073",
+   "name": "Infinityfa",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.938Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860583401",
+   "name": "Somin",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.939Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2860634875",
+   "name": "Sugarai",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-28"
+   ],
+   "at": "2026-10-05T03:26:16.940Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2861494037",
+   "name": "Camotech",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-17"
+   ],
+   "at": "2026-10-05T03:26:16.941Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2862564014",
+   "name": "Sourcesage",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-29"
+   ],
+   "at": "2026-10-05T03:26:16.942Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2862637701",
+   "name": "Gradion",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-28"
+   ],
+   "at": "2026-10-05T03:26:16.942Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2862682308",
+   "name": "Grey8",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "skeptic review: HSACT:2026-09-24"
+   ],
+   "at": "2026-10-05T03:26:16.943Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2863101996",
+   "name": "Chinastars",
+   "outcome": "held-by-plan",
+   "reasons": [
+    "plan: TOUCHED-BY-PERSON (a rep works its contact; user reviews)"
+   ],
+   "at": "2026-10-05T03:26:16.944Z"
+  },
+  {
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "id": "2855140556",
+   "name": "Vml",
+   "outcome": "deleted",
+   "postChecks": "n/a",
+   "at": "2026-10-05T03:26:53.097Z"
+  }
+ ],
+ "deleting": [
+  {
+   "id": "2855140556",
+   "board": "5028000496",
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "name": "Vml",
+   "hubspotId": null,
+   "sentAt": "2026-10-05T03:26:50.881Z"
+  }
+ ],
+ "deleted": [
+  {
+   "id": "2855140556",
+   "board": "5028000496",
+   "group": "accounts-idless",
+   "kind": "idless-account",
+   "name": "Vml",
+   "hubspotId": null,
+   "at": "2026-10-05T03:26:53.095Z"
+  }
+ ],
+ "restoreList": [
+  "2855140556"
+ ],
+ "failed": [],
+ "creating": [],
+ "created": [],
+ "warnings": [],
+ "savedAt": "2026-10-05T03:26:53.099Z",
+ "stoppedBecause": "canary",
+ "finishedAt": "2026-10-05T03:26:53.099Z"
+}

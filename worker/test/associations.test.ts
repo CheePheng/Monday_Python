@@ -1,0 +1,376 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Mirror the in-memory-fake pattern from sync.test.ts, but for the association pass.
+const H = vi.hoisted(() => {
+  const assoc = new Map<string, string[]>();      // `${obj}:${id}:${to}` -> associated ids
+  // `${obj}:${id}:${to}` keys whose association read is a PARTIAL page (HubSpot returned a cursor).
+  // Opt-in per fixture, so every pre-existing case behaves exactly as it did.
+  const truncated = new Set<string>();
+  const records = new Map<string, any>();          // `${obj}:${id}` -> {id, properties}
+  const parentCols = new Map<string, Record<string, any>>();    // parent itemId -> {col: raw value}
+  const subitems = new Map<string, any[]>();        // parentId -> [{id,name,column_values}]
+  const targetItems = new Map<string, string>();    // HubSpot id -> monday card id on the target board
+  const targetHsId = new Map<string, string>();     // monday card id -> its HubSpot id (reverse resolve)
+  const links = new Map<string, string[]>();        // `${itemId}:${col}` -> currently linked item ids
+  const puts: string[][] = [];                      // recorded putAssociation calls [from,fromId,to,toId]
+  const lineItemProps: any[] = [];                  // recorded createLineItem property payloads
+  const counts: Record<string, number> = { createSubitem: 0, updateItem: 0, deleteItem: 0, setColumns: 0, createItem: 0, createLineItem: 0 };
+  let next = 900;
+  const tt = (v: any): string => {
+    if (v == null) return "";
+    if (typeof v === "string" || typeof v === "number") return String(v);
+    if (Array.isArray(v.labels)) return v.labels.join(", ");
+    if (v.date !== undefined) return String(v.date);
+    if (v.label !== undefined) return String(v.label);
+    return "";
+  };
+  const colText = (it: any, c: string) => (it.column_values.find((x: any) => x.id === c)?.text ?? "").trim();
+  const reset = () => { assoc.clear(); truncated.clear(); records.clear(); parentCols.clear(); subitems.clear();
+    targetItems.clear(); targetHsId.clear(); links.clear(); puts.length = 0; lineItemProps.length = 0;
+    next = 900;
+    for (const k in counts) counts[k] = 0; };
+  return { assoc, truncated, records, parentCols, subitems, targetItems, targetHsId, links, puts, lineItemProps, counts, tt, colText, reset, id: () => "s" + (next++) };
+});
+
+vi.mock("../src/hubspot", () => ({
+  getAssociatedIds: async (_e: any, f: string, id: string, t: string) => H.assoc.get(`${f}:${id}:${t}`) ?? [],
+  // The relation path reads through getAssociatedPage so it can see a TRUNCATED page — a capped read
+  // must never drive a full-replacement write of a paired column. `truncated` is opt-in per fixture
+  // via H.truncated, so every existing case keeps its exact previous behaviour.
+  getAssociatedPage: async (_e: any, f: string, id: string, t: string) => ({
+    ids: H.assoc.get(`${f}:${id}:${t}`) ?? [],
+    truncated: H.truncated.has(`${f}:${id}:${t}`),
+  }),
+  getRecordsByIds: async (_e: any, o: string, ids: string[]) => ids.map(id => H.records.get(`${o}:${id}`)).filter(Boolean),
+  propertiesForSpec: () => [],
+  putAssociation: async (_e: any, from: string, fromId: string, to: string, toId: string) => { H.puts.push([from, fromId, to, toId]); },
+  createLineItem: async (_e: any, p: any, _deal: string) => { H.counts.createLineItem++; H.lineItemProps.push(p); return "999"; },
+}));
+vi.mock("../src/monday", () => ({
+  getSubitems: async (_e: any, p: string) => H.subitems.get(p) ?? [],
+  createSubitem: async (_e: any, p: string, name: string, cv: any) => {
+    H.counts.createSubitem++; const sid = H.id();
+    H.subitems.set(p, [...(H.subitems.get(p) ?? []), { id: sid, name, column_values: Object.entries(cv).map(([id, v]) => ({ id, text: H.tt(v) })) }]);
+    return sid;
+  },
+  updateItem: async (_e: any, _b: string, itemId: string, name: string, cv: any) => {
+    H.counts.updateItem++;
+    for (const arr of H.subitems.values()) for (const s of arr) if (s.id === itemId) {
+      s.name = name;
+      for (const [k, v] of Object.entries(cv)) { const ex = s.column_values.find((c: any) => c.id === k); if (ex) ex.text = H.tt(v); else s.column_values.push({ id: k, text: H.tt(v) }); }
+    }
+  },
+  setColumns: async (_e: any, _b: string, itemId: string, cv: any) => {
+    H.counts.setColumns++; const cur = H.parentCols.get(itemId) ?? {};
+    for (const [k, v] of Object.entries(cv)) cur[k] = v; H.parentCols.set(itemId, cur); // store raw value
+  },
+  findItemIdsByColumn: async (_e: any, _b: string, _c: string, values: string[]) =>
+    Object.fromEntries(values.filter(v => H.targetItems.has(v)).map(v => [v, H.targetItems.get(v)])),
+  // ensureCardForRecord adopts a pre-existing card via the id-column search before creating one.
+  findItemByColumn: async (_e: any, _b: string, _c: string, value: string) =>
+    H.targetItems.has(value)
+      ? [{ id: H.targetItems.get(value), name: "", created_at: "", updated_at: "", group: { id: "" }, column_values: [] }]
+      : [],
+  getItem: async (_e: any, itemId: string) =>
+    ({ id: itemId, name: "", created_at: "", updated_at: "", group: { id: "" }, column_values: [] }),
+  getItemsColumnText: async (_e: any, itemIds: string[], _c: string) =>
+    Object.fromEntries(itemIds.map(id => [id, H.targetHsId.get(id) ?? ""])),
+  getLinkedItemIds: async (_e: any, itemId: string, col: string) => H.links.get(`${itemId}:${col}`) ?? [],
+  createItem: async (_e: any, _b: string, _g: string, _n: string, _c: any) => {
+    H.counts.createItem++; return String(700 + H.counts.createItem); // numeric card id
+  },
+  deleteItem: async (_e: any, itemId: string) => {
+    H.counts.deleteItem++;
+    for (const [p, arr] of H.subitems) H.subitems.set(p, arr.filter(s => s.id !== itemId));
+  },
+}));
+
+import { reverseAssociations, reverseLineItems, syncAssociations } from "../src/associations";
+import { DEALS, COMPANIES_MYLA } from "../src/config";
+
+const env: any = {}; const opts = { dryRun: false, writeHubspot: false, maxWrites: 50 }; const budget = () => ({ left: 50 });
+const item = (id: string, cols: { id: string; text: string }[] = []) =>
+  ({ id, name: "x", created_at: "", updated_at: "", group: { id: "g" }, column_values: cols });
+const ctx: any = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, portalId: 1 };
+const LI = DEALS.associations!.find(a => a.subitems)!.subitems!;
+// The real config now links via board_relation columns; the text `col` path (syncNameColumn) is still
+// supported, so exercise it via synthetic specs rather than the live config.
+const COMPANY_COL = "text_co"; const CONTACT_COL = "text_ct";
+const nameSpec: any = { ...DEALS, associations: [
+  { toObject: "companies", nameProps: ["name"], col: COMPANY_COL },
+  { toObject: "contacts", nameProps: ["firstname", "lastname"], col: CONTACT_COL },
+] };
+
+beforeEach(() => H.reset());
+
+describe("syncAssociations (HubSpot -> monday, one-directional)", () => {
+  it("writes associated company + contact names to the parent columns", async () => {
+    H.assoc.set("deals:1:companies", ["11"]); H.records.set("companies:11", { id: "11", properties: { name: "Acme" } });
+    H.assoc.set("deals:1:contacts", ["21"]); H.records.set("contacts:21", { id: "21", properties: { firstname: "Jo", lastname: "Lee" } });
+    await syncAssociations(env, nameSpec, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.parentCols.get("100")![COMPANY_COL]).toBe("Acme");
+    expect(H.parentCols.get("100")![CONTACT_COL]).toBe("Jo Lee");
+  });
+
+  it("clears the association column when there are no associations", async () => {
+    const col = "text_clear";
+    const clearSpec: any = { ...COMPANIES_MYLA, associations: [{ toObject: "contacts", nameProps: ["firstname", "lastname"], col }] };
+    await syncAssociations(env, clearSpec, { id: "7", properties: {} }, item("70", [{ id: col, text: "Old" }]), ctx, opts, budget());
+    expect(H.parentCols.get("70")![col]).toBe("");
+  });
+
+  it("creates a subitem per line item, updates an existing one by Line Item ID, marks removed ones (Status=Removed)", async () => {
+    H.assoc.set("deals:1:line_items", ["999", "888"]);
+    H.records.set("line_items:999", { id: "999", properties: { name: "A", price: "1500", quantity: "1", amount: "1500" } });
+    H.records.set("line_items:888", { id: "888", properties: { name: "B", price: "10", quantity: "2", amount: "20" } });
+    H.subitems.set("100", [
+      { id: "s999", name: "A-old", column_values: [{ id: LI.idCol, text: "999" }] },  // -> update
+      { id: "s777", name: "gone", column_values: [{ id: LI.idCol, text: "777" }] },   // -> mark Removed
+    ]);
+    await syncAssociations(env, DEALS, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    const subs = H.subitems.get("100")!;
+    expect(subs.map(s => H.colText(s, LI.idCol)).sort()).toEqual(["777", "888", "999"]); // all present; 777 marked, not deleted
+    expect(H.colText(subs.find(s => H.colText(s, LI.idCol) === "777")!, LI.statusCol!)).toBe("Removed");
+    expect(H.counts.createSubitem).toBe(1); // 888 created
+    expect(H.counts.updateItem).toBe(2);     // 999 updated + 777 marked Removed
+    expect(H.counts.deleteItem).toBe(0);
+    // No parent roll-up: everything lives on the subitem columns.
+    expect(H.parentCols.has("100")).toBe(false);
+  });
+
+  it("does not create duplicate subitems on a second sync (matches by Line Item ID)", async () => {
+    H.assoc.set("deals:5:line_items", ["999"]);
+    H.records.set("line_items:999", { id: "999", properties: { name: "A", price: "1500", quantity: "1", amount: "1500" } });
+    await syncAssociations(env, DEALS, { id: "5", properties: {} }, item("500"), ctx, opts, budget()); // create
+    await syncAssociations(env, DEALS, { id: "5", properties: {} }, item("500"), ctx, opts, budget()); // update, no dup
+    expect(H.subitems.get("500")!.filter(s => H.colText(s, LI.idCol) === "999").length).toBe(1);
+    expect(H.counts.createSubitem).toBe(1);
+  });
+
+  it("one association failing does not block the others", async () => {
+    // companies read throws; contacts still writes.
+    H.assoc.set("deals:2:contacts", ["21"]); H.records.set("contacts:21", { id: "21", properties: { firstname: "Ann", lastname: "Ng" } });
+    const hubspot = await import("../src/hubspot");
+    const spy = vi.spyOn(hubspot, "getRecordsByIds").mockImplementationOnce(async () => { throw new Error("403"); });
+    H.assoc.set("deals:2:companies", ["11"]); H.records.set("companies:11", { id: "11", properties: { name: "Acme" } });
+    await syncAssociations(env, nameSpec, { id: "2", properties: {} }, item("200"), ctx, opts, budget());
+    expect(H.parentCols.get("200")![CONTACT_COL]).toBe("Ann Ng");
+    spy.mockRestore();
+  });
+
+  it("links associated cards in a Connect Boards (board_relation) column by resolving HubSpot ids -> monday cards", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11", "22"]);
+    H.targetItems.set("11", "901"); H.targetItems.set("22", "902"); // matching cards on the company board
+    await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.parentCols.get("100")!["conn_co"]).toEqual({ item_ids: [901, 902] });
+  });
+
+  /**
+   * A TRUNCATED ASSOCIATION READ MUST NOT DRIVE A FULL-REPLACEMENT WRITE.
+   *
+   * getAssociatedPage asks HubSpot for 100 and does not page, so a company with more than 100
+   * contacts returns the first 100 plus a cursor. Writing those as `item_ids` REPLACES the cell, and
+   * board_relation columns are PAIRED — so it also strips the link from every card outside that 100,
+   * on cards this pass never touched.
+   *
+   * OBSERVED LIVE 2026-09-10 to 09-12: contact 2855936605's Company cell was set and cleared on a
+   * cycle, every event under this integration's own token, because the relation backfill (which pages
+   * correctly) kept restoring what the capped read kept removing. One Accounts card measured 39 links
+   * short of HubSpot, with 3,473 more sitting above 100 across 25 cards.
+   *
+   * The other four guards cannot see this: `want` is non-empty, every returned id resolved, the cards
+   * are old, and the sets differ. They catch incomplete RESOLUTION; this is incomplete READING.
+   */
+  it("REFUSES to write a relation column when the association read was truncated", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11", "22"]);
+    H.truncated.add("deals:1:companies");                 // HubSpot returned a cursor: more exist
+    H.targetItems.set("11", "901"); H.targetItems.set("22", "902");
+    H.links.set("100:conn_co", ["901", "902", "903"]);     // 903 is outside the page and must survive
+    await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.counts.setColumns).toBe(0);
+    expect(H.links.get("100:conn_co")).toEqual(["901", "902", "903"]);
+  });
+
+  /** The same read, NOT truncated, must still write — the guard must not simply disable the feature. */
+  it("still writes when the association read is complete", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11", "22"]);
+    H.targetItems.set("11", "901"); H.targetItems.set("22", "902");
+    await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.parentCols.get("100")!["conn_co"]).toEqual({ item_ids: [901, 902] });
+  });
+
+  it("does not re-write a Connect Boards column when the links already match", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11"]);
+    H.targetItems.set("11", "901");
+    H.links.set("100:conn_co", ["901"]); // already linked -> must skip
+    await syncAssociations(env, relSpec as any, { id: "1", properties: {} }, item("100"), ctx, opts, budget());
+    expect(H.counts.setColumns).toBe(0);
+  });
+
+  it("reverseLineItems creates a HubSpot line item only for subitems lacking an id, then stamps it", async () => {
+    H.subitems.set("100", [
+      { id: "s1", name: "Widget", column_values: [{ id: LI.idCol, text: "" }, { id: "numeric_mm53rsfd", text: "50" }] },
+      { id: "s2", name: "Synced", column_values: [{ id: LI.idCol, text: "31395364724" }] },
+    ]);
+    await reverseLineItems(env, LI, item("100"), "DEAL1", opts, budget());
+    expect(H.counts.createLineItem).toBe(1);                    // only s1 (no id) created
+    expect(H.parentCols.get("s1")![LI.idCol]).toBe("999");      // returned line-item id stamped onto the subitem
+  });
+
+  it("reverseLineItems adopts an existing same-name line item instead of duplicating (cross-isolate guard)", async () => {
+    H.subitems.set("100", [{ id: "s1", name: "Widget", column_values: [{ id: LI.idCol, text: "" }, { id: "numeric_mm53rsfd", text: "50" }] }]);
+    H.assoc.set("deals:DEAL1:line_items", ["777"]);                     // deal already has a "Widget" line item
+    H.records.set("line_items:777", { id: "777", properties: { name: "Widget" } });
+    await reverseLineItems(env, LI, item("100"), "DEAL1", opts, budget());
+    expect(H.counts.createLineItem).toBe(0);                            // adopted, not created
+    expect(H.parentCols.get("s1")![LI.idCol]).toBe("777");             // adopted id stamped onto the subitem
+  });
+
+  it("reverseLineItems sets hs_product_id when the product-id column is filled (picked from the catalog)", async () => {
+    H.subitems.set("100", [{ id: "s1", name: "Prod", column_values: [
+      { id: LI.idCol, text: "" }, { id: "numeric_mm53rsfd", text: "50" }, { id: LI.productIdCol!, text: "PROD123" }] }]);
+    await reverseLineItems(env, LI, item("100"), "DEAL1", opts, budget());
+    expect(H.lineItemProps[0].hs_product_id).toBe("PROD123");
+  });
+
+  it("reverseAssociations PUTs monday links missing from HubSpot, skips present ones (additive)", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:1:companies", ["11"]);              // HubSpot already has company 11
+    H.links.set("100:conn_co", ["901", "902"]);            // monday deal card 100 links cards 901, 902
+    H.targetHsId.set("901", "11"); H.targetHsId.set("902", "22"); // linked card -> its HubSpot id
+    // createdate is carried because propertiesForSpec fetches it for every ownership spec, and WM
+    // became one on 2026-09-22. Pre-cutover, so this record is WM's to write. Without it
+    // authorizeWrite fails CLOSED on unusable metadata — correct, but not what this test is about.
+    await reverseAssociations(env, relSpec as any,
+      { id: "1", properties: { createdate: "2026-01-01T00:00:00Z" } }, item("100"), opts, budget());
+    expect(H.puts).toEqual([["deals", "1", "companies", "22"]]); // only 22 is missing -> PUT; 11 skipped
+  });
+
+  it("creates the target card on demand when it's missing from the board, then links it", async () => {
+    const relSpec = { ...DEALS, associations: [{ toObject: "companies", nameProps: ["name"], relationCol: "conn_co" }] };
+    H.assoc.set("deals:9:companies", ["55"]);
+    H.records.set("companies:55", { id: "55", properties: { name: "NewCo", domain: "newco.com" } }); // for getRecordsByIds
+    // H.targetItems empty -> card not on the board -> ensureTargetCard creates it (createItem -> "701")
+    await syncAssociations(env, relSpec as any, { id: "9", properties: {} }, item("900"), ctx, opts, budget());
+    expect(H.counts.createItem).toBe(1);
+    expect(H.parentCols.get("900")!["conn_co"]).toEqual({ item_ids: [701] });
+  });
+});
+
+// --- create-race guard: the forward pass must never wipe links from an EMPTY HubSpot read ---
+// Live-observed 2026-08-04: an app-created deal writes its contact/company links, HubSpot's deal is
+// created moments later, and the deal.creation webhook's association read comes back EMPTY (HubSpot's
+// association index lags). The forward pass then cleared the links the rep had just picked — 2 of 3
+// test deals lost them. reverseAssociations is additive-only, so the forward pass is too now.
+import { sameSet, clearsFromEmpty, resolvedAllIds, shrinksFreshCard } from "../src/associations";
+
+describe("relation write guards", () => {
+  it("sameSet ignores order and detects real differences", () => {
+    expect(sameSet(["1", "2"], ["2", "1"])).toBe(true);
+    expect(sameSet(["1"], ["1", "2"])).toBe(false);
+    expect(sameSet([], [])).toBe(true);
+  });
+  it("an EMPTY HubSpot read never clears existing monday links (the create race)", () =>
+    expect(clearsFromEmpty(["2812162017"], [])).toBe(true));
+  it("a non-empty HubSpot set still reconciles normally (adds and removals both apply)", () => {
+    expect(clearsFromEmpty(["1", "2"], ["1"])).toBe(false);   // removing one of two -> allowed to write
+    expect(clearsFromEmpty([], ["1"])).toBe(false);           // first link -> allowed to write
+    expect(clearsFromEmpty([], [])).toBe(false);              // nothing either side
+  });
+});
+
+describe("resolvedAllIds — partial-resolution guard", () => {
+  it("every associated id resolved -> safe to write (a genuine removal still reconciles)", () =>
+    expect(resolvedAllIds(["h1", "h2"], ["c1", "c2"])).toBe(true));
+  it("an id failed to resolve (partial HubSpot read / budget exhausted) -> do NOT write", () =>
+    expect(resolvedAllIds(["h1", "h2"], ["c1"])).toBe(false));
+  it("nothing associated resolves to nothing wanted", () =>
+    expect(resolvedAllIds([], [])).toBe(true));
+});
+
+// The partial-lag clobber resolvedAllIds cannot see: HubSpot returns a STRICT SUBSET of the ids, so every
+// returned id resolves and the shortfall is invisible — arithmetically identical to a real removal.
+describe("shrinksFreshCard — partial association read on a brand-new card", () => {
+  const NOW = Date.parse("2026-08-04T12:00:00Z");
+  const ago = (s: number) => new Date(NOW - s * 1000).toISOString();
+
+  it("a seconds-old card losing a link is HELD (the app-create race)", () =>
+    expect(shrinksFreshCard(ago(5), ["cA"], ["cA", "cB"], NOW)).toBe(true));
+  it("an established card losing a link is a REAL removal -> allowed through", () =>
+    expect(shrinksFreshCard(ago(600), ["cA"], ["cA", "cB"], NOW)).toBe(false));
+  it("a fresh card GAINING a link is not a shrink -> allowed through", () =>
+    expect(shrinksFreshCard(ago(5), ["cA", "cB"], ["cA"], NOW)).toBe(false));
+  it("no change is not a shrink", () =>
+    expect(shrinksFreshCard(ago(5), ["cA"], ["cA"], NOW)).toBe(false));
+  it("an unparseable created_at is treated as old (fails open, never wedges)", () =>
+    expect(shrinksFreshCard("", ["cA"], ["cA", "cB"], NOW)).toBe(false));
+});
+
+/**
+ * CHARACTERIZATION, NOT APPROVAL — a gap the four guards above cannot see.
+ *
+ * This block asserts what the code does TODAY so the gap is visible and pinned. It is deliberately
+ * not a fix: changing it alters the live Work-Management Worker, which runs CONTACTS_MYLA,
+ * COMPANIES_MYLA and DEALS off this same engine, and that needs explicit approval rather than a
+ * quiet edit. When the fifth guard lands, THIS TEST SHOULD FAIL and be rewritten — that failure is
+ * the point of writing it.
+ *
+ * THE GAP. `want` is built by resolving each associated HubSpot id through an index of target cards
+ * keyed by their HubSpot ID column. An Accounts card carrying NO HubSpot ID can therefore never
+ * appear in `want`. Measured 2026-09-11: 414 of the 27,952 Accounts cards are in that state.
+ *
+ * For a contact linked to one of those 414, with HubSpot asserting at least one company:
+ *   - sameSet            -> false (the sets differ)
+ *   - clearsFromEmpty    -> false (HubSpot's set is not empty)
+ *   - shrinksFreshCard   -> false (the card is older than 90s)
+ *   - resolvedAllIds     -> TRUE, because every id HubSpot returned DID resolve
+ * so no guard holds, the write proceeds, and the link is deleted.
+ *
+ * The arithmetic is doing exactly what it was written to do — "a genuine removal still reconciles,
+ * because then every remaining id resolves". The flaw is that the arithmetic cannot distinguish
+ * "this contact left that company" from "this link points at a card HubSpot has never heard of".
+ * HubSpot's silence about a record it does not know is not evidence of removal — it is the same
+ * blind spot resolvedAllIds already exists to respect, in a form resolvedAllIds cannot detect.
+ *
+ * PROPOSED FIFTH GUARD (pending approval): union into `want` any currently-linked card whose own
+ * HubSpot ID column is empty. That closes the hole exactly, and unlike a blanket additive policy it
+ * does not freeze legitimate removals — a card that HAS a HubSpot ID which HubSpot no longer
+ * associates still reconciles away.
+ */
+describe("KNOWN GAP: a link to a target card with no HubSpot ID is removable today", () => {
+  const NOW = Date.parse("2026-09-11T12:00:00Z");
+  const established = new Date(NOW - 3600 * 1000).toISOString();
+
+  // current = [cardA (has a HubSpot id), cardManual (no HubSpot id, linked by a person)]
+  // HubSpot associates company hsA only, which resolves cleanly to cardA.
+  const ids = ["hsA"];
+  const want = ["cardA"];
+  const current = ["cardA", "cardManual"];
+
+  it("none of the four guards holds, so the manual link is written away", () => {
+    expect(sameSet(current, want)).toBe(false);
+    expect(clearsFromEmpty(current, want)).toBe(false);
+    expect(shrinksFreshCard(established, want, current, NOW)).toBe(false);
+    expect(resolvedAllIds(ids, want)).toBe(true);
+
+    // The call site's condition is `!resolvedAllIds(ids, want) && <shrinkage explained>`; with
+    // resolvedAllIds true the whole condition is false, so nothing stops the write.
+    expect(!resolvedAllIds(ids, want)).toBe(false);
+  });
+
+  it("it IS protected only when HubSpot asserts nothing at all", () => {
+    expect(clearsFromEmpty(current, [])).toBe(true);
+  });
+
+  /** The historical backfill took the opposite decision for the same case — see
+   *  scripts/relation-plan.mjs and relation-plan.test.ts, where a bulk pass has no per-record intent
+   *  and is additive-only. The two paths disagreeing is the finding, not an accident of this test. */
+  it("the historical backfill preserves what this path removes", () => {
+    // Asserted as documentation of the divergence; the behaviour itself is tested in relation-plan.
+    expect(resolvedAllIds(ids, want) && !sameSet(current, want)).toBe(true);
+  });
+});

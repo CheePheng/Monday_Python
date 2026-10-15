@@ -1,0 +1,23 @@
+{
+  "object": "deals",
+  "apply": false,
+  "startedAt": "2026-09-27T09:27:36.420Z",
+  "total": 7828,
+  "lastDoneId": "16036959280",
+  "tally": {
+    "updated-monday": 8
+  },
+  "errors": [],
+  "results": {
+    "15996084536": "[webhook] source=deals id=15996084536 action=updated-monday board=5028000494",
+    "15996712081": "[webhook] source=deals id=15996712081 action=updated-monday board=5028000494",
+    "16034613571": "[webhook] source=deals id=16034613571 action=updated-monday board=5028000494",
+    "16036598456": "[webhook] source=deals id=16036598456 action=updated-monday board=5028000494",
+    "16036844939": "[webhook] source=deals id=16036844939 action=updated-monday board=5028000494",
+    "16036959280": "[webhook] source=deals id=16036959280 action=updated-monday board=5028000494",
+    "15999358084": "[webhook] source=deals id=15999358084 action=updated-monday board=5028000494",
+    "16033499999": "[webhook] source=deals id=16033499999 action=updated-monday board=5028000494"
+  },
+  "done": true,
+  "finishedAt": "2026-09-27T09:28:02.163Z"
+}

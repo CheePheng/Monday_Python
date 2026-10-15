@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-09-28T11:50:05.968Z",
+  "apply": true,
+  "canary": true,
+  "intentLog": true,
+  "types": [
+    "emails",
+    "calls",
+    "notes",
+    "meetings",
+    "tasks"
+  ],
+  "activities": 33939,
+  "cardsChecked": 243,
+  "cardsWithDuplicates": 1,
+  "entriesToDelete": 1,
+  "identicalExtras": 1,
+  "bodylessExtras": 0,
+  "deleted": 1,
+  "deleteFailed": 0,
+  "noLongerQualifying": 0,
+  "divergentMarkers": 0,
+  "foreignItemEntries": 0,
+  "guardTripped": 0,
+  "byBoard": {
+    "contacts": 1
+  },
+  "byType": {
+    "tasks": 1
+  },
+  "includeCleaned": false,
+  "skippedCleaned": 0,
+  "maxLost": 5,
+  "lateCheckSeconds": 45,
+  "finalCheckSeconds": 300,
+  "keeperMissing": 0,
+  "bodyMissing": 0,
+  "keeperUnconfirmed": 0,
+  "keeperPartlyUnconfirmed": 0,
+  "keeperRechosen": 0,
+  "heldByKeeperCheck": 0,
+  "keeperLost": 0,
+  "keeperLostLate": 0,
+  "keeperOk": 1,
+  "keeperOkPartial": 0,
+  "keeperUnverified": 0,
+  "settledGroups": 1,
+  "unsettledGroups": 0,
+  "lookupProvedBy": 1,
+  "lookupUnknown": 0,
+  "finalCheck": {
+    "at": "2026-09-28T12:08:35.684Z",
+    "groups": 1,
+    "secondsAfterLastDelete": 301,
+    "lost": 0,
+    "unknown": 0
+  },
+  "toVerify": [],
+  "erroredCards": [],
+  "incompleteCards": [],
+  "cards": [
+    {
+      "kind": "contacts",
+      "card": "2855821096",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86482032130]",
+          "keep": [
+            "78621db9-ec35-48d8-9825-6eb3a28a9a74"
+          ],
+          "identical": [
+            "7abfe568-c21c-4e1b-b8cf-e62349d31812"
+          ],
+          "bodyless": [],
+          "keepers": [
+            "78621db9-ec35-48d8-9825-6eb3a28a9a74"
+          ],
+          "lastCheck": {
+            "phase": "final",
+            "at": "2026-09-28T12:08:35.684Z",
+            "secondsAfterLastDelete": 301,
+            "state": "ok"
+          },
+          "outcome": "keeper-ok",
+          "settled": "ok"
+        }
+      ],
+      "deleting": [
+        "7abfe568-c21c-4e1b-b8cf-e62349d31812"
+      ],
+      "lastSentAt": "2026-09-28T12:03:34.750Z",
+      "deleted": [
+        "7abfe568-c21c-4e1b-b8cf-e62349d31812"
+      ]
+    }
+  ],
+  "nextStart": 243,
+  "nextKey": "contacts:2855821097",
+  "done": false,
+  "stopReason": "canary",
+  "totalCards": 10701,
+  "start": 0
+}

@@ -1,0 +1,80 @@
+{
+ "at": "2026-09-23T10:23:07.434Z",
+ "apply": false,
+ "boards": [
+  {
+   "board": "5028000495",
+   "object": "contacts",
+   "cards": 95977,
+   "stats": {
+    "multiple_person_mm6zap53": {
+     "checked": 95970,
+     "wrong": 310,
+     "toClear": 8,
+     "extraPeople": 1
+    },
+    "multiple_person_mm76ygkp": {
+     "checked": 95970,
+     "wrong": 5241,
+     "toClear": 0,
+     "extraPeople": 0
+    }
+   },
+   "writes": 5460
+  },
+  {
+   "board": "5028000496",
+   "object": "companies",
+   "cards": 29921,
+   "stats": {
+    "multiple_person_mm6z8mwy": {
+     "checked": 28620,
+     "wrong": 42,
+     "toClear": 1,
+     "extraPeople": 0
+    },
+    "multiple_person_mm7d2qk6": {
+     "checked": 28620,
+     "wrong": 9,
+     "toClear": 0,
+     "extraPeople": 0
+    }
+   },
+   "writes": 50
+  },
+  {
+   "board": "5028000494",
+   "object": "deals",
+   "cards": 8666,
+   "stats": {
+    "deal_owner": {
+     "checked": 8658,
+     "wrong": 0,
+     "toClear": 0,
+     "extraPeople": 0
+    },
+    "multiple_person_mm7df31a": {
+     "checked": 8658,
+     "wrong": 0,
+     "toClear": 0,
+     "extraPeople": 0
+    }
+   },
+   "writes": 0
+  },
+  {
+   "board": "5028000489",
+   "object": "line_items",
+   "cards": 9970,
+   "stats": {
+    "multiple_person_mm79ey0p": {
+     "checked": 9968,
+     "wrong": 7623,
+     "toClear": 0,
+     "extraPeople": 0
+    }
+   },
+   "writes": 7623
+  }
+ ]
+}

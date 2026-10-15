@@ -1,0 +1,42 @@
+{
+  "mode": "activities",
+  "apply": true,
+  "generatedAt": "2026-09-26T22:26:55.204Z",
+  "objects": {
+    "emails": {
+      "retriedFrom": "../docs/rollout/2026-09-26-catchup-activities-retry-193246-applied.json",
+      "inReport": 237,
+      "unsettledBefore": {
+        "request-failed": 11
+      },
+      "target": [
+        "401547310796",
+        "401456926453",
+        "401519536868",
+        "401555851995",
+        "401487693536",
+        "401528818407",
+        "401554496205",
+        "401522801353",
+        "401544774376",
+        "401552607967",
+        "401547354831"
+      ],
+      "applied": {
+        "tally": {
+          "request-failed": 6
+        },
+        "results": {
+          "401547310796": "request-failed: Error: /resync-activity network: fetch failed",
+          "401456926453": "request-failed: Error: /resync-activity network: fetch failed",
+          "401519536868": "request-failed: Error: /resync-activity network: fetch failed",
+          "401555851995": "request-failed: Error: /resync-activity network: fetch failed",
+          "401487693536": "request-failed: Error: /resync-activity network: fetch failed",
+          "401528818407": "request-failed: Error: /resync-activity network: fetch failed"
+        }
+      }
+    }
+  },
+  "retryOf": "../docs/rollout/2026-09-26-catchup-activities-retry-193246-applied.json",
+  "lastSentAt": "2026-09-26T23:26:55.301Z"
+}

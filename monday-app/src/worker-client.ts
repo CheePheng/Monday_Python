@@ -1,0 +1,234 @@
+import { getContext } from "./monday-client";
+import { WORKER_BASE } from "./board-config";
+import type { DateRange } from "./lib/date-range";
+import type { ContactHit } from "./lib/contacts";
+
+async function call(token: string, method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<any> {
+  const send = (t: string) => fetch(WORKER_BASE + path, {
+    method, signal, cache: "no-store",
+    headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let res = await send(token);
+  // monday session JWTs are short-lived. A drawer held open outlives its token, after which EVERY Worker
+  // call 403s — search dies, saves fail, and the only recovery was a full page reload. The drawers capture
+  // the token once at mount, so refresh it here: monday.get("sessionToken") mints a fresh one. One retry.
+  if (res.status === 403) {
+    try {
+      const fresh = (await getContext()).sessionToken;
+      if (fresh && fresh !== token) res = await send(fresh);
+    } catch { /* keep the original 403 */ }
+  }
+  if (!res.ok) {
+    // Surface the Worker's JSON {error} (e.g. "deal-not-synced") instead of a bare status code, so the
+    // app's error toast reads meaningfully. Body may be empty/HTML -> fall back to the status.
+    const detail = await res.json().catch(() => null);
+    const msg = detail && typeof detail.error === "string" ? `: ${detail.error}` : "";
+    throw new Error(`worker ${method} ${path}: ${res.status}${msg}`);
+  }
+  return res.json();
+}
+
+export interface Hit { id: string; name: string; secondary: string; sku?: string; price?: string; description?: string }
+export interface SearchResult { items: Hit[]; total: number }
+
+export interface Company {
+  hubspotId: string; name: string; domain: string; industry: string; type: string;
+  partnerWith: string; city: string; state: string; employees: string; revenue: string;
+  linkedin: string; description: string; createdate: string; ownerName: string; salesUser: string;
+}
+export interface CompanyContact { hubspotId: string; name: string; email: string; title: string }
+
+/** Live company directory (newest-created first); `after` pages, `q` searches name+domain. Fails soft:
+ * a Worker error comes back as { error } (HTTP 200), surfaced to the caller. */
+export async function listCompanies(token: string, args: {
+  q?: string; after?: string; limit?: number;
+  ownerId?: string; created?: DateRange; activity?: DateRange;
+}): Promise<{ items: Company[]; after: string | null; error?: string }> {
+  const p = new URLSearchParams();
+  if (args.q?.trim()) p.set("q", args.q.trim());
+  if (args.after) p.set("after", args.after);
+  p.set("limit", String(args.limit ?? 25));
+  if (args.ownerId) p.set("ownerId", args.ownerId);
+  if (args.created?.gte != null) p.set("createdGte", String(args.created.gte));
+  if (args.created?.lte != null) p.set("createdLte", String(args.created.lte));
+  if (args.activity?.gte != null) p.set("activityGte", String(args.activity.gte));
+  if (args.activity?.lte != null) p.set("activityLte", String(args.activity.lte));
+  const res = await call(token, "GET", `/app/companies?${p.toString()}`);
+  return { items: res.results ?? [], after: res.after ?? null, error: res.error };
+}
+
+/** Live contact directory (newest-created first); `after` pages, `q` searches name+email. Fails soft:
+ * a Worker error comes back as { error } (HTTP 200), surfaced to the caller. */
+export async function listContacts(token: string, args: {
+  q?: string; after?: string; limit?: number;
+  ownerId?: string; created?: DateRange; activity?: DateRange;
+}): Promise<{ items: ContactHit[]; after: string | null; error?: string }> {
+  const p = new URLSearchParams();
+  if (args.q?.trim()) p.set("q", args.q.trim());
+  if (args.after) p.set("after", args.after);
+  p.set("limit", String(args.limit ?? 25));
+  if (args.ownerId) p.set("ownerId", args.ownerId);
+  if (args.created?.gte != null) p.set("createdGte", String(args.created.gte));
+  if (args.created?.lte != null) p.set("createdLte", String(args.created.lte));
+  if (args.activity?.gte != null) p.set("activityGte", String(args.activity.gte));
+  if (args.activity?.lte != null) p.set("activityLte", String(args.activity.lte));
+  const res = await call(token, "GET", `/app/contacts?${p.toString()}`);
+  return { items: res.results ?? [], after: res.after ?? null, error: res.error };
+}
+
+// Owners change ~never; memoize for the page session (a failed/empty fetch is not cached).
+let ownersCache: { id: string; name: string }[] | null = null;
+export async function getOwners(token: string): Promise<{ id: string; name: string }[]> {
+  if (ownersCache) return ownersCache;
+  const res = await call(token, "GET", "/app/owners");
+  const owners: { id: string; name: string }[] = res?.owners ?? [];
+  if (owners.length) ownersCache = owners;
+  return owners;
+}
+
+/** A company's linked HubSpot contacts (name/email/title), for the CompanyDrawer. */
+export async function getCompanyContacts(token: string, companyHubspotId: string): Promise<CompanyContact[]> {
+  const res = await call(token, "GET", `/app/associations?type=companies&id=${encodeURIComponent(companyHubspotId)}&to=contacts`);
+  if (res?.error) throw new Error("assoc-" + res.error);   // real HubSpot failure -> CompanyDrawer shows Retry, not "no contacts"
+  return res?.results ?? [];
+}
+
+/** A record's linked records in HubSpot (e.g. a contact's companies), for auto-staging in the deal form. */
+export async function getRecordAssociations(token: string, type: "contacts" | "companies" | "deals", id: string, to: "contacts" | "companies" | "deals"):
+    Promise<{ hubspotId: string; name: string }[]> {
+  const res = await call(token, "GET", `/app/associations?type=${type}&id=${encodeURIComponent(id)}&to=${to}`);
+  // The endpoint fails SOFT ({results: [], error}), which is indistinguishable from "no associations" — a
+  // lookup failure would silently show an empty list and a save could then drop real HubSpot links. Throw so
+  // callers decide: every one of them already wraps this in try/catch and falls back to the board links.
+  if (res?.error) throw new Error("assoc-" + res.error);
+  return res?.results ?? [];
+}
+
+export async function searchHubspot(token: string, type: "contacts" | "companies" | "products" | "deals", q: string, signal?: AbortSignal): Promise<SearchResult> {
+  const res = await call(token, "GET", `/app/search?type=${type}&q=${encodeURIComponent(q.trim())}&limit=20`, undefined, signal);
+  if (res?.error) throw new Error("search-" + res.error);           // surface HubSpot failure (scope/search-failed)
+  return { items: res.results ?? [], total: Number(res.total ?? (res.results?.length ?? 0)) };
+}
+export async function updateHubspotLineItem(token: string, lineItemId: string, properties: Record<string, string>): Promise<void> {
+  await call(token, "POST", "/app/line-item", { lineItemId, properties });
+}
+export interface EnumProp { label: string; options: { value: string; label: string }[] }
+export async function getLineItemSchema(token: string): Promise<Record<string, EnumProp>> {
+  const res = await call(token, "GET", "/app/line-item-schema");
+  return res?.schema ?? {};
+}
+/** Create a HubSpot line item from a monday subitem via the Worker (which ensures the deal exists,
+ * associates it, optional Save-to-library, and writes the Line Item ID back onto the subitem). */
+export async function createHubspotLineItem(token: string, args: {
+  itemId: string; subitemId: string; productId?: string; saveToLibrary?: boolean; properties: Record<string, string>;
+}): Promise<{ lineItemId?: string; productId?: string }> {
+  const res = await call(token, "POST", "/app/line-item", {
+    itemId: args.itemId, subitemId: args.subitemId, saveToLibrary: args.saveToLibrary,
+    properties: { ...args.properties, ...(args.productId ? { hs_product_id: args.productId } : {}) },
+  });
+  return { lineItemId: res.lineItemId, productId: res.productId };
+}
+/** Fetch the deal's current HubSpot line items (fresh from HubSpot), for merging into the editor's rows. */
+export async function getDealLineItems(token: string, itemId: string): Promise<import("./views/LineItemsEditor").LineItem[]> {
+  const res = await call(token, "GET", `/app/deal-line-items?itemId=${encodeURIComponent(itemId)}`);
+  return res?.lineItems ?? [];
+}
+export async function deleteHubspotLineItem(token: string, lineItemId: string): Promise<void> {
+  await call(token, "DELETE", "/app/line-item", { lineItemId });
+}
+export async function addHubspotAssociation(token: string, fromObject: "deals" | "companies" | "contacts", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
+  await call(token, "POST", "/app/association", { fromObject, fromId, toObject, toId });
+}
+export async function deleteHubspotAssociation(token: string, fromObject: "deals" | "companies" | "contacts", fromId: string, toObject: "contacts" | "companies" | "deals", toId: string): Promise<void> {
+  await call(token, "DELETE", "/app/association", { fromObject, fromId, toObject, toId });
+}
+/** Blank allowlisted HubSpot properties on a company/contact. Carries the rep's INTENT: the reconciler
+ * can never infer a clear from state (an empty monday value means "never set" OR "just cleared"). */
+export async function clearRecordFields(token: string, object: "companies" | "contacts", hubspotId: string, fields: string[]): Promise<void> {
+  if (!fields.length) return;
+  await call(token, "POST", "/app/clear-record-fields", { object, hubspotId, fields });
+}
+
+export async function syncCompany(token: string, itemId: string): Promise<boolean> {
+  const res = await call(token, "POST", "/app/sync-company", { itemId });
+  return res?.ok === true;
+}
+export async function syncContact(token: string, itemId: string): Promise<boolean> {
+  const r = await call(token, "POST", "/app/sync-contact", { itemId });
+  return !!(r as any)?.ok;
+}
+export async function archiveHubspotDeal(token: string, hubspotDealId: string): Promise<void> {
+  await call(token, "DELETE", "/app/deal", { hubspotDealId });
+}
+export async function syncDeal(token: string, itemId: string): Promise<boolean> {
+  const res = await call(token, "POST", "/app/sync-deal", { itemId });
+  return res?.ok === true;
+}
+/** Blank allowlisted properties on one deal in HubSpot (amount | closedate | sales_user; the Worker
+ * enforces the list). Carries the rep's explicit intent, which the sync cannot infer: an empty monday
+ * value is indistinguishable from "never set", and for people columns means "heal from HubSpot". */
+export async function clearDealFields(token: string, hubspotDealId: string, fields: string[]): Promise<void> {
+  await call(token, "POST", "/app/clear-deal-fields", { hubspotDealId, fields });
+}
+
+// --- v3.4: standalone Contact/Company creation (Phase A endpoints) ---
+
+/** Mirrors the Worker's CreateResult (worker/src/idempotency.ts). 200 => completed; 502 => failed + partial. */
+export interface CreateResult {
+  status: "in_progress" | "completed" | "failed";
+  failedStep?: "dedup" | "hubspot" | "monday" | "owner" | "associations";
+  hubspotId?: string; mondayItemId?: string; existing?: boolean;
+  unassigned?: boolean; ownerMessage?: string; hubspotLink?: string;
+  steps: { dedup: boolean; hubspot: boolean; monday: boolean; owner: boolean; associations: boolean };
+}
+
+/** One key per Create operation, reused across every retry so the Worker's Durable Object resumes. */
+export function newIdempotencyKey(): string { return crypto.randomUUID(); }
+
+/** Resolve (or create) the monday card for an EXISTING HubSpot contact/company. This MUST go through the
+ * Worker: card creation is guarded by a strongly-consistent registry that the browser cannot see, and a
+ * client-side create raced the sync into duplicate rows on the Contact/Company boards. */
+export async function ensureCard(token: string, object: "contacts" | "companies", hubspotId: string): Promise<string> {
+  const res = await call(token, "POST", "/app/ensure-card", { object, hubspotId });
+  if (!res?.itemId) throw new Error(`Couldn't resolve the monday card for ${object} ${hubspotId}`);
+  return String(res.itemId);
+}
+
+async function postCreate(token: string, kind: "contact" | "company", body: unknown): Promise<CreateResult> {
+  const res = await fetch(WORKER_BASE + `/app/${kind}`, {
+    method: "POST", cache: "no-store",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => null);
+  // Completed (200) and failed-with-partial (502) both carry a CreateResult; anything else is a hard error.
+  if ((res.ok || res.status === 502) && json && typeof json === "object" && "status" in json) return json as CreateResult;
+  throw new Error((json && (json as any).error) || `create-${kind} failed (${res.status})`);
+}
+
+export function createContact(token: string, args: { idempotencyKey: string; properties: Record<string, string>; associateCompanyHubspotId?: string }): Promise<CreateResult> {
+  return postCreate(token, "contact", args);
+}
+export function createCompany(token: string, args: { idempotencyKey: string; properties: Record<string, string>; associateContactHubspotIds?: string[] }): Promise<CreateResult> {
+  return postCreate(token, "company", args);
+}
+// These are large, unfiltered HubSpot property reads whose options change ~never, so memoize them for the
+// page session. A failed/empty fetch is NOT cached, so a transient error can still recover on the next open.
+let contactSchemaCache: Record<string, EnumProp> | null = null;
+let companySchemaCache: Record<string, EnumProp> | null = null;
+
+export async function getContactSchema(token: string): Promise<Record<string, EnumProp>> {
+  if (contactSchemaCache) return contactSchemaCache;
+  const res = await call(token, "GET", "/app/contact-schema");
+  const schema: Record<string, EnumProp> = res?.schema ?? {};
+  if (Object.keys(schema).length) contactSchemaCache = schema;
+  return schema;
+}
+export async function getCompanySchema(token: string): Promise<Record<string, EnumProp>> {
+  if (companySchemaCache) return companySchemaCache;
+  const res = await call(token, "GET", "/app/company-schema");
+  const schema: Record<string, EnumProp> = res?.schema ?? {};
+  if (Object.keys(schema).length) companySchemaCache = schema;
+  return schema;
+}

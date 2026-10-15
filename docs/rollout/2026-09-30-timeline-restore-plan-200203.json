@@ -1,0 +1,6003 @@
+{
+ "generatedAt": "2026-09-30T20:02:03.940Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\docs\\rollout\\2026-09-30-timeline-sibling-census-full.json",
+ "censusRows": 57124,
+ "lostRows": 7886,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 139,
+ "filters": {
+  "cards": [
+   "2856417440",
+   "2856419120",
+   "2856420209",
+   "2856420229",
+   "2856420230",
+   "2856421493",
+   "2856422211",
+   "2856424111",
+   "2856424339",
+   "2856424618",
+   "2856424619",
+   "2856424621",
+   "2856424622",
+   "2856424704",
+   "2856427738",
+   "2856427899",
+   "2856427900",
+   "2856427901",
+   "2856428017",
+   "2856428018",
+   "2856429020",
+   "2856429868",
+   "2856432153",
+   "2856432280",
+   "2856835547",
+   "2856855397",
+   "2857091986",
+   "2858769670",
+   "2859542335",
+   "2859543732",
+   "2859554286",
+   "2859554455",
+   "2859554557",
+   "2859554558",
+   "2859555236",
+   "2859555244",
+   "2859555298",
+   "2859555310",
+   "2859555548",
+   "2859555723",
+   "2859556018",
+   "2859558174",
+   "2859558212",
+   "2859558213",
+   "2859563336",
+   "2859563602",
+   "2859563652",
+   "2859563953",
+   "2859564913",
+   "2859565332"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "would-create": 131,
+  "skipped-not-associated": 8
+ },
+ "done": true,
+ "cards": {
+  "2856417440": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856419120": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 41,
+   "rowsReturned": 41,
+   "distinctRows": 41,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856420209": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856420229": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856420230": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856421493": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856422211": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 7,
+   "rowsReturned": 7,
+   "distinctRows": 7,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424111": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 16,
+   "rowsReturned": 16,
+   "distinctRows": 16,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424339": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424618": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424619": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424621": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424622": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856424704": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856427738": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856427899": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856427900": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856427901": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856428017": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 17,
+   "rowsReturned": 17,
+   "distinctRows": 17,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856428018": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 12,
+   "rowsReturned": 12,
+   "distinctRows": 12,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856429020": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856429868": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856432153": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 45,
+   "rowsReturned": 45,
+   "distinctRows": 45,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2856432280": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859542335": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859543732": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859554286": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 15,
+   "rowsReturned": 15,
+   "distinctRows": 15,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859554455": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 8,
+   "rowsReturned": 8,
+   "distinctRows": 8,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859554557": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 11,
+   "rowsReturned": 11,
+   "distinctRows": 11,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859554558": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 10,
+   "rowsReturned": 10,
+   "distinctRows": 10,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859555236": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 5,
+   "rowsReturned": 5,
+   "distinctRows": 5,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859555244": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 3,
+   "rowsReturned": 3,
+   "distinctRows": 3,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859555298": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859555310": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859555548": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 6,
+   "rowsReturned": 6,
+   "distinctRows": 6,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859555723": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 13,
+   "rowsReturned": 13,
+   "distinctRows": 13,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859556018": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 23,
+   "rowsReturned": 23,
+   "distinctRows": 23,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859558174": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 1,
+   "rowsReturned": 1,
+   "distinctRows": 1,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859558212": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 10,
+   "rowsReturned": 10,
+   "distinctRows": 10,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859558213": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 7,
+   "rowsReturned": 7,
+   "distinctRows": 7,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859563336": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 2,
+   "rowsReturned": 2,
+   "distinctRows": 2,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859563602": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859563652": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859563953": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 34,
+   "rowsReturned": 34,
+   "distinctRows": 34,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859564913": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 0,
+   "rowsReturned": 0,
+   "distinctRows": 0,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  },
+  "2859565332": {
+   "kind": "deals",
+   "board": "5028000494",
+   "ownEntries": 8,
+   "rowsReturned": 8,
+   "distinctRows": 8,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2856417440",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:391606653627]",
+   "object": "emails",
+   "activityId": "391606653627",
+   "outcome": "would-create",
+   "recordId": "536534070006",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "128598bd-43ef-4f01-a94a-891071be289a",
+    "card": "2855618087",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Docusign x Novartis: Modernizing Procurement & Contracting",
+    "contentLength": 1272,
+    "contentSha": "f4aa2283cfd24a10",
+    "timestamp": "2026-08-17T05:37:59.535Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:09.831Z"
+    }
+   }
+  },
+  {
+   "card": "2856419120",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:366808560314]",
+   "object": "emails",
+   "activityId": "366808560314",
+   "outcome": "would-create",
+   "recordId": "470357542612",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5b0394d2-dc0a-45bb-8996-1f0f555a3bc0",
+    "card": "2855619071",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-Up: Aircall Overview & GTM | DKM Ecosystem",
+    "contentLength": 8034,
+    "contentSha": "ce17e771ef9f045e",
+    "timestamp": "2026-04-28T02:14:03Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 41,
+     "rowsReturned": 41,
+     "distinctRows": 41,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:09.096Z"
+    }
+   }
+  },
+  {
+   "card": "2856419120",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:367852560079]",
+   "object": "emails",
+   "activityId": "367852560079",
+   "outcome": "would-create",
+   "recordId": "470357542612",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "248914e0-5695-4cc8-a07d-181c6ae6c53f",
+    "card": "2855619071",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：Follow-Up: Aircall Overview & GTM | DKM Ecosystem",
+    "contentLength": 9333,
+    "contentSha": "f2bc5dd1941322ca",
+    "timestamp": "2026-04-30T11:32:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 41,
+     "rowsReturned": 41,
+     "distinctRows": 41,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:09.096Z"
+    }
+   }
+  },
+  {
+   "card": "2856420209",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:387793963750]",
+   "object": "emails",
+   "activityId": "387793963750",
+   "outcome": "would-create",
+   "recordId": "524357445368",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2febef96-6b71-4236-b5d9-488c309c4295",
+    "card": "2856420230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：【Quotation】SHEIN Bank card redirection verification based on PSD2-DKM",
+    "contentLength": 4414,
+    "contentSha": "4b9aca449acc223f",
+    "timestamp": "2026-07-29T02:55:14Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:14.838Z"
+    }
+   }
+  },
+  {
+   "card": "2856420209",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389083854530]",
+   "object": "emails",
+   "activityId": "389083854530",
+   "outcome": "would-create",
+   "recordId": "524357445368",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "cbc8b70f-6312-453d-af2a-b2f003542b09",
+    "card": "2856420230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：【Quotation】SHEIN Bank card redirection verification based on PSD2-DKM",
+    "contentLength": 4931,
+    "contentSha": "9dfa8bb1d3229552",
+    "timestamp": "2026-08-05T02:50:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:14.838Z"
+    }
+   }
+  },
+  {
+   "card": "2856420229",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:385734980340]",
+   "object": "emails",
+   "activityId": "385734980340",
+   "outcome": "would-create",
+   "recordId": "524357807809",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "54b3ca98-08e8-4f1b-be06-11aee249b524",
+    "card": "2856420209",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 【Quotation】SHEIN Bank card redirection verification based on PSD2-DKM",
+    "contentLength": 3499,
+    "contentSha": "ac8a5568c24ec3ae",
+    "timestamp": "2026-07-24T03:25:21.591Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:17.490Z"
+    }
+   }
+  },
+  {
+   "card": "2856420229",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:387793963750]",
+   "object": "emails",
+   "activityId": "387793963750",
+   "outcome": "would-create",
+   "recordId": "524357807809",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2febef96-6b71-4236-b5d9-488c309c4295",
+    "card": "2856420230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：【Quotation】SHEIN Bank card redirection verification based on PSD2-DKM",
+    "contentLength": 4414,
+    "contentSha": "4b9aca449acc223f",
+    "timestamp": "2026-07-29T02:55:14Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:17.490Z"
+    }
+   }
+  },
+  {
+   "card": "2856420229",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389083854530]",
+   "object": "emails",
+   "activityId": "389083854530",
+   "outcome": "would-create",
+   "recordId": "524357807809",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "cbc8b70f-6312-453d-af2a-b2f003542b09",
+    "card": "2856420230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：【Quotation】SHEIN Bank card redirection verification based on PSD2-DKM",
+    "contentLength": 4931,
+    "contentSha": "9dfa8bb1d3229552",
+    "timestamp": "2026-08-05T02:50:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:17.490Z"
+    }
+   }
+  },
+  {
+   "card": "2856420230",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:385734980340]",
+   "object": "emails",
+   "activityId": "385734980340",
+   "outcome": "would-create",
+   "recordId": "524384204528",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "54b3ca98-08e8-4f1b-be06-11aee249b524",
+    "card": "2856420209",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 【Quotation】SHEIN Bank card redirection verification based on PSD2-DKM",
+    "contentLength": 3499,
+    "contentSha": "ac8a5568c24ec3ae",
+    "timestamp": "2026-07-24T03:25:21.591Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:22.595Z"
+    }
+   }
+  },
+  {
+   "card": "2856421493",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80736598164]",
+   "object": "emails",
+   "activityId": "80736598164",
+   "outcome": "would-create",
+   "recordId": "85573323067",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0f650e5a-1f49-4228-8248-c154de67696c",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Theobald license for Dev Environment",
+    "contentLength": 14624,
+    "contentSha": "0835cb6c2ab9ce6b",
+    "timestamp": "2025-06-04T07:18:41Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:27.171Z"
+    }
+   }
+  },
+  {
+   "card": "2856421493",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80738073132]",
+   "object": "emails",
+   "activityId": "80738073132",
+   "outcome": "would-create",
+   "recordId": "85573323067",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7aeb1567-d8c3-4d3a-a279-be2510fdae71",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald license for Dev Environment",
+    "contentLength": 14595,
+    "contentSha": "31ccadfea8a1e578",
+    "timestamp": "2025-06-04T07:11:59Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:27.171Z"
+    }
+   }
+  },
+  {
+   "card": "2856421493",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81056431664]",
+   "object": "emails",
+   "activityId": "81056431664",
+   "outcome": "would-create",
+   "recordId": "85573323067",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "360d32a4-0e28-4fd4-a78a-f767ff0631b1",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: Theobald license for Dev Environment",
+    "contentLength": 13012,
+    "contentSha": "4c2e873ad70e1eeb",
+    "timestamp": "2025-06-09T10:02:06Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:27.171Z"
+    }
+   }
+  },
+  {
+   "card": "2856421493",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81534481779]",
+   "object": "emails",
+   "activityId": "81534481779",
+   "outcome": "would-create",
+   "recordId": "85573323067",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "43e20451-5101-49ae-911e-33570765bcc1",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: Theobald license for Dev Environment",
+    "contentLength": 14061,
+    "contentSha": "08ab9124652d3ac6",
+    "timestamp": "2025-06-17T01:32:39Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:27.171Z"
+    }
+   }
+  },
+  {
+   "card": "2856421493",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81541357130]",
+   "object": "emails",
+   "activityId": "81541357130",
+   "outcome": "would-create",
+   "recordId": "85573323067",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3666d5e1-e91c-4129-bf99-386e5662f87a",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Re: Theobald license for Dev Environment",
+    "contentLength": 17301,
+    "contentSha": "83d4ba7bf17d504f",
+    "timestamp": "2025-06-17T06:13:19Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:27.171Z"
+    }
+   }
+  },
+  {
+   "card": "2856421493",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81794418050]",
+   "object": "emails",
+   "activityId": "81794418050",
+   "outcome": "would-create",
+   "recordId": "85573323067",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1f95f83e-58ce-41fd-86e2-ec91c7702f6c",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: Theobald license for Dev Environment",
+    "contentLength": 17675,
+    "contentSha": "ce2c41d026169d8b",
+    "timestamp": "2025-06-20T13:45:59Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:27.171Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:393020736246]",
+   "object": "emails",
+   "activityId": "393020736246",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "72ad0c1b-367c-4aa9-8f28-e25b0d0f9c00",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 7738,
+    "contentSha": "ee7cebf39c595293",
+    "timestamp": "2026-08-21T15:02:25.722Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:393508348613]",
+   "object": "emails",
+   "activityId": "393508348613",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9d6026d5-5660-40c6-b723-864abd615f3c",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9292,
+    "contentSha": "0a4b7b3a63564f0c",
+    "timestamp": "2026-08-24T06:38:01Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394518423232]",
+   "object": "emails",
+   "activityId": "394518423232",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "e044dd8d-8236-45b3-9a26-552a20bede53",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 10307,
+    "contentSha": "982b0aad2a8298ce",
+    "timestamp": "2026-08-27T09:58:06Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394733601477]",
+   "object": "emails",
+   "activityId": "394733601477",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2357aab6-5501-4ac8-8afc-1094888782ce",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 11895,
+    "contentSha": "8e83f9b9c7f9eb75",
+    "timestamp": "2026-08-28T01:06:14Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:396850840252]",
+   "object": "emails",
+   "activityId": "396850840252",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "85df8c71-3232-495c-a13f-f8553f914e5f",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9192,
+    "contentSha": "eb0e150b4665248d",
+    "timestamp": "2026-09-03T07:29:48Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398737960682]",
+   "object": "emails",
+   "activityId": "398737960682",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1fc28856-e5ec-4f9c-9e30-902fed3d6c56",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 11765,
+    "contentSha": "c9d763165be3ec63",
+    "timestamp": "2026-09-10T05:44:27Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856422211",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398760255218]",
+   "object": "emails",
+   "activityId": "398760255218",
+   "outcome": "would-create",
+   "recordId": "539012074188",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "31adfe6f-d356-4e4a-b983-fc37e74e5eab",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 13157,
+    "contentSha": "3fd5f8725f0a4495",
+    "timestamp": "2026-09-10T08:55:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:28.200Z"
+    }
+   }
+  },
+  {
+   "card": "2856424111",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:380481772253]",
+   "object": "emails",
+   "activityId": "380481772253",
+   "outcome": "would-create",
+   "recordId": "527768194772",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "b487df2d-67a4-4d63-95ce-c800d71a6656",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "回复：回复：Renewal Reminder: Your Theobald License Maintenance Expires on July 31, 2026",
+    "contentLength": 5926,
+    "contentSha": "abc7a9a60cd88353",
+    "timestamp": "2026-07-02T09:24:52Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 16,
+     "rowsReturned": 16,
+     "distinctRows": 16,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:41.295Z"
+    }
+   }
+  },
+  {
+   "card": "2856424339",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:387225973492]",
+   "object": "notes",
+   "activityId": "387225973492",
+   "outcome": "would-create",
+   "recordId": "527770319569",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "12c8aee7-fd34-4fe4-ba57-c8681d32ea4e",
+    "card": "2855716195",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "电话咨询， 对接人及使用部门：合规部 1 人用 需求：合同签署，业务从26年开始，客户在澳洲，马来西亚，新加坡，目前量不大一年大概500封，客户有国内和国外，签",
+    "contentLength": 394,
+    "contentSha": "3b7e97214ce299ec",
+    "timestamp": "2026-07-30T03:21:48.444Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:44.450Z"
+    }
+   }
+  },
+  {
+   "card": "2856424618",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "would-create",
+   "recordId": "532745937636",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "96ba7ff6-b248-42f8-a06b-3f79425acc39",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 7385,
+    "contentSha": "3b65ba3cf2de0747",
+    "timestamp": "2026-08-09T05:09:11.031Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:46.997Z"
+    }
+   }
+  },
+  {
+   "card": "2856424619",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "would-create",
+   "recordId": "532745937638",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "96ba7ff6-b248-42f8-a06b-3f79425acc39",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 7385,
+    "contentSha": "3b65ba3cf2de0747",
+    "timestamp": "2026-08-09T05:09:11.031Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:50.605Z"
+    }
+   }
+  },
+  {
+   "card": "2856424619",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "would-create",
+   "recordId": "532745937638",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "976ed3fe-3a99-481a-8e74-b9e37d40f469",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 9848,
+    "contentSha": "df728240af68bf8a",
+    "timestamp": "2026-08-11T00:38:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:50.605Z"
+    }
+   }
+  },
+  {
+   "card": "2856424621",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "would-create",
+   "recordId": "532745937639",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "96ba7ff6-b248-42f8-a06b-3f79425acc39",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 7385,
+    "contentSha": "3b65ba3cf2de0747",
+    "timestamp": "2026-08-09T05:09:11.031Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:51.373Z"
+    }
+   }
+  },
+  {
+   "card": "2856424622",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "would-create",
+   "recordId": "532745998030",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "96ba7ff6-b248-42f8-a06b-3f79425acc39",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 7385,
+    "contentSha": "3b65ba3cf2de0747",
+    "timestamp": "2026-08-09T05:09:11.031Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:55.856Z"
+    }
+   }
+  },
+  {
+   "card": "2856424622",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "would-create",
+   "recordId": "532745998030",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "976ed3fe-3a99-481a-8e74-b9e37d40f469",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 9848,
+    "contentSha": "df728240af68bf8a",
+    "timestamp": "2026-08-11T00:38:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:55.856Z"
+    }
+   }
+  },
+  {
+   "card": "2856424704",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "would-create",
+   "recordId": "532746192621",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "96ba7ff6-b248-42f8-a06b-3f79425acc39",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 7385,
+    "contentSha": "3b65ba3cf2de0747",
+    "timestamp": "2026-08-09T05:09:11.031Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:59.380Z"
+    }
+   }
+  },
+  {
+   "card": "2856424704",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "would-create",
+   "recordId": "532746192621",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "976ed3fe-3a99-481a-8e74-b9e37d40f469",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 9848,
+    "contentSha": "df728240af68bf8a",
+    "timestamp": "2026-08-11T00:38:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:02:59.380Z"
+    }
+   }
+  },
+  {
+   "card": "2856427738",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:371485554377]",
+   "object": "emails",
+   "activityId": "371485554377",
+   "outcome": "would-create",
+   "recordId": "491278730976",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "acaad507-0f59-4d1b-88fb-1d205832ef49",
+    "card": "2856427739",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 会议跟进：优阅达 x 伦敦发展促进署",
+    "contentLength": 5149,
+    "contentSha": "411cf9d596cc4d53",
+    "timestamp": "2026-05-25T05:15:46.094Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:04.244Z"
+    }
+   }
+  },
+  {
+   "card": "2856427899",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "would-create",
+   "recordId": "532639892177",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "976ed3fe-3a99-481a-8e74-b9e37d40f469",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 9848,
+    "contentSha": "df728240af68bf8a",
+    "timestamp": "2026-08-11T00:38:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:08.205Z"
+    }
+   }
+  },
+  {
+   "card": "2856427900",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "would-create",
+   "recordId": "532670412525",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "976ed3fe-3a99-481a-8e74-b9e37d40f469",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 9848,
+    "contentSha": "df728240af68bf8a",
+    "timestamp": "2026-08-11T00:38:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:09.286Z"
+    }
+   }
+  },
+  {
+   "card": "2856427901",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "would-create",
+   "recordId": "532675512049",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "96ba7ff6-b248-42f8-a06b-3f79425acc39",
+    "card": "2856291863",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Follow-up: Partner Capability Scoping & Request for Information (e-KYC, AML, FMS) – Digital Wallet Programme",
+    "contentLength": 7385,
+    "contentSha": "3b65ba3cf2de0747",
+    "timestamp": "2026-08-09T05:09:11.031Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:13.988Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:393393516256]",
+   "object": "emails",
+   "activityId": "393393516256",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7b83688a-f997-4661-b8d8-029d925b21c4",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9721,
+    "contentSha": "4b69f0c1df375942",
+    "timestamp": "2026-08-24T08:30:24Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:393508348613]",
+   "object": "emails",
+   "activityId": "393508348613",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9d6026d5-5660-40c6-b723-864abd615f3c",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9292,
+    "contentSha": "0a4b7b3a63564f0c",
+    "timestamp": "2026-08-24T06:38:01Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394756327103]",
+   "object": "emails",
+   "activityId": "394756327103",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "f0f617b6-3d6d-4ad7-ae4f-2c5de8fad495",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 12145,
+    "contentSha": "d387aee18e06ccf9",
+    "timestamp": "2026-08-28T04:29:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394764509928]",
+   "object": "emails",
+   "activityId": "394764509928",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6051b207-e1fa-4ace-b9ad-8598fc573eb2",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 13601,
+    "contentSha": "3af90324085c326b",
+    "timestamp": "2026-08-28T06:20:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:396850840252]",
+   "object": "emails",
+   "activityId": "396850840252",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "85df8c71-3232-495c-a13f-f8553f914e5f",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9192,
+    "contentSha": "eb0e150b4665248d",
+    "timestamp": "2026-09-03T07:29:48Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:397041436355]",
+   "object": "emails",
+   "activityId": "397041436355",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1ed7f6a9-a683-455a-b75f-bdb9468cdcae",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9743,
+    "contentSha": "e2b1500368a30dc4",
+    "timestamp": "2026-09-04T12:38:44Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:397626219226]",
+   "object": "emails",
+   "activityId": "397626219226",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "034cb843-ea23-40cf-b2b6-f31e4e9478fe",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: [DBSI Account Opening] - DATA KNOWLEDGE MANAGEMENT PT",
+    "contentLength": 4860,
+    "contentSha": "16fe60c03bfa1f4e",
+    "timestamp": "2026-09-07T02:41:17Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:397632060133]",
+   "object": "emails",
+   "activityId": "397632060133",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "63308ef0-6944-4c9f-9d11-6d54386299d6",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 11417,
+    "contentSha": "de84ffe064cf5c6a",
+    "timestamp": "2026-09-07T02:42:50Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398175259366]",
+   "object": "emails",
+   "activityId": "398175259366",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "cc532360-1eee-43c0-a7f1-983b26985506",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: [DBSI Account Opening] - DATA KNOWLEDGE MANAGEMENT PT",
+    "contentLength": 5294,
+    "contentSha": "e3d777060b6b3640",
+    "timestamp": "2026-09-08T14:21:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398377009870]",
+   "object": "emails",
+   "activityId": "398377009870",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "f1028f59-be7d-471e-94fc-f75a8a882f33",
+    "card": "2856428018",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: [DBSI Account Opening] - DATA KNOWLEDGE MANAGEMENT PT",
+    "contentLength": 6614,
+    "contentSha": "14e96eb945263596",
+    "timestamp": "2026-09-09T02:37:32Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428017",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398829732556]",
+   "object": "emails",
+   "activityId": "398829732556",
+   "outcome": "would-create",
+   "recordId": "538999377632",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4b0a8d2a-011d-4901-a4fd-c0a32c8e8a90",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 13419,
+    "contentSha": "c25262312a248190",
+    "timestamp": "2026-09-10T11:48:07Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 17,
+     "rowsReturned": 17,
+     "distinctRows": 17,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:14.950Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:393393516256]",
+   "object": "emails",
+   "activityId": "393393516256",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7b83688a-f997-4661-b8d8-029d925b21c4",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9721,
+    "contentSha": "4b69f0c1df375942",
+    "timestamp": "2026-08-24T08:30:24Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394518423232]",
+   "object": "emails",
+   "activityId": "394518423232",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "e044dd8d-8236-45b3-9a26-552a20bede53",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 10307,
+    "contentSha": "982b0aad2a8298ce",
+    "timestamp": "2026-08-27T09:58:06Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394733601477]",
+   "object": "emails",
+   "activityId": "394733601477",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2357aab6-5501-4ac8-8afc-1094888782ce",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 11895,
+    "contentSha": "8e83f9b9c7f9eb75",
+    "timestamp": "2026-08-28T01:06:14Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394756327103]",
+   "object": "emails",
+   "activityId": "394756327103",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "f0f617b6-3d6d-4ad7-ae4f-2c5de8fad495",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 12145,
+    "contentSha": "d387aee18e06ccf9",
+    "timestamp": "2026-08-28T04:29:26Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:394764509928]",
+   "object": "emails",
+   "activityId": "394764509928",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6051b207-e1fa-4ace-b9ad-8598fc573eb2",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 13601,
+    "contentSha": "3af90324085c326b",
+    "timestamp": "2026-08-28T06:20:11Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:397041436355]",
+   "object": "emails",
+   "activityId": "397041436355",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1ed7f6a9-a683-455a-b75f-bdb9468cdcae",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 9743,
+    "contentSha": "e2b1500368a30dc4",
+    "timestamp": "2026-09-04T12:38:44Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:397076903651]",
+   "object": "emails",
+   "activityId": "397076903651",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a902004a-50a6-467c-ba92-5360e784fe48",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [DBSI Account Opening] - DATA KNOWLEDGE MANAGEMENT PT",
+    "contentLength": 3743,
+    "contentSha": "74b8a315b7f944a4",
+    "timestamp": "2026-09-04T12:33:56Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:397632060133]",
+   "object": "emails",
+   "activityId": "397632060133",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "63308ef0-6944-4c9f-9d11-6d54386299d6",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 11417,
+    "contentSha": "de84ffe064cf5c6a",
+    "timestamp": "2026-09-07T02:42:50Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398737960682]",
+   "object": "emails",
+   "activityId": "398737960682",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1fc28856-e5ec-4f9c-9e30-902fed3d6c56",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 11765,
+    "contentSha": "c9d763165be3ec63",
+    "timestamp": "2026-09-10T05:44:27Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398760255218]",
+   "object": "emails",
+   "activityId": "398760255218",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "31adfe6f-d356-4e4a-b983-fc37e74e5eab",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 13157,
+    "contentSha": "3fd5f8725f0a4495",
+    "timestamp": "2026-09-10T08:55:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398815847153]",
+   "object": "emails",
+   "activityId": "398815847153",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "27bb7030-4103-4e0e-9fd5-4a0aa96151cd",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: [DBSI Account Opening] - DATA KNOWLEDGE MANAGEMENT PT",
+    "contentLength": 6995,
+    "contentSha": "44f2be12b6faaad5",
+    "timestamp": "2026-09-10T07:48:53Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:398829732556]",
+   "object": "emails",
+   "activityId": "398829732556",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4b0a8d2a-011d-4901-a4fd-c0a32c8e8a90",
+    "card": "2856422211",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: [External] Re: Mandatory Document for Account Opening at PT. Bank DBS Indonesia",
+    "contentLength": 13419,
+    "contentSha": "c25262312a248190",
+    "timestamp": "2026-09-10T11:48:07Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856428018",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:401419001531]",
+   "object": "emails",
+   "activityId": "401419001531",
+   "outcome": "would-create",
+   "recordId": "539010492146",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "38f2e5a6-fdcb-49b1-a774-03c1c914f918",
+    "card": "2856428017",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: [External] Re: [DBSI Account Opening] - DATA KNOWLEDGE MANAGEMENT PT",
+    "contentLength": 5567,
+    "contentSha": "d17b7974048b828b",
+    "timestamp": "2026-09-17T03:27:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 12,
+     "rowsReturned": 12,
+     "distinctRows": 12,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:20.376Z"
+    }
+   }
+  },
+  {
+   "card": "2856429020",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:67030742627]",
+   "object": "emails",
+   "activityId": "67030742627",
+   "outcome": "would-create",
+   "recordId": "85589927982",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6e5016ee-3877-4880-ba6e-cf54974d8dec",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: AW: Theobald license for Dev Environment",
+    "contentLength": 7627,
+    "contentSha": "882dfa4a470839fe",
+    "timestamp": "2024-12-17T10:53:10.395Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:48.050Z"
+    }
+   }
+  },
+  {
+   "card": "2856429020",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:67086609041]",
+   "object": "emails",
+   "activityId": "67086609041",
+   "outcome": "would-create",
+   "recordId": "85589927982",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "62a9e3d6-0fca-45be-b35b-11927e97e9be",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: AW: Theobald license for Dev Environment",
+    "contentLength": 10169,
+    "contentSha": "52fff2b99cae1d59",
+    "timestamp": "2024-12-17T11:26:22Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:48.050Z"
+    }
+   }
+  },
+  {
+   "card": "2856429020",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80736598164]",
+   "object": "emails",
+   "activityId": "80736598164",
+   "outcome": "would-create",
+   "recordId": "85589927982",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0f650e5a-1f49-4228-8248-c154de67696c",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Theobald license for Dev Environment",
+    "contentLength": 14624,
+    "contentSha": "0835cb6c2ab9ce6b",
+    "timestamp": "2025-06-04T07:18:41Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:48.050Z"
+    }
+   }
+  },
+  {
+   "card": "2856429020",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80738073132]",
+   "object": "emails",
+   "activityId": "80738073132",
+   "outcome": "would-create",
+   "recordId": "85589927982",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7aeb1567-d8c3-4d3a-a279-be2510fdae71",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald license for Dev Environment",
+    "contentLength": 14595,
+    "contentSha": "31ccadfea8a1e578",
+    "timestamp": "2025-06-04T07:11:59Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:48.050Z"
+    }
+   }
+  },
+  {
+   "card": "2856429020",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:80748684631]",
+   "object": "emails",
+   "activityId": "80748684631",
+   "outcome": "would-create",
+   "recordId": "85589927982",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "05b89f65-dd8c-432e-a9a7-612788b7d475",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: Theobald license for Dev Environment",
+    "contentLength": 11659,
+    "contentSha": "828bbefbb0da3c9d",
+    "timestamp": "2025-06-04T06:38:13Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:48.050Z"
+    }
+   }
+  },
+  {
+   "card": "2856429020",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:81794418050]",
+   "object": "emails",
+   "activityId": "81794418050",
+   "outcome": "would-create",
+   "recordId": "85589927982",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1f95f83e-58ce-41fd-86e2-ec91c7702f6c",
+    "card": "2855613785",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: Theobald license for Dev Environment",
+    "contentLength": 17675,
+    "contentSha": "ce2c41d026169d8b",
+    "timestamp": "2025-06-20T13:45:59Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:48.050Z"
+    }
+   }
+  },
+  {
+   "card": "2856429868",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:392172148450]",
+   "object": "emails",
+   "activityId": "392172148450",
+   "outcome": "would-create",
+   "recordId": "536554996455",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c8566166-a4f3-4dc6-939b-b14bf98bef15",
+    "card": "2855585173",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Docusign x Roche: Modernizing Agreement Workflows",
+    "contentLength": 2213,
+    "contentSha": "3b81c3772a499244",
+    "timestamp": "2026-08-19T02:37:59.647Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:03:57.995Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:373106747080]",
+   "object": "emails",
+   "activityId": "373106747080",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "83929f04-8ea5-405c-b969-6cd60779a3cc",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: ExternalHello from Theobald",
+    "contentLength": 3165,
+    "contentSha": "5e27d5e75dbed50a",
+    "timestamp": "2026-06-02T04:32:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:383237332724]",
+   "object": "emails",
+   "activityId": "383237332724",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "f84686aa-b23d-4789-9805-84679c14b616",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: ExternalHello from Theobald",
+    "contentLength": 6039,
+    "contentSha": "5abe64df399d5004",
+    "timestamp": "2026-07-13T04:43:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:387760328386]",
+   "object": "emails",
+   "activityId": "387760328386",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "ecde1525-9547-405d-917f-2a178fd75856",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: ExternalRe: ExternalHello from Theobald",
+    "contentLength": 7453,
+    "contentSha": "6131d7f34ffe8aa9",
+    "timestamp": "2026-07-31T01:56:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:387797436103]",
+   "object": "emails",
+   "activityId": "387797436103",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "f220c37d-7992-4e4c-b566-e590111ba409",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: ExternalHello from Theobald",
+    "contentLength": 5445,
+    "contentSha": "c3d5c21dba6e029f",
+    "timestamp": "2026-07-29T02:21:36Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:388355876558]",
+   "object": "emails",
+   "activityId": "388355876558",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "56800ef5-accc-4aa3-93c9-841725d23253",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: RE: ExternalRe: Re: ExternalRe: ExternalHello from Theobald",
+    "contentLength": 8706,
+    "contentSha": "555579edbb08519c",
+    "timestamp": "2026-08-04T06:59:52Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:388428806889]",
+   "object": "emails",
+   "activityId": "388428806889",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7153d5e3-77dd-4815-8582-da18aa35ba45",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: ExternalRe: RE: ExternalRe: Re: ExternalRe: ExternalHello from Theobald",
+    "contentLength": 10317,
+    "contentSha": "c69bdbf340850e98",
+    "timestamp": "2026-08-04T11:33:16Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389575887559]",
+   "object": "emails",
+   "activityId": "389575887559",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "36c07dd3-11dd-4927-9213-f46043ddaa0c",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Re: ExternalRe: RE: ExternalRe: Re: ExternalRe: ExternalHello from Theobald",
+    "contentLength": 11194,
+    "contentSha": "7feaf1cda52d3ca2",
+    "timestamp": "2026-08-10T07:37:39Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432153",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:389593476815]",
+   "object": "emails",
+   "activityId": "389593476815",
+   "outcome": "would-create",
+   "recordId": "494653345506",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "270b79a5-e342-4de4-bcf3-f065955e8422",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: ExternalRe: Re: ExternalRe: RE: ExternalRe: Re: ExternalRe: ExternalHello from Theobald",
+    "contentLength": 13213,
+    "contentSha": "d519d5d7a0051897",
+    "timestamp": "2026-08-10T10:24:59Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 45,
+     "rowsReturned": 45,
+     "distinctRows": 45,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:04.049Z"
+    }
+   }
+  },
+  {
+   "card": "2856432280",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:emails:374563364556]",
+   "object": "emails",
+   "activityId": "374563364556",
+   "outcome": "would-create",
+   "recordId": "498666156756",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "7379bd03-0eb4-443a-aef2-da9814f77fed",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Hello from Theobald",
+    "contentLength": 1567,
+    "contentSha": "6a73d024e3cdd488",
+    "timestamp": "2026-06-08T04:42:30.723Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:06.016Z"
+    }
+   }
+  },
+  {
+   "card": "2856835547",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "skipped-not-associated",
+   "recordId": "345760685778",
+   "reason": "HubSpot no longer links emails 389445732042 to companies 345760685778"
+  },
+  {
+   "card": "2856835547",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "skipped-not-associated",
+   "recordId": "345760685778",
+   "reason": "HubSpot no longer links emails 389815695088 to companies 345760685778"
+  },
+  {
+   "card": "2856855397",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:389445732042]",
+   "object": "emails",
+   "activityId": "389445732042",
+   "outcome": "skipped-not-associated",
+   "recordId": "345776939713",
+   "reason": "HubSpot no longer links emails 389445732042 to companies 345776939713"
+  },
+  {
+   "card": "2856855397",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:emails:389815695088]",
+   "object": "emails",
+   "activityId": "389815695088",
+   "outcome": "skipped-not-associated",
+   "recordId": "345776939713",
+   "reason": "HubSpot no longer links emails 389815695088 to companies 345776939713"
+  },
+  {
+   "card": "2857091986",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:364467276494]",
+   "object": "notes",
+   "activityId": "364467276494",
+   "outcome": "skipped-not-associated",
+   "recordId": "345883459268",
+   "reason": "HubSpot no longer links notes 364467276494 to companies 345883459268"
+  },
+  {
+   "card": "2857091986",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:364467277509]",
+   "object": "notes",
+   "activityId": "364467277509",
+   "outcome": "skipped-not-associated",
+   "recordId": "345883459268",
+   "reason": "HubSpot no longer links notes 364467277509 to companies 345883459268"
+  },
+  {
+   "card": "2858769670",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:399419729597]",
+   "object": "notes",
+   "activityId": "399419729597",
+   "outcome": "skipped-not-associated",
+   "recordId": "346633735884",
+   "reason": "HubSpot no longer links notes 399419729597 to companies 346633735884"
+  },
+  {
+   "card": "2858769670",
+   "kind": "companies",
+   "board": "5028000496",
+   "marker": "[hubspot:notes:399817330377]",
+   "object": "notes",
+   "activityId": "399817330377",
+   "outcome": "skipped-not-associated",
+   "recordId": "346633735884",
+   "reason": "HubSpot no longer links notes 399817330377 to companies 346633735884"
+  },
+  {
+   "card": "2859542335",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86439270769]",
+   "object": "tasks",
+   "activityId": "86439270769",
+   "outcome": "would-create",
+   "recordId": "15147034413",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8e4a2f1c-86ed-407d-9d38-6865194c3c20",
+    "card": "2855573261",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 445,
+    "contentSha": "12c2f909de9ceb60",
+    "timestamp": "2025-08-18T06:38:04.610Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:25.353Z"
+    }
+   }
+  },
+  {
+   "card": "2859543732",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86486328964]",
+   "object": "tasks",
+   "activityId": "86486328964",
+   "outcome": "would-create",
+   "recordId": "14374629972",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "393e5762-bc78-4fe4-96b7-432291cbd9a5",
+    "card": "2855583589",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 384,
+    "contentSha": "eb2476f95dc1f9ac",
+    "timestamp": "2025-08-18T06:38:04.591Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:28.135Z"
+    }
+   }
+  },
+  {
+   "card": "2859543732",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86489675896]",
+   "object": "tasks",
+   "activityId": "86489675896",
+   "outcome": "would-create",
+   "recordId": "14374629972",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "26385d1f-a403-4a30-8ff0-385ac01e0b18",
+    "card": "2855583589",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 206,
+    "contentSha": "3d52741a14ebff8f",
+    "timestamp": "2025-08-18T06:38:04.039Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:28.135Z"
+    }
+   }
+  },
+  {
+   "card": "2859543732",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86495737491]",
+   "object": "tasks",
+   "activityId": "86495737491",
+   "outcome": "would-create",
+   "recordId": "14374629972",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "991af1d3-a81b-4d22-893f-66487b0e135d",
+    "card": "2855583589",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 201,
+    "contentSha": "c4e6860bfc89fd8b",
+    "timestamp": "2025-08-18T06:38:04.168Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:28.135Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:61406381901]",
+   "object": "emails",
+   "activityId": "61406381901",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a6cd65e5-b188-4b2f-82d8-54ae7ccc6e51",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 23725,
+    "contentSha": "99ec0ea450fdefde",
+    "timestamp": "2024-10-01T11:35:09.382Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:62017533263]",
+   "object": "emails",
+   "activityId": "62017533263",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "edfcec3b-25ad-4dfa-9fbd-8a60e0b0a6b3",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AW: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 19622,
+    "contentSha": "779d4ef7d18ca18d",
+    "timestamp": "2024-09-25T11:06:45Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:62018002345]",
+   "object": "emails",
+   "activityId": "62018002345",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "047b3d44-7ab1-4f97-9fae-8f056ff358a5",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "AW: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 18184,
+    "contentSha": "b9eb31b5eb93e2d2",
+    "timestamp": "2024-09-17T14:32:10Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:62019019704]",
+   "object": "emails",
+   "activityId": "62019019704",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "396a5687-419d-4b6b-92da-a7b4c67be512",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 22335,
+    "contentSha": "1fd7f69d696cfd22",
+    "timestamp": "2024-09-25T08:17:44Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:62019143054]",
+   "object": "emails",
+   "activityId": "62019143054",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "25dc1975-f9bb-43a9-a393-b0786db0914c",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 17035,
+    "contentSha": "da044ef4638fd4dc",
+    "timestamp": "2024-09-25T04:09:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:62019431085]",
+   "object": "emails",
+   "activityId": "62019431085",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "0a69d8a5-8c47-419f-8a39-2875a98fc126",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 141,
+    "contentSha": "dbc1b0f1cd7281bd",
+    "timestamp": "2024-10-03T01:04:23Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:64131652725]",
+   "object": "emails",
+   "activityId": "64131652725",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "21a24eb2-29ca-4a11-9774-843248dfe0c8",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 28816,
+    "contentSha": "53b3cdfb29998572",
+    "timestamp": "2024-11-08T07:30:10Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:64138969865]",
+   "object": "emails",
+   "activityId": "64138969865",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1032411d-16d8-4a88-8bea-f9b27d36823e",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 25320,
+    "contentSha": "faefca1b99d8b346",
+    "timestamp": "2024-11-08T10:19:44Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:64253330483]",
+   "object": "emails",
+   "activityId": "64253330483",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "35834e47-7483-437b-afa0-2323efadde67",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 29629,
+    "contentSha": "94a369cbbacab571",
+    "timestamp": "2024-11-11T01:59:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554286",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:64319874232]",
+   "object": "emails",
+   "activityId": "64319874232",
+   "outcome": "would-create",
+   "recordId": "20552102179",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "093db3d5-ed32-4aee-a89f-b4133257738f",
+    "card": "2855584747",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "RE: MSI-Otsuka-Theobald Xtract IS",
+    "contentLength": 29942,
+    "contentSha": "6217aa46baaa760a",
+    "timestamp": "2024-11-12T09:49:43Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 15,
+     "rowsReturned": 15,
+     "distinctRows": 15,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:30.451Z"
+    }
+   }
+  },
+  {
+   "card": "2859554455",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:239572475582]",
+   "object": "meetings",
+   "activityId": "239572475582",
+   "outcome": "would-create",
+   "recordId": "20954214564",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "11cbcabc-a836-4890-aa2c-ecb761d8272c",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart <> Sumsub",
+    "contentLength": 57,
+    "contentSha": "e9f49885272d090c",
+    "timestamp": "2025-10-28T09:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 8,
+     "rowsReturned": 8,
+     "distinctRows": 8,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:37.048Z"
+    }
+   }
+  },
+  {
+   "card": "2859554455",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:67264303277]",
+   "object": "meetings",
+   "activityId": "67264303277",
+   "outcome": "would-create",
+   "recordId": "20954214564",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "098536c7-26e1-4199-9468-02d4f08bb1a0",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart Catchup",
+    "contentLength": 56,
+    "contentSha": "7d9363ad1590e681",
+    "timestamp": "2024-12-19T10:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 8,
+     "rowsReturned": 8,
+     "distinctRows": 8,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:37.048Z"
+    }
+   }
+  },
+  {
+   "card": "2859554557",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:71977782306]",
+   "object": "emails",
+   "activityId": "71977782306",
+   "outcome": "would-create",
+   "recordId": "21203457687",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4c0cc44e-1c72-4b37-b424-c43df36364dc",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "关于Intercom客服系统相关事宜",
+    "contentLength": 461,
+    "contentSha": "bf14fee2c5c4563e",
+    "timestamp": "2025-02-20T04:40:38.567Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 11,
+     "rowsReturned": 11,
+     "distinctRows": 11,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:42.999Z"
+    }
+   }
+  },
+  {
+   "card": "2859554558",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:56938278308]",
+   "object": "emails",
+   "activityId": "56938278308",
+   "outcome": "would-create",
+   "recordId": "21204090409",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "131c633a-f03f-40a2-b173-48bafd8ac283",
+    "card": "2855584930",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: 开源数据库多云平台-Aiven简介",
+    "contentLength": 916,
+    "contentSha": "792eb62de3acb383",
+    "timestamp": "2024-07-25T06:43:57.514Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 10,
+     "rowsReturned": 10,
+     "distinctRows": 10,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:47.800Z"
+    }
+   }
+  },
+  {
+   "card": "2859554558",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:239572475582]",
+   "object": "meetings",
+   "activityId": "239572475582",
+   "outcome": "would-create",
+   "recordId": "21204090409",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "11cbcabc-a836-4890-aa2c-ecb761d8272c",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart <> Sumsub",
+    "contentLength": 57,
+    "contentSha": "e9f49885272d090c",
+    "timestamp": "2025-10-28T09:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 10,
+     "rowsReturned": 10,
+     "distinctRows": 10,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:47.800Z"
+    }
+   }
+  },
+  {
+   "card": "2859554558",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:57016695148]",
+   "object": "meetings",
+   "activityId": "57016695148",
+   "outcome": "would-create",
+   "recordId": "21204090409",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c399b8c4-7115-45bf-ba13-bf08fd036495",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart + Sumsub",
+    "contentLength": 56,
+    "contentSha": "1f3aa5580e2349fb",
+    "timestamp": "2024-07-18T06:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 10,
+     "rowsReturned": 10,
+     "distinctRows": 10,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:47.800Z"
+    }
+   }
+  },
+  {
+   "card": "2859554558",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:68326711703]",
+   "object": "meetings",
+   "activityId": "68326711703",
+   "outcome": "would-create",
+   "recordId": "21204090409",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8c67fe10-65e9-4e4f-8792-b86c886d01ee",
+    "card": "2855619511",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart <> Miro",
+    "contentLength": 56,
+    "contentSha": "1dbde0889ca5e1e0",
+    "timestamp": "2025-01-08T07:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 10,
+     "rowsReturned": 10,
+     "distinctRows": 10,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:47.800Z"
+    }
+   }
+  },
+  {
+   "card": "2859555236",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86485345433]",
+   "object": "tasks",
+   "activityId": "86485345433",
+   "outcome": "would-create",
+   "recordId": "21987908399",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1a161130-b710-441b-aa6c-580e37838b29",
+    "card": "2855599546",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 194,
+    "contentSha": "f8a357bca79611fd",
+    "timestamp": "2025-08-18T06:38:04.580Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 5,
+     "rowsReturned": 5,
+     "distinctRows": 5,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:56.990Z"
+    }
+   }
+  },
+  {
+   "card": "2859555244",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:calls:84984155829]",
+   "object": "calls",
+   "activityId": "84984155829",
+   "outcome": "would-create",
+   "recordId": "23237736965",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "83709484-ab58-4ee0-bd51-5a49365f2d4b",
+    "card": "2855603496",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "Call with 友邦资讯科技(广州)有限公司",
+    "contentLength": 76,
+    "contentSha": "ef943fcd3a29a7b7",
+    "timestamp": "2025-08-04T09:12:33.917Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 3,
+     "rowsReturned": 3,
+     "distinctRows": 3,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:04:59.810Z"
+    }
+   }
+  },
+  {
+   "card": "2859555298",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:76067980366]",
+   "object": "meetings",
+   "activityId": "76067980366",
+   "outcome": "would-create",
+   "recordId": "33247422858",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1c351281-20b4-4e2a-9eca-d3714db71768",
+    "card": "2855638177",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Toyota Indus <>Theobald",
+    "contentLength": 57,
+    "contentSha": "2d85e497856f1182",
+    "timestamp": "2025-02-07T06:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:02.656Z"
+    }
+   }
+  },
+  {
+   "card": "2859555310",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:85173908572]",
+   "object": "notes",
+   "activityId": "85173908572",
+   "outcome": "would-create",
+   "recordId": "28485469453",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "40bbe18f-bab5-4b34-a4c2-405a169e17e1",
+    "card": "2855598797",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "7.5 客户确认报价，走AWS CPPO下单； 7.4 更新报价； 5.22 发报价； 5.13 待搞清楚三方流程，DKM&amp;AWS，DKM&amp;泉峰",
+    "contentLength": 174,
+    "contentSha": "049a8621854b1790",
+    "timestamp": "2025-08-06T03:14:12.195Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:05.678Z"
+    }
+   }
+  },
+  {
+   "card": "2859555548",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:239572475582]",
+   "object": "meetings",
+   "activityId": "239572475582",
+   "outcome": "would-create",
+   "recordId": "20952615796",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "11cbcabc-a836-4890-aa2c-ecb761d8272c",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart <> Sumsub",
+    "contentLength": 57,
+    "contentSha": "e9f49885272d090c",
+    "timestamp": "2025-10-28T09:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:08.645Z"
+    }
+   }
+  },
+  {
+   "card": "2859555548",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:57016695148]",
+   "object": "meetings",
+   "activityId": "57016695148",
+   "outcome": "would-create",
+   "recordId": "20952615796",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "c399b8c4-7115-45bf-ba13-bf08fd036495",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart + Sumsub",
+    "contentLength": 56,
+    "contentSha": "1f3aa5580e2349fb",
+    "timestamp": "2024-07-18T06:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:08.645Z"
+    }
+   }
+  },
+  {
+   "card": "2859555548",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:67264303277]",
+   "object": "meetings",
+   "activityId": "67264303277",
+   "outcome": "would-create",
+   "recordId": "20952615796",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "098536c7-26e1-4199-9468-02d4f08bb1a0",
+    "card": "2855624476",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart Catchup",
+    "contentLength": 56,
+    "contentSha": "7d9363ad1590e681",
+    "timestamp": "2024-12-19T10:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:08.645Z"
+    }
+   }
+  },
+  {
+   "card": "2859555548",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:68326711703]",
+   "object": "meetings",
+   "activityId": "68326711703",
+   "outcome": "would-create",
+   "recordId": "20952615796",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "8c67fe10-65e9-4e4f-8792-b86c886d01ee",
+    "card": "2855619511",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Bitmart <> Miro",
+    "contentLength": 56,
+    "contentSha": "1dbde0889ca5e1e0",
+    "timestamp": "2025-01-08T07:00:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 6,
+     "rowsReturned": 6,
+     "distinctRows": 6,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:08.645Z"
+    }
+   }
+  },
+  {
+   "card": "2859555723",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:meetings:82051448491]",
+   "object": "meetings",
+   "activityId": "82051448491",
+   "outcome": "would-create",
+   "recordId": "39150593461",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "d871d840-e65f-42e5-82a9-f227f6255205",
+    "card": "2855650748",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "7314447b-685c-4c58-9e38-80ad162d8fc4",
+    "title": "Intercom - Manus AI <> DKMECO",
+    "contentLength": 56,
+    "contentSha": "ce2a2bdfaeb9f8d4",
+    "timestamp": "2025-06-25T09:45:00Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:10.635Z"
+    }
+   }
+  },
+  {
+   "card": "2859555723",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:82051547690]",
+   "object": "tasks",
+   "activityId": "82051547690",
+   "outcome": "would-create",
+   "recordId": "39150593461",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "23ac2fcc-8a51-46a7-b8bf-3128fccdb39c",
+    "card": "2855650748",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "Implement image logo change for Manus AI Help Center in Intercom\n",
+    "contentLength": 134,
+    "contentSha": "9fe51281ec2a84ad",
+    "timestamp": "2025-06-26T10:00:00Z"
+   },
+   "taskSweepWindow": "created or modified within the Worker's 365-day Task sweep window (src/task-poller.ts reconcileRecentTasks): its daily sweep may place this entry itself -- look at the card before and after",
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 13,
+     "rowsReturned": 13,
+     "distinctRows": 13,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:10.635Z"
+    }
+   }
+  },
+  {
+   "card": "2859556018",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:77718944584]",
+   "object": "emails",
+   "activityId": "77718944584",
+   "outcome": "would-create",
+   "recordId": "35638012941",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a6cf9586-4944-4bf4-a017-ccd5584f05bf",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 3885,
+    "contentSha": "1127480fb495c1eb",
+    "timestamp": "2025-04-24T06:50:50Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 23,
+     "rowsReturned": 23,
+     "distinctRows": 23,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:18.309Z"
+    }
+   }
+  },
+  {
+   "card": "2859556018",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:78088378022]",
+   "object": "emails",
+   "activityId": "78088378022",
+   "outcome": "would-create",
+   "recordId": "35638012941",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "b33209dc-673e-4be4-8ab4-e1c6924515a5",
+    "card": "2855573545",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 2097,
+    "contentSha": "f8849b43c8f73a68",
+    "timestamp": "2025-04-29T02:58:05Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 23,
+     "rowsReturned": 23,
+     "distinctRows": 23,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:18.309Z"
+    }
+   }
+  },
+  {
+   "card": "2859556018",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:78108741641]",
+   "object": "emails",
+   "activityId": "78108741641",
+   "outcome": "would-create",
+   "recordId": "35638012941",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "122f8a29-8f8e-4d70-a988-ac4db0cb5dae",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 5058,
+    "contentSha": "45521be845f23005",
+    "timestamp": "2025-04-29T10:21:08Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 23,
+     "rowsReturned": 23,
+     "distinctRows": 23,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:18.309Z"
+    }
+   }
+  },
+  {
+   "card": "2859556018",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:78599048982]",
+   "object": "emails",
+   "activityId": "78599048982",
+   "outcome": "would-create",
+   "recordId": "35638012941",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3eac4585-6062-413f-bbaa-96295dfe4667",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 7119,
+    "contentSha": "8d33f6c51793605d",
+    "timestamp": "2025-05-07T09:00:56Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 23,
+     "rowsReturned": 23,
+     "distinctRows": 23,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:18.309Z"
+    }
+   }
+  },
+  {
+   "card": "2859556018",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:78612428113]",
+   "object": "emails",
+   "activityId": "78612428113",
+   "outcome": "would-create",
+   "recordId": "35638012941",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5abb17bb-3059-456f-9629-bff36cf6ad57",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 7362,
+    "contentSha": "e572524e4d057a09",
+    "timestamp": "2025-05-07T13:54:24Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 23,
+     "rowsReturned": 23,
+     "distinctRows": 23,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:18.309Z"
+    }
+   }
+  },
+  {
+   "card": "2859556018",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:79544553331]",
+   "object": "emails",
+   "activityId": "79544553331",
+   "outcome": "would-create",
+   "recordId": "35638012941",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "03943037-94e6-4283-b5f2-0d29e978db04",
+    "card": "2855614634",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: Theobald trial POC- Server requirements",
+    "contentLength": 11158,
+    "contentSha": "99fb7d078765f9b9",
+    "timestamp": "2025-05-21T14:25:28Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 23,
+     "rowsReturned": 23,
+     "distinctRows": 23,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:18.309Z"
+    }
+   }
+  },
+  {
+   "card": "2859558174",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86495756321]",
+   "object": "tasks",
+   "activityId": "86495756321",
+   "outcome": "would-create",
+   "recordId": "22081594888",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5477dc3c-2824-4574-b124-2616d27125b5",
+    "card": "2855666966",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 195,
+    "contentSha": "0171c9f409ceb836",
+    "timestamp": "2025-08-18T06:38:04.577Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 1,
+     "rowsReturned": 1,
+     "distinctRows": 1,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:19.675Z"
+    }
+   }
+  },
+  {
+   "card": "2859558212",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:59959424661]",
+   "object": "emails",
+   "activityId": "59959424661",
+   "outcome": "would-create",
+   "recordId": "22102691171",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2d308ed3-4f68-475b-987a-d9cdfe9b58ec",
+    "card": "2855619072",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "优阅达出海系列产品介绍-Hubspot、Google Workspace、Docusign",
+    "contentLength": 366,
+    "contentSha": "4dabcc2dafeee675",
+    "timestamp": "2024-09-10T13:35:26.925Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 10,
+     "rowsReturned": 10,
+     "distinctRows": 10,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:23.962Z"
+    }
+   }
+  },
+  {
+   "card": "2859558212",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:60319247236]",
+   "object": "emails",
+   "activityId": "60319247236",
+   "outcome": "would-create",
+   "recordId": "22102691171",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1924560a-33ce-472d-af66-7cf251d56196",
+    "card": "2855619072",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "会议预约：Hubspot相关介绍",
+    "contentLength": 471,
+    "contentSha": "97c24a12e48ca74a",
+    "timestamp": "2024-09-16T06:46:46.711Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 10,
+     "rowsReturned": 10,
+     "distinctRows": 10,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:23.962Z"
+    }
+   }
+  },
+  {
+   "card": "2859558213",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:59959424661]",
+   "object": "emails",
+   "activityId": "59959424661",
+   "outcome": "would-create",
+   "recordId": "22102703178",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "2d308ed3-4f68-475b-987a-d9cdfe9b58ec",
+    "card": "2855619072",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "优阅达出海系列产品介绍-Hubspot、Google Workspace、Docusign",
+    "contentLength": 366,
+    "contentSha": "4dabcc2dafeee675",
+    "timestamp": "2024-09-10T13:35:26.925Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:31.641Z"
+    }
+   }
+  },
+  {
+   "card": "2859558213",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:60319247236]",
+   "object": "emails",
+   "activityId": "60319247236",
+   "outcome": "would-create",
+   "recordId": "22102703178",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "1924560a-33ce-472d-af66-7cf251d56196",
+    "card": "2855619072",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "会议预约：Hubspot相关介绍",
+    "contentLength": 471,
+    "contentSha": "97c24a12e48ca74a",
+    "timestamp": "2024-09-16T06:46:46.711Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 7,
+     "rowsReturned": 7,
+     "distinctRows": 7,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:31.641Z"
+    }
+   }
+  },
+  {
+   "card": "2859563336",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86452940595]",
+   "object": "tasks",
+   "activityId": "86452940595",
+   "outcome": "would-create",
+   "recordId": "20457589059",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5c595c05-27c4-4dc9-8617-c6d44e8aebf1",
+    "card": "2855670712",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 189,
+    "contentSha": "b9355c9f7752f392",
+    "timestamp": "2025-08-18T06:38:04.758Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 2,
+     "rowsReturned": 2,
+     "distinctRows": 2,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:33.223Z"
+    }
+   }
+  },
+  {
+   "card": "2859563602",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86446240266]",
+   "object": "tasks",
+   "activityId": "86446240266",
+   "outcome": "would-create",
+   "recordId": "21506777151",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "cea6b8d3-fb3e-4b8a-b5d9-d9d309a3ad35",
+    "card": "2855670587",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 190,
+    "contentSha": "e8e6ff46d59a077c",
+    "timestamp": "2025-08-18T06:38:04.692Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:37.520Z"
+    }
+   }
+  },
+  {
+   "card": "2859563602",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86486223191]",
+   "object": "tasks",
+   "activityId": "86486223191",
+   "outcome": "would-create",
+   "recordId": "21506777151",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "44978084-a996-440c-9221-e0e8e10b9749",
+    "card": "2855670587",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 203,
+    "contentSha": "a9b25f2eb49247b5",
+    "timestamp": "2025-08-18T06:38:04.665Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:37.520Z"
+    }
+   }
+  },
+  {
+   "card": "2859563602",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86495683400]",
+   "object": "tasks",
+   "activityId": "86495683400",
+   "outcome": "would-create",
+   "recordId": "21506777151",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3f7d1ad3-c83d-4273-9847-c9657afe525c",
+    "card": "2855670587",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 190,
+    "contentSha": "766fbbb896d97d30",
+    "timestamp": "2025-08-18T06:38:04.672Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:37.520Z"
+    }
+   }
+  },
+  {
+   "card": "2859563652",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86486210816]",
+   "object": "tasks",
+   "activityId": "86486210816",
+   "outcome": "would-create",
+   "recordId": "31579805976",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "5380ac12-af46-486a-965d-7807707ae6f0",
+    "card": "2855572066",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 199,
+    "contentSha": "d1a20c9dab4c09c7",
+    "timestamp": "2025-08-18T06:38:03.748Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:38.842Z"
+    }
+   }
+  },
+  {
+   "card": "2859563652",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86495664470]",
+   "object": "tasks",
+   "activityId": "86495664470",
+   "outcome": "would-create",
+   "recordId": "31579805976",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "6d9f7a61-a3ea-4d50-b19e-b3113f5a45b8",
+    "card": "2855572066",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 205,
+    "contentSha": "e5b529a48df39f56",
+    "timestamp": "2025-08-18T06:38:03.771Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:38.842Z"
+    }
+   }
+  },
+  {
+   "card": "2859563652",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86495759421]",
+   "object": "tasks",
+   "activityId": "86495759421",
+   "outcome": "would-create",
+   "recordId": "31579805976",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "9bb91755-0fc0-4b09-a41e-b8839180bdcb",
+    "card": "2855572066",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 188,
+    "contentSha": "b74c33683346746e",
+    "timestamp": "2025-08-18T06:38:03.726Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:38.842Z"
+    }
+   }
+  },
+  {
+   "card": "2859563953",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:notes:297212372677]",
+   "object": "notes",
+   "activityId": "297212372677",
+   "outcome": "would-create",
+   "recordId": "34053682432",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "182c2bbe-9485-459d-b067-89b660327756",
+    "card": "2855618463",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "26.1.2 客户回签报价",
+    "contentLength": 69,
+    "contentSha": "6ba169e96989830f",
+    "timestamp": "2026-01-07T02:25:54.517Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 34,
+     "rowsReturned": 34,
+     "distinctRows": 34,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:47.627Z"
+    }
+   }
+  },
+  {
+   "card": "2859564913",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86452940563]",
+   "object": "tasks",
+   "activityId": "86452940563",
+   "outcome": "would-create",
+   "recordId": "28517425496",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "28de2baa-4393-4c6b-8b9a-bf036d51c124",
+    "card": "2855694230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 192,
+    "contentSha": "f5f48e54ddeb7732",
+    "timestamp": "2025-08-18T06:38:03.925Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:50.320Z"
+    }
+   }
+  },
+  {
+   "card": "2859564913",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86486756195]",
+   "object": "tasks",
+   "activityId": "86486756195",
+   "outcome": "would-create",
+   "recordId": "28517425496",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "3b1063a9-8a2f-4eac-92ae-b952a7ecff30",
+    "card": "2855694230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 195,
+    "contentSha": "4e3dcb4d47e33368",
+    "timestamp": "2025-08-18T06:38:03.764Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:50.320Z"
+    }
+   }
+  },
+  {
+   "card": "2859564913",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86490402619]",
+   "object": "tasks",
+   "activityId": "86490402619",
+   "outcome": "would-create",
+   "recordId": "28517425496",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "4c62e6f9-389d-41b0-b97c-bfbed1ef1633",
+    "card": "2855694230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 190,
+    "contentSha": "6db014134a643db8",
+    "timestamp": "2025-08-18T06:38:03.619Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:50.320Z"
+    }
+   }
+  },
+  {
+   "card": "2859564913",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:tasks:86495728006]",
+   "object": "tasks",
+   "activityId": "86495728006",
+   "outcome": "would-create",
+   "recordId": "28517425496",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "a50eb965-0582-4c53-94c6-b1c6ea9e107e",
+    "card": "2855694230",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "5f0e2267-8cea-45fa-bb54-2b1a29324a34",
+    "title": "电话",
+    "contentLength": 191,
+    "contentSha": "2df9313489906b66",
+    "timestamp": "2025-08-18T06:38:04.141Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 0,
+     "rowsReturned": 0,
+     "distinctRows": 0,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:50.320Z"
+    }
+   }
+  },
+  {
+   "card": "2859565332",
+   "kind": "deals",
+   "board": "5028000494",
+   "marker": "[hubspot:emails:77278561409]",
+   "object": "emails",
+   "activityId": "77278561409",
+   "outcome": "would-create",
+   "recordId": "35670943545",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "12f9c255-20f3-4cf5-a1b4-80f87fd783bb",
+    "card": "2855144625",
+    "result": "match"
+   },
+   "writer": "backfill",
+   "writerBy": "listed in the backfill checkpoint (processed)",
+   "entry": {
+    "custom_activity_id": "eaca46da-4695-4386-8dd4-a3fa088d31ce",
+    "title": "Re: HSG Laser <> HubSpot + Zuper",
+    "contentLength": 2350,
+    "contentSha": "40be297ee15f7efc",
+    "timestamp": "2025-04-17T16:55:43Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "censusKnownIds": [],
+    "listing": {
+     "ownEntries": 8,
+     "rowsReturned": 8,
+     "distinctRows": 8,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-09-30T20:05:52.927Z"
+    }
+   }
+  }
+ ]
+}

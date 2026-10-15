@@ -1,0 +1,25 @@
+{
+  "since": "2026-09-30T09:00:00Z",
+  "apply": true,
+  "signals": {
+    "items": 1,
+    "board-log": 46
+  },
+  "candidates": 46,
+  "reads": 46,
+  "unreadable": 0,
+  "found": {
+    "2859742407": [
+      {
+        "id": "ae059f53-52c7-4c8a-adc5-3420665efb7a",
+        "type": "note",
+        "at": "2026-09-30T09:22:16.670Z",
+        "by": "104231431"
+      }
+    ]
+  },
+  "results": {
+    "2859742407": "action=done pushed=1 fresh=1 contact=550936454903"
+  },
+  "workerFoundNothing": []
+}

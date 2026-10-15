@@ -3,11 +3,12 @@ import {
   fieldDiffs, decideDirection, buildReversePatch, buildUpdatePayload, buildCreateProperties,
   reverseFieldValue,
 } from "../src/reconcile";
-import type { Ctx, MondayItem, ObjectSpec } from "../src/types";
+import type { Ctx, MondayItem, ObjectSpec, FieldSpec } from "../src/types";
+import { DEALS } from "../src/config";
 
 const ctx: Ctx = {
   labels: { dealtype: { existingbusiness: "Existing Business", newbusiness: "New Business" } },
-  ownersById: {}, mondayUsersByEmail: {}, portalId: 1,
+  ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1,
 };
 
 const spec: ObjectSpec = {
@@ -36,6 +37,33 @@ const rec = (props: Record<string, string>) => ({
   id: "9001",
   properties: { dealname: "Acme", dealstage: "appointmentscheduled",
     dealtype: "existingbusiness", createdate: "2026-06-26T00:00:00Z", ...props },
+});
+
+// Phone is diffable but compared DIGITS-ONLY on both sides: monday renders a phone column with its own
+// formatting, so a raw text compare would report a diff on every tick and the reconcile would fight
+// itself (write -> echo -> write). These tests are the loop guard.
+describe("fieldDiffs phone", () => {
+  const phoneSpec: ObjectSpec = {
+    ...spec, object: "contacts",
+    fields: [{ hs: "phone", col: "c_phone", type: "phone", reverse: true }],
+  };
+  const phoneItem = (text: string): MondayItem =>
+    item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text }] });
+
+  it("same number, different formatting -> NO diff (no phantom-diff loop)", () => {
+    const d = fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "+1 (234) 567-8900" } } as any,
+      phoneItem("+1 234-567-8900"), phoneSpec, ctx);
+    expect(d.filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("a genuinely different number -> one field diff carrying the RAW monday text (keeps the +)", () => {
+    const d = fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "+1 234-567-8900" } } as any,
+      phoneItem("+1 995-639-1925"), phoneSpec, ctx).filter(x => x.kind === "field");
+    expect(d).toHaveLength(1);
+    expect(d[0].mdText).toBe("+1 995-639-1925");
+  });
+  it("empty HubSpot phone is not touched when the field has no `backfill` flag", () =>
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "Acme", phone: "" } } as any,
+      phoneItem("+1 234-567-8900"), phoneSpec, ctx).filter(x => x.kind === "field")).toEqual([]));
 });
 
 describe("fieldDiffs", () => {
@@ -71,6 +99,28 @@ describe("reverseFieldValue", () => {
     expect(reverseFieldValue(spec.fields[0], "New Business", ctx)).toBe("newbusiness"));
   it("empty stays empty", () =>
     expect(reverseFieldValue(spec.fields[0], "  ", ctx)).toBe(""));
+});
+
+describe("reverseFieldValue — multi-select dropdown (F3)", () => {
+  // "industry" is used because FieldSpec.labels / Ctx.labels keys must be members of the LabelDict union
+  // (see worker/src/types.ts) — an arbitrary string like "ind" would fail tsc.
+  const mCtx: Ctx = {
+    labels: { industry: { glass: "Glass, Ceramics & Concrete", mfg: "Manufacturing", aws: "AWS" } },
+    ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1,
+  };
+  const dd: FieldSpec = { hs: "industry", col: "c_ind", type: "dropdown", labels: "industry", reverse: true };
+
+  it("single value (whole-label match, unchanged)", () =>
+    expect(reverseFieldValue(dd, "Glass, Ceramics & Concrete", mCtx)).toBe("glass"));
+
+  it("comma-free multi value stays identical to the old split", () =>
+    expect(reverseFieldValue(dd, "AWS, Manufacturing", mCtx)).toBe("aws;mfg"));
+
+  it("multi value where one label CONTAINS a comma", () =>
+    expect(reverseFieldValue(dd, "Glass, Ceramics & Concrete, Manufacturing", mCtx)).toBe("glass;mfg"));
+
+  it("drops an unknown label rather than passing it raw", () =>
+    expect(reverseFieldValue(dd, "AWS, Nope", mCtx)).toBe("aws"));
 });
 
 describe("buildReversePatch", () => {
@@ -113,5 +163,490 @@ describe("buildCreateProperties", () => {
       pipeline: "default", sales_user: "999", dealstage: "closedwon",
       dealname: "New Deal", dealtype: "newbusiness",
     });
+  });
+});
+
+describe("buildCreateProperties — contact name split (F1)", () => {
+  const contactSpec: ObjectSpec = {
+    object: "contacts", objectTypeId: "0-1", searchFilters: [], modifiedProp: "lastmodifieddate",
+    nameProps: ["firstname"], nameReverse: "firstname", boardId: "CB", idCol: "cc_id", syncStateCol: "cc_sync",
+    groupBy: { singleGroup: "g" }, createFromMonday: true, createDefaults: {},
+    fields: [{ hs: "lastname", col: "cc_last", type: "text", reverse: true }],
+  };
+  const cItem = (name: string, last = ""): MondayItem => ({
+    id: "i1", name, created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z",
+    group: { id: "g" }, column_values: [{ id: "cc_last", text: last }],
+  });
+
+  it("single-word name -> firstname only", () =>
+    expect(buildCreateProperties(cItem("John"), contactSpec, ctx)).toEqual({ firstname: "John" }));
+
+  it("full name + empty Last Name column -> split into first + last", () =>
+    expect(buildCreateProperties(cItem("John Smith"), contactSpec, ctx))
+      .toEqual({ firstname: "John", lastname: "Smith" }));
+
+  it("Last Name column is authoritative -> item name stays the firstname", () =>
+    expect(buildCreateProperties(cItem("Mary Anne", "Smith"), contactSpec, ctx))
+      .toEqual({ firstname: "Mary Anne", lastname: "Smith" }));
+});
+
+describe("sales_user group moves (routing by HubSpot sales_user; existing item moved by Deal ID, never duplicated)", () => {
+  // A deals-style spec: group by stage, no-sales_user -> Unassigned; Sales Users is a (display) people column.
+  const dealsRule: ObjectSpec = {
+    ...spec,
+    groupBy: { prop: "dealstage", map: { appointmentscheduled: "gStage", closedwon: "g6" },
+               reverse: true, noSalesUserGroup: "gUnassigned" },
+    fields: [{ hs: "sales_user", col: "c_people", type: "people" }],
+  };
+  const MYLA = "1739141284";
+  const pctx: Ctx = { labels: {}, ownersById: { [MYLA]: { name: "Myla", email: "myla@x.com" } },
+    mondayUsersByEmail: { "myla@x.com": "42" }, mondayEmailByUserId: { "42": "myla@x.com" },
+    ownerIdByEmail: { "myla@x.com": MYLA }, portalId: 1 };
+  // card() keeps the SAME HubSpot Deal ID (9001) across group changes -> reconcile moves it, never creates.
+  const card = (groupId: string, avatar = "") => item({ group: { id: groupId },
+    column_values: [{ id: "c_id", text: "9001" }, { id: "c_people", text: avatar }] });
+  const dealRec = (sales_user: string) => ({ id: "9001",
+    properties: { dealname: "Acme", dealstage: "appointmentscheduled", sales_user } });
+  const groupDiff = (d: ReturnType<typeof fieldDiffs>) => d.find(x => x.kind === "group");
+
+  it("Myla -> empty: a card in a stage group gets a group move to Unassigned", () => {
+    const d = fieldDiffs(dealRec(""), card("gStage"), dealsRule, pctx);
+    expect(groupDiff(d)?.hsText).toBe("gUnassigned");
+  });
+  it("empty -> Myla: a card in Unassigned gets a group move to its Deal Stage group", () => {
+    const d = fieldDiffs(dealRec(MYLA), card("gUnassigned"), dealsRule, pctx);
+    expect(groupDiff(d)?.hsText).toBe("gStage");
+  });
+  it("blank monday avatar but sales_user = Myla stays in its Deal Stage group (no move to Unassigned)", () => {
+    const d = fieldDiffs(dealRec(MYLA), card("gStage", /* blank avatar */ ""), dealsRule, pctx);
+    expect(groupDiff(d)).toBeUndefined(); // routing ignores the blank avatar; sales_user is set -> stays put
+  });
+});
+
+describe("fieldDiffs people population (backfills empty person columns like Sales Users)", () => {
+  const peopleSpec: ObjectSpec = { ...spec, nameProps: ["dealname"],
+    fields: [{ hs: "sales_user", col: "c_people", type: "people" }] };
+  const pctx: Ctx = { labels: {}, ownersById: { "555": { name: "Owner", email: "o@x.com" } },
+    mondayUsersByEmail: { "o@x.com": "42" }, mondayEmailByUserId: { "42": "o@x.com" },
+    ownerIdByEmail: { "o@x.com": "555" }, portalId: 1 };
+  const recOwner = { id: "1", properties: { dealname: "Acme", sales_user: "555" } };
+  const emptyPeople = item({ column_values: [{ id: "c_people", text: "" }] });
+  const filledPeople = item({ column_values: [{ id: "c_people", text: "Owner" }] });
+
+  const hasPeople = (d: ReturnType<typeof fieldDiffs>) => d.some(x => x.kind === "field" && x.f?.col === "c_people");
+
+  it("diffs an EMPTY people column when the owner resolves to a monday user", () =>
+    expect(hasPeople(fieldDiffs(recOwner, emptyPeople, peopleSpec, pctx))).toBe(true));
+  it("does NOT diff a people column that already has someone", () =>
+    expect(hasPeople(fieldDiffs(recOwner, filledPeople, peopleSpec, pctx))).toBe(false));
+  it("does NOT diff when the owner doesn't resolve (no monday user)", () =>
+    expect(hasPeople(fieldDiffs({ id: "1", properties: { dealname: "Acme", sales_user: "999" } }, emptyPeople, peopleSpec, pctx))).toBe(false));
+});
+
+describe("lead status: Lead Status column reverses to HubSpot; group is forward-only (no oscillation)", () => {
+  const contactSpec: ObjectSpec = {
+    ...spec,
+    // group FOLLOWS HubSpot (reverse:false); the status column is the reversible source of truth.
+    groupBy: { prop: "hs_lead_status", map: { NEW: "gNew", OPEN: "gOpen" }, reverse: false, fallbackGroup: "gNew" },
+    fields: [{ hs: "hs_lead_status", col: "c_status", type: "status", labels: "leadStatus", reverse: true }],
+  };
+  const lctx: Ctx = { labels: { leadStatus: { NEW: "New", OPEN: "Open" } }, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1 };
+  const cItem = (groupId: string, status: string) => item({ group: { id: groupId },
+    column_values: [{ id: "c_id", text: "9001" }, { id: "c_status", text: status }] });
+  const cRec = (hs_lead_status: string) => ({ id: "9001", properties: { dealname: "Acme", hs_lead_status } });
+
+  it("editing the Lead Status column writes back to HubSpot (New -> Open)", () => {
+    const md = cItem("gNew", "Open");                       // column edited to Open, HubSpot still NEW
+    const patch = buildReversePatch(fieldDiffs(cRec("NEW"), md, contactSpec, lctx), md, contactSpec, lctx);
+    expect(patch).toEqual({ hs_lead_status: "OPEN" });
+  });
+  it("a lagging group does NOT reverse-write lead status -> it moves forward instead of reverting", () => {
+    const md = cItem("gNew", "Open");                       // HubSpot already OPEN, column Open, group lags in gNew
+    const diffs = fieldDiffs(cRec("OPEN"), md, contactSpec, lctx);
+    expect(diffs.some(d => d.kind === "group")).toBe(true); // the group is behind...
+    expect(buildReversePatch(diffs, md, contactSpec, lctx)).toEqual({}); // ...but it does NOT write HubSpot (forward move only)
+  });
+});
+
+describe("Sales Users people column reverses to HubSpot sales_user (assign in monday -> HubSpot)", () => {
+  // monday user 42 -> rep@x.com -> HubSpot owner 555
+  const rctx: Ctx = { labels: {}, ownersById: { "555": { name: "Rep", email: "rep@x.com" } },
+    mondayUsersByEmail: { "rep@x.com": "42" }, mondayEmailByUserId: { "42": "rep@x.com" },
+    ownerIdByEmail: { "rep@x.com": "555" }, portalId: 1 };
+  const rspec: ObjectSpec = { ...spec, fields: [{ hs: "sales_user", col: "c_people", type: "people", reverse: true }] };
+  const pitem = (persons: { id: string; kind: string }[]) => item({
+    column_values: [{ id: "c_id", text: "9001" },
+      { id: "c_people", text: persons.length ? "Rep" : "", persons_and_teams: persons }] });
+  const rRec = (sales_user?: string) => ({ id: "9001", properties: { dealname: "Acme", ...(sales_user ? { sales_user } : {}) } });
+  const P = [{ id: "42", kind: "person" }];
+
+  it("assigning a person whose owner differs from HubSpot -> reversible people diff carrying the owner id", () => {
+    const d = fieldDiffs(rRec(""), pitem(P), rspec, rctx);
+    expect(d.find(x => x.f?.col === "c_people")).toMatchObject({ kind: "field", hsText: "", mdText: "555" });
+    expect(buildReversePatch(d, pitem(P), rspec, rctx)).toEqual({ sales_user: "555" });
+  });
+  it("person already matching HubSpot owner -> no diff (loop-safe id compare)", () =>
+    expect(fieldDiffs(rRec("555"), pitem(P), rspec, rctx).some(x => x.f?.col === "c_people")).toBe(false));
+  it("unmapped person (no HubSpot owner) -> no diff (skipped)", () =>
+    expect(fieldDiffs(rRec(""), pitem([{ id: "99", kind: "person" }]), rspec, rctx).some(x => x.f?.col === "c_people")).toBe(false));
+  it("empty Sales Users -> forward-fill heal only, never a reverse diff (set-only)", () => {
+    const d = fieldDiffs(rRec("555"), pitem([]), rspec, rctx);
+    expect(d.find(x => x.f?.col === "c_people")).toMatchObject({ mdText: "" }); // forward fill (empty), not reverse
+  });
+  it("buildCreateProperties uses the assigned person's owner id for a monday-created record", () =>
+    expect(buildCreateProperties(pitem(P), rspec, rctx).sales_user).toBe("555"));
+});
+
+describe("Deal owner (person) reverses to hubspot_owner_id; Unassigned stays sales_user-driven", () => {
+  // monday user 42 -> rep@x.com -> HubSpot owner 555
+  const octx: Ctx = { labels: {}, ownersById: { "555": { name: "Rep", email: "rep@x.com" } },
+    mondayUsersByEmail: { "rep@x.com": "42" }, mondayEmailByUserId: { "42": "rep@x.com" },
+    ownerIdByEmail: { "rep@x.com": "555" }, portalId: 1 };
+  // Deal owner (person col) reverses; Sales Users (c_people) drives the Unassigned override.
+  const ospec: ObjectSpec = { ...spec,
+    groupBy: { prop: "dealstage", map: { appointmentscheduled: "gStage", closedwon: "g6" }, reverse: true, noSalesUserGroup: "gUnassigned" },
+    fields: [
+      { hs: "hubspot_owner_id", col: "c_person", type: "people", reverse: true },
+      { hs: "sales_user", col: "c_people", type: "people", reverse: true },
+    ] };
+  const P = [{ id: "42", kind: "person" }];
+  const oitem = (owner: typeof P, sales: typeof P) => item({ group: { id: "gStage" },
+    column_values: [{ id: "c_id", text: "9001" },
+      { id: "c_person", text: owner.length ? "Rep" : "", persons_and_teams: owner },
+      { id: "c_people", text: sales.length ? "Rep" : "", persons_and_teams: sales }] });
+  const oRec = (props: Record<string, string>) => ({ id: "9001",
+    properties: { dealname: "Acme", dealstage: "appointmentscheduled", ...props } });
+
+  it("setting Deal owner in monday reverses to hubspot_owner_id", () => {
+    const md = oitem(P, []);
+    expect(buildReversePatch(fieldDiffs(oRec({}), md, ospec, octx), md, ospec, octx))
+      .toMatchObject({ hubspot_owner_id: "555" });
+  });
+  it("Deal owner set but NO sales_user -> deal still routes to Unassigned (owner does not un-unassign)", () => {
+    const d = fieldDiffs(oRec({ hubspot_owner_id: "555" }), oitem(P, []), ospec, octx);
+    expect(d.find(x => x.kind === "group")?.hsText).toBe("gUnassigned");
+  });
+  it("sales_user present -> deal stays in its stage group even with an owner set", () => {
+    const d = fieldDiffs(oRec({ hubspot_owner_id: "555", sales_user: "555" }), oitem(P, P), ospec, octx);
+    expect(d.find(x => x.kind === "group")).toBeUndefined();
+  });
+});
+
+describe("deal Amount / Currency / Close date reverse to HubSpot (real DEALS spec)", () => {
+  // Empty label dicts + no owners: keeps unrelated fields from producing noise. We assert only on the
+  // field under test, the same way the sales_user suite does.
+  const dctx: Ctx = { labels: {}, ownersById: {}, mondayUsersByEmail: {}, mondayEmailByUserId: {},
+    ownerIdByEmail: {}, portalId: 1 };
+
+  // A deal card in its stage group with amount/currency/close-date columns filled.
+  const dItem = (cols: { amount?: string; currency?: string; close?: string }) => item({
+    name: "Acme", group: { id: "group_mm4nf6fw" },
+    column_values: [
+      { id: "numeric_mm4nz332", text: "9001" },
+      { id: "numeric_mm531t6e", text: cols.amount ?? "5000" },
+      { id: "color_mm53vk99", text: cols.currency ?? "USD" },
+      { id: "date_mm53ecz3", text: cols.close ?? "2026-07-31" },
+    ],
+  });
+  // HubSpot side: sales_user set so routing keeps it in the stage group (not Unassigned).
+  const dRec = (props: Record<string, string> = {}) => ({
+    id: "9001",
+    properties: {
+      dealname: "Acme", dealstage: "appointmentscheduled", sales_user: "555",
+      amount: "5000.00", deal_currency_code: "USD", closedate: "2026-07-31T00:00:00Z", ...props,
+    },
+  });
+  const byCol = (d: ReturnType<typeof fieldDiffs>, col: string) => d.find(x => x.f?.col === col);
+
+  it("no phantom diff: HubSpot 5000.00 vs monday 5000 (guards the reverse loop)", () =>
+    expect(byCol(fieldDiffs(dRec(), dItem({}), DEALS, dctx), "numeric_mm531t6e")).toBeUndefined());
+
+  it("no phantom diff: HubSpot ISO close date vs monday YYYY-MM-DD", () =>
+    expect(byCol(fieldDiffs(dRec(), dItem({}), DEALS, dctx), "date_mm53ecz3")).toBeUndefined());
+
+  it("an amount edited in monday reverses to HubSpot", () => {
+    const md = dItem({ amount: "7500" });
+    const patch = buildReversePatch(fieldDiffs(dRec(), md, DEALS, dctx), md, DEALS, dctx);
+    expect(patch.amount).toBe("7500");
+  });
+
+  it("a close date edited in monday reverses to HubSpot", () => {
+    const md = dItem({ close: "2026-08-15" });
+    const patch = buildReversePatch(fieldDiffs(dRec(), md, DEALS, dctx), md, DEALS, dctx);
+    expect(patch.closedate).toBe("2026-08-15");
+  });
+
+  it("a currency changed in monday reverses to HubSpot", () => {
+    const md = dItem({ currency: "CNY" });
+    const patch = buildReversePatch(fieldDiffs(dRec(), md, DEALS, dctx), md, DEALS, dctx);
+    expect(patch.deal_currency_code).toBe("CNY");
+  });
+
+  it("a deal created in monday sends amount, currency and close date to HubSpot", () =>
+    expect(buildCreateProperties(dItem({}), DEALS, dctx)).toMatchObject({
+      amount: "5000", deal_currency_code: "USD", closedate: "2026-07-31",
+    }));
+});
+
+describe("controlled deals-only backfill of EMPTY HubSpot values (every reverse deal field)", () => {
+  // A dropdown needs its label dict to reverse-map (buildCtx always loads these in production). Without it
+  // reverseFieldValue yields "" and the backfill diff is correctly suppressed — writing nothing is what
+  // buildReversePatch would do anyway, so raising the diff would just churn every pass.
+  // dealtype and priority dictionaries are REQUIRED here, not decoration. Status reverse now refuses a
+  // label it cannot resolve to a HubSpot internal value (an unresolvable label used to be sent raw and
+  // earned a 400 that wedged the card), and the backfill branch only raises a diff for a value that
+  // would survive the reverse mapping. buildCtx loads both dictionaries in production — LABEL_SOURCE
+  // lists them and the WM deal spec references them — so a fixture without them was unrealistic, and
+  // the old permissive behaviour was the only thing hiding that.
+  const bctx: Ctx = {
+    labels: {
+      vendor: { "37Docusign": "37Docusign" },
+      dealtype: { newbusiness: "New Business", existingbusiness: "Existing Business" },
+      priority: { high: "High", medium: "Medium", low: "Low" },
+    },
+    ownersById: {},
+    mondayUsersByEmail: {}, mondayEmailByUserId: {}, ownerIdByEmail: {}, portalId: 1 };
+  // monday card carrying the matching HubSpot Deal ID (numeric_mm4nz332 = 9001).
+  const bItem = (over: Partial<{ id: string; amount: string; close: string; type: string }> = {}) => item({
+    name: "Acme", group: { id: "group_mm4nf6fw" },
+    column_values: [
+      { id: "numeric_mm4nz332", text: over.id ?? "9001" },
+      { id: "numeric_mm531t6e", text: over.amount ?? "5000" },
+      { id: "date_mm53ecz3", text: over.close ?? "2026-07-31" },
+      { id: "color_mm53cky8", text: over.type ?? "" },
+    ],
+  });
+  // HubSpot deal with EMPTY amount + closedate (the stranded-deal case).
+  const bRec = (props: Record<string, string> = {}) => ({
+    id: "9001",
+    properties: { dealname: "Acme", dealstage: "appointmentscheduled", sales_user: "555",
+      amount: "", closedate: "", ...props },
+  });
+  const byCol2 = (d: ReturnType<typeof fieldDiffs>, col: string) => d.find(x => x.f?.col === col);
+
+  it("fills an EMPTY HubSpot amount from monday (marked backfill)", () => {
+    const md = bItem();
+    const d = byCol2(fieldDiffs(bRec(), md, DEALS, bctx), "numeric_mm531t6e");
+    expect(d).toMatchObject({ hsText: "", mdText: "5000", backfill: true });
+    expect(buildReversePatch(fieldDiffs(bRec(), md, DEALS, bctx), md, DEALS, bctx).amount).toBe("5000");
+  });
+
+  it("fills an EMPTY HubSpot close date from monday", () => {
+    const md = bItem();
+    expect(buildReversePatch(fieldDiffs(bRec(), md, DEALS, bctx), md, DEALS, bctx).closedate).toBe("2026-07-31");
+  });
+
+  it("fills an EMPTY HubSpot dealtype from monday (every reverse deal field backfills now)", () => {
+    const md = bItem({ type: "New Business" });
+    expect(byCol2(fieldDiffs(bRec({ dealtype: "" }), md, DEALS, bctx), "color_mm53cky8"))
+      .toMatchObject({ hsText: "", mdText: "New Business", backfill: true });
+  });
+
+  it("fills an EMPTY HubSpot currency from monday", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm53vk99", text: "USD" }] });
+    expect(byCol2(fieldDiffs(bRec({ deal_currency_code: "" }), md, DEALS, bctx), "color_mm53vk99"))
+      .toMatchObject({ hsText: "", mdText: "USD", backfill: true });
+  });
+
+  it("fills an EMPTY HubSpot priority from monday", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm532rej", text: "High" }] });
+    expect(byCol2(fieldDiffs(bRec({ hs_priority: "" }), md, DEALS, bctx), "color_mm532rej"))
+      .toMatchObject({ hsText: "", mdText: "High", backfill: true });
+  });
+
+  it("fills EMPTY HubSpot vendors from monday", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "dropdown_mm4n4f7r", text: "37Docusign" }] });
+    expect(byCol2(fieldDiffs(bRec({ vendorschang_shang_lai_yuan: "" }), md, DEALS, bctx), "dropdown_mm4n4f7r"))
+      .toMatchObject({ hsText: "", mdText: "37Docusign", backfill: true });
+  });
+
+  it("still never backfills a NON-reverse field (pipeline is forward-only)", () => {
+    const md = item({ name: "Acme", group: { id: "group_mm4nf6fw" }, column_values: [
+      { id: "numeric_mm4nz332", text: "9001" }, { id: "color_mm4ws6k", text: "Sales Pipeline" }] });
+    expect(byCol2(fieldDiffs(bRec({ pipeline: "" }), md, DEALS, bctx), "color_mm4ws6k")).toBeUndefined();
+  });
+
+  it("never clears HubSpot: an EMPTY monday value produces no diff", () => {
+    const md = bItem({ amount: "", close: "" });
+    expect(byCol2(fieldDiffs(bRec(), md, DEALS, bctx), "numeric_mm531t6e")).toBeUndefined();
+  });
+
+  it("requires a matching HubSpot Deal ID on the card (never match by name)", () => {
+    const md = bItem({ id: "8888" }); // card carries a DIFFERENT deal id
+    expect(byCol2(fieldDiffs(bRec(), md, DEALS, bctx), "numeric_mm531t6e")).toBeUndefined();
+  });
+
+  it("is idempotent: once HubSpot holds the value there is no diff", () =>
+    expect(byCol2(fieldDiffs(bRec({ amount: "5000.00" }), bItem(), DEALS, bctx), "numeric_mm531t6e")).toBeUndefined());
+
+  // 2026-08-04: contacts JOINED the backfill objects (for `phone` only — see config.ts). Companies are
+  // still excluded, so this keeps the original protection where it still applies.
+  it("does NOT apply to companies even if a field were flagged", () => {
+    const companyish: ObjectSpec = { ...spec, object: "companies", idCol: "c_id",
+      fields: [{ hs: "amount", col: "c_amt", type: "numbers", reverse: true, backfill: true }] };
+    const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_amt", text: "5000" }] });
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", amount: "" } }, md, companyish, ctx)
+      .find(x => x.f?.col === "c_amt")).toBeUndefined();
+  });
+
+  it("DOES apply to contacts when the field carries the backfill flag (phone rollout)", () => {
+    const contactish: ObjectSpec = { ...spec, object: "contacts", idCol: "c_id",
+      fields: [{ hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true }] };
+    const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: "+1 234-567-8900" }] });
+    const d = fieldDiffs({ id: "9001", properties: { dealname: "A", phone: "" } }, md, contactish, ctx)
+      .find(x => x.f?.col === "c_phone");
+    expect(d?.backfill).toBe(true);
+  });
+
+  // The invariant that matters most: a backfill diff makes fieldDiffs non-empty, so decideDirection can
+  // resolve toMonday (first encounter / HubSpot recently modified). The forward payload must then EXCLUDE
+  // the field rather than write HubSpot's EMPTY value over the monday one.
+  it("a backfill diff never clears the monday value when the direction resolves toMonday", () =>
+    expect(buildUpdatePayload(fieldDiffs(bRec(), bItem(), DEALS, bctx), bRec(), DEALS, bctx))
+      .not.toHaveProperty("numeric_mm531t6e"));
+});
+
+// --- contact phone backfill (2026-08-04) -------------------------------------------------------
+// An EMPTY HubSpot field may be FILLED from a non-empty monday value, but ONLY for an allowlisted
+// `backfill` field on an allowlisted object, with the card's HubSpot id matching. Never the reverse:
+// an empty monday value still never clears HubSpot.
+describe("fieldDiffs backfill — contacts/phone", () => {
+  const phoneField: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true };
+  const contactSpec: ObjectSpec = { ...spec, object: "contacts", fields: [phoneField] };
+  const cItem = (phone: string): MondayItem =>
+    item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: phone }] });
+  const cRec = (phone: string) => ({ id: "9001", properties: { dealname: "Acme", phone } }) as any;
+
+  it("empty HubSpot phone + monday phone -> a BACKFILL diff carrying the monday value", () => {
+    const d = fieldDiffs(cRec(""), cItem("+1 234-567-8900"), contactSpec, ctx).filter(x => x.kind === "field");
+    expect(d).toHaveLength(1);
+    expect(d[0].backfill).toBe(true);
+    expect(d[0].mdText).toBe("+1 234-567-8900");
+  });
+  it("empty on BOTH sides -> no diff (nothing to fill)", () =>
+    expect(fieldDiffs(cRec(""), cItem(""), contactSpec, ctx).filter(x => x.kind === "field")).toEqual([]));
+  it("a contact field WITHOUT the backfill flag still never fills an empty HubSpot value", () => {
+    const noFlag: ObjectSpec = { ...contactSpec, fields: [{ ...phoneField, backfill: undefined }] };
+    expect(fieldDiffs(cRec(""), cItem("+1 234-567-8900"), noFlag, ctx).filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("companies are NOT a backfill object (second lock beyond the per-field flag)", () => {
+    const coSpec: ObjectSpec = { ...contactSpec, object: "companies" };
+    expect(fieldDiffs(cRec(""), cItem("+1 234-567-8900"), coSpec, ctx).filter(x => x.kind === "field")).toEqual([]);
+  });
+  it("a NON-matching HubSpot id never backfills (never matched by name)", () => {
+    const mismatched = item({ column_values: [{ id: "c_id", text: "OTHER" }, { id: "c_phone", text: "+1 234" }] });
+    expect(fieldDiffs(cRec(""), mismatched, contactSpec, ctx).filter(x => x.kind === "field")).toEqual([]);
+  });
+  // Superseded by the canonical-phone fix: the write must NOT carry monday's rendered text (which gains a
+  // country suffix once a rep picks the flag). Only the leading "+" is preserved.
+  it("reverseFieldValue canonicalises the phone for the write", () =>
+    expect(reverseFieldValue(phoneField, "+1 234-567-8900", ctx)).toBe("+12345678900"));
+});
+
+// --- review fixes (2026-08-04) -----------------------------------------------------------------
+describe("backfill safety: 'empty' is judged on the RAW HubSpot value", () => {
+  const phoneField: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true };
+  const contactSpec: ObjectSpec = { ...spec, object: "contacts", fields: [phoneField] };
+  const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: "+1 234-567-8900" }] });
+
+  // phoneDigits("N/A") === "" — without the raw check this looked EMPTY and the fill DESTROYED real data.
+  it("a real but digitless HubSpot phone ('N/A') is NOT treated as empty -> no backfill", () =>
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", phone: "N/A" } } as any, md, contactSpec, ctx)
+      .some(d => d.backfill)).toBe(false));
+  it("a genuinely empty HubSpot phone still backfills", () =>
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", phone: "  " } } as any, md, contactSpec, ctx)
+      .some(d => d.backfill)).toBe(true));
+});
+
+describe("reverseFieldValue phone -> canonical, never monday's rendered text", () => {
+  const ph: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true };
+  it("strips monday's country suffix (a rep picking the flag renders '<number> US')", () =>
+    expect(reverseFieldValue(ph, "12345678900 US", ctx)).toBe("12345678900"));
+  it("keeps a LEADING + for international numbers", () =>
+    expect(reverseFieldValue(ph, "+1 (234) 567-8900", ctx)).toBe("+12345678900"));
+  it("drops a stray non-leading +", () => expect(reverseFieldValue(ph, "1+2", ctx)).toBe("12"));
+  it("digitless input writes nothing", () => expect(reverseFieldValue(ph, "N/A", ctx)).toBe(""));
+});
+
+describe("backfill is suppressed when the monday value would write nothing (no permanent churn)", () => {
+  const phoneField: FieldSpec = { hs: "phone", col: "c_phone", type: "phone", reverse: true, backfill: true };
+  const cSpec: ObjectSpec = { ...spec, object: "contacts", fields: [phoneField] };
+  const md = (phone: string) => item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_phone", text: phone }] });
+  const emptyHs = { id: "9001", properties: { dealname: "A", phone: "" } } as any;
+
+  // reverseFieldValue("N/A") -> "": the write would be skipped, so raising the diff would re-fire forever.
+  it("a digitless monday phone raises NO backfill diff", () =>
+    expect(fieldDiffs(emptyHs, md("N/A"), cSpec, ctx).some(d => d.backfill)).toBe(false));
+  it("a real monday phone still raises one", () =>
+    expect(fieldDiffs(emptyHs, md("+1 234-567-8900"), cSpec, ctx).some(d => d.backfill)).toBe(true));
+});
+
+// --- app-save intent (2026-08-07 functional review) --------------------------------------------
+// A rep pressing Save in a drawer is an explicit "push monday -> HubSpot". Two failures this covers:
+// a field HubSpot never held produced NO diff (edit silently stayed in monday), and the drawer's own
+// association writes bumped lastmodifieddate so newer-wins flipped to toMonday and REVERTED the edit.
+describe("fieldDiffs fillEmpty (app save)", () => {
+  const companySpec: ObjectSpec = {
+    ...spec, object: "companies",
+    fields: [{ hs: "city", col: "c_city", type: "text", reverse: true }],   // note: NO backfill flag
+  };
+  const md = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_city", text: "Shenzhen" }] });
+  const emptyHs = { id: "9001", properties: { dealname: "A", city: "" } } as any;
+
+  it("passive reconcile: an empty HubSpot value is left alone (unchanged behaviour)", () =>
+    expect(fieldDiffs(emptyHs, md, companySpec, ctx).some(d => d.backfill)).toBe(false));
+
+  it("app save: the same edit DOES produce a fill diff, so it reaches HubSpot", () => {
+    const d = fieldDiffs(emptyHs, md, companySpec, ctx, true).find(x => x.f?.col === "c_city");
+    expect(d?.backfill).toBe(true);
+    expect(d?.mdText).toBe("Shenzhen");
+  });
+
+  it("app save still NEVER clears: an empty monday value produces no diff", () => {
+    const blank = item({ column_values: [{ id: "c_id", text: "9001" }, { id: "c_city", text: "" }] });
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", city: "Shenzhen" } } as any, blank, companySpec, ctx, true)
+      .some(d => d.backfill)).toBe(false);
+  });
+
+  it("app save still requires a MATCHING HubSpot id (never matched by name)", () => {
+    const other = item({ column_values: [{ id: "c_id", text: "OTHER" }, { id: "c_city", text: "Shenzhen" }] });
+    expect(fieldDiffs(emptyHs, other, companySpec, ctx, true).some(d => d.backfill)).toBe(false);
+  });
+});
+
+// --- appReverse: OWNERSHIP is app-save-only (live incident 2026-08-28) --------------------------
+// A plain `reverse` on hubspot_owner_id let a passive reconcile push monday's Owner people column over
+// HubSpot's Contact owner, silently reassigning a contact (Steven -> Wendy) with no human edit.
+describe("appReverse — owner reverses only on an explicit app save", () => {
+  const ownerField: FieldSpec = { hs: "hubspot_owner_id", col: "c_owner", type: "people", appReverse: true };
+  const ownerSpec: ObjectSpec = { ...spec, object: "contacts", fields: [ownerField] };
+  const octx: Ctx = { ...ctx, mondayEmailByUserId: { "500": "wendy@dkm.com" }, ownerIdByEmail: { "wendy@dkm.com": "W1" } };
+  // a monday people column holding Wendy, while HubSpot's owner is Steven
+  const md = item({ column_values: [
+    { id: "c_id", text: "9001" },
+    { id: "c_owner", text: "Wendy Wang", persons_and_teams: [{ id: "500", kind: "person" }] } as any,
+  ] });
+  const hs = { id: "9001", properties: { dealname: "A", hubspot_owner_id: "S1" } } as any;
+
+  it("PASSIVE reconcile does NOT reassign the owner", () =>
+    expect(fieldDiffs(hs, md, ownerSpec, octx).some(d => d.f?.hs === "hubspot_owner_id")).toBe(false));
+
+  it("an explicit APP SAVE does push the owner", () => {
+    const d = fieldDiffs(hs, md, ownerSpec, octx, true).find(x => x.f?.hs === "hubspot_owner_id");
+    expect(d?.mdText).toBe("W1");
+  });
+
+  it("an appReverse diff is included in the reverse patch", () => {
+    const diffs = fieldDiffs(hs, md, ownerSpec, octx, true);
+    expect(buildReversePatch(diffs, md, ownerSpec, octx).hubspot_owner_id).toBe("W1");
+  });
+
+  it("a plain `reverse` people field still reverses passively (sales_user is unchanged)", () => {
+    const su: ObjectSpec = { ...ownerSpec, fields: [{ hs: "sales_user", col: "c_owner", type: "people", reverse: true }] };
+    expect(fieldDiffs({ id: "9001", properties: { dealname: "A", sales_user: "S1" } } as any, md, su, octx)
+      .some(d => d.f?.hs === "sales_user")).toBe(true);
   });
 });

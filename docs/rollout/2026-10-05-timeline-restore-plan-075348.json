@@ -1,0 +1,167 @@
+{
+ "generatedAt": "2026-10-05T07:53:48.861Z",
+ "mode": "plan",
+ "canary": false,
+ "census": "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\c--Users-PC-Downloads-DKM-Project-Monday-Python\\85678929-2bad-44c8-ae70-3715f1ac1066\\scratchpad\\recon-1005\\gu-census.json",
+ "censusRows": 4,
+ "lostRows": 2,
+ "unknownRows": 0,
+ "invalidLostRows": [],
+ "selected": 2,
+ "filters": {
+  "cards": [
+   "2866109946"
+  ]
+ },
+ "sources": {
+  "dedupeReports": [
+   "2026-09-23-timeline-dedupe-plan-170029.json",
+   "2026-09-23-timeline-dedupe-plan.json",
+   "2026-09-23-timeline-dedupe-retry-plan.json",
+   "2026-09-24-timeline-dedupe-applied.json",
+   "2026-09-24-timeline-dedupe-canary-applied.json",
+   "2026-09-26-timeline-dedupe-applied-193131.json",
+   "2026-09-26-timeline-dedupe-applied-223952.json",
+   "2026-09-26-timeline-dedupe-applied.json",
+   "2026-09-27-timeline-dedupe-lost-160612.json",
+   "2026-09-27-timeline-dedupe-plan-150521.json",
+   "2026-09-27-timeline-dedupe-plan-151512.json",
+   "2026-09-27-timeline-dedupe-plan-153736.json",
+   "2026-09-27-timeline-dedupe-plan-155112.json",
+   "2026-09-27-timeline-dedupe-plan-160207.json",
+   "2026-09-27-timeline-dedupe-plan-160311.json",
+   "2026-09-27-timeline-dedupe-plan-161317.json",
+   "2026-09-27-timeline-dedupe-plan.json",
+   "2026-09-27-timeline-dedupe-retry-applied.json",
+   "2026-09-27-timeline-dedupe-retry-plan-072824.json",
+   "2026-09-27-timeline-dedupe-retry-plan-144522.json",
+   "2026-09-27-timeline-dedupe-retry-plan.json",
+   "2026-09-27-timeline-dedupe-verify.json",
+   "2026-09-28-timeline-dedupe-canary-applied.json",
+   "2026-09-30-timeline-dedupe-applied.json",
+   "2026-09-30-timeline-dedupe-lost-090727.json",
+   "2026-09-30-timeline-dedupe-lost-123502.json",
+   "2026-09-30-timeline-dedupe-lost-143000.json",
+   "2026-09-30-timeline-dedupe-plan.json",
+   "2026-09-30-timeline-dedupe-verify-143000.json",
+   "2026-09-30-timeline-dedupe-verify.json"
+  ],
+  "previousRestoreReports": [
+   "2026-09-28-timeline-restore-applied-022019.json",
+   "2026-09-28-timeline-restore-applied-093044.json",
+   "2026-09-28-timeline-restore-applied.json",
+   "2026-09-30-timeline-restore-applied-222841.json",
+   "2026-09-30-timeline-restore-applied.json",
+   "2026-10-01-timeline-restore-applied-041852.json",
+   "2026-10-01-timeline-restore-applied-044237.json",
+   "2026-10-01-timeline-restore-applied-045725.json",
+   "2026-10-01-timeline-restore-applied-051130.json",
+   "2026-10-01-timeline-restore-applied-052355.json",
+   "2026-10-01-timeline-restore-applied-053051.json",
+   "2026-10-01-timeline-restore-applied-054153.json",
+   "2026-10-01-timeline-restore-applied-055437.json",
+   "2026-10-01-timeline-restore-applied-060139.json",
+   "2026-10-01-timeline-restore-applied-061455.json",
+   "2026-10-01-timeline-restore-applied-062253.json",
+   "2026-10-01-timeline-restore-applied-062819.json",
+   "2026-10-01-timeline-restore-applied-063612.json",
+   "2026-10-01-timeline-restore-applied-064207.json",
+   "2026-10-01-timeline-restore-applied-064616.json",
+   "2026-10-01-timeline-restore-applied.json",
+   "2026-10-05-timeline-restore-applied-031315.json",
+   "2026-10-05-timeline-restore-applied.json"
+  ],
+  "backfillCheckpoint": "C:\\Users\\PC\\Downloads\\DKM_Project\\Monday_Python-crm\\worker\\scripts\\.backfill-activities-state.json"
+ },
+ "tally": {
+  "held-sibling-differs": 1,
+  "would-create": 1
+ },
+ "done": true,
+ "cards": {
+  "2866109946": {
+   "kind": "contacts",
+   "board": "5028000495",
+   "ownEntries": 4,
+   "rowsReturned": 4,
+   "distinctRows": 4,
+   "unseenRows": 0,
+   "pages": 1,
+   "pageSizes": [
+    100
+   ],
+   "complete": true,
+   "lossy": false,
+   "walks": 1
+  }
+ },
+ "items": [
+  {
+   "card": "2866109946",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:calls:401893839598]",
+   "object": "calls",
+   "activityId": "401893839598",
+   "outcome": "held-sibling-differs",
+   "recordId": "555355281118",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "d9b1360f-692b-4acf-a43e-228568d48a1a",
+    "card": "2855867843",
+    "result": "differs",
+    "differences": [
+     "title (copy \"\" vs built \"与 gumaozhou 的呼叫\")"
+    ]
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "1e0d9eca-222b-4f8b-85c8-4f7947e83595",
+    "title": "与 gumaozhou 的呼叫",
+    "contentLength": 124,
+    "contentSha": "fc50376fe4d86696",
+    "timestamp": "2026-09-23T07:22:39.955Z"
+   },
+   "reason": "a surviving copy (d9b1360f-692b-4acf-a43e-228568d48a1a on 2855867843) is not what either writer builds today: title (copy \"\" vs built \"与 gumaozhou 的呼叫\")"
+  },
+  {
+   "card": "2866109946",
+   "kind": "contacts",
+   "board": "5028000495",
+   "marker": "[hubspot:notes:400702896865]",
+   "object": "notes",
+   "activityId": "400702896865",
+   "outcome": "would-create",
+   "recordId": "555355281118",
+   "buildsAgree": true,
+   "sibling": {
+    "id": "706f8438-f893-4855-81ff-c61db574d8cf",
+    "card": "2862251906",
+    "result": "match"
+   },
+   "writer": "live",
+   "writerBy": "dated or created at/after ACTIVITY_CUTOVER_AT (activityIsLive)",
+   "entry": {
+    "custom_activity_id": "ca35c3ab-476a-4718-9b38-67ee945593d4",
+    "title": "发了邮件等回复",
+    "contentLength": 63,
+    "contentSha": "0c717269f1920b1a",
+    "timestamp": "2026-09-18T02:05:14.551Z"
+   },
+   "check": {
+    "knownIds": 0,
+    "listing": {
+     "ownEntries": 4,
+     "rowsReturned": 4,
+     "distinctRows": 4,
+     "unseenRows": 0,
+     "pages": 1,
+     "complete": true,
+     "lossy": false,
+     "walkedAt": "2026-10-05T07:53:56.040Z"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,3832 @@
+{
+ "why": "Accounts whose forward refresh would REMOVE monday-only contact links (HubSpot holds no such association); left out of the 2026-09-28 refresh on the user's decision to keep links. Snapshot: relation-impact 2026-09-27T07:41Z.",
+ "accounts": 425,
+ "linksKept": 661,
+ "list": [
+  {
+   "hubspotId": "37108192909",
+   "cards": [
+    "2854538393"
+   ],
+   "removed": 2,
+   "current": 7,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "16387548592",
+   "cards": [
+    "2855579360"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "16392679581",
+   "cards": [
+    "2855587508"
+   ],
+   "removed": 1,
+   "current": 11,
+   "hubspotHas": 10
+  },
+  {
+   "hubspotId": "31912122534",
+   "cards": [
+    "2855601746"
+   ],
+   "removed": 7,
+   "current": 9,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34508009842",
+   "cards": [
+    "2855599771"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37090100831",
+   "cards": [
+    "2855598618"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "16410086154",
+   "cards": [
+    "2855599374"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "16411190345",
+   "cards": [
+    "2855599377"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "16479263903",
+   "cards": [
+    "2855583157"
+   ],
+   "removed": 1,
+   "current": 98,
+   "hubspotHas": 97
+  },
+  {
+   "hubspotId": "16485748099",
+   "cards": [
+    "2855573115"
+   ],
+   "removed": 3,
+   "current": 8,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "16608613730",
+   "cards": [
+    "2855573128"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "16681173561",
+   "cards": [
+    "2855603496"
+   ],
+   "removed": 5,
+   "current": 58,
+   "hubspotHas": 53
+  },
+  {
+   "hubspotId": "16696856330",
+   "cards": [
+    "2855583429"
+   ],
+   "removed": 1,
+   "current": 19,
+   "hubspotHas": 18
+  },
+  {
+   "hubspotId": "16737415315",
+   "cards": [
+    "2855573372"
+   ],
+   "removed": 1,
+   "current": 14,
+   "hubspotHas": 13
+  },
+  {
+   "hubspotId": "16744023418",
+   "cards": [
+    "2855583598"
+   ],
+   "removed": 5,
+   "current": 48,
+   "hubspotHas": 43
+  },
+  {
+   "hubspotId": "17043972016",
+   "cards": [
+    "2855612950"
+   ],
+   "removed": 1,
+   "current": 10,
+   "hubspotHas": 9
+  },
+  {
+   "hubspotId": "17179726934",
+   "cards": [
+    "2855616071"
+   ],
+   "removed": 36,
+   "current": 60,
+   "hubspotHas": 24
+  },
+  {
+   "hubspotId": "17189582866",
+   "cards": [
+    "2855613127"
+   ],
+   "removed": 6,
+   "current": 39,
+   "hubspotHas": 33
+  },
+  {
+   "hubspotId": "17227283466",
+   "cards": [
+    "2855583663"
+   ],
+   "removed": 1,
+   "current": 11,
+   "hubspotHas": 10
+  },
+  {
+   "hubspotId": "17228232518",
+   "cards": [
+    "2855608015"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "17610227553",
+   "cards": [
+    "2855607999"
+   ],
+   "removed": 3,
+   "current": 26,
+   "hubspotHas": 23
+  },
+  {
+   "hubspotId": "17696440614",
+   "cards": [
+    "2855608156"
+   ],
+   "removed": 1,
+   "current": 23,
+   "hubspotHas": 22
+  },
+  {
+   "hubspotId": "18276980919",
+   "cards": [
+    "2855613402"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "18587895977",
+   "cards": [
+    "2855611036"
+   ],
+   "removed": 1,
+   "current": 18,
+   "hubspotHas": 17
+  },
+  {
+   "hubspotId": "19157837977",
+   "cards": [
+    "2855624131"
+   ],
+   "removed": 8,
+   "current": 12,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "19292558009",
+   "cards": [
+    "2855606261"
+   ],
+   "removed": 1,
+   "current": 24,
+   "hubspotHas": 23
+  },
+  {
+   "hubspotId": "21681389887",
+   "cards": [
+    "2855624688"
+   ],
+   "removed": 14,
+   "current": 23,
+   "hubspotHas": 9
+  },
+  {
+   "hubspotId": "21751068834",
+   "cards": [
+    "2855611710"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "21751079843",
+   "cards": [
+    "2855618080"
+   ],
+   "removed": 2,
+   "current": 78,
+   "hubspotHas": 76
+  },
+  {
+   "hubspotId": "21751117971",
+   "cards": [
+    "2855618496"
+   ],
+   "removed": 3,
+   "current": 9,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "21751117973",
+   "cards": [
+    "2855618324"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "21751129389",
+   "cards": [
+    "2855608717"
+   ],
+   "removed": 2,
+   "current": 33,
+   "hubspotHas": 31
+  },
+  {
+   "hubspotId": "21751144261",
+   "cards": [
+    "2855618829"
+   ],
+   "removed": 1,
+   "current": 28,
+   "hubspotHas": 27
+  },
+  {
+   "hubspotId": "21751176967",
+   "cards": [
+    "2855617457"
+   ],
+   "removed": 3,
+   "current": 46,
+   "hubspotHas": 43
+  },
+  {
+   "hubspotId": "21751208967",
+   "cards": [
+    "2855584608"
+   ],
+   "removed": 2,
+   "current": 7,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "21751208971",
+   "cards": [
+    "2855617667"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "21751212615",
+   "cards": [
+    "2855625816"
+   ],
+   "removed": 1,
+   "current": 21,
+   "hubspotHas": 20
+  },
+  {
+   "hubspotId": "21751241489",
+   "cards": [
+    "2855618300"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "21751254938",
+   "cards": [
+    "2855618352"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "21751277157",
+   "cards": [
+    "2855617565"
+   ],
+   "removed": 2,
+   "current": 6,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "21751290491",
+   "cards": [
+    "2855608830"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "21751312540",
+   "cards": [
+    "2855606507"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "21757729716",
+   "cards": [
+    "2855617703"
+   ],
+   "removed": 3,
+   "current": 14,
+   "hubspotHas": 11
+  },
+  {
+   "hubspotId": "21757738569",
+   "cards": [
+    "2855624659"
+   ],
+   "removed": 2,
+   "current": 8,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "21765711923",
+   "cards": [
+    "2855584907"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "21771834259",
+   "cards": [
+    "2855618457"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "22010567469",
+   "cards": [
+    "2855584914"
+   ],
+   "removed": 5,
+   "current": 7,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "22039084081",
+   "cards": [
+    "2855624476"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "22042835266",
+   "cards": [
+    "2855606711"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "22042839406",
+   "cards": [
+    "2855606712"
+   ],
+   "removed": 3,
+   "current": 5,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "22042851991",
+   "cards": [
+    "2855606724"
+   ],
+   "removed": 2,
+   "current": 54,
+   "hubspotHas": 52
+  },
+  {
+   "hubspotId": "22042882745",
+   "cards": [
+    "2855609104"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "22043167362",
+   "cards": [
+    "2855625051"
+   ],
+   "removed": 2,
+   "current": 54,
+   "hubspotHas": 52
+  },
+  {
+   "hubspotId": "22043612243",
+   "cards": [
+    "2855609131"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "22043646813",
+   "cards": [
+    "2855618339"
+   ],
+   "removed": 2,
+   "current": 21,
+   "hubspotHas": 19
+  },
+  {
+   "hubspotId": "22043656558",
+   "cards": [
+    "2855618417"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "22043668229",
+   "cards": [
+    "2855606720"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "22064618507",
+   "cards": [
+    "2855585080"
+   ],
+   "removed": 1,
+   "current": 10,
+   "hubspotHas": 9
+  },
+  {
+   "hubspotId": "22066252152",
+   "cards": [
+    "2855585081"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "22113815898",
+   "cards": [
+    "2855606855"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "22114097591",
+   "cards": [
+    "2855606858"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "22114097769",
+   "cards": [
+    "2855625077"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "22140487593",
+   "cards": [
+    "2855585171"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "22193837389",
+   "cards": [
+    "2855624970"
+   ],
+   "removed": 2,
+   "current": 7,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "22257578808",
+   "cards": [
+    "2855609266"
+   ],
+   "removed": 3,
+   "current": 7,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "22281389736",
+   "cards": [
+    "2855618905"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "22401763669",
+   "cards": [
+    "2855625925"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "22419106463",
+   "cards": [
+    "2855625928"
+   ],
+   "removed": 1,
+   "current": 74,
+   "hubspotHas": 73
+  },
+  {
+   "hubspotId": "22758526498",
+   "cards": [
+    "2855585270"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "23145457969",
+   "cards": [
+    "2855585113"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "23179481900",
+   "cards": [
+    "2855626309"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "23186518548",
+   "cards": [
+    "2855585133"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "23480516473",
+   "cards": [
+    "2855585357"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "23824854643",
+   "cards": [
+    "2855619436"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "25059931958",
+   "cards": [
+    "2855619141"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "25215421294",
+   "cards": [
+    "2855619637"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "25636470409",
+   "cards": [
+    "2855619550"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "25702723602",
+   "cards": [
+    "2855626609"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "25962879846",
+   "cards": [
+    "2855619916"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "26250052963",
+   "cards": [
+    "2855619801"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "26346647682",
+   "cards": [
+    "2855609600"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "26380267362",
+   "cards": [
+    "2855626718"
+   ],
+   "removed": 1,
+   "current": 11,
+   "hubspotHas": 10
+  },
+  {
+   "hubspotId": "26636052150",
+   "cards": [
+    "2855613816"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "26643996063",
+   "cards": [
+    "2855619653"
+   ],
+   "removed": 2,
+   "current": 97,
+   "hubspotHas": 95
+  },
+  {
+   "hubspotId": "27606191936",
+   "cards": [
+    "2855625753"
+   ],
+   "removed": 23,
+   "current": 29,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "27678338613",
+   "cards": [
+    "2855619686"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "27687132548",
+   "cards": [
+    "2855619687"
+   ],
+   "removed": 2,
+   "current": 26,
+   "hubspotHas": 24
+  },
+  {
+   "hubspotId": "28257381732",
+   "cards": [
+    "2855625691"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "29357606689",
+   "cards": [
+    "2855620038"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "29762175035",
+   "cards": [
+    "2855585655"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "29826385409",
+   "cards": [
+    "2855585656"
+   ],
+   "removed": 1,
+   "current": 73,
+   "hubspotHas": 72
+  },
+  {
+   "hubspotId": "29903366489",
+   "cards": [
+    "2855633947"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "30141728923",
+   "cards": [
+    "2855621770"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "30636054143",
+   "cards": [
+    "2855625797"
+   ],
+   "removed": 3,
+   "current": 6,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "30637690171",
+   "cards": [
+    "2855633862"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "30721784437",
+   "cards": [
+    "2855638395"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "30722114331",
+   "cards": [
+    "2855638396"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "30732443714",
+   "cards": [
+    "2855638402"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "30757629756",
+   "cards": [
+    "2855614396"
+   ],
+   "removed": 1,
+   "current": 7,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "30772576129",
+   "cards": [
+    "2855620234"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "30797210900",
+   "cards": [
+    "2855620331"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "30802490772",
+   "cards": [
+    "2855634494"
+   ],
+   "removed": 1,
+   "current": 10,
+   "hubspotHas": 9
+  },
+  {
+   "hubspotId": "31018590008",
+   "cards": [
+    "2855637924"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31129356864",
+   "cards": [
+    "2855637972"
+   ],
+   "removed": 3,
+   "current": 67,
+   "hubspotHas": 64
+  },
+  {
+   "hubspotId": "31138230640",
+   "cards": [
+    "2855634595"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "31167953488",
+   "cards": [
+    "2855634126"
+   ],
+   "removed": 1,
+   "current": 11,
+   "hubspotHas": 10
+  },
+  {
+   "hubspotId": "31168123909",
+   "cards": [
+    "2855634105"
+   ],
+   "removed": 1,
+   "current": 52,
+   "hubspotHas": 51
+  },
+  {
+   "hubspotId": "31173988527",
+   "cards": [
+    "2855614267"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31175902806",
+   "cards": [
+    "2855638074"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31179245983",
+   "cards": [
+    "2855638201"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31345573208",
+   "cards": [
+    "2855634286"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31348471608",
+   "cards": [
+    "2855622126"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31348478606",
+   "cards": [
+    "2855622127"
+   ],
+   "removed": 3,
+   "current": 4,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31402585186",
+   "cards": [
+    "2855621819"
+   ],
+   "removed": 1,
+   "current": 15,
+   "hubspotHas": 14
+  },
+  {
+   "hubspotId": "31403207813",
+   "cards": [
+    "2855622236"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31403803413",
+   "cards": [
+    "2855638265"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31405041822",
+   "cards": [
+    "2855614428"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31407209893",
+   "cards": [
+    "2855620490"
+   ],
+   "removed": 2,
+   "current": 24,
+   "hubspotHas": 22
+  },
+  {
+   "hubspotId": "31407671678",
+   "cards": [
+    "2855621681"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "31413187909",
+   "cards": [
+    "2855635890"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "31413963532",
+   "cards": [
+    "2855614577"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "31414733990",
+   "cards": [
+    "2855614614"
+   ],
+   "removed": 1,
+   "current": 10,
+   "hubspotHas": 9
+  },
+  {
+   "hubspotId": "31415248683",
+   "cards": [
+    "2855614620"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31415248687",
+   "cards": [
+    "2855614633"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "31415970068",
+   "cards": [
+    "2855614634"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31416146580",
+   "cards": [
+    "2855614638"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "31419140246",
+   "cards": [
+    "2855620690"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "31419294511",
+   "cards": [
+    "2855621718"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31419441286",
+   "cards": [
+    "2855631851"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31427873432",
+   "cards": [
+    "2855638785"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31428542981",
+   "cards": [
+    "2855627818"
+   ],
+   "removed": 1,
+   "current": 51,
+   "hubspotHas": 50
+  },
+  {
+   "hubspotId": "31429921905",
+   "cards": [
+    "2855614709"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "31430374969",
+   "cards": [
+    "2855639334"
+   ],
+   "removed": 1,
+   "current": 12,
+   "hubspotHas": 11
+  },
+  {
+   "hubspotId": "31447517107",
+   "cards": [
+    "2855639360"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "31742520165",
+   "cards": [
+    "2855636439"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "32114537652",
+   "cards": [
+    "2855623047"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "32661840963",
+   "cards": [
+    "2855615209"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "32683258456",
+   "cards": [
+    "2855615210"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "32737505086",
+   "cards": [
+    "2855615214"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "32744861576",
+   "cards": [
+    "2855615260"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "33075764125",
+   "cards": [
+    "2855635801"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "33087401259",
+   "cards": [
+    "2855635803"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "33523577396",
+   "cards": [
+    "2855646147"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "33809041210",
+   "cards": [
+    "2855615225"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34214524771",
+   "cards": [
+    "2855639542"
+   ],
+   "removed": 1,
+   "current": 29,
+   "hubspotHas": 28
+  },
+  {
+   "hubspotId": "34403852889",
+   "cards": [
+    "2855622980"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34495915844",
+   "cards": [
+    "2855632285"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34497001816",
+   "cards": [
+    "2855636529"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34498859666",
+   "cards": [
+    "2855632412"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34499757884",
+   "cards": [
+    "2855632428"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "34504292413",
+   "cards": [
+    "2855639629"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34506308653",
+   "cards": [
+    "2855636776"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34508009840",
+   "cards": [
+    "2855636754"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34510651499",
+   "cards": [
+    "2855615223"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34511271553",
+   "cards": [
+    "2855615465"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34516869449",
+   "cards": [
+    "2855632512"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "34521523883",
+   "cards": [
+    "2855650109"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34521523886",
+   "cards": [
+    "2855650112"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34534602499",
+   "cards": [
+    "2855646571"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34537861692",
+   "cards": [
+    "2855615677"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "34538785829",
+   "cards": [
+    "2855623571"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "34539556685",
+   "cards": [
+    "2855623020"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "34539859725",
+   "cards": [
+    "2855623374"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34542401038",
+   "cards": [
+    "2855650071"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34544401985",
+   "cards": [
+    "2855650175"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34548311348",
+   "cards": [
+    "2855632939"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "34551770515",
+   "cards": [
+    "2855623310"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "34558401828",
+   "cards": [
+    "2855650143"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "35016105048",
+   "cards": [
+    "2855636950"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "35271863440",
+   "cards": [
+    "2855628221"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "35310610751",
+   "cards": [
+    "2855637093"
+   ],
+   "removed": 2,
+   "current": 6,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "35316314642",
+   "cards": [
+    "2855637097"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "35673409130",
+   "cards": [
+    "2855646488"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "35673409439",
+   "cards": [
+    "2855646492"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "35937623593",
+   "cards": [
+    "2855650310"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "35998480166",
+   "cards": [
+    "2855646635"
+   ],
+   "removed": 1,
+   "current": 9,
+   "hubspotHas": 8
+  },
+  {
+   "hubspotId": "36763413647",
+   "cards": [
+    "2855628243"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "37057638824",
+   "cards": [
+    "2855632899"
+   ],
+   "removed": 1,
+   "current": 11,
+   "hubspotHas": 10
+  },
+  {
+   "hubspotId": "37057638829",
+   "cards": [
+    "2855650603"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37067158886",
+   "cards": [
+    "2855633684"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37071661423",
+   "cards": [
+    "2855628380"
+   ],
+   "removed": 1,
+   "current": 9,
+   "hubspotHas": 8
+  },
+  {
+   "hubspotId": "37085908864",
+   "cards": [
+    "2855633749"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37087169058",
+   "cards": [
+    "2855647326"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37088692294",
+   "cards": [
+    "2855647181"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37088692335",
+   "cards": [
+    "2855647162"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37090100861",
+   "cards": [
+    "2855651224"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37091111467",
+   "cards": [
+    "2855637495"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37091111517",
+   "cards": [
+    "2855644019"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37091308674",
+   "cards": [
+    "2855630093"
+   ],
+   "removed": 2,
+   "current": 30,
+   "hubspotHas": 28
+  },
+  {
+   "hubspotId": "37091308720",
+   "cards": [
+    "2855637627"
+   ],
+   "removed": 2,
+   "current": 5,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37091760270",
+   "cards": [
+    "2855628467"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37091760311",
+   "cards": [
+    "2855637640"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37091760396",
+   "cards": [
+    "2855647084"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37097077913",
+   "cards": [
+    "2855630012"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37097077933",
+   "cards": [
+    "2855647872"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37098239597",
+   "cards": [
+    "2855630164"
+   ],
+   "removed": 2,
+   "current": 16,
+   "hubspotHas": 14
+  },
+  {
+   "hubspotId": "37098495639",
+   "cards": [
+    "2855651535"
+   ],
+   "removed": 2,
+   "current": 29,
+   "hubspotHas": 27
+  },
+  {
+   "hubspotId": "37100056340",
+   "cards": [
+    "2855628702"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37100056370",
+   "cards": [
+    "2855644003"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37100537950",
+   "cards": [
+    "2855629385"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37100537965",
+   "cards": [
+    "2855647747"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37101025836",
+   "cards": [
+    "2855644131"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37107722831",
+   "cards": [
+    "2855629313"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37107722835",
+   "cards": [
+    "2855629316"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37107722866",
+   "cards": [
+    "2855643911"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37107722881",
+   "cards": [
+    "2855644474"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37108258961",
+   "cards": [
+    "2855644096"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37123924555",
+   "cards": [
+    "2855644481"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37124651621",
+   "cards": [
+    "2855629510"
+   ],
+   "removed": 1,
+   "current": 7,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "37124651652",
+   "cards": [
+    "2855644423"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37124651666",
+   "cards": [
+    "2855662025"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37124651697",
+   "cards": [
+    "2855630710"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37126913348",
+   "cards": [
+    "2855651933"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37126913352",
+   "cards": [
+    "2855661985"
+   ],
+   "removed": 1,
+   "current": 13,
+   "hubspotHas": 12
+  },
+  {
+   "hubspotId": "37126913376",
+   "cards": [
+    "2855652138"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37136172618",
+   "cards": [
+    "2855630851"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37136172634",
+   "cards": [
+    "2855648067"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37139237390",
+   "cards": [
+    "2855662095"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37139237405",
+   "cards": [
+    "2855662160"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37143900979",
+   "cards": [
+    "2855662153"
+   ],
+   "removed": 1,
+   "current": 9,
+   "hubspotHas": 8
+  },
+  {
+   "hubspotId": "37143901007",
+   "cards": [
+    "2855651720"
+   ],
+   "removed": 1,
+   "current": 8,
+   "hubspotHas": 7
+  },
+  {
+   "hubspotId": "37148731414",
+   "cards": [
+    "2855644832"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "37158204551",
+   "cards": [
+    "2855631144"
+   ],
+   "removed": 1,
+   "current": 15,
+   "hubspotHas": 14
+  },
+  {
+   "hubspotId": "37158204561",
+   "cards": [
+    "2855631151"
+   ],
+   "removed": 1,
+   "current": 21,
+   "hubspotHas": 20
+  },
+  {
+   "hubspotId": "37158204566",
+   "cards": [
+    "2855652044"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37158204582",
+   "cards": [
+    "2855662124"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37159279190",
+   "cards": [
+    "2855648665"
+   ],
+   "removed": 3,
+   "current": 4,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37166985306",
+   "cards": [
+    "2855639990"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "37169356648",
+   "cards": [
+    "2855639908"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37175100713",
+   "cards": [
+    "2855652693"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37175100728",
+   "cards": [
+    "2855662321"
+   ],
+   "removed": 1,
+   "current": 9,
+   "hubspotHas": 8
+  },
+  {
+   "hubspotId": "37183611161",
+   "cards": [
+    "2855648731"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37188969361",
+   "cards": [
+    "2855645238"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37189124648",
+   "cards": [
+    "2855662900"
+   ],
+   "removed": 4,
+   "current": 5,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37189124670",
+   "cards": [
+    "2855662510"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37189124671",
+   "cards": [
+    "2855662511"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37189923723",
+   "cards": [
+    "2855662855"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37189923732",
+   "cards": [
+    "2855662548"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37193896261",
+   "cards": [
+    "2855648846"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37194464049",
+   "cards": [
+    "2855652798"
+   ],
+   "removed": 1,
+   "current": 13,
+   "hubspotHas": 12
+  },
+  {
+   "hubspotId": "37194464088",
+   "cards": [
+    "2855662864"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37195112008",
+   "cards": [
+    "2855663081"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "37195112028",
+   "cards": [
+    "2855648951"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37196074653",
+   "cards": [
+    "2855653104"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37196878761",
+   "cards": [
+    "2855641956"
+   ],
+   "removed": 1,
+   "current": 16,
+   "hubspotHas": 15
+  },
+  {
+   "hubspotId": "37197198950",
+   "cards": [
+    "2855652993"
+   ],
+   "removed": 1,
+   "current": 21,
+   "hubspotHas": 20
+  },
+  {
+   "hubspotId": "37197356052",
+   "cards": [
+    "2855653064"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "37197357954",
+   "cards": [
+    "2855641886"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37197359388",
+   "cards": [
+    "2855640800"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37197360405",
+   "cards": [
+    "2855640617"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37197363780",
+   "cards": [
+    "2855663503"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37197363786",
+   "cards": [
+    "2855649399"
+   ],
+   "removed": 1,
+   "current": 7,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "37197529460",
+   "cards": [
+    "2855660173"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "37197529465",
+   "cards": [
+    "2855660178"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37197529474",
+   "cards": [
+    "2855642445"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37197529491",
+   "cards": [
+    "2855660127"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37197530646",
+   "cards": [
+    "2855653518"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "37197531712",
+   "cards": [
+    "2855642818"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37197531733",
+   "cards": [
+    "2855642894"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37197533785",
+   "cards": [
+    "2855653454"
+   ],
+   "removed": 1,
+   "current": 16,
+   "hubspotHas": 15
+  },
+  {
+   "hubspotId": "37197536034",
+   "cards": [
+    "2855643100"
+   ],
+   "removed": 3,
+   "current": 19,
+   "hubspotHas": 16
+  },
+  {
+   "hubspotId": "37197538136",
+   "cards": [
+    "2855643059"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37197538138",
+   "cards": [
+    "2855643061"
+   ],
+   "removed": 2,
+   "current": 10,
+   "hubspotHas": 8
+  },
+  {
+   "hubspotId": "37198245379",
+   "cards": [
+    "2855641533"
+   ],
+   "removed": 3,
+   "current": 100,
+   "hubspotHas": 97
+  },
+  {
+   "hubspotId": "37198399317",
+   "cards": [
+    "2855666294"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "37198723660",
+   "cards": [
+    "2855660031"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37199057699",
+   "cards": [
+    "2855641626"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37199388810",
+   "cards": [
+    "2855641875"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37199861336",
+   "cards": [
+    "2855666220"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37199862355",
+   "cards": [
+    "2855666348"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "37199863338",
+   "cards": [
+    "2855658101"
+   ],
+   "removed": 1,
+   "current": 23,
+   "hubspotHas": 22
+  },
+  {
+   "hubspotId": "37199863360",
+   "cards": [
+    "2855654840"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37199864326",
+   "cards": [
+    "2855654926"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37199864329",
+   "cards": [
+    "2855654927"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37199864367",
+   "cards": [
+    "2855660589"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37199864382",
+   "cards": [
+    "2855654779"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37199866461",
+   "cards": [
+    "2855641740"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37199870819",
+   "cards": [
+    "2855660680"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37200027905",
+   "cards": [
+    "2855666722"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37200028832",
+   "cards": [
+    "2855660760"
+   ],
+   "removed": 1,
+   "current": 76,
+   "hubspotHas": 75
+  },
+  {
+   "hubspotId": "37233938854",
+   "cards": [
+    "2855658514"
+   ],
+   "removed": 10,
+   "current": 11,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37235286028",
+   "cards": [
+    "2855643875"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37241373792",
+   "cards": [
+    "2855694066"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37242611637",
+   "cards": [
+    "2855655573"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "37243386542",
+   "cards": [
+    "2855681616"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37244005508",
+   "cards": [
+    "2855681449"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37245099905",
+   "cards": [
+    "2855661383"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37250722934",
+   "cards": [
+    "2855680514"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "37258070792",
+   "cards": [
+    "2855677256"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "37265950468",
+   "cards": [
+    "2855677362"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "38163380384",
+   "cards": [
+    "2855673007"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "38512224035",
+   "cards": [
+    "2855686795"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "153895419579",
+   "cards": [
+    "2855686836"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "153895419581",
+   "cards": [
+    "2855686838"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "158710327005",
+   "cards": [
+    "2855673340"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "166916672202",
+   "cards": [
+    "2855657774"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "191321744098",
+   "cards": [
+    "2855696212"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "199538473670",
+   "cards": [
+    "2855682700"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "199547502289",
+   "cards": [
+    "2855707688"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "199641539280",
+   "cards": [
+    "2855678069"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "199995253446",
+   "cards": [
+    "2855707837"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "200067539694",
+   "cards": [
+    "2855707121"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "200113525489",
+   "cards": [
+    "2855696435"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "200115321565",
+   "cards": [
+    "2855692154"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "203056848585",
+   "cards": [
+    "2855696896"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "204360211171",
+   "cards": [
+    "2855692049"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "204360211172",
+   "cards": [
+    "2855692050"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "204360235714",
+   "cards": [
+    "2855696994"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "204360235721",
+   "cards": [
+    "2855697000"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "204360236780",
+   "cards": [
+    "2855696317"
+   ],
+   "removed": 2,
+   "current": 8,
+   "hubspotHas": 6
+  },
+  {
+   "hubspotId": "204360236785",
+   "cards": [
+    "2855688431"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "205195312839",
+   "cards": [
+    "2855707653"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "205225941725",
+   "cards": [
+    "2855692081"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "205293187804",
+   "cards": [
+    "2855718270"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "205294967486",
+   "cards": [
+    "2855697612"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "205294971612",
+   "cards": [
+    "2855718658"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "205320446668",
+   "cards": [
+    "2855697837"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "205322327786",
+   "cards": [
+    "2855710268"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "205322358476",
+   "cards": [
+    "2855689607"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "219288220366",
+   "cards": [
+    "2855690564"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "222600604400",
+   "cards": [
+    "2855690802"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "222609486566",
+   "cards": [
+    "2855690806"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "222696620788",
+   "cards": [
+    "2855690618"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "223274620646",
+   "cards": [
+    "2855693713"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "223984266940",
+   "cards": [
+    "2855693716"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "224380699330",
+   "cards": [
+    "2855690640"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "224756175593",
+   "cards": [
+    "2855693689"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "225402309365",
+   "cards": [
+    "2855719083"
+   ],
+   "removed": 6,
+   "current": 9,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "225402309367",
+   "cards": [
+    "2855719112"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "225511714531",
+   "cards": [
+    "2855693780"
+   ],
+   "removed": 3,
+   "current": 6,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "225511714536",
+   "cards": [
+    "2855693785"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "225511725760",
+   "cards": [
+    "2855709651"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "225513608907",
+   "cards": [
+    "2855710482"
+   ],
+   "removed": 1,
+   "current": 4,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "228286846681",
+   "cards": [
+    "2855710611"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "228938489570",
+   "cards": [
+    "2855690570"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "239786014437",
+   "cards": [
+    "2855719465"
+   ],
+   "removed": 25,
+   "current": 49,
+   "hubspotHas": 24
+  },
+  {
+   "hubspotId": "267376912102",
+   "cards": [
+    "2855693818"
+   ],
+   "removed": 7,
+   "current": 8,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "277232837352",
+   "cards": [
+    "2855710745"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279407602416",
+   "cards": [
+    "2855709394"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279546452683",
+   "cards": [
+    "2855691142"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279705640692",
+   "cards": [
+    "2855709814"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279769950913",
+   "cards": [
+    "2855709926"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279769950917",
+   "cards": [
+    "2855709931"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279769950924",
+   "cards": [
+    "2855689979"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279822710470",
+   "cards": [
+    "2855719849"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279933499067",
+   "cards": [
+    "2855711016"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279933499072",
+   "cards": [
+    "2855719961"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "279933499074",
+   "cards": [
+    "2855690986"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279937096412",
+   "cards": [
+    "2855689959"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "279999794933",
+   "cards": [
+    "2855709716"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280135906041",
+   "cards": [
+    "2855710010"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280148499188",
+   "cards": [
+    "2855709727"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280150299372",
+   "cards": [
+    "2855710813"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280152098491",
+   "cards": [
+    "2855710818"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280185330391",
+   "cards": [
+    "2855700022"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280232249050",
+   "cards": [
+    "2855709883"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280243046090",
+   "cards": [
+    "2855691337"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280244845302",
+   "cards": [
+    "2855710985"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280244846266",
+   "cards": [
+    "2855710988"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280958903024",
+   "cards": [
+    "2855691443"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "280982226631",
+   "cards": [
+    "2855709839"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281110563547",
+   "cards": [
+    "2855710955"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281110563549",
+   "cards": [
+    "2855710957"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281360626364",
+   "cards": [
+    "2855704356"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281396573927",
+   "cards": [
+    "2855700276"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281601331907",
+   "cards": [
+    "2855709417"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281696462547",
+   "cards": [
+    "2855691284"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281696462556",
+   "cards": [
+    "2855704178"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281710857968",
+   "cards": [
+    "2855711052"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281739667174",
+   "cards": [
+    "2855700358"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281745061591",
+   "cards": [
+    "2855700243"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "281852315363",
+   "cards": [
+    "2855711169"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281864916677",
+   "cards": [
+    "2855700081"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "281886511849",
+   "cards": [
+    "2855704367"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "285778034392",
+   "cards": [
+    "2855700449"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "292173109992",
+   "cards": [
+    "2855700339"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "308073823938",
+   "cards": [
+    "2855700292"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "309077027517",
+   "cards": [
+    "2855720423"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "311987926727",
+   "cards": [
+    "2855711681"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "311987926728",
+   "cards": [
+    "2855711682"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "311987926733",
+   "cards": [
+    "2855702495"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312338153160",
+   "cards": [
+    "2855691976"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312432512726",
+   "cards": [
+    "2855705040"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312432512739",
+   "cards": [
+    "2855725866"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312434309837",
+   "cards": [
+    "2855705060"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312434309845",
+   "cards": [
+    "2855704849"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312441202383",
+   "cards": [
+    "2855724728"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312443206372",
+   "cards": [
+    "2855702678"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "312486328017",
+   "cards": [
+    "2855720888"
+   ],
+   "removed": 1,
+   "current": 6,
+   "hubspotHas": 5
+  },
+  {
+   "hubspotId": "315965348562",
+   "cards": [
+    "2855728439"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320478208700",
+   "cards": [
+    "2855705355"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320523293412",
+   "cards": [
+    "2855726201"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320550968051",
+   "cards": [
+    "2855701986"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320668143320",
+   "cards": [
+    "2855703440"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320690106083",
+   "cards": [
+    "2855726565"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320690143959",
+   "cards": [
+    "2855726578"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "320690235116",
+   "cards": [
+    "2855705559"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "326294295254",
+   "cards": [
+    "2855726661"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335289185002",
+   "cards": [
+    "2855712730"
+   ],
+   "removed": 2,
+   "current": 3,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335289185003",
+   "cards": [
+    "2855712731"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335322872541",
+   "cards": [
+    "2855703684"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335335657154",
+   "cards": [
+    "2855729263"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335343765221",
+   "cards": [
+    "2855712276"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335363753666",
+   "cards": [
+    "2855703868"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335368959701",
+   "cards": [
+    "2855729275"
+   ],
+   "removed": 3,
+   "current": 5,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "335398387422",
+   "cards": [
+    "2855721635"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "335416722121",
+   "cards": [
+    "2855721735"
+   ],
+   "removed": 3,
+   "current": 4,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "338196523726",
+   "cards": [
+    "2855716247"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "338990190276",
+   "cards": [
+    "2855729453"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "340363780851",
+   "cards": [
+    "2855712306"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "340498269943",
+   "cards": [
+    "2855726721"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "345594819308",
+   "cards": [
+    "2855745927"
+   ],
+   "removed": 2,
+   "current": 6,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "345867056882",
+   "cards": [
+    "2856844309"
+   ],
+   "removed": 1,
+   "current": 5,
+   "hubspotHas": 4
+  },
+  {
+   "hubspotId": "345760685778",
+   "cards": [
+    "2856835547"
+   ],
+   "removed": 3,
+   "current": 4,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345689089775",
+   "cards": [
+    "2856920539"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345935322849",
+   "cards": [
+    "2856986434"
+   ],
+   "removed": 2,
+   "current": 4,
+   "hubspotHas": 2
+  },
+  {
+   "hubspotId": "345760686791",
+   "cards": [
+    "2857007351"
+   ],
+   "removed": 1,
+   "current": 1,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345943907033",
+   "cards": [
+    "2857018955"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345849063109",
+   "cards": [
+    "2857072977"
+   ],
+   "removed": 4,
+   "current": 5,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345759217388",
+   "cards": [
+    "2857119440"
+   ],
+   "removed": 3,
+   "current": 6,
+   "hubspotHas": 3
+  },
+  {
+   "hubspotId": "345728596720",
+   "cards": [
+    "2857135566"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345935456970",
+   "cards": [
+    "2857165394"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345757509338",
+   "cards": [
+    "2857173309"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345728633567",
+   "cards": [
+    "2857170577"
+   ],
+   "removed": 1,
+   "current": 2,
+   "hubspotHas": 1
+  },
+  {
+   "hubspotId": "345689413310",
+   "cards": [
+    "2857186274"
+   ],
+   "removed": 1,
+   "current": 3,
+   "hubspotHas": 2
+  }
+ ]
+}

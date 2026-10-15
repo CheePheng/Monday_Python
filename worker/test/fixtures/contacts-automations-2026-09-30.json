@@ -1,0 +1,3354 @@
+{
+ "capturedAt": "2026-09-30",
+ "board": "5028000495",
+ "legacy": [
+  {
+   "id": 38734661,
+   "active": true,
+   "recipeId": 126,
+   "description": null,
+   "userId": 104118038,
+   "config": {},
+   "state": "active"
+  },
+  {
+   "id": 38734684,
+   "active": true,
+   "recipeId": 127,
+   "description": null,
+   "userId": 104118038,
+   "config": {},
+   "state": "active"
+  },
+  {
+   "id": 38734687,
+   "active": true,
+   "recipeId": 1004,
+   "description": null,
+   "userId": 104118038,
+   "config": {},
+   "state": "active"
+  },
+  {
+   "id": 38734689,
+   "active": true,
+   "recipeId": 7004,
+   "description": null,
+   "userId": 104118038,
+   "config": {},
+   "state": "active"
+  },
+  {
+   "id": 38734690,
+   "active": true,
+   "recipeId": 7006,
+   "description": null,
+   "userId": 104118038,
+   "config": {},
+   "state": "active"
+  },
+  {
+   "id": 38734691,
+   "active": true,
+   "recipeId": 128,
+   "description": null,
+   "userId": 104118038,
+   "config": {},
+   "state": "active"
+  },
+  {
+   "id": 38839624,
+   "active": false,
+   "recipeId": 30508869,
+   "description": "#09【活动追踪】互动自动记录最后跟进时间",
+   "userId": 104231431,
+   "config": {
+    "1": {
+     "boardId": 5028000495,
+     "activityType": {
+      "title": "Any activity",
+      "value": {
+       "type": "any",
+       "name": "Any activity"
+      },
+      "invalid": false
+     }
+    },
+    "2": {
+     "columnId": {
+      "boardId": 5028000495,
+      "columnId": "date_mm7054jz",
+      "columnType": "date",
+      "isSubitemColumn": false,
+      "invalid": false,
+      "includeTime": false
+     },
+     "boardId": 5028000495
+    }
+   },
+   "state": "deactivated"
+  },
+  {
+   "id": 38841239,
+   "active": false,
+   "recipeId": 30508868,
+   "description": "#10【外联同步】邮件/通话活动自动同步活动日期",
+   "userId": 104231431,
+   "config": {
+    "1": {
+     "boardId": 5028000495
+    },
+    "2": {
+     "boardId": 5028000495,
+     "columnId": "date_mm7054jz"
+    }
+   },
+   "state": "deactivated"
+  },
+  {
+   "id": 39142317,
+   "active": true,
+   "recipeId": 5003,
+   "description": null,
+   "userId": 104118038,
+   "config": {
+    "subscriptionId": "96de55ba-0023-4aa1-8d57-d3068657f2fa"
+   },
+   "state": "active"
+  },
+  {
+   "id": 39142318,
+   "active": true,
+   "recipeId": 5002,
+   "description": null,
+   "userId": 104118038,
+   "config": {
+    "subscriptionId": "46a70e98-e905-48c6-bbbf-cc0bfde60c66"
+   },
+   "state": "active"
+  }
+ ],
+ "items": [
+  {
+   "id": "1940356127",
+   "active": false,
+   "title": "Trigger:\n  When 5 days after Owner assigned date at 09:00 AM\n\nConditions:\n  - O…",
+   "description": "#05【升级告警】分配 5 天严重滞留提醒",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10676985,
+     "title": "When date arrives",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "dateTriggerConfig": {
+       "workflowVariableKey": 2
+      },
+      "dateColumnId": {
+       "workflowVariableKey": 3
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 51
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 4,
+     "blockReferenceId": 13563198,
+     "title": "Send email",
+     "inboundFieldsSourceConfig": {
+      "peopleTo": {
+       "workflowVariableKey": 15
+      },
+      "to": {
+       "workflowVariableKey": 17
+      },
+      "subject": {
+       "workflowVariableKey": 19
+      },
+      "body": {
+       "workflowVariableKey": 21
+      }
+     },
+     "credentialsSourceConfig": {
+      "gmailCredentials": {
+       "workflowVariableKey": 47
+      }
+     },
+     "nextWorkflowBlocksConfig": null
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 10489132,
+     "title": "If column is empty",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 10
+      },
+      "shouldCheckIfColumnIsNotEmpty": {
+       "workflowVariableKey": 11
+      },
+      "itemId": {
+       "workflowVariableKey": 12
+      },
+      "columnId": {
+       "workflowVariableKey": 13
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 4
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10380128,
+     "title": "If status is something",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 4
+      },
+      "shouldCheckIfStatusIsNot": {
+       "workflowVariableKey": 5
+      },
+      "itemId": {
+       "workflowVariableKey": 6
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 7
+      },
+      "desiredStatusColumnValue": {
+       "workflowVariableKey": 9
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 5
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 5,
+     "blockReferenceId": 10489132,
+     "title": "If column is empty",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 48
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "columnId": {
+       "workflowVariableKey": 49
+      },
+      "shouldCheckIfColumnIsNotEmpty": {
+       "workflowVariableKey": 50
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 2,
+     "state": "active",
+     "appFeatureReferenceId": 10380106,
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "hour": 9,
+       "minute": 0,
+       "offset": {
+        "count": 5,
+        "unit": "Day"
+       },
+       "timezone": "Asia/Shanghai"
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 4,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 5,
+     "state": "active",
+     "appFeatureReferenceId": 12354877,
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 6,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 9,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       8
+      ],
+      "dependencies": [
+       8
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 17,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"group\",\"children\":[{\"type\":\"field\",\"variableKey\":16,\"version\":1},{\"type\":\"text\",\"text\":\", Zmark Zheng\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1},{\"type\":\"paragraph\",\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "{item.multiple_person_mm6zap53.email}, Zmark Zheng",
+      "dependencies": [
+       16
+      ]
+     },
+     "transformationType": "multi-dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 19,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"🚨【严重超时-120H】联系人已超5个工作日未跟进：\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1},{\"type\":\"field\",\"variableKey\":18,\"version\":1}],\"direction\":\"rtl\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"rtl\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "🚨【严重超时-120H】联系人已超5个工作日未跟进：{item.name}",
+      "dependencies": [
+       18
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 21,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"Hi, 联系人 \",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1},{\"type\":\"field\",\"variableKey\":20,\"version\":1},{\"type\":\"text\",\"text\":\" 分配已满 120 小时（5个工作日），状态仍为未跟进，请尽快处理或重新分配。\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "Hi, 联系人 {item.name} 分配已满 120 小时（5个工作日），状态仍为未跟进，请尽快处理或重新分配。",
+      "dependencies": [
+       20
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 14,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53"
+     }
+    },
+    {
+     "workflowVariableKey": 16,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53.email"
+     }
+    },
+    {
+     "workflowVariableKey": 18,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 20,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 15,
+     "state": "active",
+     "appFeatureReferenceId": 10380091,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       14
+      ],
+      "dependencies": [
+       14
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 12,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 11,
+     "state": "active",
+     "appFeatureReferenceId": 10941403,
+     "sourceKind": "user_config",
+     "config": {
+      "value": true,
+      "title": "is not empty"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 10,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 47,
+     "state": "active",
+     "appFeatureReferenceId": 12181536,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 92779,
+      "title": "<redacted>"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 48,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 51,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       },
+       "item": {
+        "isOutputFieldUsed": false,
+        "nestedOutputFields": {
+         "multiple_person_mm6zap53": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {
+           "email": {
+            "isOutputFieldUsed": true,
+            "nestedOutputFields": {}
+           }
+          }
+         },
+         "name": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {}
+         }
+        }
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 50,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is empty"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 3,
+     "state": "active",
+     "appFeatureReferenceId": 10518562,
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "id": "date_mm70pa4c",
+       "kind": "date"
+      },
+      "title": "Owner assigned date",
+      "dependencies": [
+       1
+      ],
+      "type": "date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 7,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status",
+      "dependencies": [
+       4,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 13,
+     "state": "active",
+     "appFeatureReferenceId": 10566016,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "multiple_person_mm6zap53",
+      "title": "Contact owner",
+      "dependencies": [
+       10,
+       12
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 10
+        },
+        "itemId": {
+         "workflowVariableKey": 12
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 49,
+     "state": "active",
+     "appFeatureReferenceId": 10566016,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm7054jz",
+      "title": "Last Activity Date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 48
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 8,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New",
+      "dependencies": [
+       4,
+       7,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 7
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940356394",
+   "active": false,
+   "title": "Trigger:\n  When 2 days after Owner assigned date at 09:00 AM\n\nConditions:\n  - O…",
+   "description": "#03【首轮提醒】分配 24H 未跟进邮件预警",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 4,
+     "blockReferenceId": 10489132,
+     "title": "If column is empty",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 45
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "columnId": {
+       "workflowVariableKey": 46
+      },
+      "shouldCheckIfColumnIsNotEmpty": {
+       "workflowVariableKey": 47
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10676985,
+     "title": "When date arrives",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "dateTriggerConfig": {
+       "workflowVariableKey": 2
+      },
+      "dateColumnId": {
+       "workflowVariableKey": 3
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 48
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 4
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10380128,
+     "title": "If status is something",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 4
+      },
+      "shouldCheckIfStatusIsNot": {
+       "workflowVariableKey": 5
+      },
+      "itemId": {
+       "workflowVariableKey": 6
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 7
+      },
+      "desiredStatusColumnValue": {
+       "workflowVariableKey": 10
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 13563198,
+     "title": "Send email",
+     "inboundFieldsSourceConfig": {
+      "peopleTo": {
+       "workflowVariableKey": 12
+      },
+      "to": {
+       "workflowVariableKey": 14
+      },
+      "subject": {
+       "workflowVariableKey": 16
+      },
+      "body": {
+       "workflowVariableKey": 18
+      }
+     },
+     "credentialsSourceConfig": {
+      "gmailCredentials": {
+       "workflowVariableKey": 20
+      }
+     },
+     "nextWorkflowBlocksConfig": null
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 2,
+     "state": "active",
+     "appFeatureReferenceId": 10380106,
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "hour": 9,
+       "minute": 0,
+       "offset": {
+        "count": 2,
+        "unit": "Day"
+       },
+       "timezone": "Asia/Shanghai"
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 4,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 5,
+     "state": "active",
+     "appFeatureReferenceId": 12354877,
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 6,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 10,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       8,
+       9
+      ],
+      "dependencies": [
+       8,
+       9
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 14,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"group\",\"children\":[{\"type\":\"field\",\"variableKey\":13,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1},{\"type\":\"paragraph\",\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       13
+      ]
+     },
+     "transformationType": "multi-dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 16,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"【跟进提醒-24H】联系人未及时跟进：\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1},{\"type\":\"field\",\"variableKey\":15,\"version\":1}],\"direction\":\"rtl\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"rtl\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "【跟进提醒-24H】联系人未及时跟进：{item.name}",
+      "dependencies": [
+       15
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 18,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"Hi, 联系人 \",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1},{\"type\":\"field\",\"variableKey\":17,\"version\":1},{\"type\":\"text\",\"text\":\" 分配已满24小时（1个工作日），状态仍为未跟进，请及时跟进。\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "Hi, 联系人 {item.name} 分配已满24小时（1个工作日），状态仍为未跟进，请及时跟进。",
+      "dependencies": [
+       17
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 11,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53"
+     }
+    },
+    {
+     "workflowVariableKey": 13,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53.email"
+     }
+    },
+    {
+     "workflowVariableKey": 15,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 17,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 48,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       },
+       "item": {
+        "isOutputFieldUsed": false,
+        "nestedOutputFields": {
+         "multiple_person_mm6zap53": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {
+           "email": {
+            "isOutputFieldUsed": true,
+            "nestedOutputFields": {}
+           }
+          }
+         },
+         "name": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {}
+         }
+        }
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 47,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is empty"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 45,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 20,
+     "state": "active",
+     "appFeatureReferenceId": 12181536,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 92779,
+      "title": "<redacted>"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 12,
+     "state": "active",
+     "appFeatureReferenceId": 10380091,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       11
+      ],
+      "dependencies": [
+       11
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 3,
+     "state": "active",
+     "appFeatureReferenceId": 10518562,
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "id": "date_mm70pa4c",
+       "kind": "date"
+      },
+      "title": "Owner assigned date",
+      "dependencies": [
+       1
+      ],
+      "type": "date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 7,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status",
+      "dependencies": [
+       4,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 46,
+     "state": "active",
+     "appFeatureReferenceId": 10566016,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm7054jz",
+      "title": "Last Activity Date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 45
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 8,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New",
+      "dependencies": [
+       4,
+       7,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 7
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 9,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New",
+      "dependencies": [
+       4,
+       7,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 7
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940356403",
+   "active": false,
+   "title": "Trigger:\n  When 3 days after Owner assigned date at 09:00 AM\n\nConditions:\n  - O…",
+   "description": "#04【二次预警】分配 72H 超时未跟进告警",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10676985,
+     "title": "When date arrives",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "dateTriggerConfig": {
+       "workflowVariableKey": 2
+      },
+      "dateColumnId": {
+       "workflowVariableKey": 3
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 48
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10380128,
+     "title": "If status is something",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 4
+      },
+      "shouldCheckIfStatusIsNot": {
+       "workflowVariableKey": 5
+      },
+      "itemId": {
+       "workflowVariableKey": 6
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 7
+      },
+      "desiredStatusColumnValue": {
+       "workflowVariableKey": 10
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 4
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 13563198,
+     "title": "Send email",
+     "inboundFieldsSourceConfig": {
+      "peopleTo": {
+       "workflowVariableKey": 12
+      },
+      "to": {
+       "workflowVariableKey": 14
+      },
+      "subject": {
+       "workflowVariableKey": 16
+      },
+      "body": {
+       "workflowVariableKey": 18
+      }
+     },
+     "credentialsSourceConfig": {
+      "gmailCredentials": {
+       "workflowVariableKey": 20
+      }
+     },
+     "nextWorkflowBlocksConfig": null
+    },
+    {
+     "workflowNodeId": 4,
+     "blockReferenceId": 10489132,
+     "title": "If column is empty",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 45
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "columnId": {
+       "workflowVariableKey": 46
+      },
+      "shouldCheckIfColumnIsNotEmpty": {
+       "workflowVariableKey": 47
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 4,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 5,
+     "state": "active",
+     "appFeatureReferenceId": 12354877,
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 6,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 10,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       8,
+       9
+      ],
+      "dependencies": [
+       8,
+       9
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 14,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"group\",\"children\":[{\"type\":\"field\",\"variableKey\":13,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1},{\"type\":\"paragraph\",\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       13
+      ]
+     },
+     "transformationType": "multi-dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 16,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"⚠️【二次预警-72H】联系人超3个工作日未跟进：\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1},{\"type\":\"field\",\"variableKey\":15,\"version\":1}],\"direction\":\"rtl\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"rtl\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "⚠️【二次预警-72H】联系人超3个工作日未跟进：{item.name}",
+      "dependencies": [
+       15
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 18,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"Hi, 联系人 \",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1},{\"type\":\"field\",\"variableKey\":17,\"version\":1},{\"type\":\"text\",\"text\":\" 分配已满 72 小时（3个工作日），状态仍为未跟进，请及时跟进。\",\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "title": "Hi, 联系人 {item.name} 分配已满 72 小时（3个工作日），状态仍为未跟进，请及时跟进。",
+      "dependencies": [
+       17
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 11,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53"
+     }
+    },
+    {
+     "workflowVariableKey": 13,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53.email"
+     }
+    },
+    {
+     "workflowVariableKey": 15,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 17,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 2,
+     "state": "active",
+     "appFeatureReferenceId": 10380106,
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "hour": 9,
+       "minute": 0,
+       "offset": {
+        "count": 3,
+        "unit": "Day"
+       },
+       "timezone": "Asia/Shanghai"
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 48,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       },
+       "item": {
+        "isOutputFieldUsed": false,
+        "nestedOutputFields": {
+         "multiple_person_mm6zap53": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {
+           "email": {
+            "isOutputFieldUsed": true,
+            "nestedOutputFields": {}
+           }
+          }
+         },
+         "name": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {}
+         }
+        }
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 47,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is empty"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 45,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 20,
+     "state": "active",
+     "appFeatureReferenceId": 12181536,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 92779,
+      "title": "<redacted>"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 12,
+     "state": "active",
+     "appFeatureReferenceId": 10380091,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       11
+      ],
+      "dependencies": [
+       11
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 3,
+     "state": "active",
+     "appFeatureReferenceId": 10518562,
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "id": "date_mm70pa4c",
+       "kind": "date"
+      },
+      "title": "Owner assigned date",
+      "dependencies": [
+       1
+      ],
+      "type": "date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 7,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status",
+      "dependencies": [
+       4,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 46,
+     "state": "active",
+     "appFeatureReferenceId": 10566016,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm7054jz",
+      "title": "Last Activity Date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 45
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 8,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New",
+      "dependencies": [
+       4,
+       7,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 7
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 9,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New",
+      "dependencies": [
+       4,
+       7,
+       6
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 4
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 7
+        },
+        "itemId": {
+         "workflowVariableKey": 6
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940356516",
+   "active": false,
+   "title": "Trigger:\n  When an update is created on this item\n\nConditions:\n  - Only if Lead…",
+   "description": "#07【活动记录】添加备注自动更新最后活动日期",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10439524,
+     "title": "When update created",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 68
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10380128,
+     "title": "If status is something",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 2
+      },
+      "shouldCheckIfStatusIsNot": {
+       "workflowVariableKey": 3
+      },
+      "itemId": {
+       "workflowVariableKey": 4
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 5
+      },
+      "desiredStatusColumnValue": {
+       "workflowVariableKey": 7
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 10380126,
+     "title": "Change status",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 8
+      },
+      "itemId": {
+       "workflowVariableKey": 9
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 10
+      },
+      "statusColumnValue": {
+       "workflowVariableKey": 11
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": null
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 3,
+     "state": "active",
+     "appFeatureReferenceId": 12354877,
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 7,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       6
+      ],
+      "dependencies": [
+       6
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 8,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 9,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 68,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 4,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 2,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 10,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status",
+      "dependencies": [
+       8,
+       9
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 8
+        },
+        "itemId": {
+         "workflowVariableKey": 9
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 5,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status",
+      "dependencies": [
+       2,
+       4
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 2
+        },
+        "itemId": {
+         "workflowVariableKey": 4
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 6,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New",
+      "dependencies": [
+       2,
+       5,
+       4
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 2
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 5
+        },
+        "itemId": {
+         "workflowVariableKey": 4
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 11,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 3,
+      "title": "In Progress",
+      "dependencies": [
+       8,
+       10,
+       9
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 8
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 10
+        },
+        "itemId": {
+         "workflowVariableKey": 9
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940357873",
+   "active": false,
+   "title": "When update created, setitemdate columntodate",
+   "description": "#06【状态推进】添加备注自动流转为跟进中",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 4,
+     "blockReferenceId": 10505052,
+     "title": "Set date",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 93
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "dateColumnId": {
+       "workflowVariableKey": 94
+      },
+      "dateColumnValue": {
+       "workflowVariableKey": 96
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": null
+    },
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10439524,
+     "title": "When update created",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 97
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 4
+       }
+      }
+     }
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 97,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 96,
+     "state": "active",
+     "primitiveType": "date",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "95",
+      "dependencies": [
+       95
+      ]
+     },
+     "transformationType": "date",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 95,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "now",
+      "title": "Now"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 93,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 94,
+     "state": "active",
+     "appFeatureReferenceId": 10380090,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm7054jz",
+      "title": "Last Activity Date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 93
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940358044",
+   "active": false,
+   "title": "Whencolumnchanges, itemstatusissomething, setitemstatustosomething",
+   "description": "#08【状态联动】字段变更自动联动状态流转",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10380147,
+     "title": "When column changes",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "columnId": {
+       "workflowVariableKey": 26
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 35
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 10380126,
+     "title": "Change status",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 32
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 33
+      },
+      "statusColumnValue": {
+       "workflowVariableKey": 34
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": null
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10380128,
+     "title": "If status is something",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 27
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "statusColumnId": {
+       "workflowVariableKey": 28
+      },
+      "shouldCheckIfStatusIsNot": {
+       "workflowVariableKey": 29
+      },
+      "desiredStatusColumnValue": {
+       "workflowVariableKey": 31
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 27,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 29,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": false,
+      "title": "is"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 31,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       30
+      ],
+      "dependencies": [
+       30
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 35,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 32,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 26,
+     "state": "active",
+     "appFeatureReferenceId": 10380108,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm7054jz",
+      "title": "Last Activity Date",
+      "type": "date"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 28,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 27
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 33,
+     "state": "active",
+     "appFeatureReferenceId": 10380084,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "color_mm6zb4tc",
+      "title": "Lead Status"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 32
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 30,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 1,
+      "title": "New"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 28
+        },
+        "itemId": {
+         "workflowVariableKey": 27
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 34,
+     "state": "active",
+     "appFeatureReferenceId": 10380094,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 3,
+      "title": "In Progress"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "statusColumnId": {
+         "workflowVariableKey": 33
+        },
+        "itemId": {
+         "workflowVariableKey": 32
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940358460",
+   "active": false,
+   "title": "Trigger:\n  When Contact owner changes\n\nConditions:\n  - Only if Contact owner is…",
+   "description": "#02【重派分配】负责人变更通知及记录分配日期",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10380147,
+     "title": "When column changes",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "columnId": {
+       "workflowVariableKey": 2
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 47
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10489132,
+     "title": "If column is empty",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 3
+      },
+      "shouldCheckIfColumnIsNotEmpty": {
+       "workflowVariableKey": 4
+      },
+      "itemId": {
+       "workflowVariableKey": 5
+      },
+      "columnId": {
+       "workflowVariableKey": 6
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 13563198,
+     "title": "Send email",
+     "inboundFieldsSourceConfig": {
+      "peopleTo": {
+       "workflowVariableKey": 8
+      },
+      "to": {
+       "workflowVariableKey": 10
+      },
+      "subject": {
+       "workflowVariableKey": 12
+      },
+      "body": {
+       "workflowVariableKey": 15
+      }
+     },
+     "credentialsSourceConfig": {
+      "gmailCredentials": {
+       "workflowVariableKey": 22
+      }
+     },
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 4
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 4,
+     "blockReferenceId": 10505052,
+     "title": "Set date",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 16
+      },
+      "dateColumnValue": {
+       "workflowVariableKey": 18
+      },
+      "itemId": {
+       "workflowVariableKey": 19
+      },
+      "dateColumnId": {
+       "workflowVariableKey": 20
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": null
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 4,
+     "state": "active",
+     "appFeatureReferenceId": 10941403,
+     "sourceKind": "user_config",
+     "config": {
+      "value": true,
+      "title": "is not empty"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 5,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 8,
+     "state": "active",
+     "appFeatureReferenceId": 10380091,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       7
+      ],
+      "dependencies": [
+       7
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 10,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"type\":\"group\",\"children\":[{\"type\":\"field\",\"variableKey\":9,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1},{\"type\":\"paragraph\",\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       9
+      ]
+     },
+     "transformationType": "multi-dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 12,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Contact Reassigned to You  – \",\"type\":\"text\",\"version\":1},{\"variableKey\":11,\"type\":\"field\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       11
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 15,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"format\":\"html\",\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"<p style=\\\"margin: 0; line-height: 22px;\\\"><span style=\\\"white-space: pre-wrap;\\\">Hi </span>\",\"type\":\"text\",\"version\":1},{\"variableKey\":13,\"type\":\"field\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"<span style=\\\"white-space: pre-wrap;\\\">, a new contact </span>\",\"type\":\"text\",\"version\":1},{\"variableKey\":14,\"type\":\"field\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"<span style=\\\"white-space: pre-wrap;\\\">has been </span><span style=\\\"white-space: pre-wrap;\\\">Reassigned to You.</span></p>\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       13,
+       14
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 7,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53"
+     }
+    },
+    {
+     "workflowVariableKey": 9,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53.email"
+     }
+    },
+    {
+     "workflowVariableKey": 11,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 13,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53.name"
+     }
+    },
+    {
+     "workflowVariableKey": 14,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 16,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 18,
+     "state": "active",
+     "primitiveType": "date",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "17",
+      "dependencies": [
+       17
+      ]
+     },
+     "transformationType": "date",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 19,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 17,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "now",
+      "title": "Now"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 3,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 47,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       },
+       "item": {
+        "isOutputFieldUsed": false,
+        "nestedOutputFields": {
+         "multiple_person_mm6zap53": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {
+           "email": {
+            "isOutputFieldUsed": true,
+            "nestedOutputFields": {}
+           },
+           "name": {
+            "isOutputFieldUsed": true,
+            "nestedOutputFields": {}
+           }
+          }
+         },
+         "name": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {}
+         }
+        }
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 22,
+     "state": "active",
+     "appFeatureReferenceId": 12181536,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 92779,
+      "title": "<redacted>"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 2,
+     "state": "active",
+     "appFeatureReferenceId": 10380108,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "multiple_person_mm6zap53",
+      "title": "Contact owner",
+      "dependencies": [
+       1
+      ],
+      "type": "people"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 6,
+     "state": "active",
+     "appFeatureReferenceId": 10566016,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "multiple_person_mm6zap53",
+      "title": "Contact owner",
+      "dependencies": [
+       3,
+       5
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 3
+        },
+        "itemId": {
+         "workflowVariableKey": 5
+        }
+       }
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 20,
+     "state": "active",
+     "appFeatureReferenceId": 10380090,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm70pa4c",
+      "title": "Owner assigned date",
+      "dependencies": [
+       16,
+       19
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 16
+        },
+        "itemId": {
+         "workflowVariableKey": 19
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940358614",
+   "active": false,
+   "title": "When an item is created, itemcolumnis empty, send anEmailtoSomeone",
+   "description": "#01【新建分配】新联系人创建即时通知",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10489132,
+     "title": "If column is empty",
+     "inboundFieldsSourceConfig": {
+      "itemId": {
+       "workflowVariableKey": 26
+      },
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "columnId": {
+       "workflowVariableKey": 27
+      },
+      "shouldCheckIfColumnIsNotEmpty": {
+       "workflowVariableKey": 28
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "binaryConditionMapping",
+      "mapping": {
+       "satisfied": {
+        "workflowNodeId": 3
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 3,
+     "blockReferenceId": 13563198,
+     "title": "Send email",
+     "inboundFieldsSourceConfig": {
+      "subject": {
+       "workflowVariableKey": 30
+      },
+      "body": {
+       "workflowVariableKey": 32
+      },
+      "peopleTo": {
+       "workflowVariableKey": 34
+      },
+      "to": {
+       "workflowVariableKey": 39
+      }
+     },
+     "credentialsSourceConfig": {
+      "gmailCredentials": {
+       "workflowVariableKey": 29
+      }
+     },
+     "nextWorkflowBlocksConfig": null
+    },
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10380130,
+     "title": "When item created",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 65
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 26,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 65,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       },
+       "item": {
+        "isOutputFieldUsed": false,
+        "nestedOutputFields": {
+         "name": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {}
+         },
+         "multiple_person_mm6zap53": {
+          "isOutputFieldUsed": true,
+          "nestedOutputFields": {
+           "email": {
+            "isOutputFieldUsed": true,
+            "nestedOutputFields": {}
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 28,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": true,
+      "title": "is not empty"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 29,
+     "state": "active",
+     "appFeatureReferenceId": 12181536,
+     "sourceKind": "user_config",
+     "config": {
+      "value": 92779,
+      "title": "<redacted>"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {}
+      }
+     }
+    },
+    {
+     "workflowVariableKey": 32,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"format\":\"html\",\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"<p style=\\\"margin: 0; line-height: 22px; text-align: start;\\\"><span style=\\\"white-space: pre-wrap;\\\">Hi {{Contact Owner Name}},</span></p><p style=\\\"margin: 0; line-height: 22px; text-align: start;\\\"><span style=\\\"white-space: pre-wrap;\\\">A contact has been assigned to you in the CRM.</span></p><p style=\\\"margin: 0; line-height: 22px; text-align: start;\\\"><span style=\\\"white-space: pre-wrap;\\\">Contact details:</span></p><ul style=\\\"list-style: disc; padding-left: 24px; margin: 0;\\\"><li value=\\\"1\\\" style=\\\"margin: 4px 0;\\\"><span style=\\\"white-space: pre-wrap;\\\">Contact Name: {{Contact Name}}</span></li><li value=\\\"2\\\" style=\\\"margin: 4px 0;\\\"><span style=\\\"white-space: pre-wrap;\\\">Company: {{Company Name}}</span></li><li value=\\\"3\\\" style=\\\"margin: 4px 0;\\\"><span style=\\\"white-space: pre-wrap;\\\">Email: {{Contact Email}}</span></li><li value=\\\"4\\\" style=\\\"margin: 4px 0;\\\"><span style=\\\"white-space: pre-wrap;\\\">Phone: {{Contact Phone}}</span></li><li value=\\\"5\\\" style=\\\"margin: 4px 0;\\\"><span style=\\\"white-space: pre-wrap;\\\">Lead Source: {{Lead Source}}</span></li><li value=\\\"6\\\" style=\\\"margin: 4px 0;\\\"><span style=\\\"white-space: pre-wrap;\\\">Assigned Time: {{Assigned Time}} (Beijing Time, UTC+8)</span></li></ul><p style=\\\"margin: 0; line-height: 22px; text-align: start;\\\"><span style=\\\"white-space: pre-wrap;\\\">Please review the contact details and follow up promptly.</span></p><p style=\\\"margin: 0; line-height: 22px; text-align: start;\\\"><span style=\\\"white-space: pre-wrap;\\\">You can access the contact here:</span><br><span style=\\\"white-space: pre-wrap;\\\">{{Monday Contact URL}}</span></p><p style=\\\"margin: 0; line-height: 22px; text-align: start;\\\"><span style=\\\"white-space: pre-wrap;\\\">Thank you,</span></p>\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": []
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 33,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53"
+     }
+    },
+    {
+     "workflowVariableKey": 34,
+     "state": "active",
+     "appFeatureReferenceId": 10380091,
+     "sourceKind": "user_config",
+     "config": {
+      "value": [
+       33
+      ],
+      "dependencies": [
+       33
+      ]
+     },
+     "transformationType": "array",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 35,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.multiple_person_mm6zap53.email"
+     }
+    },
+    {
+     "workflowVariableKey": 39,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"children\":[{\"variableKey\":35,\"type\":\"field\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"group\",\"version\":1},{\"children\":[],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       35
+      ]
+     },
+     "transformationType": "multi-dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 31,
+     "state": "active",
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "item.name"
+     }
+    },
+    {
+     "workflowVariableKey": 30,
+     "state": "active",
+     "primitiveType": "string",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"New Contact Assigned to You – {\",\"type\":\"text\",\"version\":1},{\"variableKey\":31,\"type\":\"field\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"}\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "dependencies": [
+       31
+      ]
+     },
+     "transformationType": "dynamic-text",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 27,
+     "state": "active",
+     "appFeatureReferenceId": 10566016,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "multiple_person_mm6zap53",
+      "title": "Contact owner"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 1
+        },
+        "itemId": {
+         "workflowVariableKey": 26
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "1940472437",
+   "active": true,
+   "title": "Trigger:\n  When an activity is created in Emails & Activities on this board\n  D…",
+   "description": "Trigger:\n  When an activity is created in Emails & Activities on this board\n  Details:\n    Activity type: Note\n\nActions:\n  - Set a date column to today:\n      Column: Activity bell (sync)\n      Value: today",
+   "workflow_blocks": [
+    {
+     "workflowNodeId": 1,
+     "blockReferenceId": 10439524,
+     "title": "When update created",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 1
+      },
+      "fieldsUsages": {
+       "workflowVariableKey": 7
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": {
+      "type": "directMapping",
+      "mapping": {
+       "nextWorkflowNode": {
+        "workflowNodeId": 2
+       }
+      }
+     }
+    },
+    {
+     "workflowNodeId": 2,
+     "blockReferenceId": 10505052,
+     "title": "Set date",
+     "inboundFieldsSourceConfig": {
+      "boardId": {
+       "workflowVariableKey": 2
+      },
+      "dateColumnValue": {
+       "workflowVariableKey": 4
+      },
+      "itemId": {
+       "workflowVariableKey": 5
+      },
+      "dateColumnId": {
+       "workflowVariableKey": 6
+      }
+     },
+     "credentialsSourceConfig": {},
+     "nextWorkflowBlocksConfig": null
+    }
+   ],
+   "workflow_variables": [
+    {
+     "workflowVariableKey": 7,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": {
+       "itemId": {
+        "isOutputFieldUsed": true,
+        "nestedOutputFields": {}
+       }
+      }
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 3,
+     "state": "active",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "today",
+      "title": "Today"
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 5,
+     "state": "active",
+     "appFeatureReferenceId": 10380092,
+     "sourceKind": "node_results",
+     "sourceMetadata": {
+      "workflowNodeId": 1,
+      "outboundFieldKey": "itemId"
+     }
+    },
+    {
+     "workflowVariableKey": 4,
+     "state": "active",
+     "primitiveType": "date",
+     "sourceKind": "user_config",
+     "config": {
+      "value": "3",
+      "dependencies": [
+       3
+      ]
+     },
+     "transformationType": "date",
+     "sourceMetadata": {
+      "configurationMetadata": {}
+     }
+    },
+    {
+     "workflowVariableKey": 2,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 1,
+     "state": "active",
+     "sourceKind": "host_metadata",
+     "sourceMetadata": {
+      "hostMetadataKey": "hostInstanceId"
+     }
+    },
+    {
+     "workflowVariableKey": 6,
+     "state": "active",
+     "appFeatureReferenceId": 10380090,
+     "sourceKind": "user_config",
+     "config": {
+      "value": "date_mm7pw446",
+      "title": "Activity bell (sync)",
+      "dependencies": [
+       2,
+       5
+      ]
+     },
+     "transformationType": "direct",
+     "sourceMetadata": {
+      "configurationMetadata": {
+       "dependencyConfigValues": {
+        "boardId": {
+         "workflowVariableKey": 2
+        },
+        "itemId": {
+         "workflowVariableKey": 5
+        }
+       }
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

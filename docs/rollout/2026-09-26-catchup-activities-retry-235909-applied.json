@@ -1,0 +1,50 @@
+{
+  "mode": "activities",
+  "apply": true,
+  "generatedAt": "2026-09-26T23:59:09.477Z",
+  "objects": {
+    "emails": {
+      "retriedFrom": "../docs/rollout/2026-09-26-catchup-activities-retry-222655-applied.json",
+      "inReport": 11,
+      "unsettledBefore": {
+        "request-failed": 6,
+        "never-sent": 5
+      },
+      "target": [
+        "401547310796",
+        "401456926453",
+        "401519536868",
+        "401555851995",
+        "401487693536",
+        "401528818407",
+        "401554496205",
+        "401522801353",
+        "401544774376",
+        "401552607967",
+        "401547354831"
+      ],
+      "applied": {
+        "tally": {
+          "created": 10,
+          "error": 1
+        },
+        "results": {
+          "401456926453": "created",
+          "401547310796": "created",
+          "401519536868": "created",
+          "401555851995": "created",
+          "401487693536": "created",
+          "401528818407": "created",
+          "401554496205": "error",
+          "401522801353": "created",
+          "401552607967": "created",
+          "401544774376": "created",
+          "401547354831": "created"
+        }
+      }
+    }
+  },
+  "retryOf": "../docs/rollout/2026-09-26-catchup-activities-retry-222655-applied.json",
+  "lastSentAt": "2026-09-27T00:41:38.892Z",
+  "done": true
+}

@@ -1,0 +1,586 @@
+{
+  "uid": "hubspot_monday_crm_sync_webhooks",
+  "type": "webhooks",
+  "config": {
+    "settings": {
+      "targetUrl": "https://hubspot-monday-crm-sync.askada.workers.dev/webhooks/hubspot",
+      "maxConcurrentRequests": 10
+    },
+    "subscriptions": {
+      "crmObjects": [
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "contact",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.deletion",
+          "objectType": "contact",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "contact",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "firstname",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "lastname",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "email",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "jobtitle",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "phone",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "hubspot_owner_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "hs_lead_status",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "leadsource",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "event_name",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "company",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.deletion",
+          "objectType": "company",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "company",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "name",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "domain",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "type",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "partner_with",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "city",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "state",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "zip",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "timezone",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "numberofemployees",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "annualrevenue",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "description",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "linkedin_company_page",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "hubspot_owner_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "lifecyclestage",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "priority__c",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "sales_user",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "manufacturer__c",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "notes_last_updated",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "hubspot_owner_assigneddate",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "sales_user",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "leadstatus",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "registration_date",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "mobilephone",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "department_3__c",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "industry",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "city_1__c",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "hs_state_code",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "countries",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "concrete_demand",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "utm_term",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "registration_page__c",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "lead_source_sub__c",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "hs_object_source_label",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "email",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "call",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "note",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "meeting_event",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "task",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "email",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "call",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "note",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "meeting_event",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "task",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "company",
+          "propertyName": "notes_last_updated",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.deletion",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealstage",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "pipeline",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "amount",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "closedate",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "hs_deal_stage_probability",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealtype",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "hs_priority",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "deal_currency_code",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "vendorschang_shang_lai_yuan",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "sales_user",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "hubspot_owner_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "notes_last_updated",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "line_item",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.deletion",
+          "objectType": "line_item",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.associationChange",
+          "objectType": "line_item",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hubspot_owner_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_sku",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "description",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "note",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "quantity",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "price",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_cost_of_goods_sold",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "discount",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "deposit",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "service_date",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_recurring_billing_start_date",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "brand_isv",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "family",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "product_subcategory",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_pricing_model",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "recurringbillingfrequency",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_tax_rate_group_id",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "is_active",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "hs_line_item_currency_code",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "amount",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealname",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "line_item",
+          "propertyName": "name",
+          "active": true
+        }
+      ]
+    }
+  }
+}

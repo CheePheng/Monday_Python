@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-09-30T15:54:00.528Z",
+  "apply": false,
+  "canary": false,
+  "intentLog": true,
+  "types": [
+    "emails",
+    "calls",
+    "notes",
+    "meetings",
+    "tasks"
+  ],
+  "activities": 34293,
+  "cardsChecked": 200,
+  "cardsWithDuplicates": 3,
+  "entriesToDelete": 4,
+  "identicalExtras": 4,
+  "bodylessExtras": 0,
+  "deleted": 0,
+  "deleteFailed": 0,
+  "noLongerQualifying": 0,
+  "divergentMarkers": 0,
+  "foreignItemEntries": 0,
+  "guardTripped": 0,
+  "byBoard": {
+    "contacts": 4
+  },
+  "byType": {
+    "emails": 3,
+    "tasks": 1
+  },
+  "includeCleaned": false,
+  "skippedCleaned": 0,
+  "maxLost": 5,
+  "lateCheckSeconds": 45,
+  "finalCheckSeconds": 300,
+  "keeperMissing": 0,
+  "bodyMissing": 0,
+  "keeperUnconfirmed": 0,
+  "keeperPartlyUnconfirmed": 0,
+  "keeperRechosen": 0,
+  "heldByKeeperCheck": 0,
+  "keeperLost": 0,
+  "keeperLostLate": 0,
+  "keeperOk": 0,
+  "keeperOkPartial": 0,
+  "keeperUnverified": 0,
+  "settledGroups": 0,
+  "unsettledGroups": 0,
+  "lookupProvedBy": 0,
+  "lookupUnknown": 0,
+  "toVerify": [],
+  "singleDestination": {
+    "enforced": false,
+    "allowedGroups": 0,
+    "allowedEntries": 0,
+    "heldGroups": 4,
+    "heldEntries": 4,
+    "heldByReason": {
+      "marketing": 0,
+      "unknown-activity": 0,
+      "not-a-destination": 0,
+      "multi-destination": 4,
+      "destination-unresolved": 0,
+      "duplicate-destination-cards": 0,
+      "seen-elsewhere": 0
+    },
+    "markersSeenElsewhere": 19321,
+    "sources": {
+      "applied reports": [
+        "2026-09-24-timeline-dedupe-applied.json",
+        "2026-09-24-timeline-dedupe-canary-applied.json",
+        "2026-09-26-timeline-dedupe-applied-193131.json",
+        "2026-09-26-timeline-dedupe-applied-223952.json",
+        "2026-09-26-timeline-dedupe-applied.json",
+        "2026-09-27-timeline-dedupe-retry-applied.json",
+        "2026-09-28-timeline-dedupe-canary-applied.json",
+        "2026-09-30-timeline-dedupe-applied.json"
+      ],
+      "censuses": [
+        "2026-09-28-timeline-damage-census.json",
+        "2026-09-28-timeline-restore-canary-census.json"
+      ],
+      "hand-offs": [
+        "2026-09-27-timeline-dedupe-lost-160612.json",
+        "2026-09-30-timeline-dedupe-lost-090727.json",
+        "2026-09-30-timeline-dedupe-lost-123502.json",
+        "2026-09-30-timeline-dedupe-lost-143000.json"
+      ]
+    }
+  },
+  "erroredCards": [],
+  "incompleteCards": [],
+  "cards": [
+    {
+      "kind": "contacts",
+      "card": "2856257513",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:403676836542]",
+          "keep": [
+            "a5f2b1d8-5d89-49e0-87d8-8e51798524cb"
+          ],
+          "identical": [
+            "b4bae6dd-e9d9-47c5-ae31-22c4cf927d08"
+          ],
+          "bodyless": [],
+          "singleDestination": "multi-destination"
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856257599",
+      "groups": [
+        {
+          "marker": "[hubspot:tasks:86495689615]",
+          "keep": [
+            "453cd3ff-8e83-45c9-bbdd-0468c2aea327"
+          ],
+          "identical": [
+            "cc91b308-cd52-4523-81e5-ae34a63c985b"
+          ],
+          "bodyless": [],
+          "singleDestination": "multi-destination"
+        }
+      ]
+    },
+    {
+      "kind": "contacts",
+      "card": "2856259912",
+      "groups": [
+        {
+          "marker": "[hubspot:emails:229190906565]",
+          "keep": [
+            "948c2187-41f7-46da-8f7e-4af24d716413"
+          ],
+          "identical": [
+            "dbc3ad36-479b-47da-ac74-b1d15f0b9b73"
+          ],
+          "bodyless": [],
+          "singleDestination": "multi-destination"
+        },
+        {
+          "marker": "[hubspot:emails:239840685809]",
+          "keep": [
+            "0ed1fcd6-bdd6-4dff-9ab0-0146e617cae9"
+          ],
+          "identical": [
+            "375fff4a-c765-4f71-977d-386850a39d14"
+          ],
+          "bodyless": [],
+          "singleDestination": "multi-destination"
+        }
+      ]
+    }
+  ],
+  "nextStart": 200,
+  "done": true,
+  "totalCards": 8835,
+  "start": 0
+}
